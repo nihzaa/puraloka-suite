@@ -29,6 +29,7 @@
 
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { grafikGarisSvg, svgKePng, WARNA_DERET } from '../../lib/grafik-svg.js'
 
 interface TitikKurva {
@@ -42,7 +43,7 @@ export default async function aiGrafikRoutes(app: FastifyInstance) {
   app.get<{ Params: { projectId: string }; Querystring: { format?: string } }>(
     '/api/v1/ai/grafik/kurva-s/:projectId',
     {
-      preHandler: [authenticate, requirePermission('projects:view')],
+      preHandler: [authenticate, requireModul('modul.ai'), requirePermission('projects:view')],
       config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
     },
     async (request, reply) => {

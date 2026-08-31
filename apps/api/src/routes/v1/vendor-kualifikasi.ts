@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import {
   nilaiPrakualifikasi, nilaiEvaluasi,
   type MasukanPrakualifikasi, type MasukanEvaluasi,
@@ -32,7 +33,7 @@ export default async function vendorKualifikasiRoutes(app: FastifyInstance) {
 
   // ── GET /api/v1/vendor-kualifikasi ──────────────────────────────────────
   app.get('/api/v1/vendor-kualifikasi', {
-    preHandler: [authenticate, requirePermission('procurement:view')],
+    preHandler: [authenticate, requireModul('modul.crm'), requirePermission('procurement:view')],
   }, async (request, reply) => {
     const db = request.db!
     const cid = request.companyId!
@@ -65,7 +66,7 @@ export default async function vendorKualifikasiRoutes(app: FastifyInstance) {
 
   // ── GET /api/v1/vendor-kualifikasi/evaluasi ─────────────────────────────
   app.get('/api/v1/vendor-kualifikasi/evaluasi', {
-    preHandler: [authenticate, requirePermission('procurement:view')],
+    preHandler: [authenticate, requireModul('modul.crm'), requirePermission('procurement:view')],
   }, async (request, reply) => {
     const db = request.db!
 
@@ -92,7 +93,7 @@ export default async function vendorKualifikasiRoutes(app: FastifyInstance) {
 
   // ── POST /api/v1/vendor-kualifikasi ─────────────────────────────────────
   app.post('/api/v1/vendor-kualifikasi', {
-    preHandler: [authenticate, requirePermission('procurement:po:manage')],
+    preHandler: [authenticate, requireModul('modul.crm'), requirePermission('procurement:po:manage')],
   }, async (request, reply) => {
     const b = request.body as {
       supplier_id?: string

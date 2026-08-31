@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission, hasPermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { createNotification, createNotifications } from '../../utils/notifications.js'
 import { resolveRecipients } from '../../utils/notification-routing.js'
 import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan, periksaGerbangSod } from '../../utils/approval.js'
@@ -133,7 +134,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // POST /api/v1/procurement/materials
   app.post('/api/v1/procurement/materials', {
-    preHandler: [authenticate, requirePermission('procurement:material:manage')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:material:manage')]
   }, async (request, reply) => {
     const body = request.body as {
       name: string; unit: string; category_id?: string
@@ -152,7 +153,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // PATCH /api/v1/procurement/materials/:id
   app.patch('/api/v1/procurement/materials/:id', {
-    preHandler: [authenticate, requirePermission('procurement:material:manage')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:material:manage')]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const allowed = ['name', 'unit', 'category_id', 'unit_price', 'description', 'code', 'is_active']
@@ -214,7 +215,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // POST /api/v1/procurement/suppliers
   app.post('/api/v1/procurement/suppliers', {
-    preHandler: [authenticate, requirePermission('procurement:supplier:manage')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:supplier:manage')]
   }, async (request, reply) => {
     const body = request.body as {
       name: string; contact_person?: string; phone?: string; email?: string
@@ -233,7 +234,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // PATCH /api/v1/procurement/suppliers/:id
   app.patch('/api/v1/procurement/suppliers/:id', {
-    preHandler: [authenticate, requirePermission('procurement:supplier:manage')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:supplier:manage')]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const allowed = ['name', 'contact_person', 'phone', 'email', 'address', 'city', 'payment_terms', 'credit_limit', 'notes', 'code', 'is_active']
@@ -308,7 +309,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // POST /api/v1/procurement/material-requests
   app.post('/api/v1/procurement/material-requests', {
-    preHandler: [authenticate, requirePermission('procurement:mr:manage')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:mr:manage')]
   }, async (request, reply) => {
     const body = request.body as {
       project_id: string; needed_date?: string; notes?: string
@@ -361,7 +362,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
   // Dipisah dari pencatatan supaya UI bisa menampilkan pratinjau sebelum kirim:
   // teks yang keluar ke pihak ketiga layak dilihat dulu oleh yang mengirim.
   app.get('/api/v1/procurement/purchase-orders/:id/delivery-message', {
-    preHandler: [authenticate, requirePermission('procurement:view')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:view')]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const { data: po } = await request.db!
@@ -427,7 +428,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
   // status `sent`, bukan `confirmed`. Perbedaan itu dipertahankan supaya tak ada
   // yang membaca jejak ini sebagai bukti supplier sudah menerima.
   app.post('/api/v1/procurement/purchase-orders/:id/delivery-log', {
-    preHandler: [authenticate, requirePermission('procurement:po:manage')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:po:manage')]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const body = (request.body ?? {}) as {
@@ -484,7 +485,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // GET .../delivery-log — riwayat pengiriman satu PO.
   app.get('/api/v1/procurement/purchase-orders/:id/delivery-log', {
-    preHandler: [authenticate, requirePermission('procurement:view')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:view')]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const { data: po } = await request.db!
@@ -504,7 +505,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
   // ── Modul 9a — kuota RAB material per proyek ─────────────────────────────
   // GET /api/v1/projects/:projectId/rab-materials
   app.get('/api/v1/projects/:projectId/rab-materials', {
-    preHandler: [authenticate, requirePermission('procurement:view')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:view')]
   }, async (request, reply) => {
     const { projectId } = request.params as { projectId: string }
     if ((await proyekBolehDibaca(request, projectId)) === null) {
@@ -551,7 +552,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // PUT /api/v1/projects/:projectId/rab-materials — set/ubah kuota satu material
   app.put('/api/v1/projects/:projectId/rab-materials', {
-    preHandler: [authenticate, requirePermission('procurement:mr:manage')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:mr:manage')]
   }, async (request, reply) => {
     const { projectId } = request.params as { projectId: string }
     const body = request.body as {
@@ -591,7 +592,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
   // Pemeriksaan KERING: memberi tahu hasilnya tanpa mengubah apa pun, supaya UI
   // bisa memperingatkan SEBELUM pengguna menekan submit dan ditolak 422.
   app.get('/api/v1/procurement/material-requests/:id/quota-check', {
-    preHandler: [authenticate, requirePermission('procurement:view')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:view')]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const { data: mr } = await request.db!
@@ -611,7 +612,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // PATCH /api/v1/procurement/material-requests/:id/submit
   app.patch('/api/v1/procurement/material-requests/:id/submit', {
-    preHandler: [authenticate, requirePermission('procurement:mr:manage')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:mr:manage')]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     // T4i: MR kategori C via project_id — tanpa saringan ini, tenant A men-submit
@@ -901,7 +902,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // POST /api/v1/procurement/purchase-orders
   app.post('/api/v1/procurement/purchase-orders', {
-    preHandler: [authenticate, requirePermission('procurement:po:manage')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:po:manage')]
   }, async (request, reply) => {
     const body = request.body as {
       project_id: string; supplier_id: string; mr_id?: string
@@ -955,7 +956,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // PATCH /api/v1/procurement/purchase-orders/:id/status
   app.patch('/api/v1/procurement/purchase-orders/:id/status', {
-    preHandler: [authenticate, requirePermission('procurement:po:manage')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:po:manage')]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const { status } = request.body as { status: string }
@@ -1181,7 +1182,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // POST /api/v1/procurement/goods-receipts — buat GR baru dari PO
   app.post('/api/v1/procurement/goods-receipts', {
-    preHandler: [authenticate, requirePermission('procurement:po:manage')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:po:manage')]
   }, async (request, reply) => {
     const body = request.body as {
       po_id: string; receipt_date?: string; delivery_note_number?: string; notes?: string
@@ -1274,7 +1275,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // PATCH /api/v1/procurement/goods-receipts/:id/confirm — konfirmasi GR → update stok
   app.patch('/api/v1/procurement/goods-receipts/:id/confirm', {
-    preHandler: [authenticate, requirePermission('procurement:po:manage')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:po:manage')]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     // T4i: konfirmasi GR memicu trigger penambahan STOK + auto-create
@@ -1424,7 +1425,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
   // 3-way match (PETA-PRIORITAS §3 #2): wajib ter-link GR, satu GR satu invoice,
   // total tidak boleh melebihi nilai GR pada harga PO.
   app.post('/api/v1/procurement/supplier-invoices', {
-    preHandler: [authenticate, requirePermission('procurement:po:manage')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:po:manage')]
   }, async (request, reply) => {
     const body = request.body as {
       supplier_id: string; goods_receipt_id?: string; invoice_number?: string
@@ -1529,7 +1530,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // POST /api/v1/procurement/supplier-payments — catat pembayaran ke supplier
   app.post('/api/v1/procurement/supplier-payments', {
-    preHandler: [authenticate, requirePermission('procurement:payment:manage')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:payment:manage')]
   }, async (request, reply) => {
     // Gerbang idempotensi (F1-1). `supplier_payments` punya
     // `trg_update_cash_on_supplier_payment` — baris ganda berarti kas terpotong
@@ -1609,7 +1610,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // GET /api/v1/procurement/supplier-payments — riwayat pembayaran (untuk kas page)
   app.get('/api/v1/procurement/supplier-payments', {
-    preHandler: [authenticate, requirePermission('procurement:view')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:view')]
   }, async (request, reply) => {
     const query = request.query as { cash_account_id?: string; supplier_id?: string; limit?: string }
     let q = request.db!
@@ -1633,7 +1634,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // GET /api/v1/procurement/supplier-invoices/overdue — alert jatuh tempo
   app.get('/api/v1/procurement/supplier-invoices/overdue', {
-    preHandler: [authenticate, requirePermission('procurement:view')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:view')]
   }, async (request, reply) => {
     const today = new Date()
     const in3days = new Date(today); in3days.setDate(today.getDate() + 3)
@@ -1702,7 +1703,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // POST /api/v1/procurement/stocks/usage — Catat pemakaian / return / adjustment manual
   app.post('/api/v1/procurement/stocks/usage', {
-    preHandler: [authenticate, requirePermission('procurement:view')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:view')]
   }, async (request, reply) => {
     const body = request.body as {
       project_id: string; material_id: string
@@ -1790,7 +1791,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // DELETE /api/v1/procurement/material-requests/:id — hapus MR draft
   app.delete('/api/v1/procurement/material-requests/:id', {
-    preHandler: [authenticate, requirePermission('procurement:mr:manage')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:mr:manage')]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     // T4i: MR kategori C — saringan di fetch; aksi di bawah memakai `id`
@@ -1810,7 +1811,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // POST /api/v1/procurement/material-requests/:id/items — tambah item ke MR draft
   app.post('/api/v1/procurement/material-requests/:id/items', {
-    preHandler: [authenticate, requirePermission('procurement:mr:manage')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:mr:manage')]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     // T4i: MR kategori C — saringan di fetch; aksi di bawah memakai `id`
@@ -1832,7 +1833,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // DELETE /api/v1/procurement/material-requests/:id/items/:itemId — hapus item MR draft
   app.delete('/api/v1/procurement/material-requests/:id/items/:itemId', {
-    preHandler: [authenticate, requirePermission('procurement:mr:manage')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:mr:manage')]
   }, async (request, reply) => {
     const { id, itemId } = request.params as { id: string; itemId: string }
     // T4i: MR kategori C — saringan di fetch; aksi di bawah memakai `id`
@@ -1848,7 +1849,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // PATCH /api/v1/procurement/purchase-orders/:id/cancel — batalkan PO
   app.patch('/api/v1/procurement/purchase-orders/:id/cancel', {
-    preHandler: [authenticate, requirePermission('procurement:po:manage')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:po:manage')]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const { notes } = (request.body ?? {}) as { notes?: string }
@@ -1901,7 +1902,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // GET /api/v1/procurement/dashboard — KPI summary
   app.get('/api/v1/procurement/dashboard', {
-    preHandler: [authenticate, requirePermission('procurement:view')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:view')]
   }, async (request, _reply) => {   // `_reply`: handler ini memulangkan objek, tak pernah menyentuh reply
     const today = new Date().toISOString().split('T')[0]
     const in7days = new Date(); in7days.setDate(in7days.getDate() + 7)
@@ -1948,7 +1949,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // GET /api/v1/procurement/reports/purchases — rekap pembelian per periode
   app.get('/api/v1/procurement/reports/purchases', {
-    preHandler: [authenticate, requirePermission('procurement:view')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:view')]
   }, async (request, reply) => {
     const { from, to, supplier_id, project_id } = request.query as Record<string, string>
     let q = supabase
@@ -1997,7 +1998,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // GET /api/v1/procurement/reports/aging — aging hutang supplier
   app.get('/api/v1/procurement/reports/aging', {
-    preHandler: [authenticate, requirePermission('procurement:view')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:view')]
   }, async (request, reply) => {
     const today = new Date()
     const { data, error } = await request.db!
@@ -2026,7 +2027,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // PATCH /api/v1/procurement/materials/:id/min-stock — set stok minimum
   app.patch('/api/v1/procurement/materials/:id/min-stock', {
-    preHandler: [authenticate, requirePermission('procurement:material:manage')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:material:manage')]
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const { min_stock } = request.body as { min_stock: number }
@@ -2038,7 +2039,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
   // POST /api/v1/procurement/stocks/opname — Opname stok mingguan (bulk)
   app.post('/api/v1/procurement/stocks/opname', {
-    preHandler: [authenticate, requirePermission('procurement:view')]
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:view')]
   }, async (request, reply) => {
     const body = request.body as {
       project_id: string; notes?: string

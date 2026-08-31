@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import {
@@ -47,7 +48,7 @@ export default async function mutuRoutes(app: FastifyInstance) {
   // Butir pemeriksaan satu inspeksi, beserta ringkasannya.
   app.get<{ Params: { inspectionId: string } }>(
     '/api/v1/inspeksi/:inspectionId/checklist',
-    { preHandler: [authenticate, requirePermission('ncr:view')] },
+    { preHandler: [authenticate, requireModul('modul.uji_mutu'), requirePermission('ncr:view')] },
     async (request, reply) => {
       const { inspectionId } = request.params
 
@@ -97,7 +98,7 @@ export default async function mutuRoutes(app: FastifyInstance) {
     Body: { butir?: string; acuan?: string; urutan?: number }
   }>(
     '/api/v1/inspeksi/:inspectionId/checklist',
-    { preHandler: [authenticate, requirePermission('ncr:manage')] },
+    { preHandler: [authenticate, requireModul('modul.uji_mutu'), requirePermission('ncr:manage')] },
     async (request, reply) => {
       const { inspectionId } = request.params
       const b = request.body
@@ -140,7 +141,7 @@ export default async function mutuRoutes(app: FastifyInstance) {
     Body: { lolos?: boolean | null; catatan?: string | null }
   }>(
     '/api/v1/checklist/:id',
-    { preHandler: [authenticate, requirePermission('ncr:manage')] },
+    { preHandler: [authenticate, requireModul('modul.uji_mutu'), requirePermission('ncr:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -192,7 +193,7 @@ export default async function mutuRoutes(app: FastifyInstance) {
   // ── GET /projects/:projectId/uji-material ───────────────────────────────
   app.get<{ Params: { projectId: string } }>(
     '/api/v1/projects/:projectId/uji-material',
-    { preHandler: [authenticate, requirePermission('mutu:uji:view')] },
+    { preHandler: [authenticate, requireModul('modul.uji_mutu'), requirePermission('mutu:uji:view')] },
     async (request, reply) => {
       const { projectId } = request.params
       if (!(await proyekMilikTenant(request, projectId))) {
@@ -232,7 +233,7 @@ export default async function mutuRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/projects/:projectId/uji-material',
-    { preHandler: [authenticate, requirePermission('mutu:uji:manage')] },
+    { preHandler: [authenticate, requireModul('modul.uji_mutu'), requirePermission('mutu:uji:manage')] },
     async (request, reply) => {
       const { projectId } = request.params
       const b = request.body

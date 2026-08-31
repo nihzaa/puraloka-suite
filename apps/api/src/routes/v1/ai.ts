@@ -38,6 +38,7 @@
 
 import type { FastifyInstance } from 'fastify'
 import { authenticate } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import {
   PROMPT_SISTEM,
   SKEMA_JAWABAN,
@@ -83,7 +84,7 @@ const MODEL_JATUHAN = process.env.ANTHROPIC_MODEL?.trim() || 'claude-haiku-4-5'
 
 export default async function aiRoutes(app: FastifyInstance) {
   app.get('/api/v1/ai/insight', {
-    preHandler: [authenticate],
+    preHandler: [authenticate, requireModul('modul.ai')],
     config: {
       // Panggilan berbayar ke pihak ketiga. Tanpa batas, satu tab yang
       // menyegarkan otomatis bisa menghabiskan kuota sebulan dalam semalam.

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import {
   susunJurnalInvoice, susunJurnalPembayaran, periksaKesiapanPeta,
@@ -66,7 +67,7 @@ export default async function penjurnalanOtomatisRoutes(app: FastifyInstance) {
   // ── GET /gl/peta-akun ────────────────────────────────────────────────────
   app.get(
     '/api/v1/gl/peta-akun',
-    { preHandler: [authenticate, requirePermission('gl:peta-akun:view')] },
+    { preHandler: [authenticate, requireModul('modul.akuntansi'), requirePermission('gl:peta-akun:view')] },
     async (request, reply) => {
       const { data, error } = await request.db!
         .from('peta_akun_jurnal')
@@ -108,7 +109,7 @@ export default async function penjurnalanOtomatisRoutes(app: FastifyInstance) {
   // ── PUT /gl/peta-akun/:jenis ─────────────────────────────────────────────
   app.put<{ Params: { jenis: string }; Body: { account_id?: string; catatan?: string } }>(
     '/api/v1/gl/peta-akun/:jenis',
-    { preHandler: [authenticate, requirePermission('gl:peta-akun:manage')] },
+    { preHandler: [authenticate, requireModul('modul.akuntansi'), requirePermission('gl:peta-akun:manage')] },
     async (request, reply) => {
       const { jenis } = request.params
       const b = request.body
@@ -168,7 +169,7 @@ export default async function penjurnalanOtomatisRoutes(app: FastifyInstance) {
   // ── GET /gl/jurnalkan/invoice — apa yang BELUM dijurnalkan ───────────────
   app.get<{ Querystring: { proyek?: string } }>(
     '/api/v1/gl/jurnalkan/invoice',
-    { preHandler: [authenticate, requirePermission('gl:jurnalkan')] },
+    { preHandler: [authenticate, requireModul('modul.akuntansi'), requirePermission('gl:jurnalkan')] },
     async (request, reply) => {
       const peta = await bacaPeta(request.db!)
       if ('galat' in peta) {
@@ -248,7 +249,7 @@ export default async function penjurnalanOtomatisRoutes(app: FastifyInstance) {
   // ── POST /gl/jurnalkan/invoice/:id ───────────────────────────────────────
   app.post<{ Params: { id: string } }>(
     '/api/v1/gl/jurnalkan/invoice/:id',
-    { preHandler: [authenticate, requirePermission('gl:jurnalkan')] },
+    { preHandler: [authenticate, requireModul('modul.akuntansi'), requirePermission('gl:jurnalkan')] },
     async (request, reply) => {
       const { id } = request.params
 
@@ -403,7 +404,7 @@ export default async function penjurnalanOtomatisRoutes(app: FastifyInstance) {
   // ── POST /gl/jurnalkan/pembayaran/:id ────────────────────────────────────
   app.post<{ Params: { id: string } }>(
     '/api/v1/gl/jurnalkan/pembayaran/:id',
-    { preHandler: [authenticate, requirePermission('gl:jurnalkan')] },
+    { preHandler: [authenticate, requireModul('modul.akuntansi'), requirePermission('gl:jurnalkan')] },
     async (request, reply) => {
       const { id } = request.params
 

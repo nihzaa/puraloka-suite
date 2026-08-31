@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import {
   nilaiRisiko, ringkasRegister, nilaiIzin, kesiapanIzin,
@@ -93,7 +94,7 @@ export default async function risikoProyekRoutes(app: FastifyInstance) {
   // bersamaan (§2 migrasi 291).
   app.get<{ Params: { id: string }; Querystring: { pada?: string } }>(
     '/api/v1/proyek/:id/risiko',
-    { preHandler: [authenticate, requirePermission('risiko:view')] },
+    { preHandler: [authenticate, requireModul('modul.risiko'), requirePermission('risiko:view')] },
     async (request, reply) => {
       const { id } = request.params
       const pada = request.query.pada ?? hariIni()
@@ -181,7 +182,7 @@ export default async function risikoProyekRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/proyek/:id/risiko',
-    { preHandler: [authenticate, requirePermission('risiko:manage')] },
+    { preHandler: [authenticate, requireModul('modul.risiko'), requirePermission('risiko:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -268,7 +269,7 @@ export default async function risikoProyekRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/risiko/:id',
-    { preHandler: [authenticate, requirePermission('risiko:manage')] },
+    { preHandler: [authenticate, requireModul('modul.risiko'), requirePermission('risiko:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -396,7 +397,7 @@ export default async function risikoProyekRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/risiko/:id/mitigasi',
-    { preHandler: [authenticate, requirePermission('risiko:manage')] },
+    { preHandler: [authenticate, requireModul('modul.risiko'), requirePermission('risiko:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -466,7 +467,7 @@ export default async function risikoProyekRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/mitigasi/:id',
-    { preHandler: [authenticate, requirePermission('risiko:manage')] },
+    { preHandler: [authenticate, requireModul('modul.risiko'), requirePermission('risiko:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -537,7 +538,7 @@ export default async function risikoProyekRoutes(app: FastifyInstance) {
   // sebelum proyek selesai sudah bermasalah HARI INI (§ kepala pustaka).
   app.get<{ Params: { id: string }; Querystring: { pada?: string; ambang?: string } }>(
     '/api/v1/proyek/:id/izin',
-    { preHandler: [authenticate, requirePermission('izin:view')] },
+    { preHandler: [authenticate, requireModul('modul.risiko'), requirePermission('izin:view')] },
     async (request, reply) => {
       const { id } = request.params
       const pada = request.query.pada ?? hariIni()
@@ -590,7 +591,7 @@ export default async function risikoProyekRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/proyek/:id/izin',
-    { preHandler: [authenticate, requirePermission('izin:manage')] },
+    { preHandler: [authenticate, requireModul('modul.risiko'), requirePermission('izin:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -691,7 +692,7 @@ export default async function risikoProyekRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/izin-proyek/:id',
-    { preHandler: [authenticate, requirePermission('izin:manage')] },
+    { preHandler: [authenticate, requireModul('modul.risiko'), requirePermission('izin:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -780,7 +781,7 @@ export default async function risikoProyekRoutes(app: FastifyInstance) {
   // ── GET /proyek/:id/sengketa ─────────────────────────────────────────────
   app.get<{ Params: { id: string }; Querystring: { pada?: string } }>(
     '/api/v1/proyek/:id/sengketa',
-    { preHandler: [authenticate, requirePermission('sengketa:view')] },
+    { preHandler: [authenticate, requireModul('modul.risiko'), requirePermission('sengketa:view')] },
     async (request, reply) => {
       const { id } = request.params
       const pada = request.query.pada ?? hariIni()
@@ -830,7 +831,7 @@ export default async function risikoProyekRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/proyek/:id/sengketa',
-    { preHandler: [authenticate, requirePermission('sengketa:manage')] },
+    { preHandler: [authenticate, requireModul('modul.risiko'), requirePermission('sengketa:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -930,7 +931,7 @@ export default async function risikoProyekRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/sengketa/:id/tahap',
-    { preHandler: [authenticate, requirePermission('sengketa:manage')] },
+    { preHandler: [authenticate, requireModul('modul.risiko'), requirePermission('sengketa:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body

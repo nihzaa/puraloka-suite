@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import {
   ringkasSertifikat, periksaSyarat, ringkasKinerja, bolehPindahTahap,
@@ -59,7 +60,7 @@ export default async function kompetensiSdmRoutes(app: FastifyInstance) {
   // ── GET /sdm/pegawai/:id/kompetensi ──────────────────────────────────────
   app.get<{ Params: { id: string }; Querystring: { pada?: string; ambang?: string } }>(
     '/api/v1/sdm/pegawai/:id/kompetensi',
-    { preHandler: [authenticate, requirePermission('sdm:sertifikat:view')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('sdm:sertifikat:view')] },
     async (request, reply) => {
       const { id } = request.params
       const pada = request.query.pada ?? hariIni()
@@ -125,7 +126,7 @@ export default async function kompetensiSdmRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/sdm/pegawai/:id/sertifikat',
-    { preHandler: [authenticate, requirePermission('sdm:sertifikat:manage')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('sdm:sertifikat:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -195,7 +196,7 @@ export default async function kompetensiSdmRoutes(app: FastifyInstance) {
     Body: { pada?: string; syarat?: SyaratKompetensi[] }
   }>(
     '/api/v1/sdm/periksa-syarat',
-    { preHandler: [authenticate, requirePermission('sdm:sertifikat:view')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('sdm:sertifikat:view')] },
     async (request, reply) => {
       const b = request.body
       const pada = b.pada ?? hariIni()
@@ -278,7 +279,7 @@ export default async function kompetensiSdmRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/sdm/pegawai/:id/penilaian',
-    { preHandler: [authenticate, requirePermission('sdm:kinerja:manage')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('sdm:kinerja:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -383,7 +384,7 @@ export default async function kompetensiSdmRoutes(app: FastifyInstance) {
   // ── GET /sdm/lamaran ─────────────────────────────────────────────────────
   app.get(
     '/api/v1/sdm/lamaran',
-    { preHandler: [authenticate, requirePermission('sdm:rekrutmen:view')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('sdm:rekrutmen:view')] },
     async (request, reply) => {
       const { data, error } = await request.db!
         .from('lamaran_kerja')
@@ -403,7 +404,7 @@ export default async function kompetensiSdmRoutes(app: FastifyInstance) {
     Body: { nama?: string; posisi?: string; email?: string; telepon?: string; sumber?: string }
   }>(
     '/api/v1/sdm/lamaran',
-    { preHandler: [authenticate, requirePermission('sdm:rekrutmen:manage')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('sdm:rekrutmen:manage')] },
     async (request, reply) => {
       const b = request.body
       if (!b.nama?.trim()) return reply.status(400).send({ error: 'nama wajib diisi' })
@@ -437,7 +438,7 @@ export default async function kompetensiSdmRoutes(app: FastifyInstance) {
     Body: { tahap?: string; catatan?: string; pegawai_id?: string }
   }>(
     '/api/v1/sdm/lamaran/:id/tahap',
-    { preHandler: [authenticate, requirePermission('sdm:rekrutmen:manage')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('sdm:rekrutmen:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body

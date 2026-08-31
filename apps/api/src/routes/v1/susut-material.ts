@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { periksaRencana, periksaFaktor } from '../../lib/susut-material.js'
 
@@ -39,7 +40,7 @@ export default async function susutMaterialRoutes(app: FastifyInstance) {
   // ── GET /gudang/susut/peta ───────────────────────────────────────────────
   app.get(
     '/api/v1/gudang/susut/peta',
-    { preHandler: [authenticate, requirePermission('gudang:susut:view')] },
+    { preHandler: [authenticate, requireModul('modul.gudang'), requirePermission('gudang:susut:view')] },
     async (request, reply) => {
       const { data, error } = await request.db!
         .from('peta_resource_material')
@@ -76,7 +77,7 @@ export default async function susutMaterialRoutes(app: FastifyInstance) {
   // ── GET /gudang/susut/resource — pencarian untuk pemilih ─────────────────
   app.get<{ Querystring: { cari?: string } }>(
     '/api/v1/gudang/susut/resource',
-    { preHandler: [authenticate, requirePermission('gudang:susut:view')] },
+    { preHandler: [authenticate, requireModul('modul.gudang'), requirePermission('gudang:susut:view')] },
     async (request, reply) => {
       const cari = (request.query.cari ?? '').trim()
 
@@ -120,7 +121,7 @@ export default async function susutMaterialRoutes(app: FastifyInstance) {
   // ── PUT /gudang/susut/peta ───────────────────────────────────────────────
   app.put<{ Body: { resource_id?: string; material_id?: string; faktor?: number | string; catatan?: string } }>(
     '/api/v1/gudang/susut/peta',
-    { preHandler: [authenticate, requirePermission('gudang:susut:manage')] },
+    { preHandler: [authenticate, requireModul('modul.gudang'), requirePermission('gudang:susut:manage')] },
     async (request, reply) => {
       const b = request.body ?? {}
       if (!b.resource_id) return reply.status(400).send({ error: 'resource_id wajib diisi' })
@@ -161,7 +162,7 @@ export default async function susutMaterialRoutes(app: FastifyInstance) {
   // ── DELETE /gudang/susut/peta/:id ────────────────────────────────────────
   app.delete<{ Params: { id: string } }>(
     '/api/v1/gudang/susut/peta/:id',
-    { preHandler: [authenticate, requirePermission('gudang:susut:manage')] },
+    { preHandler: [authenticate, requireModul('modul.gudang'), requirePermission('gudang:susut:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const { data, error } = await request.db!
@@ -183,7 +184,7 @@ export default async function susutMaterialRoutes(app: FastifyInstance) {
   // ── GET /gudang/susut/rencana ────────────────────────────────────────────
   app.get(
     '/api/v1/gudang/susut/rencana',
-    { preHandler: [authenticate, requirePermission('gudang:susut:view')] },
+    { preHandler: [authenticate, requireModul('modul.gudang'), requirePermission('gudang:susut:view')] },
     async (request, reply) => {
       const { data, error } = await request.db!
         .from('rencana_susut_material')
@@ -200,7 +201,7 @@ export default async function susutMaterialRoutes(app: FastifyInstance) {
   // ── PUT /gudang/susut/rencana ────────────────────────────────────────────
   app.put<{ Body: { material_id?: string; susut_persen?: number | string; dasar?: string } }>(
     '/api/v1/gudang/susut/rencana',
-    { preHandler: [authenticate, requirePermission('gudang:susut:manage')] },
+    { preHandler: [authenticate, requireModul('modul.gudang'), requirePermission('gudang:susut:manage')] },
     async (request, reply) => {
       const b = request.body ?? {}
       if (!b.material_id) return reply.status(400).send({ error: 'material_id wajib diisi' })

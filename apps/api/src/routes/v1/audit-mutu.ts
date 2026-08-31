@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import {
   ringkasTemuan, bolehDiselesaikan,
@@ -45,7 +46,7 @@ export default async function auditMutuRoutes(app: FastifyInstance) {
   // ── GET /projects/:projectId/audit-mutu ──────────────────────────────────
   app.get<{ Params: { projectId: string } }>(
     '/api/v1/projects/:projectId/audit-mutu',
-    { preHandler: [authenticate, requirePermission('ncr:view')] },
+    { preHandler: [authenticate, requireModul('modul.uji_mutu'), requirePermission('ncr:view')] },
     async (request, reply) => {
       const { projectId } = request.params
 
@@ -68,7 +69,7 @@ export default async function auditMutuRoutes(app: FastifyInstance) {
   // ── GET /audit-mutu/:id — satu audit beserta temuannya ───────────────────
   app.get<{ Params: { id: string } }>(
     '/api/v1/audit-mutu/:id',
-    { preHandler: [authenticate, requirePermission('ncr:view')] },
+    { preHandler: [authenticate, requireModul('modul.uji_mutu'), requirePermission('ncr:view')] },
     async (request, reply) => {
       const { id } = request.params
 
@@ -118,7 +119,7 @@ export default async function auditMutuRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/projects/:projectId/audit-mutu',
-    { preHandler: [authenticate, requirePermission('ncr:manage')] },
+    { preHandler: [authenticate, requireModul('modul.uji_mutu'), requirePermission('ncr:manage')] },
     async (request, reply) => {
       const { projectId } = request.params
       const b = request.body
@@ -169,7 +170,7 @@ export default async function auditMutuRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/audit-mutu/:id/temuan',
-    { preHandler: [authenticate, requirePermission('ncr:manage')] },
+    { preHandler: [authenticate, requireModul('modul.uji_mutu'), requirePermission('ncr:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -243,7 +244,7 @@ export default async function auditMutuRoutes(app: FastifyInstance) {
     Body: { ncr_id?: string | null; tutup?: boolean; catatan_penutupan?: string | null }
   }>(
     '/api/v1/temuan-audit/:id',
-    { preHandler: [authenticate, requirePermission('ncr:manage')] },
+    { preHandler: [authenticate, requireModul('modul.uji_mutu'), requirePermission('ncr:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -296,7 +297,7 @@ export default async function auditMutuRoutes(app: FastifyInstance) {
   // lebih baik daripada penolakan yang mengejutkan.
   app.post<{ Params: { id: string }; Body: { kesimpulan?: string } }>(
     '/api/v1/audit-mutu/:id/selesaikan',
-    { preHandler: [authenticate, requirePermission('ncr:manage')] },
+    { preHandler: [authenticate, requireModul('modul.uji_mutu'), requirePermission('ncr:manage')] },
     async (request, reply) => {
       const { id } = request.params
 

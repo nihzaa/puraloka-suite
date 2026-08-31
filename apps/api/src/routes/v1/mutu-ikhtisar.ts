@@ -28,6 +28,7 @@
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { authenticate } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 
 interface BarisNcr {
   nomor: string | null
@@ -206,7 +207,7 @@ export default async function mutuIkhtisarRoutes(app: FastifyInstance) {
    */
   app.get(
     '/api/v1/mutu/ikhtisar',
-    { preHandler: [authenticate] },
+    { preHandler: [authenticate, requireModul('modul.uji_mutu')] },
     async (request, reply) => {
       try {
         return reply.send(await ringkasMutu(request))

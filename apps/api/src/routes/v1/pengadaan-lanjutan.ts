@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import {
   nilaiKontrakPayung, bolehTarikKuota, nilaiExpediting, nilaiNotaKredit,
   type KontrakPayung, type ItemPayung, type Expediting, type NotaKredit,
@@ -29,7 +30,7 @@ export default async function pengadaanLanjutanRoutes(app: FastifyInstance) {
 
   // ── GET /api/v1/pengadaan-lanjutan ──────────────────────────────────────
   app.get('/api/v1/pengadaan-lanjutan', {
-    preHandler: [authenticate, requirePermission('procurement:view')],
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:view')],
   }, async (request, reply) => {
     const db = request.db!
     const cid = request.companyId!
@@ -151,7 +152,7 @@ export default async function pengadaanLanjutanRoutes(app: FastifyInstance) {
 
   // ── POST /api/v1/pengadaan-lanjutan/kontrak ─────────────────────────────
   app.post('/api/v1/pengadaan-lanjutan/kontrak', {
-    preHandler: [authenticate, requirePermission('procurement:po:manage')],
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:po:manage')],
   }, async (request, reply) => {
     const b = request.body as {
       supplier_id?: string
@@ -258,7 +259,7 @@ export default async function pengadaanLanjutanRoutes(app: FastifyInstance) {
   // pesannya menyebut sisa berapa — constraint DB menolak dengan 23514 yang
   // tak memberi tahu angkanya, dan yang mengisi form butuh angkanya.
   app.post('/api/v1/pengadaan-lanjutan/tarik-kuota', {
-    preHandler: [authenticate, requirePermission('procurement:po:manage')],
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:po:manage')],
   }, async (request, reply) => {
     const b = request.body as { item_id?: string; jumlah?: number; po_id?: string }
 
@@ -363,7 +364,7 @@ export default async function pengadaanLanjutanRoutes(app: FastifyInstance) {
 
   // ── POST /api/v1/pengadaan-lanjutan/expediting ──────────────────────────
   app.post('/api/v1/pengadaan-lanjutan/expediting', {
-    preHandler: [authenticate, requirePermission('procurement:po:manage')],
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:po:manage')],
   }, async (request, reply) => {
     const b = request.body as {
       po_id?: string
@@ -426,7 +427,7 @@ export default async function pengadaanLanjutanRoutes(app: FastifyInstance) {
 
   // ── PATCH /api/v1/pengadaan-lanjutan/expediting/:id ─────────────────────
   app.patch('/api/v1/pengadaan-lanjutan/expediting/:id', {
-    preHandler: [authenticate, requirePermission('procurement:po:manage')],
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:po:manage')],
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const b = request.body as {
@@ -489,7 +490,7 @@ export default async function pengadaanLanjutanRoutes(app: FastifyInstance) {
 
   // ── POST /api/v1/pengadaan-lanjutan/nota-kredit ─────────────────────────
   app.post('/api/v1/pengadaan-lanjutan/nota-kredit', {
-    preHandler: [authenticate, requirePermission('procurement:po:manage')],
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:po:manage')],
   }, async (request, reply) => {
     const b = request.body as {
       supplier_id?: string
@@ -559,7 +560,7 @@ export default async function pengadaanLanjutanRoutes(app: FastifyInstance) {
 
   // ── PATCH /api/v1/pengadaan-lanjutan/nota-kredit/:id/putuskan ───────────
   app.patch('/api/v1/pengadaan-lanjutan/nota-kredit/:id/putuskan', {
-    preHandler: [authenticate, requirePermission('procurement:payment:manage')],
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:payment:manage')],
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const b = request.body as { setujui?: boolean; alasan_tolak?: string }
@@ -635,7 +636,7 @@ export default async function pengadaanLanjutanRoutes(app: FastifyInstance) {
   // disetujui dan diterapkan adalah dua kejadian berbeda, dan jarak di
   // antaranya persis yang membuat uang hilang dengan persetujuan lengkap.
   app.patch('/api/v1/pengadaan-lanjutan/nota-kredit/:id/terapkan', {
-    preHandler: [authenticate, requirePermission('procurement:payment:manage')],
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:payment:manage')],
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const db = request.db!

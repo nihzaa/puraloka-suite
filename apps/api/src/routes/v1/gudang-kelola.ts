@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 
 /**
@@ -29,7 +30,7 @@ export default async function gudangKelolaRoutes(app: FastifyInstance) {
   // ── GET /api/v1/gudang ───────────────────────────────────────────────────
   app.get<{ Querystring: { aktif?: string } }>(
     '/api/v1/gudang',
-    { preHandler: [authenticate, requirePermission('gudang:view')] },
+    { preHandler: [authenticate, requireModul('modul.gudang'), requirePermission('gudang:view')] },
     async (request, reply) => {
       const db = request.db!
 
@@ -87,7 +88,7 @@ export default async function gudangKelolaRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/gudang',
-    { preHandler: [authenticate, requirePermission('gudang:manage')] },
+    { preHandler: [authenticate, requireModul('modul.gudang'), requirePermission('gudang:manage')] },
     async (request, reply) => {
       const db = request.db!
       const b = request.body
@@ -157,7 +158,7 @@ export default async function gudangKelolaRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/gudang/:id',
-    { preHandler: [authenticate, requirePermission('gudang:manage')] },
+    { preHandler: [authenticate, requireModul('modul.gudang'), requirePermission('gudang:manage')] },
     async (request, reply) => {
       const db = request.db!
       const { id } = request.params

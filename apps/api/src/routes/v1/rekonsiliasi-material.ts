@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { hitungRekonsiliasi } from '../../lib/rekonsiliasi-material.js'
 
@@ -32,7 +33,7 @@ import { hitungRekonsiliasi } from '../../lib/rekonsiliasi-material.js'
 export default async function rekonsiliasiMaterialRoutes(app: FastifyInstance) {
   // ── GET /api/v1/projects/:projectId/rekonsiliasi-material ────────────────
   app.get('/api/v1/projects/:projectId/rekonsiliasi-material', {
-    preHandler: [authenticate, requirePermission('procurement:view')],
+    preHandler: [authenticate, requireModul('modul.gudang'), requirePermission('procurement:view')],
   }, async (request, reply) => {
     const { projectId } = request.params as { projectId: string }
     const q = request.query as Record<string, string>

@@ -31,6 +31,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { randomBytes } from 'node:crypto'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { ENTITAS_TULIS, entitasTulis, persenSah } from '../../lib/ai-tool-siapkan.js'
 import { klaimTokenTulis, type SebabGagal } from '../../lib/tulis-klaim.js'
@@ -236,7 +237,7 @@ export default async function aiTulisRoutes(app: FastifyInstance) {
   // ── Apa saja yang bisa dicatat — supaya UI tak menebak ───────────────────
   app.get(
     '/api/v1/ai/tulis/entitas',
-    { preHandler: [authenticate, requirePermission('ai:tulis')] },
+    { preHandler: [authenticate, requireModul('modul.ai'), requirePermission('ai:tulis')] },
     async (_req, reply) =>
       reply.send({
         data: ENTITAS_TULIS.map((e) => ({
@@ -252,7 +253,7 @@ export default async function aiTulisRoutes(app: FastifyInstance) {
   app.post<{ Body: BadanSiapkan }>(
     '/api/v1/ai/siapkan-tulis',
     {
-      preHandler: [authenticate, requirePermission('ai:tulis')],
+      preHandler: [authenticate, requireModul('modul.ai'), requirePermission('ai:tulis')],
       config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
     },
     async (request, reply) => {
@@ -649,7 +650,7 @@ export default async function aiTulisRoutes(app: FastifyInstance) {
   app.post<{ Body: { token?: string } }>(
     '/api/v1/ai/tulis',
     {
-      preHandler: [authenticate, requirePermission('ai:tulis')],
+      preHandler: [authenticate, requireModul('modul.ai'), requirePermission('ai:tulis')],
       config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
     },
     async (request, reply) => {

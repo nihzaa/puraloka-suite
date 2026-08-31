@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import {
   hitungJatuhTempo, ringkasBiayaAlat, nilaiKesehatanAlat,
   type JadwalPerawatan,
@@ -43,7 +44,7 @@ export default async function alatOperasionalRoutes(app: FastifyInstance) {
   // perawatan. Dipisah jadi lima endpoint akan membuat layar menampilkan
   // angka dari lima titik waktu berbeda.
   app.get('/api/v1/alat-operasional', {
-    preHandler: [authenticate, requirePermission('assets:view')],
+    preHandler: [authenticate, requireModul('modul.alat'), requirePermission('assets:view')],
   }, async (request, reply) => {
     const db = request.db!
     const cid = request.companyId!
@@ -189,7 +190,7 @@ export default async function alatOperasionalRoutes(app: FastifyInstance) {
 
   // ── POST /api/v1/alat-operasional/pemakaian ─────────────────────────────
   app.post('/api/v1/alat-operasional/pemakaian', {
-    preHandler: [authenticate, requirePermission('assets:manage')],
+    preHandler: [authenticate, requireModul('modul.alat'), requirePermission('assets:manage')],
   }, async (request, reply) => {
     const b = request.body as {
       asset_id?: string
@@ -248,7 +249,7 @@ export default async function alatOperasionalRoutes(app: FastifyInstance) {
 
   // ── POST /api/v1/alat-operasional/perawatan ─────────────────────────────
   app.post('/api/v1/alat-operasional/perawatan', {
-    preHandler: [authenticate, requirePermission('assets:manage')],
+    preHandler: [authenticate, requireModul('modul.alat'), requirePermission('assets:manage')],
   }, async (request, reply) => {
     const b = request.body as {
       asset_id?: string
@@ -320,7 +321,7 @@ export default async function alatOperasionalRoutes(app: FastifyInstance) {
 
   // ── POST /api/v1/alat-operasional/biaya ─────────────────────────────────
   app.post('/api/v1/alat-operasional/biaya', {
-    preHandler: [authenticate, requirePermission('assets:manage')],
+    preHandler: [authenticate, requireModul('modul.alat'), requirePermission('assets:manage')],
   }, async (request, reply) => {
     const b = request.body as {
       asset_id?: string
@@ -391,7 +392,7 @@ export default async function alatOperasionalRoutes(app: FastifyInstance) {
   // menyentuh buku besar — dan `assets:manage` diberikan jauh lebih luas.
   app.post<{ Body: { periode?: string } }>(
     '/api/v1/alat-operasional/penyusutan/jurnalkan',
-    { preHandler: [authenticate, requirePermission('gl:manage')] },
+    { preHandler: [authenticate, requireModul('modul.alat'), requirePermission('gl:manage')] },
     async (request, reply) => {
       const db = request.db!
       const cid = request.companyId!

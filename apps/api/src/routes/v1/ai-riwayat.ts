@@ -57,6 +57,7 @@
 
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 
 /** Batas atas satu halaman. Riwayat panjang tak boleh menahan request. */
@@ -66,7 +67,7 @@ export default async function aiRiwayatRoutes(app: FastifyInstance) {
   // ── GET /api/v1/ai/riwayat — daftar percakapan (METADATA saja) ───────────
   app.get<{ Querystring: { kanal?: string; galat?: string } }>(
     '/api/v1/ai/riwayat',
-    { preHandler: [authenticate, requirePermission('ai:history:view')] },
+    { preHandler: [authenticate, requireModul('modul.ai'), requirePermission('ai:history:view')] },
     async (request, reply) => {
       const { data, error } = await request.db!
         .from('ai_percakapan')
@@ -179,7 +180,7 @@ export default async function aiRiwayatRoutes(app: FastifyInstance) {
   // tulisan yang mendarat, yang ditolak, dan entitas asing yang terdeteksi.
   app.get(
     '/api/v1/ai/riwayat/keputusan',
-    { preHandler: [authenticate, requirePermission('ai:history:view')] },
+    { preHandler: [authenticate, requireModul('modul.ai'), requirePermission('ai:history:view')] },
     async (request, reply) => {
       const { data, error } = await request.db!
         .unsafe(
@@ -218,7 +219,7 @@ export default async function aiRiwayatRoutes(app: FastifyInstance) {
   // ── GET /api/v1/ai/riwayat/:id — isi satu percakapan ─────────────────────
   app.get<{ Params: { id: string } }>(
     '/api/v1/ai/riwayat/:id',
-    { preHandler: [authenticate, requirePermission('ai:history:view')] },
+    { preHandler: [authenticate, requireModul('modul.ai'), requirePermission('ai:history:view')] },
     async (request, reply) => {
       const { data: kepala, error: errKepala } = await request.db!
         .from('ai_percakapan')

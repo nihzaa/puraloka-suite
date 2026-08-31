@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 
 /**
@@ -34,7 +35,7 @@ import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 export default async function transferStokRoutes(app: FastifyInstance) {
   // ── GET /api/v1/transfer-stok ────────────────────────────────────────────
   app.get('/api/v1/transfer-stok', {
-    preHandler: [authenticate, requirePermission('procurement:view')],
+    preHandler: [authenticate, requireModul('modul.gudang'), requirePermission('procurement:view')],
   }, async (request, reply) => {
     const q = request.query as Record<string, string>
 
@@ -101,7 +102,7 @@ export default async function transferStokRoutes(app: FastifyInstance) {
   // (cacat T4j, sudah tercatat di berkas itu sendiri). Memindahkan material
   // antar proyek adalah tindakan mengelola material, bukan melihatnya.
   app.post('/api/v1/transfer-stok', {
-    preHandler: [authenticate, requirePermission('procurement:material:manage')],
+    preHandler: [authenticate, requireModul('modul.gudang'), requirePermission('procurement:material:manage')],
   }, async (request, reply) => {
     const b = request.body as {
       project_asal_id?: string

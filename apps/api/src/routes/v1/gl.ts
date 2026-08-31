@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { susunEkspor, formatSah, FORMAT_EKSPOR } from '../../lib/ekspor-tabel.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { hitungNeraca, hitungLabaRugi, type SaldoAkun } from '../../lib/laporan-keuangan.js'
@@ -54,7 +55,7 @@ export default async function glRoutes(app: FastifyInstance) {
 
   app.get(
     '/api/v1/gl/accounts',
-    { preHandler: [authenticate, requirePermission('gl:view')] },
+    { preHandler: [authenticate, requireModul('modul.akuntansi'), requirePermission('gl:view')] },
     async (request, reply) => {
       const { data, error } = await request.db!
         .from('accounts')
@@ -68,7 +69,7 @@ export default async function glRoutes(app: FastifyInstance) {
 
   app.post<{ Body: { code: string; name: string; type: string; parent_id?: string | null; description?: string | null } }>(
     '/api/v1/gl/accounts',
-    { preHandler: [authenticate, requirePermission('gl:manage')] },
+    { preHandler: [authenticate, requireModul('modul.akuntansi'), requirePermission('gl:manage')] },
     async (request, reply) => {
       const b = request.body
       if (!b?.code?.trim() || !b?.name?.trim() || !b?.type) {
@@ -117,7 +118,7 @@ export default async function glRoutes(app: FastifyInstance) {
 
   app.get<{ Querystring: { status?: string; from?: string; to?: string } }>(
     '/api/v1/gl/journal-entries',
-    { preHandler: [authenticate, requirePermission('gl:view')] },
+    { preHandler: [authenticate, requireModul('modul.akuntansi'), requirePermission('gl:view')] },
     async (request, reply) => {
       const q = request.query
       let query = request.db!
@@ -138,7 +139,7 @@ export default async function glRoutes(app: FastifyInstance) {
 
   app.get<{ Params: { id: string } }>(
     '/api/v1/gl/journal-entries/:id',
-    { preHandler: [authenticate, requirePermission('gl:view')] },
+    { preHandler: [authenticate, requireModul('modul.akuntansi'), requirePermission('gl:view')] },
     async (request, reply) => {
       const { data: kepala, error } = await request.db!
         .from('journal_entries')
@@ -165,7 +166,7 @@ export default async function glRoutes(app: FastifyInstance) {
 
   app.post<{ Body: { entry_date: string; description: string; notes?: string; lines: BarisInput[] } }>(
     '/api/v1/gl/journal-entries',
-    { preHandler: [authenticate, requirePermission('gl:manage')] },
+    { preHandler: [authenticate, requireModul('modul.akuntansi'), requirePermission('gl:manage')] },
     async (request, reply) => {
       const b = request.body
       if (!b?.entry_date || !b?.description?.trim()) {
@@ -253,7 +254,7 @@ export default async function glRoutes(app: FastifyInstance) {
 
   app.patch<{ Params: { id: string } }>(
     '/api/v1/gl/journal-entries/:id/post',
-    { preHandler: [authenticate, requirePermission('gl:post')] },
+    { preHandler: [authenticate, requireModul('modul.akuntansi'), requirePermission('gl:post')] },
     async (request, reply) => {
       const { data, error } = await request.db!
         .from('journal_entries')
@@ -286,7 +287,7 @@ export default async function glRoutes(app: FastifyInstance) {
 
   app.patch<{ Params: { id: string }; Body: { alasan?: string } }>(
     '/api/v1/gl/journal-entries/:id/void',
-    { preHandler: [authenticate, requirePermission('gl:void')] },
+    { preHandler: [authenticate, requireModul('modul.akuntansi'), requirePermission('gl:void')] },
     async (request, reply) => {
       const alasan = request.body?.alasan?.trim()
       if (!alasan) {
@@ -324,7 +325,7 @@ export default async function glRoutes(app: FastifyInstance) {
 
   app.get<{ Querystring: { account_id?: string; from?: string; to?: string; project_id?: string } }>(
     '/api/v1/gl/ledger',
-    { preHandler: [authenticate, requirePermission('gl:view')] },
+    { preHandler: [authenticate, requireModul('modul.akuntansi'), requirePermission('gl:view')] },
     async (request, reply) => {
       const q = request.query
 
@@ -405,7 +406,7 @@ export default async function glRoutes(app: FastifyInstance) {
   // Saldo per akun — dasar neraca & laba-rugi (GL-3).
   app.get<{ Querystring: { from?: string; to?: string } }>(
     '/api/v1/gl/trial-balance',
-    { preHandler: [authenticate, requirePermission('gl:view')] },
+    { preHandler: [authenticate, requireModul('modul.akuntansi'), requirePermission('gl:view')] },
     async (request, reply) => {
       const q = request.query
       let query = request.db!
@@ -474,7 +475,7 @@ export default async function glRoutes(app: FastifyInstance) {
   // Satu panggilan, satu sumber saldo, dua sudut pandang.
   app.get<{ Querystring: { from?: string; to?: string } }>(
     '/api/v1/gl/laporan',
-    { preHandler: [authenticate, requirePermission('gl:view')] },
+    { preHandler: [authenticate, requireModul('modul.akuntansi'), requirePermission('gl:view')] },
     async (request, reply) => {
       const q = request.query
 
@@ -564,7 +565,7 @@ export default async function glRoutes(app: FastifyInstance) {
   // kemudian saat rekonsiliasi, bukan saat terjadi.
   app.get<{ Querystring: { dari?: string; sampai?: string; format?: string } }>(
     '/api/v1/gl/jurnal/ekspor',
-    { preHandler: [authenticate, requirePermission('gl:view')] },
+    { preHandler: [authenticate, requireModul('modul.akuntansi'), requirePermission('gl:view')] },
     async (request, reply) => {
       const { dari, sampai } = request.query
       const fmt = formatSah(request.query.format ?? 'csv')

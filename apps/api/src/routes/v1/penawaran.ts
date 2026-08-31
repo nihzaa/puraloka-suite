@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import PDFDocument from 'pdfkit'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import {
   hitungPenawaran, periksaKirimPenawaran, terbilangRupiah,
@@ -44,7 +45,7 @@ export default async function penawaranRoutes(app: FastifyInstance) {
   // ── GET /api/v1/penawaran ────────────────────────────────────────────────
   app.get<{ Querystring: { bid_id?: string; status?: string } }>(
     '/api/v1/penawaran',
-    { preHandler: [authenticate, requirePermission('projects:view')] },
+    { preHandler: [authenticate, requireModul('modul.crm'), requirePermission('projects:view')] },
     async (request, reply) => {
       const db = request.db!
       let q = db
@@ -100,7 +101,7 @@ export default async function penawaranRoutes(app: FastifyInstance) {
   // ── GET /api/v1/penawaran/:id ────────────────────────────────────────────
   app.get<{ Params: { id: string } }>(
     '/api/v1/penawaran/:id',
-    { preHandler: [authenticate, requirePermission('projects:view')] },
+    { preHandler: [authenticate, requireModul('modul.crm'), requirePermission('projects:view')] },
     async (request, reply) => {
       const hasil = await ambil(request, request.params.id)
       if (!hasil) return reply.status(404).send({ error: 'Penawaran tidak ditemukan' })
@@ -111,7 +112,7 @@ export default async function penawaranRoutes(app: FastifyInstance) {
   // ── POST /api/v1/penawaran ───────────────────────────────────────────────
   app.post(
     '/api/v1/penawaran',
-    { preHandler: [authenticate, requirePermission('projects:edit')] },
+    { preHandler: [authenticate, requireModul('modul.crm'), requirePermission('projects:edit')] },
     async (request, reply) => {
       const b = request.body as {
         bid_id?: string | null; nomor?: string; perihal?: string
@@ -171,7 +172,7 @@ export default async function penawaranRoutes(app: FastifyInstance) {
   // ── PATCH /api/v1/penawaran/:id ──────────────────────────────────────────
   app.patch<{ Params: { id: string } }>(
     '/api/v1/penawaran/:id',
-    { preHandler: [authenticate, requirePermission('projects:edit')] },
+    { preHandler: [authenticate, requireModul('modul.crm'), requirePermission('projects:edit')] },
     async (request, reply) => {
       const b = request.body as Record<string, unknown>
       const db = request.db!
@@ -220,7 +221,7 @@ export default async function penawaranRoutes(app: FastifyInstance) {
   // dalam bentuk itu.
   app.put<{ Params: { id: string } }>(
     '/api/v1/penawaran/:id/item',
-    { preHandler: [authenticate, requirePermission('projects:edit')] },
+    { preHandler: [authenticate, requireModul('modul.crm'), requirePermission('projects:edit')] },
     async (request, reply) => {
       const db = request.db!
       const { item } = request.body as { item?: BarisPenawaran[] }
@@ -288,7 +289,7 @@ export default async function penawaranRoutes(app: FastifyInstance) {
   // ── PATCH /api/v1/penawaran/:id/status ───────────────────────────────────
   app.patch<{ Params: { id: string } }>(
     '/api/v1/penawaran/:id/status',
-    { preHandler: [authenticate, requirePermission('projects:edit')] },
+    { preHandler: [authenticate, requireModul('modul.crm'), requirePermission('projects:edit')] },
     async (request, reply) => {
       const db = request.db!
       const { status } = request.body as { status?: string }
@@ -350,7 +351,7 @@ export default async function penawaranRoutes(app: FastifyInstance) {
   // ── GET /api/v1/penawaran/:id/pdf ────────────────────────────────────────
   app.get<{ Params: { id: string } }>(
     '/api/v1/penawaran/:id/pdf',
-    { preHandler: [authenticate, requirePermission('projects:view')] },
+    { preHandler: [authenticate, requireModul('modul.crm'), requirePermission('projects:view')] },
     async (request, reply) => {
       const hasil = await ambil(request, request.params.id)
       if (!hasil) return reply.status(404).send({ error: 'Penawaran tidak ditemukan' })
@@ -377,7 +378,7 @@ export default async function penawaranRoutes(app: FastifyInstance) {
   // ── DELETE /api/v1/penawaran/:id ─────────────────────────────────────────
   app.delete<{ Params: { id: string } }>(
     '/api/v1/penawaran/:id',
-    { preHandler: [authenticate, requirePermission('projects:edit')] },
+    { preHandler: [authenticate, requireModul('modul.crm'), requirePermission('projects:edit')] },
     async (request, reply) => {
       const db = request.db!
       const { data: ada } = await db

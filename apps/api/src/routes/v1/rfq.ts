@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { susunTabulasi, type BarisPenawaran } from '../../lib/tabulasi-penawaran.js'
 import { susunPutusan } from '../../lib/putusan-rfq.js'
@@ -113,7 +114,7 @@ const PILIH_PENAWARAN =
 export default async function rfqRoutes(app: FastifyInstance) {
   // ── GET /api/v1/rfq ──────────────────────────────────────────────────────
   app.get('/api/v1/rfq', {
-    preHandler: [authenticate, requirePermission('procurement:view')],
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:view')],
   }, async (request, reply) => {
     const q = request.query as Record<string, string>
     const db = request.db!
@@ -168,7 +169,7 @@ export default async function rfqRoutes(app: FastifyInstance) {
   // Ditaruh SEBELUM `/rfq/:id` — kalau di bawahnya, `:id` menangkap
   // "mr-layak" sebagai UUID dan membalas 404 yang membingungkan.
   app.get('/api/v1/rfq/mr-layak', {
-    preHandler: [authenticate, requirePermission('procurement:view')],
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:view')],
   }, async (request, reply) => {
     const { project_id } = request.query as Record<string, string>
     if (!project_id) return reply.status(400).send({ error: 'project_id wajib diisi' })
@@ -208,7 +209,7 @@ export default async function rfqRoutes(app: FastifyInstance) {
 
   // ── GET /api/v1/rfq/:id — beserta TABULASI perbandingannya ───────────────
   app.get('/api/v1/rfq/:id', {
-    preHandler: [authenticate, requirePermission('procurement:view')],
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:view')],
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const db = request.db!
@@ -248,7 +249,7 @@ export default async function rfqRoutes(app: FastifyInstance) {
   // adalah langkah menuju PO, dan yang berwenang menerbitkan PO adalah yang
   // berwenang meminta penawarannya.
   app.post('/api/v1/rfq', {
-    preHandler: [authenticate, requirePermission('procurement:po:manage')],
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:po:manage')],
   }, async (request, reply) => {
     const b = request.body as {
       project_id?: string
@@ -318,7 +319,7 @@ export default async function rfqRoutes(app: FastifyInstance) {
 
   // ── POST /api/v1/rfq/:id/penawaran — catat penawaran satu vendor ─────────
   app.post('/api/v1/rfq/:id/penawaran', {
-    preHandler: [authenticate, requirePermission('procurement:po:manage')],
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:po:manage')],
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const b = request.body as {
@@ -437,7 +438,7 @@ export default async function rfqRoutes(app: FastifyInstance) {
   // baru terbit DIHAPUS lagi, dan pemanggil menerima 500 yang jujur. PO
   // yatim tak pernah tertinggal di basis.
   app.post('/api/v1/rfq/:id/putuskan', {
-    preHandler: [authenticate, requirePermission('procurement:po:manage')],
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:po:manage')],
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const b = request.body as {

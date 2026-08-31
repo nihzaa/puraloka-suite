@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import {
   evaluateEntityApproval, recordApproval, idAlurPersetujuan, periksaGerbangSod,
@@ -50,7 +51,7 @@ export default async function cutiKaryawanRoutes(app: FastifyInstance) {
   // ── GET /sdm/pegawai/:id/cuti?tahun=YYYY ─────────────────────────────────
   app.get<{ Params: { id: string }; Querystring: { tahun?: string } }>(
     '/api/v1/sdm/pegawai/:id/cuti',
-    { preHandler: [authenticate, requirePermission('sdm:cuti:view')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('sdm:cuti:view')] },
     async (request, reply) => {
       const { id } = request.params
       const tahun = Number(request.query.tahun) || new Date().getFullYear()
@@ -114,7 +115,7 @@ export default async function cutiKaryawanRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/sdm/pegawai/:id/cuti',
-    { preHandler: [authenticate, requirePermission('sdm:cuti:manage')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('sdm:cuti:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -234,7 +235,7 @@ export default async function cutiKaryawanRoutes(app: FastifyInstance) {
   // ── POST /sdm/cuti/:id/putuskan ──────────────────────────────────────────
   app.post<{ Params: { id: string }; Body: { setujui?: boolean; alasan?: string } }>(
     '/api/v1/sdm/cuti/:id/putuskan',
-    { preHandler: [authenticate, requirePermission('sdm:cuti:approve')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('sdm:cuti:approve')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -363,7 +364,7 @@ export default async function cutiKaryawanRoutes(app: FastifyInstance) {
   // saldo yang pernah tertahan tak bisa dijelaskan.
   app.post<{ Params: { id: string } }>(
     '/api/v1/sdm/cuti/:id/batal',
-    { preHandler: [authenticate, requirePermission('sdm:cuti:manage')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('sdm:cuti:manage')] },
     async (request, reply) => {
       const { id } = request.params
 
@@ -407,7 +408,7 @@ export default async function cutiKaryawanRoutes(app: FastifyInstance) {
     Body: { tahun?: number; jumlah_hari?: number | string; alasan?: string; berlaku_sampai?: string }
   }>(
     '/api/v1/sdm/pegawai/:id/cuti-hak',
-    { preHandler: [authenticate, requirePermission('sdm:cuti:hak')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('sdm:cuti:hak')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body

@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import {
   evaluateEntityApproval, recordApproval, idAlurPersetujuan, periksaGerbangSod,
@@ -63,7 +64,7 @@ export default async function klaimPerjalananRoutes(app: FastifyInstance) {
   // ── GET /api/v1/klaim-perjalanan ─────────────────────────────────────────
   app.get<{ Querystring: { status?: string; pegawai_id?: string; project_id?: string } }>(
     '/api/v1/klaim-perjalanan',
-    { preHandler: [authenticate, requirePermission('klaim:view')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('klaim:view')] },
     async (request, reply) => {
       const db = request.db!
       const q = request.query
@@ -94,7 +95,7 @@ export default async function klaimPerjalananRoutes(app: FastifyInstance) {
   // ── GET /api/v1/klaim-perjalanan/:id ─────────────────────────────────────
   app.get<{ Params: { id: string } }>(
     '/api/v1/klaim-perjalanan/:id',
-    { preHandler: [authenticate, requirePermission('klaim:view')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('klaim:view')] },
     async (request, reply) => {
       const db = request.db!
       const { id } = request.params
@@ -137,7 +138,7 @@ export default async function klaimPerjalananRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/klaim-perjalanan',
-    { preHandler: [authenticate, requirePermission('klaim:kelola')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('klaim:kelola')] },
     async (request, reply) => {
       const db = request.db!
       const b = request.body
@@ -281,7 +282,7 @@ export default async function klaimPerjalananRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/klaim-perjalanan/:id/putuskan',
-    { preHandler: [authenticate, requirePermission('klaim:setujui')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('klaim:setujui')] },
     async (request, reply) => {
       const db = request.db!
       const { id } = request.params
@@ -458,7 +459,7 @@ export default async function klaimPerjalananRoutes(app: FastifyInstance) {
   // ── PATCH /api/v1/klaim-perjalanan/:id/bayar ─────────────────────────────
   app.patch<{ Params: { id: string }; Body: { cash_account_id?: string } }>(
     '/api/v1/klaim-perjalanan/:id/bayar',
-    { preHandler: [authenticate, requirePermission('klaim:bayar')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('klaim:bayar')] },
     async (request, reply) => {
       const db = request.db!
       const { id } = request.params

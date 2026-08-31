@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { hitungBacklog, type BidRingkas } from '../../lib/bid-backlog.js'
 
@@ -25,7 +26,7 @@ export default async function bidRoutes(app: FastifyInstance) {
   // ── GET /api/v1/bids ──────────────────────────────────────────────────────
   app.get<{ Querystring: { status?: string } }>(
     '/api/v1/bids',
-    { preHandler: [authenticate, requirePermission('projects:view')] },
+    { preHandler: [authenticate, requireModul('modul.crm'), requirePermission('projects:view')] },
     async (request, reply) => {
       const { status } = request.query
 
@@ -53,7 +54,7 @@ export default async function bidRoutes(app: FastifyInstance) {
   // ── POST /api/v1/bids ─────────────────────────────────────────────────────
   app.post(
     '/api/v1/bids',
-    { preHandler: [authenticate, requirePermission('projects:edit')] },
+    { preHandler: [authenticate, requireModul('modul.crm'), requirePermission('projects:edit')] },
     async (request, reply) => {
       const b = request.body as {
         bid_number?: string; title?: string; owner_name?: string; location?: string
@@ -96,7 +97,7 @@ export default async function bidRoutes(app: FastifyInstance) {
   // ── PATCH /api/v1/bids/:id ────────────────────────────────────────────────
   app.patch<{ Params: { id: string } }>(
     '/api/v1/bids/:id',
-    { preHandler: [authenticate, requirePermission('projects:edit')] },
+    { preHandler: [authenticate, requireModul('modul.crm'), requirePermission('projects:edit')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body as Record<string, unknown>
@@ -149,7 +150,7 @@ export default async function bidRoutes(app: FastifyInstance) {
   // ── DELETE /api/v1/bids/:id ───────────────────────────────────────────────
   app.delete<{ Params: { id: string } }>(
     '/api/v1/bids/:id',
-    { preHandler: [authenticate, requirePermission('projects:edit')] },
+    { preHandler: [authenticate, requireModul('modul.crm'), requirePermission('projects:edit')] },
     async (request, reply) => {
       const { id } = request.params
       const { data: ada } = await request.db!

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission, hasPermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import {
   validasiPegawai, ringkasPegawai, periksaKelengkapan,
@@ -45,7 +46,7 @@ export default async function pegawaiRoutes(app: FastifyInstance) {
   // ini bergerbang izin kepegawaian dan membawa kelengkapan datanya.
   app.get<{ Querystring: { aktif?: string } }>(
     '/api/v1/sdm/pegawai/kelola',
-    { preHandler: [authenticate, requirePermission('sdm:pegawai:view')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('sdm:pegawai:view')] },
     async (request, reply) => {
       const db = request.db!
 
@@ -89,7 +90,7 @@ export default async function pegawaiRoutes(app: FastifyInstance) {
   // dengan galat yang membicarakan constraint, bukan orangnya.
   app.get(
     '/api/v1/sdm/pegawai/calon',
-    { preHandler: [authenticate, requirePermission('sdm:pegawai:manage')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('sdm:pegawai:manage')] },
     async (request, reply) => {
       const db = request.db!
 
@@ -120,7 +121,7 @@ export default async function pegawaiRoutes(app: FastifyInstance) {
   // ── POST /api/v1/sdm/pegawai ─────────────────────────────────────────────
   app.post<{ Body: Record<string, unknown> & { user_id?: string } }>(
     '/api/v1/sdm/pegawai',
-    { preHandler: [authenticate, requirePermission('sdm:pegawai:manage')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('sdm:pegawai:manage')] },
     async (request, reply) => {
       const db = request.db!
       const b = request.body
@@ -186,7 +187,7 @@ export default async function pegawaiRoutes(app: FastifyInstance) {
   // ── PATCH /api/v1/sdm/pegawai/:id ────────────────────────────────────────
   app.patch<{ Params: { id: string }; Body: Record<string, unknown> }>(
     '/api/v1/sdm/pegawai/:id',
-    { preHandler: [authenticate, requirePermission('sdm:pegawai:manage')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('sdm:pegawai:manage')] },
     async (request, reply) => {
       const db = request.db!
       const { id } = request.params

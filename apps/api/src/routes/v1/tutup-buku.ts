@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import {
   periksaKesiapan, selisihSeimbang, ringkasPeriode, bolehBukaKembali,
@@ -81,7 +82,7 @@ export default async function tutupBukuRoutes(app: FastifyInstance) {
   // ── GET /gl/periode ──────────────────────────────────────────────────────
   app.get(
     '/api/v1/gl/periode',
-    { preHandler: [authenticate, requirePermission('gl:periode:view')] },
+    { preHandler: [authenticate, requireModul('modul.akuntansi'), requirePermission('gl:periode:view')] },
     async (request, reply) => {
       const { data, error } = await request.db!
         .from('periode_akuntansi')
@@ -138,7 +139,7 @@ export default async function tutupBukuRoutes(app: FastifyInstance) {
   // Apa yang akan terjadi bila periode ini ditutup — SEBELUM menutupnya.
   app.get<{ Params: { id: string } }>(
     '/api/v1/gl/periode/:id/kesiapan',
-    { preHandler: [authenticate, requirePermission('gl:periode:view')] },
+    { preHandler: [authenticate, requireModul('modul.akuntansi'), requirePermission('gl:periode:view')] },
     async (request, reply) => {
       const { id } = request.params
 
@@ -189,7 +190,7 @@ export default async function tutupBukuRoutes(app: FastifyInstance) {
     Body: { nama?: string; tanggal_mulai?: string; tanggal_akhir?: string }
   }>(
     '/api/v1/gl/periode',
-    { preHandler: [authenticate, requirePermission('gl:periode:manage')] },
+    { preHandler: [authenticate, requireModul('modul.akuntansi'), requirePermission('gl:periode:manage')] },
     async (request, reply) => {
       const b = request.body
 
@@ -267,7 +268,7 @@ export default async function tutupBukuRoutes(app: FastifyInstance) {
   // riwayatnya akan mencatat dua penutupan untuk satu periode.
   app.post<{ Params: { id: string }; Body: { catatan?: string } }>(
     '/api/v1/gl/periode/:id/tutup',
-    { preHandler: [authenticate, requirePermission('gl:periode:manage')] },
+    { preHandler: [authenticate, requireModul('modul.akuntansi'), requirePermission('gl:periode:manage')] },
     async (request, reply) => {
       const { id } = request.params
 
@@ -391,7 +392,7 @@ export default async function tutupBukuRoutes(app: FastifyInstance) {
   // berkas.
   app.post<{ Params: { id: string }; Body: { alasan?: string } }>(
     '/api/v1/gl/periode/:id/buka',
-    { preHandler: [authenticate, requirePermission('gl:periode:reopen')] },
+    { preHandler: [authenticate, requireModul('modul.akuntansi'), requirePermission('gl:periode:reopen')] },
     async (request, reply) => {
       const { id } = request.params
       const alasan = request.body?.alasan ?? ''
@@ -482,7 +483,7 @@ export default async function tutupBukuRoutes(app: FastifyInstance) {
   // ── GET /gl/periode/:id/riwayat ──────────────────────────────────────────
   app.get<{ Params: { id: string } }>(
     '/api/v1/gl/periode/:id/riwayat',
-    { preHandler: [authenticate, requirePermission('gl:periode:view')] },
+    { preHandler: [authenticate, requireModul('modul.akuntansi'), requirePermission('gl:periode:view')] },
     async (request, reply) => {
       const { id } = request.params
 

@@ -35,6 +35,7 @@
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { createTenantDb } from '../../utils/tenant-db.js'
 import { supabase } from '../../utils/supabase.js'
 import { kirimWa, konfigurasiKanal } from '../../lib/wa-kirim.js'
@@ -110,7 +111,7 @@ export default async function sapaProaktifRoutes(app: FastifyInstance) {
    * `audit-tugas-punya-rute.mjs` mencocokkannya secara harfiah.
    */
   app.get('/api/v1/asisten/sapa-proaktif', {
-    preHandler: [authenticate, requirePermission('ai:chat')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('ai:chat')],
   }, async (request, reply) => {
       /*
        * ── PAGAR TEST ───────────────────────────────────────────────────────

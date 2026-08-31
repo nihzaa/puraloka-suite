@@ -33,6 +33,7 @@
 import type { FastifyInstance } from 'fastify'
 import { randomBytes } from 'node:crypto'
 import { authenticate, requirePermission, hasPermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { SIFAT_BICARA } from '../../lib/ai-config.js'
 
@@ -109,7 +110,7 @@ export default async function aiIngatanRoutes(app: FastifyInstance) {
   // dibaca orang lain.
   app.get(
     '/api/v1/ai/ingatan',
-    { preHandler: [authenticate, requirePermission('ai:ingatan:lihat')] },
+    { preHandler: [authenticate, requireModul('modul.ai'), requirePermission('ai:ingatan:lihat')] },
     async (request, reply) => {
       const userId = request.currentUser!.id
 
@@ -145,7 +146,7 @@ export default async function aiIngatanRoutes(app: FastifyInstance) {
   app.post<{ Body: BadanUsul }>(
     '/api/v1/ai/ingatan/usul',
     {
-      preHandler: [authenticate, requirePermission('ai:chat')],
+      preHandler: [authenticate, requireModul('modul.ai'), requirePermission('ai:chat')],
       config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
     },
     async (request, reply) => {
@@ -216,7 +217,7 @@ export default async function aiIngatanRoutes(app: FastifyInstance) {
   app.post<{ Body: BadanSimpan & { token?: string } }>(
     '/api/v1/ai/ingatan',
     {
-      preHandler: [authenticate, requirePermission('ai:ingatan:lihat')],
+      preHandler: [authenticate, requireModul('modul.ai'), requirePermission('ai:ingatan:lihat')],
       config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
     },
     async (request, reply) => {
@@ -379,7 +380,7 @@ export default async function aiIngatanRoutes(app: FastifyInstance) {
   // ── DELETE: melupakan ───────────────────────────────────────────────────
   app.delete<{ Params: { id: string } }>(
     '/api/v1/ai/ingatan/:id',
-    { preHandler: [authenticate, requirePermission('ai:ingatan:lihat')] },
+    { preHandler: [authenticate, requireModul('modul.ai'), requirePermission('ai:ingatan:lihat')] },
     async (request, reply) => {
       const userId = request.currentUser!.id
 
@@ -441,7 +442,7 @@ export default async function aiIngatanRoutes(app: FastifyInstance) {
   // diam-diam begitu katalog izin bertambah.
   app.get(
     '/api/v1/ai/ingatan/izin-tersedia',
-    { preHandler: [authenticate, requirePermission('ai:ingatan:lihat')] },
+    { preHandler: [authenticate, requireModul('modul.ai'), requirePermission('ai:ingatan:lihat')] },
     async (request, reply) => {
       const { data, error } = await request.db!
         .shared('permissions')

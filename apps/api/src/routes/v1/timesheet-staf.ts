@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import {
   ringkasTimesheet, bolehDiajukan,
@@ -58,7 +59,7 @@ export default async function timesheetStafRoutes(app: FastifyInstance) {
   // Yang butuh gaji memakai endpoint payroll dengan permission sendiri.
   app.get(
     '/api/v1/sdm/pegawai',
-    { preHandler: [authenticate, requirePermission('sdm:timesheet:view')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('sdm:timesheet:view')] },
     async (request, reply) => {
       const { data, error } = await request.db!
         .from('pegawai')
@@ -77,7 +78,7 @@ export default async function timesheetStafRoutes(app: FastifyInstance) {
   // ── GET /sdm/pegawai/:id/timesheet?bulan=YYYY-MM ─────────────────────────
   app.get<{ Params: { id: string }; Querystring: { bulan?: string } }>(
     '/api/v1/sdm/pegawai/:id/timesheet',
-    { preHandler: [authenticate, requirePermission('sdm:timesheet:view')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('sdm:timesheet:view')] },
     async (request, reply) => {
       const { id } = request.params
       const bulan = request.query.bulan ?? new Date().toISOString().slice(0, 7)
@@ -138,7 +139,7 @@ export default async function timesheetStafRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/sdm/pegawai/:id/timesheet',
-    { preHandler: [authenticate, requirePermission('sdm:timesheet:manage')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('sdm:timesheet:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -219,7 +220,7 @@ export default async function timesheetStafRoutes(app: FastifyInstance) {
   // ── POST /sdm/pegawai/:id/timesheet/ajukan?bulan=YYYY-MM ─────────────────
   app.post<{ Params: { id: string }; Querystring: { bulan?: string } }>(
     '/api/v1/sdm/pegawai/:id/timesheet/ajukan',
-    { preHandler: [authenticate, requirePermission('sdm:timesheet:manage')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('sdm:timesheet:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const bulan = request.query.bulan ?? new Date().toISOString().slice(0, 7)
@@ -264,7 +265,7 @@ export default async function timesheetStafRoutes(app: FastifyInstance) {
     Body: { setujui?: boolean; alasan?: string }
   }>(
     '/api/v1/sdm/timesheet/:id/putuskan',
-    { preHandler: [authenticate, requirePermission('sdm:timesheet:approve')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('sdm:timesheet:approve')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body

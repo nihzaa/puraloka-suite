@@ -40,6 +40,7 @@
  */
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { ambilAmbang } from '../../lib/ambang-otomasi.js'
 
 /** Rupiah tanpa desimal — dipakai di seluruh pesan agar bentuknya seragam. */
@@ -73,7 +74,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // Yang kedua adalah uang perusahaan yang menggantung di lapangan. Tak ada
   // yang memeriksanya sebelum ini.
   app.get('/api/v1/otomasi/jalankan/kasbon-outstanding', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -149,7 +150,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // hilang cuma pengingatnya — kasbon yang tak pernah dipotong tak pernah
   // memunculkan galat, ia hanya diam sampai tukangnya berhenti bekerja.
   app.get('/api/v1/otomasi/jalankan/kasbon-tukang', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -234,7 +235,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // Itu keterbatasan yang dinyatakan, bukan disembunyikan: begitu tabel hari
   // libur ada, saringannya ditambah di sini.
   app.get('/api/v1/otomasi/jalankan/progres-belum-lapor', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
 
@@ -355,7 +356,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // sehari yang berujung notifikasi dimatikan. Yang dikirim hanya yang
   // parah: progres di bawah SETENGAH ambang, atau tumpang tindih >14 hari.
   app.get('/api/v1/otomasi/jalankan/dependency-breach', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -500,7 +501,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // untuk peringatan "siap ditagih", dan menyatukannya membuat dedup keduanya
   // saling menelan.
   app.get('/api/v1/otomasi/jalankan/invoice-termin', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -629,7 +630,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // Ketiganya soal UANG: barang dibayar tapi tak diterima, atau dianggap
   // diterima padahal tidak.
   app.get('/api/v1/otomasi/jalankan/gr-matching', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -767,7 +768,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // langsung bekerja. Tapi dinyatakan di sini supaya tak ada yang menyimpulkan
   // "sudah jalan" dari log yang selalu nol.
   app.get('/api/v1/otomasi/jalankan/stok-menipis', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -875,7 +876,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // dan sisanya menggantung. Menyaring `status='sent'` saja melewatkannya, dan
   // justru itu yang paling sering terlupakan.
   app.get('/api/v1/otomasi/jalankan/invoice-terlambat', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -987,7 +988,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // Bawaannya tetap ada sebagai jaring, jadi tenant yang belum mengisi tetap
   // mendapat otomasi yang bekerja. Lihat `lib/ambang-otomasi.ts`.
   app.get('/api/v1/otomasi/jalankan/saldo-menipis', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -1073,7 +1074,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // dinyatakan selesai. Keduanya diperiksa — status untuk melewati yang jelas
   // selesai, `completed_at` sebagai kebenarannya.
   app.get('/api/v1/otomasi/jalankan/milestone-berisiko', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -1154,7 +1155,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // Hutang supplier ditegur SEBELUM: telat membayar merusak hubungan dagang,
   // dan tak ada yang bisa dilakukan sesudahnya kecuali meminta maaf.
   app.get('/api/v1/otomasi/jalankan/hutang-supplier', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -1249,7 +1250,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // apa pun tambahan — bandingkan harga `active` dengan harga `expired`
   // TERAKHIR untuk resource yang sama.
   app.get('/api/v1/otomasi/jalankan/harga-material-naik', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -1398,7 +1399,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // `draft` belum punya rencana untuk dibandingkan, dan `completed` tak lagi
   // bisa diperbaiki.
   app.get('/api/v1/otomasi/jalankan/evm-kinerja', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -1582,7 +1583,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // Notifikasinya tetap DUA JENIS, karena penerima dan tindakannya berbeda:
   // polis yang berakhir diperpanjang, proyek tanpa polis diasuransikan.
   app.get('/api/v1/otomasi/jalankan/polis-berakhir', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -1769,7 +1770,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // Jadi `dikirim` + `diterima_pada IS NULL` adalah keadaan yang tak ambigu:
   // basis sendiri menjamin `diterima` selalu punya tanggalnya.
   app.get('/api/v1/otomasi/jalankan/transmittal-menggantung', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -1913,7 +1914,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // hari, jadi tanpa batas bawah otomasi ini menegur dokumen yang sama tiap
   // pagi selamanya. Yang ditegur tiap hari berhenti dibaca.
   app.get('/api/v1/otomasi/jalankan/sertifikat-berakhir', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -2096,7 +2097,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // jenis untuk ketiganya membuat dua di antaranya tertahan keliru pada hari
   // yang sama. Pelajaran 9.2, diterapkan sebelum cacatnya terjadi.
   app.get('/api/v1/otomasi/jalankan/k3-kepatuhan', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -2398,7 +2399,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // Dedup harian bekerja per (jenis, record) — satu jenis untuk keduanya
   // membuat salah satunya tertahan keliru di hari yang sama. Pelajaran 9.2.
   app.get('/api/v1/otomasi/jalankan/kepatuhan-dokumen', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -2647,7 +2648,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // angka di notifikasi dijamin sama dengan angka di layar Portofolio Biaya.
   // Merakit ulang BAC/serapan di sini berarti dua sumber untuk satu angka.
   app.get('/api/v1/otomasi/jalankan/serapan-anggaran', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -2829,7 +2830,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // Satu pesan per scope, bukan per pekerja: enam puluh pesan tentang satu
   // sebab yang sama adalah kebisingan, bukan enam puluh kabar.
   app.get('/api/v1/otomasi/jalankan/absensi-berhenti', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -3016,7 +3017,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // Dan ia lebih mendesak daripada tren: subkon yang tak boleh dipakai tetapi
   // masih diundang adalah risiko yang berjalan hari ini, bukan kecenderungan.
   app.get('/api/v1/otomasi/jalankan/subkon-tak-layak', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -3154,7 +3155,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // peringatannya: retensi yang disepakati tetapi tak pernah dipotong di
   // invoice adalah uang yang tak terlacak — bukan uang yang aman.
   app.get('/api/v1/otomasi/jalankan/retensi-tertahan', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -3363,7 +3364,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // Maka pembandingnya DIRI SENDIRI — median empat belas hari pengguna itu —
   // yang tetap sah saat penggunanya bertambah jadi ratusan.
   app.get('/api/v1/otomasi/jalankan/audit-aksi-berisiko', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -3569,7 +3570,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // dibuat — dan itu ketahuan saat seseorang mencoba memesan, bukan sebelumnya.
   // Terukur: BO-2026-003 habis dalam 12 hari.
   app.get('/api/v1/otomasi/jalankan/kontrak-payung-habis', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -3703,7 +3704,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // penutupan buku butuh beberapa hari kerja, dan menegur pada tanggal 1
   // hanya melatih orang mengabaikan notifikasi.
   app.get('/api/v1/otomasi/jalankan/penyusutan-belum-ditutup', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -3917,7 +3918,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // Diam pada kasus itu adalah kegagalan yang paling mahal: ia terlihat persis
   // seperti keberhasilan.
   app.get('/api/v1/otomasi/jalankan/perawatan-alat', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -4182,7 +4183,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   //   Terukur 2026-08-16: 21 pasangan (5 mandor) tanpa saringan status,
   //   15 pasangan bila kedua sisi harus aktif.
   app.get('/api/v1/otomasi/jalankan/konflik-mandor', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -4404,7 +4405,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // Total berbeda karena volumenya berbeda; itu bukan kabar. Yang jadi
   // pertanyaan kenapa satu meter persegi dihargai berbeda.
   app.get('/api/v1/otomasi/jalankan/rab-harga-menyimpang', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -4579,7 +4580,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // NOL. Laporan itu tak bisa dibandingkan dengan apa pun — dan diam
   // terhadapnya membuat "0 anomali" terbaca sebagai "semuanya wajar".
   app.get('/api/v1/otomasi/jalankan/upah-menyimpang', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -4763,7 +4764,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   //
   // Terukur 14 proyek berakhir dalam rentang ±180 hari.
   app.get('/api/v1/otomasi/jalankan/kontrak-klien-berakhir', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -4944,7 +4945,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // tindakannya berbeda: yang satu menutup berkas, yang satu mencegah kejadian
   // kedua.
   app.get('/api/v1/otomasi/jalankan/insiden-k3-belum-ditutup', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -5130,7 +5131,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // salah satunya saja membuat material yang menumpuk di gudang terlihat habis
   // di proyek — lalu dipesan lagi.
   app.get('/api/v1/otomasi/jalankan/stok-di-bawah-minimum', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -5300,7 +5301,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // tetapi belum ada yang menyetujuinya — dan selama itu, seluruh audit di
   // bawahnya berpijak pada rencana yang belum sah.
   app.get('/api/v1/otomasi/jalankan/audit-mutu-lewat-jadwal', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -5468,7 +5469,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // lebih genting daripada izin yang habis masa berlakunya — yang kedua pernah
   // sah, yang pertama tidak pernah.
   app.get('/api/v1/otomasi/jalankan/izin-kedaluwarsa', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -5686,7 +5687,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // berskor tinggi mendapat tenggang lebih pendek, dan perbandingan itu tak
   // boleh bisa disetel terbalik dari UI.
   app.get('/api/v1/otomasi/jalankan/risiko-lewat-tinjau', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -5871,7 +5872,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // ulang datang dalam hitungan jam sampai hari; biaya tetap bulanan datang
   // tiap tiga puluh hari. Otomasi 2.14 yang mengurus yang kedua.
   app.get('/api/v1/otomasi/jalankan/biaya-kembar', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -6045,7 +6046,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // Enam nota di bulan yang sama bukan biaya berulang, itu enam belanja.
   // Yang menandakan langganan adalah kehadirannya di bulan demi bulan.
   app.get('/api/v1/otomasi/jalankan/biaya-berulang', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -6212,7 +6213,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // seluruhnya menghitung ganda — induk memuat jumlah anaknya. Hasilnya RAB
   // terlihat dua sampai tiga kali lipat, dan tiap proyek jadi "rugi".
   app.get('/api/v1/otomasi/jalankan/margin-bocor', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -6480,7 +6481,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // `purchase_order_items.material_id` menunjuk material yang sungguhan. Dua
   // penunjuk itu yang membuat perbandingannya bisa dipercaya.
   app.get('/api/v1/otomasi/jalankan/pemasok-terpencar', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -6722,7 +6723,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // Menjumlahkan `qty` apa adanya membuat pemakaian ikut menambah stok, dan
   // tiap baris jadi "melenceng" — laporan yang tak bisa dipakai.
   app.get('/api/v1/otomasi/jalankan/stok-melenceng', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -6971,7 +6972,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   //
   // `biaya-kembar` sudah menanganinya dengan penjelasan yang tepat.
   app.get('/api/v1/otomasi/jalankan/biaya-pencilan', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -7171,7 +7172,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // manajer proyek tentang AKIBATNYA pada tanggal selesai. Sumbernya sama,
   // pertanyaannya beda, dan penerimanya beda.
   app.get('/api/v1/otomasi/jalankan/proyeksi-selesai', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -7414,7 +7415,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // dilaporkan "deteksi fraud sudah ada" — dan itu lebih berbahaya daripada
   // tak punya sama sekali, karena ia memberi rasa aman yang tak berdasar.
   app.get('/api/v1/otomasi/jalankan/po-luar-kontrak', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -7674,7 +7675,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // penuh berarti seseorang menutup tagihan yang belum lunas, dan penagihan
   // berhenti mengejarnya.
   app.get('/api/v1/otomasi/jalankan/invoice-ringkasan-melenceng', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -7885,7 +7886,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // melakukannya membuat tiap proyek baru langsung "tidak siap audit", dan
   // daftar yang selalu penuh berhenti dibaca.
   app.get('/api/v1/otomasi/jalankan/kesiapan-audit', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -8050,7 +8051,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // masuk akal: yang dibutuhkan orang ketiga yang memutuskan, dan ia dibutuhkan
   // sejak hari sengketanya dicatat.
   app.get('/api/v1/otomasi/jalankan/opname-menggantung', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -8180,7 +8181,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // dan baris yang sudah terisi tak pernah terambil lagi. Menambah dedup di
   // atasnya hanya menyembunyikan kalau penandaan itu gagal.
   app.get('/api/v1/otomasi/jalankan/kirim-pengingat', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
 
@@ -8295,7 +8296,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // Rute ini menegurnya SEKALI (lalu tunduk jeda melandai seperti yang lain),
   // karena yang dibutuhkan tindakan sekali: mulai mencatat meternya.
   app.get('/api/v1/otomasi/jalankan/perawatan-diprediksi', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -8521,7 +8522,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // Dua nama teratas di atas tak pernah terlihat oleh 2.6 sebagai POLA — hanya
   // sebagai beberapa invoice terlambat yang tersebar di beberapa bulan.
   app.get('/api/v1/otomasi/jalankan/kebiasaan-bayar', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -8748,7 +8749,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // "belum dikerjakan" — supaya sesi berikutnya tak membangunnya dan menyangka
   // sedang menutup celah.
   app.get('/api/v1/otomasi/jalankan/ringkasan-mingguan', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -8907,7 +8908,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // kekurangan terhadap RENCANA terlihat berminggu-minggu sebelumnya — dan itu
   // justru rentang yang dibutuhkan untuk memesan.
   app.get('/api/v1/otomasi/jalankan/material-kurang', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -9152,7 +9153,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   //
   // Karena itu keduanya diperiksa TERPISAH, dan yang kedua LEBIH DULU.
   app.get('/api/v1/otomasi/jalankan/alat-tak-sehat', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -9320,7 +9321,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // proyek sementara ini ditulis — jadi jangan percaya angka di komentar ini;
   // ukur sendiri lewat jawaban rutenya (`checked.tanpa_polis`).
   app.get('/api/v1/otomasi/jalankan/celah-asuransi', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -9509,7 +9510,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // seorang pun meneruskannya ke klien; atau sebaliknya, proyek sepi laporan
   // tetapi kliennya rutin ditelepon.
   app.get('/api/v1/otomasi/jalankan/klien-didiamkan', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -9686,7 +9687,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // Membandingkan antar-alat menghasilkan tuduhan yang selalu menunjuk alat
   // terbesar — benar secara aritmetika, tak berguna sama sekali.
   app.get('/api/v1/otomasi/jalankan/bbm-melonjak', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -9893,7 +9894,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // syarat 4.000). Karena lulus, tak ada yang merasa perlu menindaklanjuti —
   // dan berkasnya menggantung selamanya.
   app.get('/api/v1/otomasi/jalankan/uji-material-gagal', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -10067,7 +10068,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   //
   // ⚠ Angka di atas SAAT DIUKUR. Ukur sendiri lewat `checked` di jawaban rute.
   app.get('/api/v1/otomasi/jalankan/barang-tertahan', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -10273,7 +10274,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // arbitrase keputusan direksi. Peringatan yang meminta hal termudah lebih
   // mungkin dikerjakan hari itu juga.
   app.get('/api/v1/otomasi/jalankan/sengketa-menggantung', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -10567,7 +10568,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   //
   // Diukur 2026-08-19: 36 item belum ditutup, terlama 16 hari lewat target.
   app.get('/api/v1/otomasi/jalankan/punch-lewat-target', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -10657,7 +10658,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // Diukur 2026-08-19: 17 NCR belum ditutup, terlama 15 hari lewat target,
   // dan SATU tanpa target sama sekali.
   app.get('/api/v1/otomasi/jalankan/ncr-lewat-target', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -10746,7 +10747,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // Diukur 2026-08-19: 12 permintaan belum diperiksa, terlama 22 hari lewat
   // tanggal yang diminta.
   app.get('/api/v1/otomasi/jalankan/inspeksi-terlewat', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -10848,7 +10849,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   //
   // Diukur 2026-08-19: 5 tindakan belum selesai, terlama 18 hari lewat.
   app.get('/api/v1/otomasi/jalankan/mitigasi-lewat-tenggat', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -10973,7 +10974,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   // Diukur 2026-08-19: 3 tindak lanjut belum selesai, terlama 17 hari lewat,
   // dan SATU tanpa tenggat sama sekali.
   app.get('/api/v1/otomasi/jalankan/notulen-tak-ditindak', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -11089,7 +11090,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   //
   // Diukur 2026-08-19: 2 RFQ terkirim melewati batas masuk, terlama 10 hari.
   app.get('/api/v1/otomasi/jalankan/rfq-lewat-batas', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -11219,7 +11220,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   //
   // Diukur 2026-08-19: 1 dari 5 pengukuran melampaui baku mutunya.
   app.get('/api/v1/otomasi/jalankan/lingkungan-lampaui-baku', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -11341,7 +11342,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   //
   // Diukur 2026-08-19: 5 temuan belum ditutup.
   app.get('/api/v1/otomasi/jalankan/temuan-audit-menggantung', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -11476,7 +11477,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   //
   // Diukur 2026-08-19: 4 titik belum diperiksa.
   app.get('/api/v1/otomasi/jalankan/itp-belum-diperiksa', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -11594,7 +11595,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   //
   // Diukur 2026-08-19: 3 draf, terlama 13 hari.
   app.get('/api/v1/otomasi/jalankan/ipc-mengendap-draf', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -11697,7 +11698,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   //
   // Diukur 2026-08-19: 2 pengajuan menunggu, 8 hari.
   app.get('/api/v1/otomasi/jalankan/cuti-belum-diputus', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
@@ -11852,7 +11853,7 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
   //
   // Diukur 2026-08-19: 1 diajukan, 12 hari.
   app.get('/api/v1/otomasi/jalankan/nota-kredit-menggantung', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+    preHandler: [authenticate, requireModul('modul.ai'), requirePermission('notifications:milestone:check')],
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')

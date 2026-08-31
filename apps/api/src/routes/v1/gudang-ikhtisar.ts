@@ -38,6 +38,7 @@
  */
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 
 const ALASAN =
   'ikhtisar gudang lintas-proyek milik company; asset_movements disaring lewat id aset milik company, gudang_stok lewat id gudang milik company'
@@ -59,7 +60,7 @@ export default async function gudangIkhtisarRoutes(app: FastifyInstance) {
   app.get('/api/v1/gudang/ikhtisar', {
     // `gudang:view` — di-seed migrasi 238, diberikan ke role yang sudah punya
     // `assets:view`/`assets:manage`. Diperiksa ke DB, bukan ditebak.
-    preHandler: [authenticate, requirePermission('gudang:view')],
+    preHandler: [authenticate, requireModul('modul.gudang'), requirePermission('gudang:view')],
   }, async (request, reply) => {
     const db = request.db!
 

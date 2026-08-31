@@ -27,6 +27,7 @@
 
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { ambilKredensial } from '../../lib/kredensial.js'
 import { KATALOG_OTOMASI } from '../../lib/katalog-otomasi.js'
@@ -55,7 +56,7 @@ export default async function otomasiAlurRoutes(app: FastifyInstance) {
   // ── GET /api/v1/otomasi/alur ─────────────────────────────────────────────
   app.get(
     '/api/v1/otomasi/alur',
-    { preHandler: [authenticate, requirePermission('otomasi:alur:lihat')] },
+    { preHandler: [authenticate, requireModul('modul.ai'), requirePermission('otomasi:alur:lihat')] },
     async (request, reply) => {
       const { data, error } = await request.db!
         .from('otomasi_alur')
@@ -85,7 +86,7 @@ export default async function otomasiAlurRoutes(app: FastifyInstance) {
   // ── GET /api/v1/otomasi/alur/:id/jalan — jejak ───────────────────────────
   app.get<{ Params: { id: string } }>(
     '/api/v1/otomasi/alur/:id/jalan',
-    { preHandler: [authenticate, requirePermission('otomasi:alur:lihat')] },
+    { preHandler: [authenticate, requireModul('modul.ai'), requirePermission('otomasi:alur:lihat')] },
     async (request, reply) => {
       const { data, error } = await request.db!
         .from('otomasi_jalan')
@@ -118,7 +119,7 @@ export default async function otomasiAlurRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/otomasi/alur',
-    { preHandler: [authenticate, requirePermission('otomasi:alur:kelola')] },
+    { preHandler: [authenticate, requireModul('modul.ai'), requirePermission('otomasi:alur:kelola')] },
     async (request, reply) => {
       const b = request.body ?? {}
 
@@ -241,7 +242,7 @@ export default async function otomasiAlurRoutes(app: FastifyInstance) {
   // penghapusannya sendiri tetap ada di audit log yang append-only.
   app.delete<{ Params: { id: string } }>(
     '/api/v1/otomasi/alur/:id',
-    { preHandler: [authenticate, requirePermission('otomasi:alur:kelola')] },
+    { preHandler: [authenticate, requireModul('modul.ai'), requirePermission('otomasi:alur:kelola')] },
     async (request, reply) => {
       const { id } = request.params
 
@@ -293,7 +294,7 @@ export default async function otomasiAlurRoutes(app: FastifyInstance) {
   app.post<{ Params: { id: string }; Body: { muatan?: Record<string, unknown> } }>(
     '/api/v1/otomasi/alur/:id/jalankan',
     {
-      preHandler: [authenticate, requirePermission('otomasi:alur:jalankan')],
+      preHandler: [authenticate, requireModul('modul.ai'), requirePermission('otomasi:alur:jalankan')],
       // Per user: memicu alur berarti mengirim pesan keluar. Klik beruntun
       // yang tak dibatasi mengirimkannya berkali-kali ke orang yang sama.
       config: {
@@ -364,7 +365,7 @@ export default async function otomasiAlurRoutes(app: FastifyInstance) {
   // ── GET /api/v1/otomasi/n8n/status ───────────────────────────────────────
   app.get(
     '/api/v1/otomasi/n8n/status',
-    { preHandler: [authenticate, requirePermission('otomasi:alur:lihat')] },
+    { preHandler: [authenticate, requireModul('modul.ai'), requirePermission('otomasi:alur:lihat')] },
     async (request, reply) => {
       const cfg = await cfgTenant(request)
       const uji = await ujiSambunganN8n(cfg)
@@ -385,7 +386,7 @@ export default async function otomasiAlurRoutes(app: FastifyInstance) {
   // menunggu notifikasi yang tak datang.
   app.get(
     '/api/v1/otomasi/n8n/workflow',
-    { preHandler: [authenticate, requirePermission('otomasi:alur:kelola')] },
+    { preHandler: [authenticate, requireModul('modul.ai'), requirePermission('otomasi:alur:kelola')] },
     async (request, reply) => {
       const hasil = await daftarWorkflowN8n(await cfgTenant(request))
       if (!hasil.ok) return reply.status(502).send({ error: hasil.pesan })
@@ -422,7 +423,7 @@ export default async function otomasiAlurRoutes(app: FastifyInstance) {
   // angka: ia menenangkan tanpa dasar.
   app.get(
     '/api/v1/otomasi/alur/ikhtisar',
-    { preHandler: [authenticate, requirePermission('otomasi:alur:lihat')] },
+    { preHandler: [authenticate, requireModul('modul.ai'), requirePermission('otomasi:alur:lihat')] },
     async (request, reply) => {
       const db = request.db!
       const sejak24j = new Date(Date.now() - 24 * 60 * 60_000).toISOString()
@@ -471,7 +472,7 @@ export default async function otomasiAlurRoutes(app: FastifyInstance) {
   // dijawab dengan membuka empat belas alur satu per satu.
   app.get<{ Querystring: { status?: string } }>(
     '/api/v1/otomasi/alur/jalan',
-    { preHandler: [authenticate, requirePermission('otomasi:alur:lihat')] },
+    { preHandler: [authenticate, requireModul('modul.ai'), requirePermission('otomasi:alur:lihat')] },
     async (request, reply) => {
       let q = request.db!
         .from('otomasi_jalan')
@@ -556,7 +557,7 @@ export default async function otomasiAlurRoutes(app: FastifyInstance) {
   // Yang bisa basi diukur tiap permintaan; yang ditulis tak bisa basi.
   app.get(
     '/api/v1/otomasi/katalog',
-    { preHandler: [authenticate, requirePermission('otomasi:alur:lihat')] },
+    { preHandler: [authenticate, requireModul('modul.ai'), requirePermission('otomasi:alur:lihat')] },
     async (request, reply) => {
       /*
         Alur dibaca SEKALI lalu dipetakan, bukan satu query per entri.

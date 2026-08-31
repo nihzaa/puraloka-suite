@@ -1732,6 +1732,23 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # Rute modul BERBAYAR tanpa `requireModul` tak mengeluarkan galat: menu
+      # disembunyikan di web, tapi API-nya tetap menerima — dan yang tahu
+      # caranya memakai modul yang tak ia bayar lewat curl. Yang bergejala
+      # cuma tagihan yang tak naik-naik, berbulan kemudian.
+      #
+      # Ikut menjaga URUTAN (modul sebelum izin — menentukan pesan penolakan
+      # mana yang diterima pengguna) dan JALUR PEMULIHAN (langganan,
+      # pengaturan, ekspor tak boleh digerbang: pelanggan yang ingin membayar
+      # harus selalu bisa membayar).
+      #
+      # Bukti merah: gerbang dilucuti dari gl.ts -> exit 1 · urutan dibalik ->
+      # exit 1 · auth.ts digerbang -> exit 1 · berkas hantu di peta -> exit 1 ·
+      # dipulihkan -> exit 0.
+      - name: Rute modul berbayar bergerbang (ambang NOL)
+        run: node scripts/audit-modul-punya-gerbang.mjs
+        working-directory: apps/api
+
       - name: Kunci izin benar-benar ada di basis
         run: node scripts/audit-izin-benar-ada.mjs
         env:

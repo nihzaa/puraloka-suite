@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { susunRiwayatHarga, type BarisPembelian } from '../../lib/riwayat-harga.js'
 
@@ -31,7 +32,7 @@ import { susunRiwayatHarga, type BarisPembelian } from '../../lib/riwayat-harga.
 export default async function riwayatHargaRoutes(app: FastifyInstance) {
   // ── GET /api/v1/riwayat-harga ────────────────────────────────────────────
   app.get('/api/v1/riwayat-harga', {
-    preHandler: [authenticate, requirePermission('procurement:view')],
+    preHandler: [authenticate, requireModul('modul.pengadaan'), requirePermission('procurement:view')],
   }, async (request, reply) => {
     const q = request.query as Record<string, string>
     const db = request.db!

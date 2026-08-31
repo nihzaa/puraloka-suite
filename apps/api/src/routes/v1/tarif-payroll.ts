@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import {
   periodeBerlaku, kesiapanTarif,
@@ -45,7 +46,7 @@ export default async function tarifPayrollRoutes(app: FastifyInstance) {
   // mana yang berlaku saat itu.
   app.get<{ Querystring: { pada?: string } }>(
     '/api/v1/payroll/tarif',
-    { preHandler: [authenticate, requirePermission('payroll:tarif:view')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('payroll:tarif:view')] },
     async (request, reply) => {
       const { data: periode, error } = await request.db!
         .from('tarif_payroll_periode')
@@ -108,7 +109,7 @@ export default async function tarifPayrollRoutes(app: FastifyInstance) {
     Body: { jenis?: string; berlaku_sejak?: string; dasar_hukum?: string; catatan?: string }
   }>(
     '/api/v1/payroll/tarif',
-    { preHandler: [authenticate, requirePermission('payroll:tarif:manage')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('payroll:tarif:manage')] },
     async (request, reply) => {
       const b = request.body
 
@@ -179,7 +180,7 @@ export default async function tarifPayrollRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/payroll/tarif/:id/baris',
-    { preHandler: [authenticate, requirePermission('payroll:tarif:manage')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('payroll:tarif:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -268,7 +269,7 @@ export default async function tarifPayrollRoutes(app: FastifyInstance) {
   // ── DELETE /payroll/tarif/baris/:id ──────────────────────────────────────
   app.delete<{ Params: { id: string } }>(
     '/api/v1/payroll/tarif/baris/:id',
-    { preHandler: [authenticate, requirePermission('payroll:tarif:manage')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('payroll:tarif:manage')] },
     async (request, reply) => {
       const { id } = request.params
 

@@ -43,6 +43,7 @@
 
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { ambilKredensial } from '../../lib/kredensial.js'
 import { jalankanGiliranAi } from '../../lib/ai-jalankan.js'
@@ -74,7 +75,7 @@ export default async function aiChatRoutes(app: FastifyInstance) {
   app.post<{ Body: BadanChat }>(
     '/api/v1/ai/chat',
     {
-      preHandler: [authenticate, requirePermission('ai:chat')],
+      preHandler: [authenticate, requireModul('modul.ai'), requirePermission('ai:chat')],
       config: {
         /*
          * Batas bulanan tak menahan pembakaran token dalam SATU JAM — itu

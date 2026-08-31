@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import PDFDocument from 'pdfkit'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { supabase } from '../../utils/supabase.js'
 import {
@@ -94,7 +95,7 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
     Querystring: { pada?: string; jam_kerja?: string }
   }>(
     '/api/v1/proyek/:id/k3',
-    { preHandler: [authenticate, requirePermission('k3:inspeksi:view')] },
+    { preHandler: [authenticate, requireModul('modul.k3_lingkungan'), requirePermission('k3:inspeksi:view')] },
     async (request, reply) => {
       const { id } = request.params
       const pada = request.query.pada ?? hariIni()
@@ -267,7 +268,7 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
     Querystring: { dari?: string; sampai?: string }
   }>(
     '/api/v1/proyek/:id/k3/selaras',
-    { preHandler: [authenticate, requirePermission('k3:insiden:view')] },
+    { preHandler: [authenticate, requireModul('modul.k3_lingkungan'), requirePermission('k3:insiden:view')] },
     async (request, reply) => {
       const { id } = request.params
       const { dari, sampai } = request.query
@@ -346,7 +347,7 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/proyek/:id/k3/insiden',
-    { preHandler: [authenticate, requirePermission('k3:insiden:manage')] },
+    { preHandler: [authenticate, requireModul('modul.k3_lingkungan'), requirePermission('k3:insiden:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -465,7 +466,7 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/k3/insiden/:id',
-    { preHandler: [authenticate, requirePermission('k3:insiden:manage')] },
+    { preHandler: [authenticate, requireModul('modul.k3_lingkungan'), requirePermission('k3:insiden:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -604,7 +605,7 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
   // bisa mengatakan "500 teratas" alih-alih diam-diam menyembunyikan sisanya.
   app.get<{ Querystring: { proyek?: string; jenis?: string } }>(
     '/api/v1/k3/insiden',
-    { preHandler: [authenticate, requirePermission('k3:insiden:view')] },
+    { preHandler: [authenticate, requireModul('modul.k3_lingkungan'), requirePermission('k3:insiden:view')] },
     async (request, reply) => {
       const { proyek, jenis } = request.query
 
@@ -678,7 +679,7 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
   // ── GET /k3/jsa ──────────────────────────────────────────────────────────
   app.get<{ Querystring: { proyek?: string } }>(
     '/api/v1/k3/jsa',
-    { preHandler: [authenticate, requirePermission('k3:jsa:view')] },
+    { preHandler: [authenticate, requireModul('modul.k3_lingkungan'), requirePermission('k3:jsa:view')] },
     async (request, reply) => {
       // `jsa` kategori B — punya `company_id` sendiri.
       const { data: daftar, error } = await request.db!
@@ -732,7 +733,7 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/k3/jsa',
-    { preHandler: [authenticate, requirePermission('k3:jsa:manage')] },
+    { preHandler: [authenticate, requireModul('modul.k3_lingkungan'), requirePermission('k3:jsa:manage')] },
     async (request, reply) => {
       const b = request.body
       if (!b.jenis_pekerjaan?.trim()) {
@@ -780,7 +781,7 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/k3/jsa/:id/langkah',
-    { preHandler: [authenticate, requirePermission('k3:jsa:manage')] },
+    { preHandler: [authenticate, requireModul('modul.k3_lingkungan'), requirePermission('k3:jsa:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -861,7 +862,7 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
     Body: { tanggal?: string; area?: string; nomor?: string; ringkasan?: string; pemeriksa_nama?: string }
   }>(
     '/api/v1/proyek/:id/k3/inspeksi',
-    { preHandler: [authenticate, requirePermission('k3:inspeksi:manage')] },
+    { preHandler: [authenticate, requireModul('modul.k3_lingkungan'), requirePermission('k3:inspeksi:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -907,7 +908,7 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/k3/inspeksi/:id/temuan',
-    { preHandler: [authenticate, requirePermission('k3:inspeksi:manage')] },
+    { preHandler: [authenticate, requireModul('modul.k3_lingkungan'), requirePermission('k3:inspeksi:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -964,7 +965,7 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
     Body: { status?: string; tindakan?: string; tenggat?: string | null }
   }>(
     '/api/v1/k3/temuan/:id',
-    { preHandler: [authenticate, requirePermission('k3:inspeksi:manage')] },
+    { preHandler: [authenticate, requireModul('modul.k3_lingkungan'), requirePermission('k3:inspeksi:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -1036,7 +1037,7 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/proyek/:id/k3/induksi',
-    { preHandler: [authenticate, requirePermission('k3:induksi:manage')] },
+    { preHandler: [authenticate, requireModul('modul.k3_lingkungan'), requirePermission('k3:induksi:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -1101,7 +1102,7 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/proyek/:id/k3/apd',
-    { preHandler: [authenticate, requirePermission('k3:induksi:manage')] },
+    { preHandler: [authenticate, requireModul('modul.k3_lingkungan'), requirePermission('k3:induksi:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -1173,7 +1174,7 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/proyek/:id/k3/lingkungan',
-    { preHandler: [authenticate, requirePermission('k3:lingkungan:manage')] },
+    { preHandler: [authenticate, requireModul('modul.k3_lingkungan'), requirePermission('k3:lingkungan:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body
@@ -1395,7 +1396,7 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
 
   app.get<{ Params: { id: string } }>(
     '/api/v1/proyek/:id/k3/rk3k',
-    { preHandler: [authenticate, requirePermission('k3:inspeksi:view')] },
+    { preHandler: [authenticate, requireModul('modul.k3_lingkungan'), requirePermission('k3:inspeksi:view')] },
     async (request, reply) => {
       const r = await rakitRk3k(request, request.params.id)
       if (!r.ok) return reply.status(r.status).send({ error: r.pesan })
@@ -1433,7 +1434,7 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
   // dokumen rapi yang tak menyebut apa-apa tentang kekosongannya.
   app.get<{ Params: { id: string } }>(
     '/api/v1/proyek/:id/k3/rk3k.pdf',
-    { preHandler: [authenticate, requirePermission('k3:inspeksi:view')] },
+    { preHandler: [authenticate, requireModul('modul.k3_lingkungan'), requirePermission('k3:inspeksi:view')] },
     async (request, reply) => {
       const r = await rakitRk3k(request, request.params.id)
       if (!r.ok) return reply.status(r.status).send({ error: r.pesan })

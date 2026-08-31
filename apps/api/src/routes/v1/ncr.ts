@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 import type { TenantDb } from '../../utils/tenant-db.js'
 import { authenticate, requirePermission, hasPermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { createNotifications } from '../../utils/notifications.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { ringkasKandidatNcr } from '../../lib/inspeksi-ke-ncr.js'
@@ -127,7 +128,7 @@ export default async function ncrRoutes(app: FastifyInstance) {
   // tertangkap sebagai id NCR.
   app.get<{ Params: { projectId: string } }>(
     '/api/v1/projects/:projectId/ncr/kandidat',
-    { preHandler: [authenticate, requirePermission('ncr:view')] },
+    { preHandler: [authenticate, requireModul('modul.uji_mutu'), requirePermission('ncr:view')] },
     async (request, reply) => {
       const { projectId } = request.params
       if (!(await proyekMilikTenant(request, projectId))) {
@@ -185,7 +186,7 @@ export default async function ncrRoutes(app: FastifyInstance) {
   // ── GET /api/v1/projects/:projectId/ncr ─────────────────────────────────
   app.get<{ Params: { projectId: string }; Querystring: { status?: string; severity?: string } }>(
     '/api/v1/projects/:projectId/ncr',
-    { preHandler: [authenticate, requirePermission('ncr:view')] },
+    { preHandler: [authenticate, requireModul('modul.uji_mutu'), requirePermission('ncr:view')] },
     async (request, reply) => {
       const { projectId } = request.params
       if (!(await proyekMilikTenant(request, projectId))) {
@@ -267,7 +268,7 @@ export default async function ncrRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/projects/:projectId/ncr',
-    { preHandler: [authenticate, requirePermission('ncr:manage')] },
+    { preHandler: [authenticate, requireModul('modul.uji_mutu'), requirePermission('ncr:manage')] },
     async (request, reply) => {
       const { projectId } = request.params
       const b = request.body
@@ -354,7 +355,7 @@ export default async function ncrRoutes(app: FastifyInstance) {
     }
   }>(
     '/api/v1/ncr/:id',
-    { preHandler: [authenticate, requirePermission('ncr:manage')] },
+    { preHandler: [authenticate, requireModul('modul.uji_mutu'), requirePermission('ncr:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const b = request.body ?? {}
@@ -413,7 +414,7 @@ export default async function ncrRoutes(app: FastifyInstance) {
     Body: { disposisi: string; catatan?: string }
   }>(
     '/api/v1/ncr/:id/disposisi',
-    { preHandler: [authenticate, requirePermission('ncr:disposisi')] },
+    { preHandler: [authenticate, requireModul('modul.uji_mutu'), requirePermission('ncr:disposisi')] },
     async (request, reply) => {
       const { id } = request.params
       const { disposisi, catatan } = request.body ?? {}
@@ -500,7 +501,7 @@ export default async function ncrRoutes(app: FastifyInstance) {
     Body: { status: string; catatan?: string }
   }>(
     '/api/v1/ncr/:id/status',
-    { preHandler: [authenticate, requirePermission('ncr:manage')] },
+    { preHandler: [authenticate, requireModul('modul.uji_mutu'), requirePermission('ncr:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const { status, catatan } = request.body ?? {}

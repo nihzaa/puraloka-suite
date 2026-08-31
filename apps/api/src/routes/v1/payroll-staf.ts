@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import {
   hitungSlip, ringkasPayroll,
@@ -47,7 +48,7 @@ export default async function payrollStafRoutes(app: FastifyInstance) {
   // ── GET /payroll/periode ─────────────────────────────────────────────────
   app.get(
     '/api/v1/payroll/periode',
-    { preHandler: [authenticate, requirePermission('payroll:jalankan:view')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('payroll:jalankan:view')] },
     async (request, reply) => {
       const { data, error } = await request.db!
         .from('payroll_periode')
@@ -65,7 +66,7 @@ export default async function payrollStafRoutes(app: FastifyInstance) {
   // ── POST /payroll/periode ────────────────────────────────────────────────
   app.post<{ Body: { bulan?: string; tanggal_acuan?: string; catatan?: string } }>(
     '/api/v1/payroll/periode',
-    { preHandler: [authenticate, requirePermission('payroll:jalankan:manage')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('payroll:jalankan:manage')] },
     async (request, reply) => {
       const b = request.body
 
@@ -119,7 +120,7 @@ export default async function payrollStafRoutes(app: FastifyInstance) {
   // MEMBACA yang tersimpan. Tidak menghitung ulang — lihat kepala berkas.
   app.get<{ Params: { id: string } }>(
     '/api/v1/payroll/periode/:id',
-    { preHandler: [authenticate, requirePermission('payroll:jalankan:view')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('payroll:jalankan:view')] },
     async (request, reply) => {
       const { id } = request.params
 
@@ -191,7 +192,7 @@ export default async function payrollStafRoutes(app: FastifyInstance) {
   // selama periodenya belum dikunci (dijaga trigger 287).
   app.post<{ Params: { id: string } }>(
     '/api/v1/payroll/periode/:id/hitung',
-    { preHandler: [authenticate, requirePermission('payroll:jalankan:manage')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('payroll:jalankan:manage')] },
     async (request, reply) => {
       const { id } = request.params
 
@@ -377,7 +378,7 @@ export default async function payrollStafRoutes(app: FastifyInstance) {
   // ── POST /payroll/periode/:id/kunci ──────────────────────────────────────
   app.post<{ Params: { id: string } }>(
     '/api/v1/payroll/periode/:id/kunci',
-    { preHandler: [authenticate, requirePermission('payroll:jalankan:manage')] },
+    { preHandler: [authenticate, requireModul('modul.sdm'), requirePermission('payroll:jalankan:manage')] },
     async (request, reply) => {
       const { id } = request.params
 

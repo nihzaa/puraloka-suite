@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import {
   jadwalSusut, bebanPeriode, nilaiBuku, hitungUtilisasi, biayaSewa,
@@ -73,7 +74,7 @@ export default async function assetRoutes(app: FastifyInstance) {
   // ── GET /api/v1/assets ────────────────────────────────────────────────────
   app.get<{ Querystring: { status?: string; category?: string; ownership?: string; project_id?: string } }>(
     '/api/v1/assets',
-    { preHandler: [authenticate, requirePermission('assets:view')] },
+    { preHandler: [authenticate, requireModul('modul.alat'), requirePermission('assets:view')] },
     async (request, reply) => {
       const { status, category, ownership, project_id } = request.query
 
@@ -184,7 +185,7 @@ export default async function assetRoutes(app: FastifyInstance) {
   // ── POST /api/v1/assets ───────────────────────────────────────────────────
   app.post(
     '/api/v1/assets',
-    { preHandler: [authenticate, requirePermission('assets:manage')] },
+    { preHandler: [authenticate, requireModul('modul.alat'), requirePermission('assets:manage')] },
     async (request, reply) => {
       const b = request.body as Record<string, unknown>
       const kode = String(b.asset_code ?? '').trim()
@@ -246,7 +247,7 @@ export default async function assetRoutes(app: FastifyInstance) {
   // ── PATCH /api/v1/assets/:id ──────────────────────────────────────────────
   app.patch<{ Params: { id: string } }>(
     '/api/v1/assets/:id',
-    { preHandler: [authenticate, requirePermission('assets:manage')] },
+    { preHandler: [authenticate, requireModul('modul.alat'), requirePermission('assets:manage')] },
     async (request, reply) => {
       const b = request.body as Record<string, unknown>
 
@@ -291,7 +292,7 @@ export default async function assetRoutes(app: FastifyInstance) {
   // ── POST /api/v1/assets/:id/movements — mutasi antar-proyek ───────────────
   app.post<{ Params: { id: string } }>(
     '/api/v1/assets/:id/movements',
-    { preHandler: [authenticate, requirePermission('assets:manage')] },
+    { preHandler: [authenticate, requireModul('modul.alat'), requirePermission('assets:manage')] },
     async (request, reply) => {
       const b = request.body as Record<string, unknown>
 
@@ -352,7 +353,7 @@ export default async function assetRoutes(app: FastifyInstance) {
   // ── GET /api/v1/assets/:id/movements ──────────────────────────────────────
   app.get<{ Params: { id: string } }>(
     '/api/v1/assets/:id/movements',
-    { preHandler: [authenticate, requirePermission('assets:view')] },
+    { preHandler: [authenticate, requireModul('modul.alat'), requirePermission('assets:view')] },
     async (request, reply) => {
       const { data: aset } = await request.db!
         .from('assets').select('id, purchase_date').eq('id', request.params.id).maybeSingle()
@@ -396,7 +397,7 @@ export default async function assetRoutes(app: FastifyInstance) {
   // ── GET /api/v1/assets/:id/depreciation ───────────────────────────────────
   app.get<{ Params: { id: string } }>(
     '/api/v1/assets/:id/depreciation',
-    { preHandler: [authenticate, requirePermission('assets:view')] },
+    { preHandler: [authenticate, requireModul('modul.alat'), requirePermission('assets:view')] },
     async (request, reply) => {
       const { data: a } = await request.db!
         .from('assets')
@@ -462,7 +463,7 @@ export default async function assetRoutes(app: FastifyInstance) {
   // ── POST /api/v1/assets/:id/depreciation — catat beban satu periode ───────
   app.post<{ Params: { id: string } }>(
     '/api/v1/assets/:id/depreciation',
-    { preHandler: [authenticate, requirePermission('assets:manage')] },
+    { preHandler: [authenticate, requireModul('modul.alat'), requirePermission('assets:manage')] },
     async (request, reply) => {
       const b = request.body as { period_year?: number; period_month?: number }
       const kini = new Date()
@@ -538,7 +539,7 @@ export default async function assetRoutes(app: FastifyInstance) {
   // ── GET /api/v1/asset-rentals ─────────────────────────────────────────────
   app.get<{ Querystring: { status?: string; project_id?: string } }>(
     '/api/v1/asset-rentals',
-    { preHandler: [authenticate, requirePermission('assets:view')] },
+    { preHandler: [authenticate, requireModul('modul.alat'), requirePermission('assets:view')] },
     async (request, reply) => {
       let q = request.db!
         .from('asset_rentals')
@@ -580,7 +581,7 @@ export default async function assetRoutes(app: FastifyInstance) {
   // ── POST /api/v1/asset-rentals ────────────────────────────────────────────
   app.post(
     '/api/v1/asset-rentals',
-    { preHandler: [authenticate, requirePermission('assets:manage')] },
+    { preHandler: [authenticate, requireModul('modul.alat'), requirePermission('assets:manage')] },
     async (request, reply) => {
       const b = request.body as Record<string, unknown>
       const nama = String(b.item_name ?? '').trim()
@@ -623,7 +624,7 @@ export default async function assetRoutes(app: FastifyInstance) {
   // ── PATCH /api/v1/asset-rentals/:id ───────────────────────────────────────
   app.patch<{ Params: { id: string } }>(
     '/api/v1/asset-rentals/:id',
-    { preHandler: [authenticate, requirePermission('assets:manage')] },
+    { preHandler: [authenticate, requireModul('modul.alat'), requirePermission('assets:manage')] },
     async (request, reply) => {
       const b = request.body as Record<string, unknown>
 

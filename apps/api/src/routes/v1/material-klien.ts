@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 
 /**
@@ -34,7 +35,7 @@ import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 export default async function materialKlienRoutes(app: FastifyInstance) {
   // ── GET /api/v1/material-klien ───────────────────────────────────────────
   app.get('/api/v1/material-klien', {
-    preHandler: [authenticate, requirePermission('procurement:view')],
+    preHandler: [authenticate, requireModul('modul.gudang'), requirePermission('procurement:view')],
   }, async (request, reply) => {
     const q = request.query as Record<string, string>
     const db = request.db!
@@ -82,7 +83,7 @@ export default async function materialKlienRoutes(app: FastifyInstance) {
   // bukan `procurement:view` seperti `POST /procurement/stocks/usage` (cacat
   // T4j yang tercatat di berkas itu sendiri).
   app.post('/api/v1/material-klien', {
-    preHandler: [authenticate, requirePermission('procurement:material:manage')],
+    preHandler: [authenticate, requireModul('modul.gudang'), requirePermission('procurement:material:manage')],
   }, async (request, reply) => {
     const b = request.body as {
       project_id?: string

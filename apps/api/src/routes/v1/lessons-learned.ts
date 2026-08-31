@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { requireModul } from '../../utils/gerbang-modul.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { validasiPelajaran } from '../../lib/pelajaran.js'
 import {
@@ -39,7 +40,7 @@ export default async function lessonsLearnedRoutes(app: FastifyInstance) {
   // ada di sini, dan selama ini tak terjangkau.
   app.get<{ Querystring: { project_id?: string; status?: string } }>(
     '/api/v1/lessons-learned',
-    { preHandler: [authenticate, requirePermission('cecep:lessons:view')] },
+    { preHandler: [authenticate, requireModul('modul.uji_mutu'), requirePermission('cecep:lessons:view')] },
     async (request, reply) => {
       const db = request.db!
       const q = request.query
@@ -80,7 +81,7 @@ export default async function lessonsLearnedRoutes(app: FastifyInstance) {
   // akar masalah adalah keluhan, bukan pelajaran.
   app.post(
     '/api/v1/lessons-learned',
-    { preHandler: [authenticate, requirePermission('cecep:lessons:manage')] },
+    { preHandler: [authenticate, requireModul('modul.uji_mutu'), requirePermission('cecep:lessons:manage')] },
     async (request, reply) => {
       const db = request.db!
       const b = request.body as {
@@ -184,7 +185,7 @@ export default async function lessonsLearnedRoutes(app: FastifyInstance) {
   // ── PATCH /submit — draft → under_review ────────────────────────────────────
   app.patch<{ Params: { id: string } }>(
     '/api/v1/lessons-learned/:id/submit',
-    { preHandler: [authenticate, requirePermission('cecep:lessons:manage')] },
+    { preHandler: [authenticate, requireModul('modul.uji_mutu'), requirePermission('cecep:lessons:manage')] },
     async (request, reply) => {
       const { id } = request.params
       const { data: l } = await supabase
