@@ -3708,3 +3708,81 @@ policy `projects` mengubah siapa melihat apa di tabel paling inti.
 Entri aslinya benar soal ANGKA (37 izin, 183 hilang, 16 peran kosong) tapi
 salah soal AKIBAT — karena saya menyimpulkan gejala dari `role_permissions`
 tanpa memeriksa `pg_policies`. Dua lapis, dan saya hanya mengukur satu.
+
+---
+
+## R-0xx · Dua sektor take-off ada di BASIS tanpa migrasi — dan hilang di VPS
+
+**Diajukan 2026-08-31. Belum ada yang diubah.**
+
+`audit-sektor-takeoff-cocok.mjs` merah, ambang NOL (bukan ratchet):
+
+```
+di kode  : 9
+di basis : 11
+selisih  : 2
+
+❌ Ada di BASIS tetapi TIDAK di kode:
+     baja_profil
+     bored_pile
+```
+
+### Yang diukur
+
+Migrasi **477** adalah satu-satunya yang menyentuh CHECK `takeoff_sektor_sah`,
+dan isinya **sembilan** sektor:
+
+```sql
+'atap', 'plafon', 'dinding', 'lantai', 'kusen', 'daun',
+'sanitair', 'mep_pipa', 'mep_titik'
+```
+
+CHECK yang HIDUP di basis punya **sebelas** — dua tambahan itu masuk di luar
+jalur migrasi. Dan ada barisnya:
+
+```
+bored_pile   1 baris   2026-08-20 19:45
+baja_profil  1 baris   2026-08-20 22:28
+```
+
+Keduanya adalah **satu-satunya** baris take-off ber-sektor di basis ini.
+
+### Kenapa ini penting, dan kenapa bukan sekadar "penjaga rewel"
+
+Bentuknya sama dengan kebocoran `template_rab` yang ditutup migrasi 541:
+**artefak yang ada di dev tapi tak dibuat migrasi apa pun akan HILANG di
+basis baru** — VPS termasuk. Di sana CHECK-nya hanya sembilan sektor, dan
+kedua baris itu **ditolak basis**.
+
+Sementara di dev, gejalanya terbalik dan lebih halus: barisnya SAH menurut
+basis, tapi rute menolaknya "sektor tak dikenal" karena `SEKTOR_SAH` di
+`src/lib/takeoff-sektor.ts` hanya memuat sembilan. Jadi dua baris itu
+**tak terjangkau siapa pun lewat aplikasi**, tanpa satu pun galat.
+
+### Kenapa saya tidak memperbaikinya sendiri
+
+Penjaganya menuntut tiap sektor punya **satuan** DAN **cabang perhitungan**.
+`bored_pile` dan `baja_profil` adalah elemen STRUKTUR — volumenya bukan
+`panjang × lebar`:
+
+- **bored pile** — volume beton per titik, fungsi diameter dan kedalaman,
+  dan biasanya dihitung per titik lalu dikali cacah.
+- **baja profil** — berat (kg), bukan luas; bergantung profil (WF/H/C) dan
+  tabel berat per meter.
+
+Menebak salah satu rumusnya menghasilkan kuantitas RAB yang salah tanpa
+galat — kelas cacat yang sama dengan harga per m³ yang tersalin ke baris kg
+(penjaga `audit-harga-satuan-waras.mjs` dibuat justru karena itu: 1 m³ beton
+terhitung Rp 626 juta, menyebar ke 32 AHSP).
+
+### Yang perlu diputuskan
+
+1. **Kedua sektor itu memang dimaksudkan ada?** Kalau ya: perlu migrasi maju
+   yang menambahkannya ke CHECK (supaya basis baru sama dengan dev), plus
+   satuan + rumus volume di `takeoff-sektor.ts`.
+2. **Atau sisa percobaan?** Kalau ya: kedua baris dihapus dan CHECK
+   dikembalikan ke sembilan lewat migrasi maju. **Menghapus baris butuh
+   konfirmasi** (CLAUDE.md §8a.5) — karena itu tak saya lakukan.
+
+Sampai salah satunya dipilih, penjaga ini akan tetap merah di CI — dan itu
+benar: ia sedang melaporkan sesuatu yang nyata.
