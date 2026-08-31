@@ -124,8 +124,38 @@ const MODUL: Modul[] = [
   { kunci: 'jadwal', judul: 'Jadwal', ringkas: 'Milestone & kurva S', emoji: '🗓️', izin: 'projects:view' },
   { kunci: 'mutu', judul: 'Mutu', ringkas: 'NCR, inspeksi, uji', emoji: '🔍', izin: 'ncr:view' },
   { kunci: 'aset', judul: 'Aset', ringkas: 'Alat, sewa, penyusutan', emoji: '🏗️', izin: 'assets:view' },
-  { kunci: 'sdm', judul: 'SDM', ringkas: 'Pegawai, cuti, timesheet', emoji: '👥', izin: 'sdm:pegawai:view' },
+  /* Menuju `/sdm/timesheet`, bukan `/sdm` — yang terakhir tak punya halaman
+     indeks dan menuju 404. Izinnya disamakan dengan yang dituntut halaman
+     itu di `menu_items` (`sdm:timesheet:view`); sebelumnya
+     `sdm:pegawai:view`, yang membuat entri tampil bagi orang yang justru
+     ditolak halamannya. */
+  { kunci: 'sdm', judul: 'Absensi & Timesheet', ringkas: 'Jam kerja pegawai', emoji: '👥', izin: 'sdm:timesheet:view' },
   { kunci: 'laporan', judul: 'Laporan', ringkas: 'Laporan progres & keuangan', emoji: '📊', izin: 'reports:view' },
+
+  /*
+    Lima modul LAPANGAN, ditambahkan 2026-08-31. Izinnya diambil dari kolom
+    `required_permissions` tabel `menu_items` — sumber yang sama dengan menu
+    web, bukan dikarang ulang di sini. Kalau tenant mengubah izin sebuah
+    menu, web dan mobile ikut berubah bersama.
+
+    Diukur terhadap `get_role_permissions()` — siapa yang benar-benar
+    melihatnya:
+
+        /lapangan   (terbuka)          semua yang sudah masuk
+        /k3         k3:inspeksi:view   mandor Y · pm Y
+        /proyek     projects:view      mandor Y · pm n
+        /kalender   projects:view      mandor Y · pm n
+        /risiko     risiko:view        mandor n · pm Y
+
+    `pm` nol pada tiga di antaranya — itu bukan cacat entri ini melainkan
+    gejala R-017 di RATIFIKASI (PM kehilangan 183 izin). Begitu founder
+    memutuskan, entri ini ikut terbuka sendiri tanpa perubahan kode.
+  */
+  { kunci: 'lapangan', judul: 'Lapangan', ringkas: 'Harian, inspeksi, punch list, serah terima', emoji: '🏗️', izin: null },
+  { kunci: 'k3', judul: 'K3', ringkas: 'Inspeksi, insiden, JSA, RK3K', emoji: '🦺', izin: 'k3:inspeksi:view' },
+  { kunci: 'proyek', judul: 'Proyek', ringkas: 'Daftar proyek & baseline', emoji: '📁', izin: 'projects:view' },
+  { kunci: 'kalender', judul: 'Kalender', ringkas: 'Jadwal kerja', emoji: '📅', izin: ['projects:view', 'mandor:view'] },
+  { kunci: 'risiko', judul: 'Risiko', ringkas: 'Register risiko, izin, sengketa', emoji: '⚠️', izin: 'risiko:view' },
 ];
 
 export default function Lainnya() {

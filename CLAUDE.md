@@ -346,6 +346,7 @@ sebelum menyentuh kode terkait** — bukan sekadar daftar isi.
 | `audit-penjaga-tercatat-jalan.mjs` | penjaga yang TERCATAT di tabel ini wajib benar-benar dijalankan `ci.yml` — dokumen yang menjanjikan perlindungan tak ada membuat pembacanya berhenti memeriksa hal yang tak dijaga siapa pun, tanpa gejala. Arah sebaliknya (jalan tapi tak tertabel) sengaja TIDAK dijaga: 206 jalan vs 49 tertabel, dan tabel 206 baris tak seorang pun baca (ambang NOL) |
 | `audit-kontras-mobile.mjs` | warna teks mobile wajib >= 4.5:1 (WCAG AA) — DIHITUNG, bukan ditaksir. `#9CA3AF` terlihat wajar tapi 2.54:1, dan dipakai 15 tempat plus label tab yang hadir di SETIAP layar. Berlatar gelap dinilai terhadap navy, bukan dilewati (ambang NOL) |
 | `audit-versi-expo-cocok.mjs` | versi paket mobile wajib cocok Expo SDK — diukur 2026-08-31 saat `expo export` pertama kali dijalankan: bundling GAGAL, 11 paket tak cocok, aplikasi TAK PERNAH bisa jadi APK. `tsc` hijau selama itu karena typecheck tak menjalankan Metro. Mayor+minor wajib sama, patch boleh lebih tinggi (ambang NOL) |
+| `audit-modul-mobile-nyata.mjs` | tiap modul WebView mobile wajib menunjuk halaman web yang ADA — jalur tanpa `page.tsx` membuka 404 di dalam bingkai aplikasi, tanpa tombol kembali. Peta di `web/[modul].tsx`, halaman di `apps/web/app/(dashboard)/`: dua tempat, tak ada yang menghubungkan. Pada jalan pertamanya menemukan `/sdm` sudah buntu sejak dibuat (ambang NOL) |
 
 **Alur take-off → RAB — MANUAL, butuh API hidup:**
 

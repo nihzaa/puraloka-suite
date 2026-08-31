@@ -61,9 +61,47 @@ const MODUL: Record<string, { judul: string; jalur: string }> = {
   laporan: { judul: 'Laporan', jalur: '/laporan' },
   jadwal: { judul: 'Jadwal', jalur: '/jadwal' },
   mutu: { judul: 'Mutu', jalur: '/mutu' },
-  sdm: { judul: 'SDM', jalur: '/sdm' },
+  /*
+    `/sdm` TIDAK punya halaman indeks — hanya lima sub-halaman (cuti,
+    klaim-perjalanan, kompetensi, payroll, timesheet). Modul ini menuju 404
+    sejak dibuat, dan tak ada yang tahu karena tak ada penjaga yang
+    menghubungkan peta ini dengan halaman web. Ditemukan 2026-08-31 oleh
+    `audit-modul-mobile-nyata.mjs` pada jalan pertamanya.
+
+    Diarahkan ke `/sdm/timesheet` — "Absensi & Timesheet", satu-satunya
+    sub-halaman berstatus `hidup` yang relevan lapangan, dan izinnya
+    (`sdm:timesheet:view`) sama dengan yang sudah tertulis di entri
+    "Lainnya".
+  */
+  sdm: { judul: 'Absensi & Timesheet', jalur: '/sdm/timesheet' },
   aset: { judul: 'Aset', jalur: '/aset' },
   approval: { judul: 'Persetujuan', jalur: '/approval-inbox' },
+
+  /*
+    Lima ditambahkan 2026-08-31. Dipilih dari 92 halaman yatim dengan tiga
+    syarat yang DIUKUR, bukan ditebak:
+
+      1. `kesiapan = 'hidup'` di tabel `menu_items` — bukan 'rencana'
+      2. punya halaman indeks `<kelompok>/page.tsx`; tanpa itu WebView 404
+      3. izinnya dipegang peran lapangan (mandor/pm), diukur lewat
+         `get_role_permissions()`
+
+    Yang SENGAJA tidak masuk meski yatim:
+
+      pengaturan (31 hal)  pekerjaan kantor; daftar 34 modul di layar
+                           "Lainnya" tak bisa dipindai siapa pun
+      audit, klien         admin-only — mandor dan pm nol akses
+      otomasi              kesiapan 'rencana', belum hidup
+      master, dokumen      tak punya halaman indeks -> 404
+      m, peta-modul        bukan modul nyata
+
+    Sesudah lima ini: 63 -> ~94 halaman terjangkau dari HP.
+  */
+  lapangan: { judul: 'Lapangan', jalur: '/lapangan' },
+  k3: { judul: 'K3', jalur: '/k3' },
+  proyek: { judul: 'Proyek', jalur: '/proyek' },
+  kalender: { judul: 'Kalender', jalur: '/kalender' },
+  risiko: { judul: 'Risiko', jalur: '/risiko' },
 };
 
 /*

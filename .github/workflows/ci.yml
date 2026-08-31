@@ -1838,6 +1838,21 @@ jobs:
       - name: Versi paket mobile cocok Expo SDK
         run: node scripts/audit-versi-expo-cocok.mjs
 
+      # Tiap modul WebView mobile wajib menunjuk halaman web yang ADA. Jalur
+      # tanpa `page.tsx` membuka 404 Next.js DI DALAM bingkai aplikasi —
+      # tanpa tombol kembali yang jelas, tanpa penjelasan apa pun.
+      #
+      # Mudah terjadi karena petanya di `web/[modul].tsx` dan halamannya di
+      # `apps/web/app/(dashboard)/`: dua tempat, tak ada yang menghubungkan.
+      # Menghapus atau memindahkan halaman web tak menimbulkan galat apa pun
+      # di sisi mobile.
+      #
+      # Pada jalan PERTAMANYA penjaga ini menemukan `/sdm` sudah buntu sejak
+      # dibuat — kelompok itu hanya punya lima sub-halaman, tak ada indeks.
+      # Diarahkan ke `/sdm/timesheet`.
+      - name: Modul mobile menunjuk halaman nyata
+        run: node scripts/audit-modul-mobile-nyata.mjs
+
       # Daftar jenis elemen struktur ada di DUA tempat yang harus sama: CHECK
       # `struktur_elemen_jenis_check` di basis, dan konstanta JENIS di
       # `routes/v1/struktur.ts`. Kalau berbeda, kegagalannya berbeda arah dan
