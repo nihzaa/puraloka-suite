@@ -141,9 +141,40 @@ BEGIN
     Kelumpuhan yang sama dengan `min_stock` nol (migrasi 425) dan peta RAB
     kosong (migrasi 426).
   */
+  /*
+    ⚠ DIBEDAKAN DUA SEBAB 2026-08-31 — sama persis dengan perbaikan 426.
+
+    `polis_asuransi` kosong bisa berarti:
+
+      (a) ada proyek yang seharusnya berpolis, tetapi seed 428 gagal mengisi
+          → kelumpuhan yang cek ini memang ada untuk mencegah;
+
+      (b) basisnya belum punya proyek contoh yang 428 rujuk
+          → 428 sengaja no-op, dan berhenti di sini hanya menghentikan
+            seluruh rantai migrasi.
+
+    Versi sebelumnya menyamakan keduanya:
+
+        HARD FAIL — 429_celah_asuransi.sql
+          429 gagal: polis_asuransi kosong — jalankan migrasi 428 dulu
+
+    Pesannya pun menyesatkan: 428 SUDAH jalan — ia hanya tak punya proyek yang
+    dirujuknya, dan sejak 2026-08-31 melewati verifikasinya sendiri dengan
+    alasan itu. Menuduh urutan migrasi membuat pembacanya mencari cacat di
+    tempat yang tak ada cacatnya.
+  */
+  IF NOT EXISTS (
+    SELECT 1 FROM projects WHERE id::text LIKE 'c0000000-0000-0000-0000-%'
+  ) THEN
+    RAISE NOTICE '429 verifikasi dilewati: proyek contoh tak ada, jadi seed polis (428) memang no-op. Bukan galat.';
+    RETURN;
+  END IF;
+
   SELECT count(*) INTO n FROM polis_asuransi;
   IF n < 1 THEN
-    RAISE EXCEPTION '429 gagal: polis_asuransi kosong — jalankan migrasi 428 dulu';
+    RAISE EXCEPTION '429 gagal: polis_asuransi kosong PADAHAL proyek contoh ada — '
+                    'seed 428 tak mengisi, dan otomasi celah asuransi akan membalas 200 '
+                    'dengan nol notifikasi yang terbaca seperti "semua terlindungi"';
   END IF;
 
   SELECT count(*) INTO n FROM jadwal_tugas
