@@ -56,6 +56,37 @@
 --
 -- Idempoten (ON CONFLICT DO NOTHING). Verifikasi di blok akhir (pola 142).
 
+/*
+  ── CABUT DULU, BARU HIDUPKAN — ditambahkan 2026-09-01
+  ────────────────────────────────────────────────────────────────────────
+  Sama bentuknya dengan buntu di migrasi 545: verifikasi di bawah MENOLAK
+  bila menemukan izin yang sengaja dikosongkan sudah dipegang seseorang,
+  dan penolakan itu MEMBLOKIR migrasi ini sendiri:
+
+      HARD FAIL — 546_hidupkan_16_peran_katalog.sql
+        546 gagal: izin yang sengaja dikosongkan hidup lagi:
+        project_manager_senior/change_order:approve
+
+  Sumbernya migrasi 364: katalognya memberi `change_order:approve` ke
+  `project_manager_senior`. Di basis yang sudah memutar 364, izin itu ADA
+  sebelum 546 sempat jalan — jadi 546 gagal, tak tercatat, dan diulang tiap
+  run tanpa pernah berhasil.
+
+  Menyunting 546 SAH: ia belum pernah tercatat di lingkungan mana pun
+  (diperiksa langsung ke buku migrasi). G-2 melarang menyunting yang SUDAH
+  tercatat.
+
+  Ketiga izin ini sengaja dikosongkan oleh 539/540/543 — dan keputusan itu
+  tetap berlaku. Yang berubah cuma caranya: mencabut lebih dulu, alih-alih
+  menolak dan berhenti.
+*/
+DELETE FROM role_permissions rp
+ USING permissions p
+ WHERE rp.permission_id = p.id
+   AND p.key IN ('change_order:approve', 'approval:override_sod', 'mitra:daftar_hitam')
+   AND rp.role_id IN (SELECT id FROM roles WHERE name NOT IN ('admin', 'direktur'));
+
+
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
   FROM (VALUES
