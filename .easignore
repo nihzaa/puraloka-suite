@@ -81,9 +81,28 @@ tools
 cadangan
 evolution-api
 infra
-scripts
 .github
 .claude
+
+# ⚠ `scripts` TIDAK boleh dibuang seluruhnya.
+#
+# `apps/mobile/package.json` memanggil `eas-build-pre-install`:
+#
+#     node ../../scripts/eas-lockfile-satu-dokumen.mjs
+#
+# Membuang folder itu membuat hook memanggil berkas yang tak pernah sampai
+# ke server — dan build gagal dengan "Cannot find module", galat yang
+# menuduh Node alih-alih berkas ini.
+#
+# Ketahuan 2026-09-01 dengan MENSIMULASIKAN pola ini terhadap jalur skripnya,
+# bukan dengan membacanya. Versi pertama .easignore memang membuang
+# `scripts` utuh, dan build keempat sudah terlanjur jalan dengannya.
+#
+# Yang dibuang isinya, KECUALI yang dipakai build.
+scripts/db
+scripts/*.cmd
+scripts/*.ps1
+scripts/*.sh
 
 # ── Keluaran pengukuran ──
 apps/web/.layar
