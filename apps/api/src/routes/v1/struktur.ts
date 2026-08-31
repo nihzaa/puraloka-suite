@@ -48,6 +48,7 @@ import {
   SISTEM_STRUKTUR, KATEGORI_RISIKO, KOEF_PERIODA, EKSPOSUR,
 } from '../../lib/struktur-beban-lateral.js'
 import { analisaKolomLengkap, analisaKolomBulatLengkap } from '../../lib/struktur-kolom-lengkap.js'
+import { sarankanBalok, sarankanKolom } from '../../lib/struktur-saran.js'
 import { jelaskan, ringkasanAwam, tingkatBahaya, apakahBiner } from '../../lib/struktur-awam.js'
 import {
   usulanDariElemen, gabungUsulan, assemblyCocok,
@@ -1638,6 +1639,77 @@ export default async function strukturRoutes(app: FastifyInstance) {
       perioda: Object.entries(KOEF_PERIODA).map(([kunci, v]) => ({ kunci, ...v })),
       eksposur: Object.entries(EKSPOSUR).map(([kunci, v]) => ({ kunci, ...v })),
     }))
+
+  /*
+    ── Rekomendasi pembesian: dimensi + beban → USULAN tulangan
+
+    Seluruh rute struktur lain menuntut tulangan sebagai MASUKAN dan menjawab
+    aman/tidak. Rute ini satu-satunya yang arahnya terbalik, dan itulah yang
+    membuatnya berguna bagi pelaksana lapangan: yang bertanya "besinya berapa?"
+    justru belum punya angka yang diminta rute lain.
+
+    Ia TIDAK menghitung struktur sendiri — `lib/struktur-saran.ts` memanggil
+    pemeriksa yang sama dengan rute lain, jadi tak ada jalur kedua yang bisa
+    menyimpang. Lihat header modul itu untuk alasan lengkapnya.
+
+    `catatan` WAJIB ikut ditampilkan pemanggil. Di dalamnya ada batas yang
+    menentukan sah-tidaknya angka ini dipakai (tulangan tarik saja, tanpa
+    torsi/lendutan, berat belum termasuk penyaluran & kait) — dan pada hasil
+    yang gagal, ada sebab kegagalan berikut usul dimensinya. Usulan tanpa
+    batasnya adalah angka yang terlihat lebih pasti daripada yang sebenarnya.
+  */
+  app.post<{
+    Body: {
+      jenis?: 'balok' | 'kolom'
+      bMm?: number; hMm?: number; selimutMm?: number
+      panjangM?: number; tinggiM?: number
+      mutu?: { fcMpa?: number; fyMpa?: number; fyvMpa?: number }
+      muKnm?: number; vuKn?: number; puKn?: number
+      jumlah?: number
+    }
+  }>(
+    '/api/v1/struktur/saran-pembesian',
+    { preHandler: [authenticate, requirePermission('cecep:struktur:view')] },
+    async (request, reply) => {
+      const b = request.body ?? {}
+      try {
+        /*
+          Jenis divalidasi EKSPLISIT, bukan lewat `else`. Jenis yang salah
+          ketik akan jatuh diam-diam ke cabang kolom dan memulangkan usulan
+          untuk elemen yang BUKAN diminta — usulan yang tetap terlihat wajar.
+        */
+        if (b.jenis !== 'balok' && b.jenis !== 'kolom') {
+          return reply.status(400).send({
+            error: "jenis wajib 'balok' atau 'kolom'",
+          })
+        }
+
+        const mutu = {
+          fcMpa: Number(b.mutu?.fcMpa),
+          fyMpa: Number(b.mutu?.fyMpa),
+          ...(b.mutu?.fyvMpa == null ? {} : { fyvMpa: Number(b.mutu.fyvMpa) }),
+        }
+
+        const hasil = b.jenis === 'balok'
+          ? sarankanBalok({
+            bMm: Number(b.bMm), hMm: Number(b.hMm),
+            panjangM: Number(b.panjangM), selimutMm: Number(b.selimutMm),
+            mutu, muKnm: Number(b.muKnm), vuKn: Number(b.vuKn),
+            ...(b.jumlah == null ? {} : { jumlah: Number(b.jumlah) }),
+          })
+          : sarankanKolom({
+            bMm: Number(b.bMm), hMm: Number(b.hMm),
+            tinggiM: Number(b.tinggiM), selimutMm: Number(b.selimutMm),
+            mutu, puKn: Number(b.puKn), muKnm: Number(b.muKnm),
+            ...(b.jumlah == null ? {} : { jumlah: Number(b.jumlah) }),
+          })
+
+        return reply.send({ jenis: b.jenis, ...hasil })
+      } catch (e) {
+        // 400, bukan 500 — yang salah masukannya, dan pesannya menyebut medannya.
+        return reply.status(400).send({ error: (e as Error).message })
+      }
+    })
 
   app.get<{ Params: { projectId: string } }>(
     '/api/v1/projects/:projectId/struktur/usulan-rab',
