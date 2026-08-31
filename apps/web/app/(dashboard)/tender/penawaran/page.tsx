@@ -25,9 +25,10 @@
  *   LAPIS 3  tabel surat            "apa yang harus saya kerjakan?"
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useData } from "@/lib/data-cache";
 import { FileText, Plus, RefreshCw, Clock, ExternalLink } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong, KartuKPI } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
@@ -61,9 +62,6 @@ function umurHari(sejak: string | null): number | null {
 }
 
 export default function PenawaranPage() {
-  const [daftar, setDaftar] = useState<Penawaran[]>([]);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState<string | null>(null);
 
   const [suratBaru, setSuratBaru] = useState(false);
   const [ubah, setUbah] = useState<Penawaran | null>(null);
@@ -75,27 +73,28 @@ export default function PenawaranPage() {
   // dipakai rute tulisnya — disalin dari sana, bukan ditebak.
   const bolehSunting = useIzin("projects:edit");
 
-  const muat = useCallback((signal?: AbortSignal) => {
-    setMemuat(true);
-    return api.get<{ data: Penawaran[] }>("/api/v1/penawaran", { signal })
-      .then((r) => { setDaftar(r.data.data ?? []); setGalat(null); })
-      .catch((e) => {
-        if ((e as { name?: string })?.name === "CanceledError") return;
-        // Daftar kosong dan daftar-yang-gagal-dimuat terlihat sama persis.
-        // Membedakannya penting: "belum ada penawaran" adalah kabar yang
-        // salah kalau sebenarnya API-nya mati.
-        setDaftar([]);
-        setGalat((e as { response?: { data?: { error?: string } } })?.response?.data?.error
-          ?? "Gagal memuat daftar penawaran.");
-      })
-      .finally(() => setMemuat(false));
-  }, []);
+  /*
+    Lapis cache bersama (F4-2).
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat]);
+    `useData` menggantikan muat manual + AbortController: pembatalan saat
+    komponen lepas, dedup permintaan yang sama, dan penahanan hasil lintas
+    navigasi sudah ditanganinya.
+
+    Galat tetap DIBEDAKAN dari daftar kosong — daftar kosong dan
+    daftar-yang-gagal-dimuat terlihat sama persis, dan "belum ada penawaran"
+    adalah kabar yang salah kalau sebenarnya API-nya mati.
+  */
+  const sumber = useData<{ data: Penawaran[] }>("/api/v1/penawaran");
+  const daftar = useMemo(() => sumber.data?.data ?? [], [sumber.data]);
+  const memuat = sumber.memuat;
+  const galat = sumber.galat ? "Gagal memuat daftar penawaran." : null;
+
+  const muat = useCallback(async () => { await sumber.muatUlang(); }, [sumber]);
+
+  /*
+    Effect pemuatan awal DIHAPUS — `useData` yang mengambil datanya, termasuk
+    pembatalan saat komponen lepas. Menyisakannya membuat permintaan GANDA.
+  */
 
   const ringkas = useMemo(() => {
     const nilai = (p: Penawaran) => p.hitung?.total ?? 0;

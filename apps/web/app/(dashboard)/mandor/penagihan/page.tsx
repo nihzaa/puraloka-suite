@@ -8,7 +8,8 @@
  * sendiri: "tinjau yang di /mandor/penagihan" bisa dikirim apa adanya.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useData } from "@/lib/data-cache";
 import { api } from "@/lib/api";
 import { Kosong } from "@/components/ui-dasar";
 import { useIzin } from "@/lib/use-izin";
@@ -111,11 +112,6 @@ interface Kesiapan {
 }
 
 export default function PenagihanPage() {
-  const [progressPayments, setProgressPayments] = useState<ProgressPayment[]>([]);
-  const [kesiapan, setKesiapan] = useState<Kesiapan[]>([]);
-  const [backCharge, setBackCharge] = useState<BackCharge[]>([]);
-  const [ringkasBc, setRingkasBc] = useState<RingkasBc | null>(null);
-  const [cashAccounts, setCashAccounts] = useState<CashAccount[]>([]);
 
   /**
    * DUA izin terpisah, dan pemisahannya bukan gaya:
@@ -134,32 +130,49 @@ export default function PenagihanPage() {
 
   const [bcBaru, setBcBaru] = useState(false);
   const [bcPutus, setBcPutus] = useState<BackChargeRingkas | null>(null);
-  const [loading, setLoading] = useState(true);
   const [ppConfirmModal, setPpConfirmModal] = useState<{ payment: ProgressPayment } | null>(null);
   const [ppActionLoading, setPpActionLoading] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [ppRes, cashRes, siapRes, bcRes] = await Promise.all([
-        api.get<{ payments: ProgressPayment[] }>("/api/v1/mandor/progress-payments").catch(() => ({ data: { payments: [] } })),
-        api.get<{ accounts: CashAccount[] }>("/api/v1/cash/accounts").catch(() => ({ data: { accounts: [] } })),
-        api.get<{ kesiapan: Kesiapan[] }>("/api/v1/opname/kesiapan").catch(() => ({ data: { kesiapan: [] } })),
-        api.get<{ back_charge: BackCharge[]; ringkasan: RingkasBc }>("/api/v1/back-charge")
-          .catch(() => ({ data: { back_charge: [], ringkasan: null } })),
-      ]);
-      setProgressPayments(ppRes.data.payments ?? []);
-      setKesiapan(siapRes.data.kesiapan ?? []);
-      setBackCharge(bcRes.data.back_charge ?? []);
-      setRingkasBc(bcRes.data.ringkasan ?? null);
-      setCashAccounts((cashRes.data.accounts ?? []).filter((a: CashAccount) => a.is_active));
-    } catch { /* silent */ } finally { setLoading(false); }
-  }, []);
+  /*
+    Lapis cache bersama (F4-2) — empat bacaan, masing-masing entri sendiri.
 
-  // `queueMicrotask`, bukan panggilan langsung: memanggil `setLoading(true)`
-  // di badan efek memicu render berantai (`react-hooks/set-state-in-effect`).
-  // Pola yang sama dipakai `mandor/retensi` dan sudah lolos ratchet lint.
-  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
+    `/api/v1/cash/accounts` juga dipakai halaman kas lain, jadi lewat
+    `useData` permintaannya di-dedup lintas halaman.
+  */
+  const sPp   = useData<{ payments: ProgressPayment[] }>("/api/v1/mandor/progress-payments");
+  const sKas  = useData<{ accounts: CashAccount[] }>("/api/v1/cash/accounts");
+  const sSiap = useData<{ kesiapan: Kesiapan[] }>("/api/v1/opname/kesiapan");
+  const sBc   = useData<{ back_charge: BackCharge[]; ringkasan: RingkasBc | null }>("/api/v1/back-charge");
+
+  const progressPayments = useMemo(() => sPp.data?.payments ?? [], [sPp.data]);
+  const kesiapan         = useMemo(() => sSiap.data?.kesiapan ?? [], [sSiap.data]);
+  const backCharge       = useMemo(() => sBc.data?.back_charge ?? [], [sBc.data]);
+  const ringkasBc        = sBc.data?.ringkasan ?? null;
+  const cashAccounts     = useMemo(
+    () => (sKas.data?.accounts ?? []).filter((a: CashAccount) => a.is_active), [sKas.data]);
+  const loading = sPp.memuat || sKas.memuat || sSiap.memuat || sBc.memuat;
+
+  /*
+    GALAT DINYATAKAN — sebelumnya ditelan EMPAT KALI.
+
+    Versi lama membungkus tiap permintaan dengan `.catch(() => kosong)` lalu
+    menutupnya lagi dengan `catch { silent }`. Akibatnya halaman ini TAK BISA
+    membedakan "belum ada tagihan" dari "API-nya mati" — dan di halaman
+    penagihan mandor, keduanya berarti hal yang sangat berbeda: yang pertama
+    berarti tak ada yang perlu dibayar, yang kedua berarti ada yang menunggu
+    dibayar dan kita tak melihatnya.
+  */
+  const galatMuat = sPp.galat || sKas.galat || sSiap.galat || sBc.galat
+    ? "Sebagian data gagal dimuat — daftar di bawah mungkin tak lengkap." : null;
+
+  const load = useCallback(async () => {
+    await Promise.all([sPp.muatUlang(), sKas.muatUlang(), sSiap.muatUlang(), sBc.muatUlang()]);
+  }, [sPp, sKas, sSiap, sBc]);
+
+  /*
+    Effect pemuatan awal DIHAPUS — keempat `useData` yang mengambil datanya.
+    Menyisakannya membuat DELAPAN permintaan tiap halaman dibuka.
+  */
 
   const pendingPP = progressPayments.filter(p => p.status === "pending");
   const otherPP = progressPayments.filter(p => p.status !== "pending");
@@ -220,6 +233,20 @@ export default function PenagihanPage() {
           <RefreshCw size={14} /> Refresh
         </button>
       </div>
+
+      {/*
+        GALAT MUAT dinyatakan, tak lagi ditelan empat kali.
+
+        Di halaman penagihan mandor, "belum ada tagihan" dan "API-nya mati"
+        berarti hal yang SANGAT berbeda: yang pertama berarti tak ada yang
+        perlu dibayar, yang kedua berarti ada yang menunggu dibayar dan kita
+        tak melihatnya. Dijaga uji-galat-muat-terpisah.mjs.
+      */}
+      {galatMuat && (
+        <p role="status" style={{ marginBottom: 12, fontSize: 12.5, color: "var(--danger)" }}>
+          {galatMuat}
+        </p>
+      )}
 
       {loading ? (
         <div style={{ textAlign: "center", padding: 60, color: C.muted }}>Memuat data...</div>
