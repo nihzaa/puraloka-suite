@@ -37,9 +37,24 @@ type Modul = {
   emoji: string;
   /** Izin yang dibutuhkan. `null` = terbuka untuk semua yang sudah masuk. */
   izin: string | null;
+  /**
+   * Jalur NATIVE di dalam aplikasi. Kalau diisi, item ini membuka layar
+   * React Native — bukan WebView.
+   *
+   * Layar lapangan yang tak muat di bilah tab tinggal di sini: bilah sudah
+   * memuat delapan, dan yang kesembilan membuat tiap ikon menyempit sampai
+   * sulit ditekan dengan ibu jari kotor di lapangan.
+   */
+  nativeJalur?: string;
 };
 
 const MODUL: Modul[] = [
+  /* Layar LAPANGAN (native) di atas — yang paling sering dipakai orang yang
+     membuka daftar ini dari lokasi, bukan dari kantor. */
+  {
+    kunci: 'punch', judul: 'Lapor Temuan', ringkas: 'Catat cacat di lokasi',
+    emoji: '📌', izin: 'punch:manage', nativeJalur: '/punch/lapor',
+  },
   { kunci: 'approval', judul: 'Persetujuan', ringkas: 'Yang menunggu keputusan Anda', emoji: '✅', izin: null },
   { kunci: 'keuangan', judul: 'Keuangan', ringkas: 'Invoice, kas, piutang', emoji: '💰', izin: 'finance:view' },
   { kunci: 'akuntansi', judul: 'Akuntansi', ringkas: 'Jurnal & buku besar', emoji: '📒', izin: 'gl:view' },
@@ -85,7 +100,7 @@ export default function Lainnya() {
           <Pressable
             key={m.kunci}
             style={({ pressed }) => [s.baris, pressed && s.barisTekan]}
-            onPress={() => router.push(`/web/${m.kunci}`)}
+            onPress={() => router.push(m.nativeJalur ?? `/web/${m.kunci}`)}
             accessibilityRole="button"
             accessibilityLabel={`Buka ${m.judul}`}
           >

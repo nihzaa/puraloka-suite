@@ -178,6 +178,17 @@ export default function AppLayout() {
         }
       />
 
+      {/*
+        Lapor temuan (punch list) — layar lapangan. `punch_items` 40 baris,
+        terbanyak di antara tabel lapangan yang belum punya layar mobile.
+
+        TIDAK jadi tab: bilah sudah penuh (dashboard, proyek, progres, kasbon,
+        absensi, mandor, notifikasi, lainnya). Dibuka dari "Lainnya" —
+        menambah tab kesembilan membuat tiap ikon menyempit sampai sulit
+        ditekan dengan ibu jari kotor di lapangan.
+      */}
+      <Tabs.Screen name="punch/lapor" options={{ href: null }} />
+
       <Tabs.Screen name="web/[modul]" options={{ href: null }} />
     </Tabs>
   );
