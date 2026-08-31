@@ -95,6 +95,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "owner": "nihzaas-team",
+    "extra": {
+      "eas": {
+        "projectId": "36f74196-874f-4fbb-b061-e971c87c2cd4"
+      }
     }
   }
 }
