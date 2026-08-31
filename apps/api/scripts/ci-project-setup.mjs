@@ -247,12 +247,45 @@ await seed('company_members (semua user seed)', async () => {
 
 // 1 client — kolom NOT NULL: contact_person, phone, created_by (company_name nullable).
 await seed('client', async () => {
+  /*
+    `company_id` DISEBUT EKSPLISIT — ditambahkan 2026-08-31.
+
+    Versi sebelumnya menyisipkan tanpa kolom itu, dan `clients.company_id`
+    NOT NULL, jadi nilainya datang dari default — company mana pun yang
+    kebetulan terpilih, bukan tenant yang dipakai test.
+
+    Akibatnya bukan galat di seed ini (ia "berhasil"), melainkan di tempat
+    lain berjam-jam kemudian:
+
+        {"error":"insert or update on table \"kontrak\" violates foreign key
+         constraint \"kontrak_client_id_fkey\""}: expected 500 to be 201
+
+    Rute kontrak mencari klien MILIK TENANTNYA, tak menemukan apa pun, lalu
+    FK-nya meledak. Galatnya menuduh tabel `kontrak` — tempat yang tak ada
+    hubungannya dengan sebabnya.
+
+    Bentuknya sama dengan seed `assets`/`suppliers`/`pegawai` di berkas ini,
+    yang semuanya sudah menyebut `company_id`. Dua yang tertinggal cuma
+    `clients` dan `cost_codes`.
+  */
   const { rows: has } = await c.query(`SELECT 1 FROM clients WHERE contact_person='CI Seed Client' LIMIT 1`)
   if (has.length) return
   await c.query(
-    `INSERT INTO clients (contact_person, phone, created_by)
-     VALUES ('CI Seed Client', '0800000000',
-             (SELECT id FROM public.users WHERE email='ci-admin@puraloka.test' LIMIT 1))`)
+    `INSERT INTO clients (company_id, contact_person, phone, created_by)
+     SELECT (SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1),
+            'CI Seed Client', '0800000000',
+            COALESCE(
+              (SELECT id FROM public.users WHERE email='ci-admin@puraloka.test' LIMIT 1),
+              (SELECT id FROM public.users ORDER BY created_at LIMIT 1))
+      WHERE EXISTS (SELECT 1 FROM companies WHERE parent_company_id IS NULL)`)
+
+  // Verifikasi, bukan asumsi: seed yang "berhasil" tapi nol baris adalah
+  // persis cara kegagalan ini bersembunyi selama ini.
+  const { rows } = await c.query(
+    `SELECT count(*)::int n FROM clients cl
+      WHERE cl.company_id = (SELECT id FROM companies WHERE parent_company_id IS NULL
+                              ORDER BY created_at LIMIT 1)`)
+  if (rows[0].n === 0) throw new Error('clients kosong untuk company akar sesudah seed')
 })
 
 // 1 cost_code (CECEP) — created_by admin.
