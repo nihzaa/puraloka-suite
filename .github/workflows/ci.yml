@@ -364,6 +364,30 @@ jobs:
       - name: Rute penjadwal punya tugas pemicu
         run: node scripts/audit-rute-penjadwal-punya-tugas.mjs
 
+      # Titik KEEMPAT: tugasnya sah, rutenya ada, katalognya cocok — tapi
+      # PERUSAHAANNYA sudah tidak ada.
+      #
+      # Diukur 2026-09-01: 122 dari 329 tugas terjadwal berstatus `gagal`,
+      # semuanya dengan galat yang sama —
+      #
+      #   /api/v1/otomasi/jalankan/evm-kinerja membalas 403:
+      #   {"error":"Anda bukan anggota perusahaan tersebut"}
+      #
+      # 403-nya BENAR. Dua company uji sudah `is_active = false`, tapi
+      # `jadwal_tugas`-nya tertinggal aktif — menonaktifkan company tidak
+      # menyentuh jadwalnya.
+      #
+      # Bahayanya bukan denyut terbuang. 122 kegagalan yang WAJAR dan BERULANG
+      # membuat papan pemantauan otomasi menyesatkan: yang melihatnya
+      # menyimpulkan otomasi rusak padahal 207 sisanya bekerja, lalu belajar
+      # mengabaikan kolom status — dan kegagalan SUNGGUHAN nanti ikut
+      # terabaikan. Bentuk yang sama dengan racun konteks di pembuka CLAUDE.md:
+      # laporan yang salah melatih pembacanya berhenti membaca.
+      #
+      # Ditutup migrasi 563. (ambang NOL)
+      - name: Jadwal tugas hanya milik company hidup
+        run: node scripts/audit-jadwal-company-hidup.mjs
+
       # Titik KETIGA pada rantai yang sama, dan yang terakhir tertutup.
       #
       #   jadwal_tugas.tugas -> KATALOG_TUGAS[kunci] -> app.get(jalur)

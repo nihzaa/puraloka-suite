@@ -102,6 +102,41 @@ const { rows } = await c.query(`
    ORDER BY a.aktif DESC, jalan DESC, a.kode
 `)
 
+/*
+  ── DUA BUKU, dan yang di atas BUKAN yang dijalankan penjadwal
+
+  Query di atas membaca `otomasi_alur` — buku ALUR n8n. Penjadwal tidak
+  membacanya. Yang menentukan sebuah tugas jatuh tempo adalah
+  `jadwal_tugas.terakhir_jalan` (`src/lib/jadwal.ts:152`), tabel yang berbeda.
+
+  Selisihnya bukan kecil, dan sudah memakan korban. Diukur 2026-09-01:
+
+      otomasi_alur   :  11 aktif ·   8 baris otomasi_jalan seumur hidup
+      jadwal_tugas   : 329 aktif · 577 eksekusi, 326 dalam 24 jam terakhir
+
+  Membaca yang pertama saja, saya menyimpulkan "otomasi tak pernah jalan",
+  lalu menulis permintaan ratifikasi meminta founder menyalakan penjadwal —
+  dan penjadwalnya sudah hidup sejak 2026-08-15.
+
+  Skrip ini lahir persis untuk mencegah jawaban salah tentang "otomasi mana
+  yang hidup" (lihat kepala berkas), lalu memberi jawaban salah dengan cara
+  yang sama: mengukur satu tabel dan menamainya seluruh kebenaran. Karena itu
+  buku kedua sekarang ikut dilaporkan — bukan sebagai catatan kaki.
+*/
+const { rows: jadwal } = await c.query(`
+  SELECT jt.aktif,
+         coalesce(jt.terakhir_status, '(belum pernah)')     AS status,
+         count(*)::int                                      AS n,
+         sum(jt.jumlah_jalan)::int                          AS total_jalan,
+         count(*) FILTER (WHERE NOT co.is_active)::int      AS company_mati,
+         to_char(max(jt.terakhir_jalan) AT TIME ZONE 'Asia/Jakarta',
+                 'MM-DD HH24:MI')                           AS terakhir
+    FROM jadwal_tugas jt
+    JOIN companies co ON co.id = jt.company_id
+   GROUP BY jt.aktif, coalesce(jt.terakhir_status, '(belum pernah)')
+   ORDER BY jt.aktif DESC, 3 DESC
+`)
+
 await c.end()
 
 console.log(`\n── Terdaftar di otomasi_alur: ${rows.length}\n`)
@@ -142,6 +177,51 @@ if (aktifTanpaJalan.length > 0) {
 }
 
 console.log('')
+
+// ── Buku KEDUA: jadwal_tugas — yang benar-benar dijalankan penjadwal ─────
+console.log('── Tugas terjadwal di basis (jadwal_tugas) ──────────────────')
+console.log('')
+console.log('   Ini tabel yang DIBACA PENJADWAL. Yang di atas (otomasi_alur)')
+console.log('   adalah buku alur n8n — angkanya beda jauh, dan mengira yang')
+console.log('   satu mewakili yang lain sudah salah sekali (2026-09-01).')
+console.log('')
+console.log('   aktif status            tugas  jumlah_jalan  terakhir')
+{
+  let aktifSukses = 0
+  let aktifGagal = 0
+  let mati = 0
+  for (const r of jadwal) {
+    console.log(
+      `    ${r.aktif ? '✓' : '·'}    ${String(r.status).padEnd(16)} `
+      + `${String(r.n).padStart(5)} ${String(r.total_jalan ?? 0).padStart(13)}  ${r.terakhir ?? '—'}`,
+    )
+    if (r.aktif && r.status === 'sukses') aktifSukses += r.n
+    if (r.aktif && r.status === 'gagal') aktifGagal += r.n
+    if (r.aktif) mati += r.company_mati
+  }
+
+  console.log('')
+  console.log(`   aktif & sukses terakhir : ${aktifSukses}`)
+  console.log(`   aktif & GAGAL terakhir  : ${aktifGagal}`)
+
+  if (mati > 0) {
+    console.log('')
+    console.log(`   ⚠ ${mati} tugas aktif milik company NONAKTIF — akan gagal 403`)
+    console.log('     tiap denyut ("Anda bukan anggota perusahaan tersebut").')
+    console.log('     Dijaga `audit-jadwal-company-hidup.mjs` (ambang NOL);')
+    console.log('     perbaikannya migrasi maju, pola 563.')
+  }
+
+  if (aktifGagal > 0 && mati === 0) {
+    console.log('')
+    console.log('   ⚠ Ada tugas aktif yang gagal dan company-nya HIDUP — ini')
+    console.log('     kegagalan sungguhan, bukan sisa data uji. Galat lengkapnya:')
+    console.log("       SELECT tugas, terakhir_galat FROM jadwal_tugas")
+    console.log("        WHERE aktif AND terakhir_status = 'gagal' LIMIT 5;")
+  }
+}
+console.log('')
+
 
 /*
   ── Silang ke katalog dokumen: apa yang dokumen masih sebut "menunggu"

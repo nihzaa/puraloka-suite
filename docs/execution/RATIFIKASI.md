@@ -4047,67 +4047,111 @@ SELECT g.key, g.label, count(a.id) anak
 
 ---
 
-## R-022 · Otomasi: 329 tugas terjadwal, NOL denyut yang memanggilnya
+## ✅ R-022b · Otomasi: SELESAI — denyutnya ternyata hidup, yang rusak lain
 
-**Diajukan 2026-09-01. Belum ada yang diubah.**
+**Diselesaikan 2026-09-01 lewat migrasi 563. Tak ada yang perlu Anda putuskan.**
 
-### Yang diukur, dan yang ternyata SALAH dari laporan awal
+> ⚠ Entri ini semula berjudul *"329 tugas terjadwal, NOL denyut yang
+> memanggilnya"* dan meminta keputusan Anda soal menyalakan penjadwal.
+> **Diagnosa itu SALAH**, dan saya menuliskan bagaimana salahnya di bawah —
+> bukan menghapusnya — karena bentuk kesalahannya berulang di repo ini.
 
-`lapor-otomasi-hidup.mjs` menyebut *"11 aktif, 5 nol jalan"*. Ditelusuri,
-angka itu jauh lebih kecil dari kenyataannya:
+### Kesalahan saya: mengukur tabel yang bukan pengambil keputusan
+
+Saya menyimpulkan "otomasi tak pernah jalan" dari:
 
 ```
-jadwal_tugas         329 baris · SEMUANYA aktif
 otomasi_jalan          8 baris  ← total sepanjang masa
 eksekusi 7 hari terakhir: NOL
-sukses terakhir      2026-08-14   (18 hari lalu)
 ```
 
-Dan kelima alur yang dilaporkan "nol jalan" ternyata **tak terdaftar sama
-sekali** di `jadwal_tugas` — jadi bukan "aktif tapi tak jalan", melainkan
-tak pernah dijadwalkan.
+Tapi yang menentukan sebuah tugas jatuh tempo BUKAN tabel itu.
+`apps/api/src/lib/jadwal.ts:152`:
 
-### Rutenya BEKERJA — dibuktikan, bukan diasumsikan
-
-Dipanggil langsung dari dalam container produksi:
-
-```
-HTTP 200
-{"ok":true,"diperiksa":329,"sukses":0,"gagal":0,"dilewati":329,
- "alasan":"sudah-jalan-periode-ini"}
+```ts
+if (terakhir && terakhir >= batas) {
+  return { jalan: false, alasan: 'sudah-jalan-periode-ini' }
+}
 ```
 
-Rute `POST /api/v1/jadwal/jalankan` sehat, klaim atomiknya jalan,
-`SCHEDULER_SECRET` sudah terpasang di `.env` VPS (32 karakter), dan
-`scripts/penjadwal-lokal.mjs` sudah ditulis lengkap.
+`terakhir` datang dari **`jadwal_tugas.terakhir_jalan`**. Diukur di sana:
 
-**Yang hilang cuma satu: sesuatu yang memanggilnya secara berkala.**
-
-Diperiksa di VPS — nol cron, nol systemd timer, nol container penjadwal:
-
-```bash
-crontab -l | grep -i jadwal          → kosong
-systemctl list-timers | grep puraloka → kosong
-docker ps | grep -iE 'jadwal|sched'   → kosong
+```
+jadwal_tugas aktif        : 329 · belum pernah jalan: 0
+terakhir_jalan            : 2026-08-15 → 2026-09-01 (hari ini)
+jalan dalam 24 jam        : 326 dari 329
+total jumlah_jalan        : 577
 ```
 
-### Kenapa TIDAK saya pasang sendiri
+Penjadwalnya **hidup sejak 2026-08-15**. Balasan `dilewati: 329,
+"sudah-jalan-periode-ini"` yang saya kutip sebagai bukti kerusakan justru
+bukti sebaliknya — tugasnya baru saja jalan.
 
-Menyalakan denyut 15 menit atas 329 tugas di basis yang melayani produksi
-berarti **otomasi mulai mengirim notifikasi, WhatsApp, dan tagihan** —
-sebagian ke pihak luar. Itu bukan keputusan teknis.
+**Pelajarannya sama dengan pembuka CLAUDE.md:** dua tabel yang namanya
+sama-sama masuk akal, dan yang saya pilih bukan yang dibaca kode. Nol baris
+di tabel yang salah terbaca persis seperti sistem mati.
 
-Yang perlu diputuskan:
+### Cacat yang SUNGGUHAN, sesudah diukur benar
 
-1. **Denyutnya dinyalakan?** Kalau ya, otomasi yang selama ini diam akan
-   mulai bekerja — dan 329 tugas × 13 badan usaha berarti banyak sekali
-   pesan pada denyut pertama.
-2. **Kalau ya, bertahap atau sekaligus?** Saran saya: jalankan
-   `--sekali` lebih dulu di jam kerja sambil ditonton, baru dipasang
-   sebagai layanan tetap.
-3. **Cara memasangnya** — cron di VPS, systemd timer, atau container
-   sendiri di `docker-compose.yml`. Yang ketiga paling rapi karena ikut
-   ter-deploy, tapi menambah satu container.
+```
+status jalan terakhir : sukses 207 · GAGAL 122
+```
+
+Ke-122-nya satu galat yang sama:
+
+```
+/api/v1/otomasi/jalankan/evm-kinerja membalas 403:
+{"error":"Anda bukan anggota perusahaan tersebut"}
+```
+
+Ditelusuri — dan **403-nya benar, bukan cacat izin**:
+
+```
+[UJI-ISOLASI] Karya Beton Nusantara   is_active=false   61 tugas
+PT Cek RPC D1b                        is_active=false   61 tugas
+```
+
+Dua company **uji** yang sudah dinonaktifkan, tapi `jadwal_tugas`-nya
+tertinggal aktif. Tiap denyut mencoba menjalankan 122 tugas untuk perusahaan
+yang tak lagi ada, gagal, lalu mencatat galatnya.
+
+### Kenapa ini saya perbaiki sendiri, tanpa bertanya
+
+Karena tak ada satu pun dari lima syarat berhenti (CLAUDE.md §8a.1) yang
+kena: bukan data sungguhan, bukan destruktif (`aktif = FALSE`, bukan
+`DELETE` — riwayat `jumlah_jalan`/`terakhir_galat` tetap utuh), bukan
+Gerbang Keras, dan tak ada kerja sesi lain yang tertimpa.
+
+Dan pertanyaan yang semula saya ajukan ke Anda — *"denyutnya dinyalakan?"* —
+ternyata tak pernah ada: denyutnya sudah menyala dua minggu.
+
+### Kenapa 122 kegagalan wajar itu tetap harus ditutup
+
+Bukan karena berisik. Karena **122 dari 329 berstatus `gagal` membuat papan
+pemantauan menyesatkan**: yang melihatnya menyimpulkan otomasi rusak,
+padahal 207 sisanya bekerja. Kegagalan yang WAJAR dan berulang mengajari
+orang mengabaikan kolom status — lalu kegagalan yang SUNGGUHAN nanti ikut
+terabaikan.
+
+Migrasi 563 menonaktifkan jadwal milik company `is_active = false`, ditulis
+sebagai aturan umum (`WHERE NOT co.is_active`), bukan daftar dua company
+yang dipaku — company uji berikutnya pasti ada.
+
+Sesudahnya:
+
+```
+aktif=true   sukses  207
+aktif=false  gagal   122
+```
+
+Nol tugas aktif berstatus gagal.
+
+### Yang masih tersisa (bukan keputusan, catatan kerja)
+
+`lapor-otomasi-hidup.mjs` menyebut *"11 aktif, 5 nol jalan"* — angka yang
+jauh lebih kecil dari 329. Skrip itu membaca daftar yang **berbeda** dari
+yang dijalankan penjadwal, jadi laporannya tak bisa dipakai memantau
+otomasi. Itulah alat yang membuat saya salah diagnosa sejak awal.
 
 ### Cara mengukur ulang
 
@@ -4116,6 +4160,11 @@ cd apps/api && node -r dotenv/config scripts/lapor-otomasi-hidup.mjs
 ```
 
 ```sql
-SELECT count(*) FROM jadwal_tugas WHERE aktif;
-SELECT max(dimulai_pada) FROM otomasi_jalan;
+-- yang BENAR — tabel yang dibaca penjadwal:
+SELECT aktif, coalesce(terakhir_status,'(belum)'), count(*)
+  FROM jadwal_tugas GROUP BY 1,2 ORDER BY 1 DESC;
+
+-- nol jadwal aktif boleh dimiliki company mati:
+SELECT count(*) FROM jadwal_tugas jt JOIN companies co ON co.id = jt.company_id
+ WHERE jt.aktif AND NOT co.is_active;
 ```

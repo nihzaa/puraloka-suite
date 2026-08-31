@@ -5,6 +5,86 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-01 — otomasi: saya mengukur tabel yang salah, lalu meminta founder memutuskan hal yang tak ada
+
+### Saya salah
+
+Saya menulis R-022 berjudul *"329 tugas terjadwal, NOL denyut yang
+memanggilnya"* dan meminta founder memutuskan apakah penjadwal dinyalakan.
+
+**Penjadwalnya sudah hidup sejak 2026-08-15.**
+
+Sebabnya satu: saya mengukur `otomasi_jalan` (8 baris seumur hidup) dan
+menyimpulkan otomasi tak pernah jalan. Tapi yang menentukan sebuah tugas
+jatuh tempo adalah `jadwal_tugas.terakhir_jalan` — `src/lib/jadwal.ts:152`.
+Tabel berbeda. Diukur di sana: 329 aktif, 577 eksekusi, 326 dalam 24 jam.
+
+Yang paling menohok: saya mengutip balasan rutenya sendiri sebagai bukti
+kerusakan —
+
+    {"ok":true,"diperiksa":329,"dilewati":329,"alasan":"sudah-jalan-periode-ini"}
+
+— padahal kalimat itu berarti tugasnya **baru saja jalan**.
+
+### Cacat yang sungguhan
+
+Diukur benar: **sukses 207 · GAGAL 122**, ke-122-nya satu galat sama —
+
+    /api/v1/otomasi/jalankan/evm-kinerja membalas 403:
+    {"error":"Anda bukan anggota perusahaan tersebut"}
+
+403-nya BENAR. Dua company **uji** sudah `is_active = false`, tapi
+`jadwal_tugas`-nya tertinggal aktif: `[UJI-ISOLASI] Karya Beton Nusantara`
+dan `PT Cek RPC D1b`, 61 tugas masing-masing.
+
+Bahayanya bukan denyut terbuang. 122 dari 329 berstatus `gagal` membuat papan
+pemantauan menyesatkan — yang melihatnya menyimpulkan otomasi rusak padahal
+207 sisanya bekerja. Kegagalan WAJAR yang berulang mengajari orang
+mengabaikan kolom status, dan kegagalan sungguhan nanti ikut terabaikan.
+
+### Yang dikerjakan
+
+- **Migrasi 563** — menonaktifkan jadwal milik company `is_active = false`.
+  Ditulis sebagai aturan umum (`WHERE NOT co.is_active`), bukan dua company
+  dipaku: company uji berikutnya pasti ada. `aktif = FALSE`, bukan `DELETE` —
+  riwayat `jumlah_jalan`/`terakhir_galat` tetap bisa ditelusuri. Verifikasinya
+  memeriksa DUA arah, termasuk "jangan sampai NOL jadwal aktif tersisa".
+
+      aktif=true   sukses  207
+      aktif=false  gagal   122
+
+- **`audit-jadwal-company-hidup.mjs`** — penjaga baru, ambang NOL, terdaftar
+  di `ci.yml` sebagai titik KEEMPAT rantai penjadwal (tugas→rute,
+  rute→tugas, katalog, dan sekarang tugas→company hidup). Dibuktikan bisa
+  merah: suntik 1 baris (terbukti terpasang) → MERAH exit 1 → pulihkan →
+  HIJAU exit 0.
+
+- **`lapor-otomasi-hidup.mjs`** — alat ukur yang membuat saya salah.
+  Judulnya "OTOMASI MANA YANG BENAR-BENAR HIDUP", isinya cuma `otomasi_alur`
+  (11 aktif). Ia tak pernah menyentuh `jadwal_tugas` (329). Sekarang
+  melaporkan **kedua buku**, dengan peringatan kalau ada tugas aktif milik
+  company mati — cabang peringatan itu ikut dibuktikan menyala lewat mutasi.
+
+- **R-022 penjadwal → R-022b**, ditulis ulang sebagai SELESAI. Diagnosa
+  salahnya saya tinggalkan tertulis, bukan dihapus.
+
+### Pelajaran
+
+Skrip itu **lahir persis untuk mencegah jawaban salah** tentang otomasi mana
+yang hidup — kepala berkasnya menceritakan dua kali saya menjawab salah
+sebelumnya. Lalu ia memberi jawaban salah dengan cara yang sama persis:
+mengukur satu tabel dan menamainya seluruh kebenaran.
+
+Bentuk yang sama dengan racun konteks di pembuka CLAUDE.md, dan dengan
+`information_schema` tanpa saringan `public`: **nol baris di tabel yang salah
+terbaca persis seperti sistem mati.** Alat ukur yang menamai dirinya lengkap
+lebih berbahaya daripada tak ada alat ukur.
+
+Dan satu lagi: saya nyaris membebani founder dengan keputusan yang tak pernah
+ada. Sebelum menaruh sesuatu di RATIFIKASI, ukur dulu apakah masalahnya nyata.
+
+---
+
 ## 2026-09-01 — mesin rekomendasi tulangan, dan "paling hemat" yang ternyata rekayasa buruk
 
 Founder melihat iklan IG: `portal-lp.ratukarya.my.id` menjual PortalRC seharga
