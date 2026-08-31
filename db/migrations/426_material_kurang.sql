@@ -100,9 +100,41 @@ BEGIN
     Migrasi ini menolak berjalan bila petanya kosong, supaya kelumpuhan itu
     berhenti di sini alih-alih hidup diam-diam di produksi.
   */
+  /*
+    ⚠ DIBEDAKAN DUA SEBAB — DIPERBAIKI 2026-08-31.
+
+    Peta RAB↔material kosong bisa berarti DUA hal yang sangat berbeda:
+
+      (a) ada material dan ada RAB, tetapi petanya tak terbentuk
+          → itulah kelumpuhan yang migrasi ini cegah, dan wajib berhenti;
+
+      (b) basisnya memang belum berisi apa pun
+          → tak ada yang bisa dipetakan, dan berhenti di sini hanya
+            menghentikan seluruh rantai migrasi.
+
+    Versi sebelumnya menyamakan keduanya:
+
+        HARD FAIL — 426_material_kurang.sql
+          426 gagal: project_rab_materials kosong — jalankan migrasi 425 dulu
+
+    Padahal migrasi 425 SUDAH berjalan; ia hanya tak punya material untuk
+    dipetakan — dan sejak 2026-08-31 ia melewati verifikasinya sendiri dengan
+    alasan yang sama.
+
+    Pesan "jalankan migrasi 425 dulu" pun menyesatkan: ia menuduh urutan
+    migrasi, padahal urutannya benar. Yang membacanya akan mencari cacat di
+    tempat yang tak ada cacatnya.
+  */
+  IF NOT EXISTS (SELECT 1 FROM materials) THEN
+    RAISE NOTICE '426 verifikasi dilewati: nol material di basis ini, jadi peta RAB memang kosong. Bukan galat.';
+    RETURN;
+  END IF;
+
   SELECT count(*) INTO n FROM project_rab_materials;
   IF n < 1 THEN
-    RAISE EXCEPTION '426 gagal: project_rab_materials kosong — jalankan migrasi 425 dulu';
+    RAISE EXCEPTION '426 gagal: project_rab_materials kosong PADAHAL ada material — '
+                    'peta tak terbentuk, dan automation ini akan membalas 200 '
+                    'dengan notifications_created: 0 yang terbaca seperti "semua cukup"';
   END IF;
 
   /*
