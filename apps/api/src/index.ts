@@ -344,6 +344,22 @@ app.get('/health', async (_request, reply) => {
   }
 })
 
+// ══════════════════════════════════════════════════════════════════════════
+// BACA-SAJA saat menunggak — dipasang SEBELUM rute apa pun didaftarkan.
+// ══════════════════════════════════════════════════════════════════════════
+//
+// ⚠ Urutannya kritis dan tidak sesederhana kelihatannya. Hook `preHandler`
+// global berjalan BERSAMA preHandler rute, dalam urutan pendaftaran: hook yang
+// dipasang di instance induk berjalan LEBIH DULU daripada preHandler rute.
+//
+// Artinya `request.companyId` — yang diisi `authenticate` di preHandler rute —
+// BELUM terisi saat hook ini jalan. Hook menanganinya dengan pulang lebih awal
+// bila companyId kosong, jadi ia tak pernah salah menuduh; tetapi itu juga
+// berarti ia TIDAK menahan apa pun pada rute yang preHandler-nya belum jalan.
+//
+// Karena itu penegakannya diuji lewat rute SUNGGUHAN (`baca-saja.test.ts`),
+// bukan dari membaca kode ini. Hook yang urutannya salah tidak mengeluarkan
+// galat — ia cuma diam, dan diamnya terbaca persis seperti bekerja.
 await app.register(authRoutes)
 await app.register(projectRoutes)
 await app.register(dashboardRoutes)

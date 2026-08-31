@@ -1756,6 +1756,22 @@ jobs:
       #
       # Bukti merah: tautan diarahkan ke rute tak ada -> exit 1 · kunci hantu
       # di ISI_MODUL -> exit 1 · halaman dihapus -> exit 1 · dipulihkan -> 0.
+      # Penegakan BACA-SAJA yang dipasang di tempat salah TIDAK mengeluarkan
+      # galat, dan seluruh test tingkat-fungsi tetap hijau — yang rusak cuma
+      # tempat ia dipanggil.
+      #
+      # Bukan bahaya teoretis: percobaan pertama memakai hook preHandler
+      # global di index.ts. Hook instance-level berjalan SEBELUM preHandler
+      # rute, jadi request.companyId masih undefined dan hook pulang lebih
+      # awal pada setiap permintaan. Diukur lewat rute sungguhan: POST
+      # /api/v1/clients tetap 201 saat tenant ditandai baca-saja.
+      #
+      # Bukti merah: penegakan dilepas -> exit 1 · GET masuk METODE_TULIS ->
+      # exit 1 · hook global dikembalikan -> exit 1 · dipulihkan -> exit 0.
+      - name: Baca-saja terpasang sesudah companyId terisi (ambang NOL)
+        run: node scripts/audit-baca-saja-terpasang.mjs
+        working-directory: apps/api
+
       - name: Tautan upsell hidup (ambang NOL)
         run: node scripts/audit-tautan-upsell-hidup.mjs
         working-directory: apps/api

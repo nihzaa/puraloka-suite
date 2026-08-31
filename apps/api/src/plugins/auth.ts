@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { supabase, supabaseAuth, klienUntukToken } from '../utils/supabase.js'
 import { createTenantDb, type TenantDb } from '../utils/tenant-db.js'
+import { bacaKeadaanBacaSaja, METODE_TULIS, AWALAN_TETAP_BOLEH } from './baca-saja.js'
 
 // Tipe untuk user yang sudah terautentikasi
 export interface AuthUser {
@@ -202,6 +203,42 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
   // beberapa company sekaligus — `auth_company_id()` hanya tahu company DEFAULT,
   // bukan company yang sedang dipilih di UI.
   request.db = createTenantDb(hasil.companyId, klienUntukToken(token))
+
+  // ══════════════════════════════════════════════════════════════════════
+  // BACA-SAJA saat menunggak
+  // ══════════════════════════════════════════════════════════════════════
+  //
+  // Ditegakkan DI SINI, bukan sebagai hook global — dan itu keputusan yang
+  // dibuat sesudah hook global TERBUKTI TAK MENAHAN APA PUN.
+  //
+  // Percobaan pertama memasang `app.addHook('preHandler', …)` di `index.ts`.
+  // Hook instance-level berjalan SEBELUM preHandler rute, jadi
+  // `request.companyId` — yang baru diisi beberapa baris di atas — masih
+  // `undefined` saat hook itu jalan. Ia pulang lebih awal pada setiap
+  // permintaan: nol galat, nol jejak, dan diamnya terbaca persis seperti
+  // bekerja. Diukur lewat rute sungguhan: tulis tetap 201 saat tenant
+  // ditandai baca-saja.
+  //
+  // Di sini `companyId` sudah pasti terisi, dan setiap rute yang dijaga
+  // `authenticate` otomatis ikut terjaga — tak ada 132 kesempatan lupa.
+  //
+  // ⚠ Rute yang TIDAK memakai `authenticate` (mis. `requireApiKey`) tak
+  // tersentuh. Itu diketahui, bukan terlewat: jalur API key punya company
+  // sendiri di `request.apiKey.companyId`, dan menambalnya di sini akan
+  // menyalin resolusi company ke tempat kedua yang bisa menyimpang.
+  if (METODE_TULIS.has(request.method)) {
+    const url = request.url.split('?')[0]
+    if (!AWALAN_TETAP_BOLEH.some((a) => url.startsWith(a))) {
+      const bs = await bacaKeadaanBacaSaja(hasil.companyId)
+      if (bs.bacaSaja) {
+        // 402, sama dengan gerbang modul — bisa dibedakan dari 403 (izin) dan
+        // tak berbohong seperti 404. `kode` berbeda supaya UI bisa memisahkan
+        // "belum beli modulnya" dari "ada tagihan belum masuk": dua hal
+        // dengan jalan keluar yang berbeda.
+        return reply.status(402).send({ error: bs.alasan, kode: 'AKUN_BACA_SAJA' })
+      }
+    }
+  }
 }
 
 // Load permission set untuk role user ke cache per-request (sekali per request, no N+1).
