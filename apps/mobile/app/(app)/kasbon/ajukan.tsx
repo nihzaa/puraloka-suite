@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
   container: { padding: 16, gap: 16 },
   section: { gap: 8 },
   label: { fontSize: 13, fontWeight: '600', color: '#374151' },
-  helperText: { fontSize: 11, color: '#6B7280', marginTop: 2 },
+  helperText: { fontSize: 12, color: '#6B7280', marginTop: 2 },
   emptyText: { fontSize: 13, color: '#6B7280', paddingVertical: 8 },
   chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: '#E5E7EB', marginRight: 8, backgroundColor: '#fff' },
   chipActive: { backgroundColor: '#003366', borderColor: '#003366' },

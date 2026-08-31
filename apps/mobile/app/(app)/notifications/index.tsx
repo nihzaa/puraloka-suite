@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   notifTitle: { fontSize: 14, color: '#111827', marginBottom: 2 },
   bold: { fontWeight: '700' },
   notifBody: { fontSize: 13, color: '#6B7280', lineHeight: 18 },
-  timeAgo: { fontSize: 11, color: '#6B7280', marginTop: 4 },
+  timeAgo: { fontSize: 12, color: '#6B7280', marginTop: 4 },
   actionRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
   actionBtn: {
     flex: 1, paddingVertical: 8, borderRadius: 8,

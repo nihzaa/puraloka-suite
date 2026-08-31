@@ -406,7 +406,7 @@ const s = StyleSheet.create({
   jenisKotakAktif: { backgroundColor: '#003366', borderColor: '#003366' },
   jenisJudul: { fontSize: 13, fontWeight: '600', color: '#111827' },
   jenisJudulAktif: { color: '#FFFFFF' },
-  jenisKet: { fontSize: 11, color: '#6B7280', marginTop: 3, lineHeight: 15 },
+  jenisKet: { fontSize: 12, color: '#6B7280', marginTop: 3, lineHeight: 15 },
   jenisKetAktif: { color: '#C7D7E8' },
   input: {
     borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10,

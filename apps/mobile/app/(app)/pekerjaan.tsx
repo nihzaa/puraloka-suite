@@ -554,7 +554,7 @@ const s = StyleSheet.create({
   ringkasGaris: { width: 1, height: 28, backgroundColor: '#E5E7EB' },
   ringkasAngka: { fontSize: 22, fontWeight: '700', color: '#111827' },
   ringkasAngkaMerah: { color: '#B91C1C' },
-  ringkasLabel: { fontSize: 11, color: '#6B7280', marginTop: 2 },
+  ringkasLabel: { fontSize: 12, color: '#6B7280', marginTop: 2 },
   kartu: {
     backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB',
     borderRadius: 12, padding: 13, marginBottom: 10,

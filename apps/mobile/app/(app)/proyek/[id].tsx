@@ -183,7 +183,7 @@ export default function ProyekDetailScreen() {
         {(['ringkasan', 'rab', 'progress'] as Tab[]).map(t => (
           <TouchableOpacity key={t} style={[styles.tabBtn, tab === t && styles.tabBtnActive]} onPress={() => setTab(t)} accessibilityRole="button">
             <Text style={[styles.tabBtnText, tab === t && styles.tabBtnTextActive]}>
-              {t === 'ringkasan' ? 'Ringkasan' : t === 'rab' ? 'RAB' : 'Progress'}
+              {t === 'ringkasan' ? 'Ringkasan' : t === 'rab' ? 'RAB' : 'Progres'}
             </Text>
           </TouchableOpacity>
         ))}
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
   // RAB styles
   rabHeader: { padding: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
   rabHeaderTitle: { fontSize: 14, fontWeight: '700', color: '#111827' },
-  rabHeaderSub: { fontSize: 11, color: '#6B7280', marginTop: 2 },
+  rabHeaderSub: { fontSize: 12, color: '#6B7280', marginTop: 2 },
   rabRow: { paddingVertical: 9, paddingRight: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   rabRowCat: { backgroundColor: '#EBF2FF' },
   rabRowSub: { backgroundColor: '#F9FAFB' },
@@ -347,9 +347,9 @@ const styles = StyleSheet.create({
   rabNameCat: { fontWeight: '700', color: '#003366', fontSize: 13 },
   rabNameSub: { fontWeight: '600', color: '#111827' },
   rabMeta: { alignItems: 'flex-end', gap: 2, minWidth: 80 },
-  rabPrice: { fontSize: 11, color: '#6B7280' },
+  rabPrice: { fontSize: 12, color: '#6B7280' },
   rabProgressWrap: { width: 60, height: 4, backgroundColor: '#E5E7EB', borderRadius: 2, overflow: 'hidden' },
   rabProgressBar: { height: '100%', backgroundColor: '#003366', borderRadius: 2 },
-  rabPct: { fontSize: 11, color: '#003366', fontWeight: '700' },
-  rabWeight: { fontSize: 11, color: '#6B7280', marginLeft: 8 },
+  rabPct: { fontSize: 12, color: '#003366', fontWeight: '700' },
+  rabWeight: { fontSize: 12, color: '#6B7280', marginLeft: 8 },
 });

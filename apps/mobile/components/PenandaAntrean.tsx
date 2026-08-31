@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   },
   macetRingkas: { fontSize: 12, fontWeight: '600', color: '#7F1D1D' },
   // #B91C1C di atas #FEF2F2 = 6,4:1 — lolos WCAG AA.
-  macetGalat: { fontSize: 11, color: '#B91C1C', marginTop: 1 },
+  macetGalat: { fontSize: 12, color: '#B91C1C', marginTop: 1 },
   tombolBuang: {
     paddingHorizontal: 12,
     borderRadius: 8,

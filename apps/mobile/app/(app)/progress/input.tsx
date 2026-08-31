@@ -404,12 +404,16 @@ const styles = StyleSheet.create({
   removeXText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   addPhoto: { width: 72, height: 72, borderRadius: 8, borderWidth: 1.5, borderColor: '#E5E7EB', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: 4 },
   addPhotoIcon: { fontSize: 20 },
-  addPhotoText: { fontSize: 10, color: '#6B7280' },
+  /* 10 -> 12px. "Kamera"/"Galeri" adalah TEKS, bukan simbol seperti ✕ dan
+     ▶ yang boleh kecil. Muat dihitung, bukan ditaksir: kotak 72x72, ikon
+     20px + gap 4 + teks = tinggi isi ~40px dari 72 tersedia; "Kamera" pada
+     12px sekitar 43px lebar. Tak ada yang bergeser. */
+  addPhotoText: { fontSize: 12, color: '#6B7280' },
   rabList: { maxHeight: 280, marginTop: 4 },
   rabItem: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 6, backgroundColor: '#fff' },
   rabItemActive: { backgroundColor: '#003366', borderColor: '#003366' },
   rabItemRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  rabItemNo: { fontSize: 11, color: '#6B7280', width: 36, flexShrink: 0 },
+  rabItemNo: { fontSize: 12, color: '#6B7280', width: 36, flexShrink: 0 },
   rabItemName: { flex: 1, fontSize: 13, color: '#111827', fontWeight: '500' },
   rabItemPct: { fontSize: 12, color: '#003366', fontWeight: '700', flexShrink: 0 },
   rabItemTextActive: { color: '#fff' },

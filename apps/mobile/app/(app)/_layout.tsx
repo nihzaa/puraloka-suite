@@ -73,13 +73,36 @@ export default function AppLayout() {
           backgroundColor: '#fff',
           paddingTop: 4,
         },
+        /*
+          TETAP 11px, dan itu keputusan yang dihitung — bukan kelalaian.
+
+          Delapan tab pada layar 360px = ~45px per tab. Lebar label pada
+          font sistem kira-kira 0,55 x fontSize per huruf:
+
+              "Notifikasi" 10 huruf  11px = 61px   SUDAH melebihi 45
+              "Dashboard"   9 huruf  11px = 54px   melebihi juga
+              pada 12px keduanya jadi 66px dan 59px
+
+          Jadi menaikkan ke 12px memperburuk pemotongan yang sudah terjadi.
+          Yang diperbaiki LABELNYA: Notifikasi -> Notif, Dashboard ->
+          Beranda, Progress -> Progres (yang terakhir sekalian: "Progress"
+          bahasa Inggris di antara tujuh label Indonesia).
+
+              "Notif"    5 huruf  11px = 30px  muat
+              "Beranda"  7 huruf  11px = 42px  muat
+              "Progres"  7 huruf  11px = 42px  muat
+
+          Teks 11px di bilah tab dikecualikan dari kenaikan 11->12 yang
+          dilakukan pada 13 gaya lain hari ini. Kalau nanti bilahnya
+          berkurang jadi enam tab (60px per tab), 12px muat untuk semuanya.
+        */
         tabBarLabelStyle: { fontSize: 11, fontWeight: '500' },
       }}
     >
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: 'Dashboard',
+          title: 'Beranda',
           tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
         }}
       />
@@ -101,7 +124,7 @@ export default function AppLayout() {
         options={
           bolehProgres
             ? {
-                title: 'Progress',
+                title: 'Progres',
                 tabBarIcon: ({ focused }) => <TabIcon emoji="📷" focused={focused} />,
               }
             : { href: null }
@@ -139,7 +162,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="notifications/index"
         options={{
-          title: 'Notifikasi',
+          title: 'Notif',
           tabBarIcon: ({ focused }) => <TabIcon emoji="🔔" focused={focused} />,
         }}
       />

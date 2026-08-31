@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   stat: { alignItems: 'center' },
   statValue: { fontSize: 22, fontWeight: '700', color: '#003366' },
   statValueSm: { fontSize: 13, fontWeight: '700', color: '#003366' },
-  statLabel: { fontSize: 11, color: '#6B7280', marginTop: 2 },
+  statLabel: { fontSize: 12, color: '#6B7280', marginTop: 2 },
   wageCard: { gap: 6 },
   wageTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
   wageMandor: { fontSize: 14, fontWeight: '600', color: '#111827' },
