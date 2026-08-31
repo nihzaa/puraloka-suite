@@ -5,6 +5,104 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-01 — mesin rekomendasi tulangan, dan "paling hemat" yang ternyata rekayasa buruk
+
+Founder melihat iklan IG: `portal-lp.ratukarya.my.id` menjual PortalRC seharga
+Rp99.000 — analisa portal 2D + **rekomendasi pembesian**. Pertanyaannya:
+apakah kita sudah punya?
+
+### Yang ditemukan sesudah mengukur, bukan mengingat
+
+Kita punya JAUH lebih banyak: 34/34 jenis elemen (PortalRC: 2), beban gempa &
+angin (PortalRC: tak ada), BBS dengan kait 135° dan sisa potongan (tak
+disebut di sana), tembus ke RAB. Yang mereka jual adalah irisan kecil dari
+yang sudah ada — tapi irisan itu jauh lebih rapi dan menyelesaikan satu
+pertanyaan dari awal sampai akhir.
+
+Dan mereka punya DUA hal yang kita tidak:
+
+1. **Arah desain terbalik.** Seluruh 40 modul struktur kita menuntut tulangan
+   sebagai MASUKAN. Kita pemeriksa; mereka perancang. Pencarian
+   `saranTulangan`/`desainTulangan`/`rekomendasi` di 40 modul: nihil.
+2. **Analisa portal.** Kita minta `muKnm` sebagai input — angka yang justru
+   paling susah didapat pemakainya.
+
+Yang (1) dikerjakan sesi ini. Yang (2) belum: Mu/Vu masih masukan, jadi layar
+ini belum menjawab pertanyaan lapangan dari nol.
+
+### Saya salah menilai kriteria, dan angkanya yang memberi tahu
+
+Founder memilih "paling hemat besi" — objektif dan bisa diuji. Saya
+menerapkannya apa adanya, dan hasilnya SAH menurut SNI tapi buruk sebagai
+rekayasa. Enam kombinasi beban, rasio kritis terpilih:
+
+    0.94 · 0.94 · 0.95 · 0.96 · 0.96 · 0.99
+
+Semuanya nyaris mentok. Sebabnya bukan bug: meminimalkan kg tanpa syarat lain
+SELALU memenangkan yang pas-pasan lolos, karena tiap gram cadangan membuat
+sebuah kandidat kalah hemat. Satu pemenang bahkan 7D10 — tujuh batang tipis
+yang menang beberapa kilogram tapi menyulitkan pengecoran.
+
+Yang membuat saya melihatnya bukan test (14/14 hijau sepanjang itu) melainkan
+MENCETAK hasilnya dan membacanya sebagai insinyur. Diperbaiki dengan
+pengurutan dua lapis (bercadangan dulu, baru hemat) + batas 6 batang.
+Sesudahnya 0.81–0.90, usulan jadi lazim (4D13, 6D16, 5D19), ongkosnya 6–12%
+besi. Cadangan dinyatakan KENYAMANAN, bukan keamanan: kalau tak ada kandidat
+bercadangan, mesin tetap mengusulkan yang aman menurut SNI sambil mengatakan
+cadangannya tipis.
+
+### Dan sekali lagi: memotret menemukan yang test tak lihat
+
+Halaman versi pertama membawa `<Halaman>` + `<KepalaHalaman>` sendiri.
+Tangkapan layar memperlihatkan DUA judul dan padding ganda — persis yang sudah
+diperingatkan komentar di `estimasi/layout.tsx` soal percobaan `markup`, yang
+tidak saya baca sampai sesudah melihat gambarnya. Plus tab bar yang tak
+menyorot apa pun karena rutenya tak terdaftar.
+
+`uji-judul-halaman-ada` HIJAU sepanjang itu. Ia memastikan judul ADA, bukan
+TUNGGAL. Ini ketiga kalinya di repo ini pelajaran yang sama: hijaunya penjaga
+bukan bukti benarnya hierarki.
+
+### Yang dibangun
+
+- `lib/struktur-saran.ts` — NOL rumus SNI baru. Menyusun kandidat, memanggil
+  `analisaBalok`/`analisaKolom` yang sudah teruji, menyaring, memilih.
+  Menghitung ulang φMn di situ akan membuat dua sumber kebenaran yang bisa
+  menyimpang tanpa galat (pola `audit-takeoff-kembar-sepakat`). Efek
+  sampingnya: ρmin/ρmax ikut terjaga gratis, karena keduanya sudah jadi
+  `Periksa` di pemeriksanya.
+- `POST /api/v1/struktur/saran-pembesian`
+- `/estimasi/pembesian` + migrasi 554 (menu)
+
+### Bukti
+
+- 14/14 test hijau; properti kunci DIBUKTIKAN BISA MERAH lewat dua mutasi
+  terpisah (balok & kolom) — saringan aman dibuang, test menyebut persis
+  pemeriksaan yang dilanggar
+- rute diuji lewat HTTP sungguhan: 5 kasus, termasuk dua jalur 400
+- a11y runtime: 1 halaman, 0 pelanggaran, terang DAN gelap
+- `tsc --noEmit` exit 0 TANPA filter · eslint exit 0
+- penjaga: 204 hijau. Lima merah semuanya milik sesi lain yang sedang
+  bekerja di checkout yang sama (`.env.example`, `documents.ts`,
+  `kuota-penyimpanan.ts`, migrasi 555, menu AI 1851–1854) — dibuktikan
+  dengan `git diff`, bukan diasumsikan.
+
+### Yang BELUM selesai — jangan dibaca sebagai selesai
+
+- **Migrasi 554 belum dijalankan.** Basis ini melayani produksi (§8a.5).
+  Sampai ia jalan, `audit-nav-yatim` & `audit-peta-menu-vs-db` tetap merah
+  untuk `cc-pembesian`: keduanya membandingkan kode dengan BASIS.
+- **Keadaan HASIL di layar belum terpotret.** Tombolnya diklik lewat
+  Playwright dan menjawab 404 — bukan cacat halaman: server web yang hidup
+  (:3010, sesi lain) mem-proxy `/api` ke instance API LAMA di :3007.
+  Dibuktikan: :3007 → 404, :3099 (API sesi ini) → 401. Jebakan yang sama
+  dengan §7 yang sudah memakan empat jam sekali.
+- **Baru balok & kolom.** Pelat, pondasi, tangga belum.
+- **Deploy VPS ditunda** atas keputusan founder — selesaikan rute + UI dulu,
+  baru sekali naik.
+
+---
+
 ## 2026-09-01 — portal tagihan pelanggan, dan enam penjaga yang menangkap saya
 
 Lubang ketiga dari tiga: pelanggan tak punya tempat melihat tagihannya. Layar
