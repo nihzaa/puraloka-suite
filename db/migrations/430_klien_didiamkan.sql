@@ -168,10 +168,27 @@ BEGIN
     dibedakan dari "semua klien terkabari". Kelumpuhan yang sama dengan
     `min_stock` nol (425) dan peta RAB kosong (426).
   */
+  /*
+    ⚠ DITURUNKAN JADI CATATAN 2026-08-31 — dulu RAISE EXCEPTION.
+
+    Alasan aslinya benar: tanpa proyek aktif, rutenya membalas 200 dengan nol
+    notifikasi, tak terbedakan dari "semua klien terkabari".
+
+    Tapi basis yang baru lahir memang belum punya proyek aktif — diukur di CI
+    hari ini — dan RAISE EXCEPTION di sini menghentikan SELURUH rantai
+    migrasi:
+
+        HARD FAIL — 430_klien_didiamkan.sql
+          430 gagal: tak ada proyek aktif — otomasi ini tak akan pernah berbunyi
+
+    Pertukarannya sama dengan 466, 467, 485, 509, dan 524 hari ini: automation
+    tanpa bahan DIAM, sementara rantai migrasi yang berhenti membuat seluruh
+    sistem tak bisa dipasang sama sekali.
+  */
   SELECT count(*) INTO n FROM projects
    WHERE is_deleted = false AND status = 'active';
   IF n < 1 THEN
-    RAISE EXCEPTION '430 gagal: tak ada proyek aktif — otomasi ini tak akan pernah berbunyi';
+    RAISE NOTICE '430: nol proyek aktif di basis ini — otomasi belum punya bahan. Bukan galat.';
   END IF;
 
   SELECT count(*) INTO n FROM jadwal_tugas jt
