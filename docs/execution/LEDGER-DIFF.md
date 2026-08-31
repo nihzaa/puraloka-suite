@@ -1,21 +1,63 @@
 # LEDGER-DIFF — Buku Migrasi vs Artefak Fisik
 
-**Dihasilkan:** 2026-08-02 · **Alat:** `node scripts/db/ledger-diff.mjs`
+**Alat:** `node scripts/db/ledger-diff.mjs`
 **Sifat:** BACA SAJA. Alat ini tidak punya flag `--tulis`. Menulis ke buku migrasi
 adalah Gerbang Keras **G-2** dan wajib lewat `RATIFIKASI.md`.
 
-## Ringkasan
+## ⚠ Angka di dokumen ini BUSUK — ukur sendiri
 
-| Kategori | Jumlah |
-|---|---:|
-| Berkas migrasi | **171** |
-| Tercatat di buku | **160** |
-| `TERCATAT-KONSISTEN` | 144 |
-| `TERCATAT-TAPI-ARTEFAK-HILANG` | **15** |
-| `PERLU-MATA-MANUSIA` | **12** |
+Versi sebelumnya memuat tabel ringkasan bertanggal 2026-08-02: 171 berkas
+migrasi, 15 `TERCATAT-TAPI-ARTEFAK-HILANG`. **Ketiga angka itu sudah salah
+sebelum siapa pun menyadarinya.** Diukur 2026-08-31 — 29 hari kemudian:
 
-Identitas koneksi saat pengukuran: `aws-1-ap-southeast-1.pooler.supabase.com:5432`,
-db `postgres`, user `postgres`, `schema_hash=7a4be5d7d87d9892`.
+```
+berkas migrasi                    171  →  518
+TERCATAT-TAPI-ARTEFAK-HILANG       15  →   25
+PERLU-MATA-MANUSIA                 12  →  152
+```
+
+Sebelas versi baru masuk kategori "artefak hilang" tanpa ada yang tahu, karena
+`ledger-diff` **exit code-nya 0** — ia melaporkan, ia tak pernah merah.
+
+Aturannya sama dengan pembuka `CLAUDE.md`: **kalau sebuah fakta bisa basi,
+jangan tulis faktanya — tulis cara mengukurnya.**
+
+```bash
+node scripts/db/ledger-diff.mjs        # verdict lengkap, JSON
+```
+
+## ⚠ "ARTEFAK HILANG" ≠ "MIGRASINYA TIDAK JALAN"
+
+Ini salah baca yang paling mahal di dokumen ini, dan saya hampir melakukannya
+2026-08-31: kesebelas versi baru itu **artefaknya ADA SEMUA**. Diperiksa satu
+per satu ke basis:
+
+| Versi | Artefak yang dicari | Ada? |
+|---|---|---|
+| 006 | `invoices`, `payments` | ✅ 2 tabel |
+| 238 | `gudang`, `assets.gudang_id`, `assets_lokasi_tunggal`, 2 kolom `asset_movements` | ✅ keempatnya |
+| 258 | tabel `wa_*` | ✅ 8 |
+| 301 | tabel markup/margin | ✅ 1 |
+| 373 | policy `tenant_isolation` | ✅ 266 |
+| 374 | `cbs_*` RESTRICTIVE | ✅ 2 |
+| 414 | tabel pengingat | ✅ 1 |
+| 437 | tabel subkon | ✅ 4 |
+| 447 | kolom PKP/efaktur | ✅ 3 |
+| 450 | tabel klausul | ✅ 1 |
+| 519 | pagar 3 tabel turunan | ✅ 3 RESTRICTIVE |
+
+Jadi verdict "hilang" di sini berarti **pemindainya tak mengenali bentuk
+artefaknya**, bukan bahwa migrasinya tak berjalan.
+
+⚠ Dan satu jebakan yang saya masuki sendiri saat memeriksa: probe pertama saya
+untuk 238 mencari tabel bernama `%lokasi%` dan memulangkan **0**, lalu saya
+sempat menulis "1 benar-benar kosong". Migrasi 238 membuat tabel bernama
+**`gudang`** — tebakan sayalah yang salah, bukan basisnya. **Nol hasil bukan
+bukti ketiadaan**; periksa dulu apa yang sungguh dibuat migrasinya
+(`grep 'CREATE TABLE\|ADD COLUMN' db/migrations/238_*.sql`).
+
+Verdict yang bisa dipercaya untuk "apakah migrasi X benar-benar jalan" adalah
+**artefak fisiknya terbukti ada** — bukan nama yang ditebak.
 
 ## Koreksi metodologi (cacat C-3)
 
