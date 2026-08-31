@@ -23,20 +23,24 @@ useDefault = true
   description = "Temuan yang terbukti bukan rahasia"
 
   regexes = [
-    # Kunci FITUR paket (`modul.*`) di migrasi gerbang modul.
+    # Kunci FITUR paket (`modul.<nama>`) di migrasi gerbang modul.
     #
     # gitleaks menandai `WHERE key = 'modul.k3_lingkungan'` sebagai
-    # `generic-api-key` (entropi 3,58) — dan itu temuan PALSU: yang ada di
-    # sana nama fitur yang dipakai untuk menyalakan/mematikan modul per paket
-    # langganan, bukan rahasia. Nama-nama itu memang harus dikenali kode dan
-    # tampil di layar pengaturan paket.
+    # `generic-api-key` (entropi 3,58) — temuan PALSU. Yang ada di sana nama
+    # fitur untuk menyalakan modul per paket langganan, bukan rahasia.
     #
-    # Polanya SENGAJA SEMPIT: hanya `modul.<nama>` di dalam kutip, bukan
-    # `WHERE key = '...'` apa pun. Melonggarkannya jadi "abaikan semua
-    # WHERE key" akan menyembunyikan rahasia SUNGGUHAN yang kebetulan
-    # tersimpan lewat kolom bernama `key` — dan tabel `app_credentials`
-    # di basis ini persis berbentuk begitu.
-    '''['"]modul.[a-z0-9_]+['"]''',
+    # ⚠ POLANYA MENCOCOKKAN NILAI YANG DITANGKAP, BUKAN BARIS SUMBERNYA.
+    #
+    # Versi pertama saya menulis pola dengan tanda kutip ikut di dalamnya,
+    # dan CI TETAP MERAH dengan temuan yang sama persis. gitleaks
+    # mencocokkan allowlist terhadap SECRET yang ia tangkap
+    # (`modul.k3_lingkungan`), bukan terhadap `WHERE key = '...'`.
+    # Kutipnya tak pernah ikut. Dua pola lain di daftar ini memang
+    # berbentuk begitu — petunjuknya sudah ada di depan mata.
+    #
+    # Sengaja BERJANGKAR (^…$): hanya `modul.<nama>` utuh, supaya rahasia
+    # sungguhan yang kebetulan memuat kata itu tetap tertangkap.
+    '''^modul.[a-z0-9_]+$''',
 
     # Supabase PUBLISHABLE key (`sb_publishable_…`) di
     # `apps/web/.design-sync/lib/bundle.mjs`.
