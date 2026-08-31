@@ -186,8 +186,21 @@ BEGIN
     dari "semua uji lulus". Kelumpuhan yang sama dengan `min_stock` nol (425).
   */
   SELECT count(*) INTO n FROM uji_material;
+  /*
+    ⚠ DITURUNKAN JADI CATATAN 2026-08-31.
+
+    Alasannya benar: automation tanpa bahan membalas 200 dengan nol
+    notifikasi, tak terbedakan dari "semuanya beres". Tapi di basis yang baru
+    lahir tabelnya memang kosong, dan RAISE EXCEPTION menghentikan SELURUH
+    rantai migrasi.
+
+    Ini yang keduabelas hari ini dengan bentuk sama (425, 426, 429, 430, 431,
+    466, 467, 485, 509, 524 …). Pertukarannya tetap: automation tanpa bahan
+    DIAM, sementara migrasi yang berhenti membuat seluruh sistem tak bisa
+    dipasang sama sekali.
+  */
   IF n < 1 THEN
-    RAISE EXCEPTION '433 gagal: uji_material kosong — otomasi ini tak akan pernah berbunyi';
+    RAISE NOTICE '433: uji_material kosong di basis ini — otomasi belum punya bahan. Bukan galat.';
   END IF;
 
   RAISE NOTICE '433 OK: aturan + target, 1 setelan, jadwal harian (% badan usaha)', n_aktif;

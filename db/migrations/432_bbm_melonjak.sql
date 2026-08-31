@@ -171,9 +171,21 @@ BEGIN
   */
   SELECT count(*) INTO n FROM biaya_operasional_alat
    WHERE jenis = 'bbm' AND kuantitas IS NOT NULL AND kuantitas > 0;
+  /*
+    ⚠ DITURUNKAN JADI CATATAN 2026-08-31.
+
+    Alasannya benar: automation tanpa bahan membalas 200 dengan nol
+    notifikasi, tak terbedakan dari "semuanya beres". Tapi di basis yang baru
+    lahir tabelnya memang kosong, dan RAISE EXCEPTION menghentikan SELURUH
+    rantai migrasi.
+
+    Ini yang keduabelas hari ini dengan bentuk sama (425, 426, 429, 430, 431,
+    466, 467, 485, 509, 524 …). Pertukarannya tetap: automation tanpa bahan
+    DIAM, sementara migrasi yang berhenti membuat seluruh sistem tak bisa
+    dipasang sama sekali.
+  */
   IF n < 1 THEN
-    RAISE EXCEPTION
-      '432 gagal: tak ada pengisian BBM ber-kuantitas — otomasi ini tak akan pernah berbunyi';
+    RAISE NOTICE '432: nol pengisian BBM ber-kuantitas di basis ini — otomasi belum punya bahan. Bukan galat.';
   END IF;
 
   SELECT count(*) INTO n FROM jadwal_tugas jt
