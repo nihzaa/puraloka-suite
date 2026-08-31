@@ -63,7 +63,33 @@ for (const m of yml.matchAll(/node\s+(-r\s+\S+\s+)?((?:\.\.\/)?[\w./-]+\.mjs)([^
   }))
 }
 
-const hasil = { hijau: [], merah: [], hilang: [] }
+/**
+ * Penjaga yang TAK BISA dijalankan di luar CI — dan kenapa membedakannya
+ * penting.
+ *
+ * Kelimanya menuntut lingkungan CI: rahasia yang hanya ada di runner, atau
+ * artefak yang dibuat langkah CI sebelumnya. Di laptop mereka SELALU merah,
+ * apa pun keadaan kodenya.
+ *
+ * Melaporkannya bersama penjaga yang benar-benar merah melatih mata untuk
+ * mengabaikan baris merah — dan begitu itu terjadi, penjaga sungguhan ikut
+ * terabaikan. Diukur 2026-08-31: dari yang tampak merah, yang nyata cuma
+ * SATU (audit-akhir-baris buta karena cwd), dan ia tenggelam di antara
+ * kegagalan lingkungan.
+ *
+ * ⚠ BUKAN daftar pengecualian yang boleh tumbuh. Yang masuk sini harus
+ * benar-benar mustahil dijalankan lokal — bukan sekadar merepotkan. Tiap
+ * tambahan mengurangi apa yang diperiksa perintah ini.
+ */
+const BUTUH_CI = new Map([
+  ["scripts/ci-project-setup.mjs", "butuh CI_DIRECT_URL (rahasia CI)"],
+  ["scripts/gabung-coverage.mjs", "butuh artefak coverage-shards dari langkah CI"],
+  ["scripts/coverage-ratchet.mjs", "butuh coverage-summary.json dari vitest --coverage"],
+  ["scripts/audit-route-coverage-nol.mjs", "butuh coverage-summary.json dari vitest --coverage"],
+  ["scripts/schema-fingerprint.mjs", "butuh basis CI; di CI pun continue-on-error: true"],
+])
+
+const hasil = { hijau: [], merah: [], hilang: [], lewat: [] }
 
 for (const p of [...perintah].map((x) => JSON.parse(x))) {
   // Cari di mana berkasnya BENAR-BENAR ada, jangan tebak satu cwd.
@@ -80,6 +106,13 @@ for (const p of [...perintah].map((x) => JSON.parse(x))) {
   */
   if (!dir && p.skrip.startsWith('/tmp/')) continue
   if (!dir) { hasil.hilang.push(p.skrip); continue }
+
+  // Dilewati SEBELUM dijalankan, dan DISEBUT — bukan didiamkan. Perintah yang
+  // diam-diam melewati sesuatu tak bisa dibedakan dari yang memeriksanya.
+  if (BUTUH_CI.has(p.skrip)) {
+    hasil.lewat.push({ skrip: p.skrip, alasan: BUTUH_CI.get(p.skrip) })
+    continue
+  }
 
   const args = []
   if (p.preload) args.push(...p.preload.split(/\s+/))
@@ -101,6 +134,16 @@ for (const p of [...perintah].map((x) => JSON.parse(x))) {
   }
 }
 
-console.log(`\n══ PENJAGA CI: ${hasil.hijau.length} hijau · ${hasil.merah.length} MERAH · ${hasil.hilang.length} tak ketemu\n`)
+console.log(`\n══ PENJAGA CI: ${hasil.hijau.length} hijau · ${hasil.merah.length} MERAH · ${hasil.lewat.length} dilewati (butuh CI) · ${hasil.hilang.length} tak ketemu\n`)
 for (const m of hasil.merah) console.log(`❌ ${m.skrip}\n   ${m.pesan}\n`)
+if (hasil.lewat.length) {
+  console.log("⊘ Dilewati — tak bisa dijalankan di luar CI:")
+  for (const l of hasil.lewat) console.log(`     ${l.skrip} — ${l.alasan}`)
+  console.log("  Ini BUKAN lulus. Semuanya tetap berjalan di CI.")
+}
+
+// Exit code mengikuti yang MERAH saja. Yang dilewati tak menghijaukan maupun
+// memerahkan — ia bukan hasil pemeriksaan.
+if (hasil.merah.length) process.exitCode = 1
+
 if (hasil.hilang.length) console.log('⚠ tak ketemu di 3 akar:', hasil.hilang.join(', '))
