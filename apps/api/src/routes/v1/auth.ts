@@ -3,6 +3,7 @@ import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { sendWelcomeEmail } from '../../utils/email.js'
 import { flattenUserRole } from '../../utils/user-role.js'
+import { bacaBatasPaket, masihMuat } from '../../utils/batas-paket.js'
 
 const COOKIE_OPTS = {
   httpOnly: true,
@@ -180,6 +181,47 @@ export default async function authRoutes(app: FastifyInstance) {
 
     if (!roleRow) {
       return reply.status(400).send({ error: `Role '${role}' tidak valid` })
+    }
+
+    // ── Batas paket: masih ada jatah pengguna? ────────────────────────────
+    //
+    // Diperiksa TEPAT sebelum `createUser` — langkah pertama yang tak bisa
+    // dibatalkan. Sebelum ini semuanya masih pemeriksaan; sesudahnya sudah ada
+    // akun di Supabase Auth yang harus dibersihkan kalau kita berubah pikiran.
+    //
+    // ⚠ Gagal-TERBUKA saat tenant tak punya langganan. Disengaja, alasannya di
+    // `utils/batas-paket.ts`: 1878 perusahaan hidup tanpa satu baris
+    // `subscriptions` pun, dan gerbang yang gagal-tertutup akan membuat
+    // TAK SEORANG PUN bisa menambah pengguna, di mana pun.
+    const batasPaket = await bacaBatasPaket(request.companyId!)
+    if (batasPaket.dibatasi) {
+      // Yang dicacah pengguna AKTIF: yang sudah dinonaktifkan tak memakai
+      // jatah, dan menghitungnya membuat tenant terkunci oleh akun yang sudah
+      // tak dipakai siapa pun — tanpa cara memulihkannya selain menghapus
+      // orang dari basis.
+      const { count, error: galatHitung } = await request.db!
+        .from('users')
+        .select('id', { count: 'exact', head: true })
+        .eq('is_active', true)
+
+      if (galatHitung) {
+        // Gagal MENGHITUNG tak boleh diam-diam jadi "masih muat" — batasnya
+        // akan hilang tiap kali basis tersendat.
+        request.log.error({ err: galatHitung }, 'gagal menghitung pengguna aktif untuk batas paket')
+        return reply.status(503).send({ error: 'Gagal memeriksa batas paket. Coba lagi.' })
+      }
+
+      const muat = masihMuat(batasPaket, 'kuota.pengguna', count ?? 0)
+      if (!muat.boleh) {
+        // 402, bukan 403: yang pertama berarti "bayar untuk melanjutkan",
+        // yang kedua "Anda tak berhak" — dan yang membaca 403 akan mencari
+        // admin untuk minta izin, bukan menaikkan paketnya.
+        return reply.status(402).send({
+          error: muat.alasan,
+          batas: muat.batas,
+          terpakai: muat.terpakai,
+        })
+      }
     }
 
     // Buat auth user di Supabase
