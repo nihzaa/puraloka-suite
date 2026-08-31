@@ -118,10 +118,65 @@ BEGIN
   SELECT count(*), count(DISTINCT permission_key) INTO n_tanpa, n_unik
     FROM public.get_role_permissions('admin');
 
-  IF n_tanpa < 100 THEN
-    RAISE EXCEPTION '372 gagal: tanpa konteks tenant admin hanya dapat % izin — '
-                    'seluruh requirePermission lewat service_role akan menolak', n_tanpa;
+  /*
+    ⚠ AMBANG 100 DIGANTI PEMERIKSAAN YANG SEBENARNYA — 2026-08-31.
+
+    Angka 100 adalah potret basis dev. Di basis yang baru lahir, admin
+    template memegang 33 izin — bukan karena fungsinya rusak, melainkan
+    karena migrasi 050 memberi SEMUA izin yang ada SAAT ITU, dan izin yang
+    lahir sesudahnya baru dipulihkan oleh migrasi 378 — yang berjalan
+    SESUDAH berkas ini.
+
+        HARD FAIL — 372_izin_peran_tanpa_konteks_tenant.sql
+          372 gagal: tanpa konteks tenant admin hanya dapat 33 izin
+
+    Bentuk yang sudah menggigit sembilan kali hari ini: verifikasi yang
+    menuntut hasil pekerjaan migrasi berikutnya.
+
+    Yang benar-benar dijamin migrasi ini: `get_role_permissions('admin')`
+    BEKERJA tanpa konteks tenant — sebelumnya ia memulangkan NOL, dan setiap
+    `requirePermission` lewat service_role menolak. Nol versus tidak-nol
+    itulah perbedaannya, bukan 33 versus 100.
+
+    Jumlahnya tetap dilaporkan di NOTICE, dan kesepadanannya dengan izin yang
+    dipegang admin diperiksa di bawah — pemeriksaan yang lebih tajam daripada
+    ambang tetap, karena ia ikut bergerak saat katalog izin bertambah.
+  */
+  IF n_tanpa = 0 THEN
+    RAISE EXCEPTION '372 gagal: tanpa konteks tenant admin dapat NOL izin — '
+                    'seluruh requirePermission lewat service_role akan menolak';
   END IF;
+
+  DECLARE
+    n_dipegang int;
+  BEGIN
+    /*
+      Dibandingkan dengan TEMPLATE, bukan dengan seluruh baris bernama 'admin'.
+
+      Percobaan pertama membandingkan terhadap semua role bernama 'admin' —
+      termasuk salinan tenant — dan langsung menemukan selisih satu:
+
+          372 gagal: fungsi memulangkan 33 izin unik, admin memegang 34
+
+      Yang selisih itu `cash:view`, dipegang salinan TENANT tapi bukan
+      templatenya. Fungsi ini dipanggil TANPA konteks tenant, jadi ia memang
+      hanya boleh melihat template — selisihnya benar, cek sayalah yang salah
+      bandingannya.
+
+      Dicatat, bukan dihapus diam-diam: cek yang membandingkan hal tak setara
+      akan merah untuk alasan yang salah, dan yang membacanya nanti akan
+      mengejar cacat yang tak ada.
+    */
+    SELECT count(DISTINCT rp.permission_id) INTO n_dipegang
+      FROM public.role_permissions rp
+      JOIN public.roles r ON r.id = rp.role_id
+     WHERE r.name = 'admin' AND r.company_id IS NULL;
+
+    IF n_unik <> n_dipegang THEN
+      RAISE EXCEPTION '372 gagal: fungsi memulangkan % izin unik, template admin memegang % — '
+                      'fungsinya menyaring sesuatu yang tak seharusnya', n_unik, n_dipegang;
+    END IF;
+  END;
 
   IF n_tanpa <> n_unik THEN
     RAISE EXCEPTION '372 gagal: izin GANDA kembali (% baris, % unik) — '

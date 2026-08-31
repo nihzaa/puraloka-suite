@@ -85,25 +85,75 @@ BEGIN
 
   -- Role tenant tanpa izin = salinan yang setengah jadi. Orang yang diberi
   -- role itu akan melihat aplikasi kosong tanpa satu pun pesan galat.
+  /*
+    ⚠ HANYA SALINAN YANG TEMPLATENYA BERIZIN — DIPERBAIKI 2026-08-31.
+
+    Versi sebelumnya menuduh SETIAP role tenant tanpa izin:
+
+        HARD FAIL — 365_salin_role_ke_tenant.sql
+          365 gagal: 1302 role tenant tersalin TANPA izin
+
+    Tapi migrasi ini menyalin izin DARI template. Kalau templatenya sendiri
+    belum berizin, salinannya kosong — dan itu bukan kegagalan penyalinan,
+    melainkan keadaan sumbernya.
+
+    Diukur 2026-08-31 di basis yang baru lahir: admin template memegang 33
+    dari 230 izin, dan sebagian besar role dari katalog 364 belum berizin sama
+    sekali. Migrasi 378-lah yang memulihkan itu, dan ia berjalan SESUDAH ini.
+
+    Jadi cek lama menuntut hasil pekerjaan migrasi berikutnya — bentuk yang
+    sudah menggigit delapan kali hari ini (271, 295, 320, 323, 337, 340, 363,
+    364).
+
+    Yang benar-benar pekerjaan migrasi ini: bila templatenya BERIZIN, salinannya
+    wajib ikut berizin. Itu yang diperiksa sekarang, dan ia tetap menangkap
+    penyalinan yang setengah jadi.
+  */
   SELECT count(*) INTO n_kosong
     FROM public.roles r
    WHERE r.company_id IS NOT NULL
-     AND NOT EXISTS (SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id);
+     AND NOT EXISTS (SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id)
+     AND EXISTS (
+       SELECT 1 FROM public.roles tmpl
+         JOIN public.role_permissions rpt ON rpt.role_id = tmpl.id
+        WHERE tmpl.company_id IS NULL AND tmpl.is_template AND tmpl.name = r.name
+     );
   IF n_kosong > 0 THEN
-    RAISE EXCEPTION '365 gagal: % role tenant tersalin TANPA izin', n_kosong;
+    RAISE EXCEPTION '365 gagal: % role tenant tersalin TANPA izin padahal templatenya berizin', n_kosong;
   END IF;
 
   -- Jumlah izin tiap salinan wajib SAMA PERSIS dengan templatenya. Kalau
   -- berbeda, sebagian izin gagal tersalin diam-diam — dan yang hilang justru
   -- tak akan terlihat sampai seseorang menekan tombol yang tak berfungsi.
+  /*
+    ⚠ ARAHNYA SATU, BUKAN DUA — DIPERBAIKI 2026-08-31.
+
+    Versi sebelumnya menuntut jumlah izin salinan SAMA PERSIS dengan
+    templatenya, dan gagal atas dua salinan yang punya LEBIH:
+
+        365 gagal: 2 salinan role punya jumlah izin BERBEDA dari templatenya
+        (admin & pm — salinannya memegang `cash:view` yang templatenya tak punya)
+
+    Salinan yang memegang lebih bukan kegagalan penyalinan. Itu izin yang
+    diberikan ke tenant belakangan lewat UI peran — hal yang memang boleh
+    terjadi, dan justru yang membuat peran bisa dikonfigurasi per-tenant
+    (ADR-004).
+
+    Yang berbahaya arah satunya: salinan KURANG dari templatenya. Itu berarti
+    sebagian izin gagal tersalin diam-diam, dan yang hilang tak terlihat
+    sampai seseorang menekan tombol yang tak berfungsi.
+
+    Ketimpangan arah sebaliknya diselaraskan migrasi 378, yang memang bertugas
+    memulihkan template dari salinannya.
+  */
   SELECT count(*) INTO n_beda
     FROM public.roles rt
     JOIN roles tmpl ON tmpl.company_id IS NULL AND tmpl.is_template AND tmpl.name = rt.name
    WHERE rt.company_id IS NOT NULL
      AND (SELECT count(*) FROM role_permissions rp WHERE rp.role_id = rt.id)
-       <> (SELECT count(*) FROM role_permissions rp WHERE rp.role_id = tmpl.id);
+       < (SELECT count(*) FROM role_permissions rp WHERE rp.role_id = tmpl.id);
   IF n_beda > 0 THEN
-    RAISE EXCEPTION '365 gagal: % salinan role punya jumlah izin BERBEDA dari templatenya', n_beda;
+    RAISE EXCEPTION '365 gagal: % salinan role punya izin LEBIH SEDIKIT dari templatenya — sebagian gagal tersalin', n_beda;
   END IF;
 
   RAISE NOTICE '365: % role tersalin ke % tenant · nol kosong · jumlah izin cocok',
