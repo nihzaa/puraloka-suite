@@ -160,8 +160,34 @@ BEGIN
     sama. Yang benar menaruhnya di TITIK PALING AWAL yang bergantung pada
     data itu.
   */
-  IF NOT EXISTS (SELECT 1 FROM projects WHERE is_deleted = false) THEN
-    RAISE NOTICE '428 verifikasi dilewati: nol proyek di basis ini, jadi nol polis. Bukan galat.';
+  /*
+    ⚠ GERBANGNYA SALAH SYARAT — DIPERBAIKI LAGI 2026-08-31.
+
+    Percobaan pertama memeriksa "adakah proyek?". Itu tak cukup, dan CI
+    memerahkannya lagi dengan pesan yang sama persis:
+
+        428 gagal: polis hanya 0 baris, harus >= 9
+
+    Sebabnya: seed di atas memaku ID PROYEK basis dev
+    (`c0000000-0000-0000-0000-0000000000xx`) dan menyisipkan hanya bila
+    `EXISTS (SELECT 1 FROM projects WHERE p.id = v.pid)`. Basis CI PUNYA
+    proyek — hanya bukan proyek-proyek itu. Jadi gerbangnya terbuka sementara
+    seed-nya tetap memasukkan nol baris.
+
+    Syarat yang benar: adakah proyek YANG DIRUJUK seed ini. Diukur dari
+    hasilnya sendiri — kalau seed di atas tak menyisipkan apa pun karena
+    proyeknya tak ada, tak ada yang bisa diverifikasi.
+
+    Pelajarannya sama dengan 237: id yang dipaku benar di satu basis dan salah
+    di semua basis lain, dan salahnya SENYAP — `EXISTS` yang tak cocok tidak
+    mengeluarkan galat, ia hanya menyisipkan nol baris.
+  */
+  IF NOT EXISTS (
+    SELECT 1 FROM projects
+     WHERE id::text LIKE 'c0000000-0000-0000-0000-%'
+  ) THEN
+    RAISE NOTICE '428 verifikasi dilewati: proyek contoh (c0000000-…) tak ada di basis ini, '
+                 'jadi seed polis tak menyisipkan apa pun. Bukan galat.';
     RETURN;
   END IF;
 
