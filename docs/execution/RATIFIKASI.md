@@ -3461,3 +3461,81 @@ meski hijau di mesin ini.
 
 Izin mencatat 458, 459, 460, 461 ke buku migrasi — atau menunjuk cara lain yang
 Anda kehendaki untuk membawanya ke CI.
+
+---
+
+## R-0xx · Peran PM kehilangan 183 izin — termasuk `projects:view`
+
+**Diajukan 2026-08-31. MENUNGGU FOUNDER — belum ada yang diubah.**
+
+### Yang diukur
+
+`get_role_permissions()` pada peran template (`company_id IS NULL`):
+
+| Peran | Jumlah izin | `projects:view` |
+|---|---|---|
+| admin | 228 | ✅ |
+| direktur | 228 | ✅ |
+| **pm** | **37** | **❌** |
+| mandor | 27 | ✅ |
+| client | 8 | ✅ |
+
+**PM tak bisa melihat proyek. Klien — pihak luar yang membayar — bisa.**
+
+Migrasi 050 (fondasi RBAC) memberi PM *semua* izin kecuali sepuluh yang
+dilarang eksplisit, dan `projects:view` **tidak** ada di daftar larangan itu.
+Diukur dengan memutar ulang bagian pemberiannya: **183 izin hilang**, dan
+memulihkannya membawa PM ke 220 dari 230.
+
+Tak ada migrasi yang mencabutnya — dicari di seluruh `db/migrations`, nol
+`DELETE FROM role_permissions` yang menyebut `'pm'`.
+
+### Kenapa ini TIDAK saya perbaiki sendiri
+
+Ke-183 izin itu bukan sekadar akses baca. Di antaranya:
+
+    klaim:bayar · klaim:setujui        memindahkan uang
+    finance:invoice:create / :pay      menerbitkan & membayar tagihan
+    backcharge:setujui                 memotong pembayaran subkontraktor
+    mandor:kasbon:approve              menyetujui uang muka
+    approval:chains:manage             mengubah siapa menyetujui apa
+
+Memulihkan semuanya sekaligus memberi PM kewenangan finansial penuh. Itu
+keputusan struktur organisasi, bukan perbaikan teknis — dan arah sebaliknya
+sudah dipilih orang lain hari ini: tiga spek `authz-endpoints.test.ts`
+sengaja ditulis `allow: 'direktur', deny: 'pm'` untuk buat-invoice,
+bayar-invoice, dan approve-kasbon (commit c515407d), dengan alasan
+"memperluas kewenangan demi kehijauan test menukar pengendalian internal
+dengan kenyamanan".
+
+Dua keputusan itu tak bisa keduanya benar.
+
+### Yang perlu diputuskan
+
+1. **PM seharusnya bisa apa?** Tiga bentuk yang mungkin:
+   - *baca saja* — `projects:view`, `punch:view`, `ncr:view`, `k3:permit:view`
+     dan sejenisnya. Menutup gejala paling nyata (PM buta terhadap proyeknya
+     sendiri) tanpa menyentuh uang.
+   - *baca + kelola lapangan* — tambah `inspeksi:*`, `mutu:*`, `mandor:assign`.
+   - *seperti migrasi 050* — 220 dari 230, termasuk keuangan.
+
+2. **Kalau PM dinaikkan sampai menyentuh keuangan**, tiga spek authz itu
+   perlu ditinjau ulang: `deny: 'pm'`-nya jadi salah, dan test akan merah
+   untuk alasan yang benar.
+
+### Cara mengukur ulang
+
+```bash
+node -e "..." # atau langsung:
+SELECT r.name, count(*) izin,
+       bool_or(p.key = 'projects:view') AS bisa_lihat_proyek
+  FROM roles r
+  JOIN role_permissions rp ON rp.role_id = r.id
+  JOIN permissions p ON p.id = rp.permission_id
+ WHERE r.company_id IS NULL
+ GROUP BY r.name ORDER BY 2 DESC;
+```
+
+Ditemukan sesi `puraloka-suite-e7` saat membangun layar portal mobile, dan
+diverifikasi ulang di sesi ini. Tak ada baris `role_permissions` yang
+disentuh oleh keduanya.
