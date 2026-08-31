@@ -729,6 +729,68 @@ await seed('asset modal-mati + penyusutan (bahan uji investasi alat)', async () 
   if (rows[0].belum === 0) throw new Error('nol alat tanpa biaya — golongan belum-tercatat kosong')
 })
 
+/*
+  Proyek KEDUA berklien — dituntut `kontrak.test.ts`, dan ketiadaannya
+  memunculkan galat yang menuduh tabel yang salah.
+
+      {"error":"insert or update on table \"kontrak\" violates foreign key
+       constraint \"kontrak_client_id_fkey\""}: expected 500 to be 201
+
+  Test itu memilih proyeknya menurut SYARAT, bukan menurut nama:
+
+      WHERE p.company_id = $1 AND p.client_id IS NOT NULL
+        AND NOT EXISTS (... kontrak induk berlaku ...)
+      LIMIT 2
+      if (p.length < 2) throw new Error('butuh dua proyek berklien ...')
+
+  Seed ini hanya membuat SATU (`CI Seed Project`). Yang kedua terambil dari
+  proyek lain yang kebetulan ada — dan `client_id`-nya bisa milik company
+  lain, sehingga FK-nya meledak. Galatnya menyebut `kontrak`; sebabnya di
+  sini, ratusan baris dan satu berkas jauhnya.
+
+  Klien yang dipakai SAMA dengan proyek pertama — sengaja. Klien berbeda
+  akan lolos FK tapi mengaburkan test lain yang membandingkan
+  `kontrak.client_id` dengan `projects.client_id`.
+
+  ⚠ `company_id` DISALIN EKSPLISIT. Versi pertama seed ini tak menyebutnya,
+  dan menguji SQL-nya ke basis langsung meledak:
+
+      null value in column "company_id" of relation "projects"
+      violates not-null constraint
+
+  Di CI kolom itu mungkin terisi default — dan default yang MEMILIH company
+  yang salah adalah persis cacat `clients` yang sedang diperbaiki di berkas
+  ini: seed melapor berhasil, galatnya muncul di tempat lain berjam-jam
+  kemudian. Menyalin dari proyek induknya membuat keduanya pasti se-tenant.
+*/
+await seed('proyek kedua berklien (bahan uji kontrak)', async () => {
+  await c.query(
+    `INSERT INTO projects (company_id, client_id, pm_id, name, location,
+                           start_date, end_date, created_by)
+     SELECT p.company_id, p.client_id, p.pm_id, 'CI Seed Project 2', 'Bandung',
+            CURRENT_DATE, CURRENT_DATE + 30, p.created_by
+       FROM projects p
+      WHERE p.name = 'CI Seed Project'
+        AND NOT EXISTS (SELECT 1 FROM projects x WHERE x.name = 'CI Seed Project 2')`)
+
+  /*
+    Yang diperiksa BUKAN "proyek kedua ada", melainkan syarat yang test-nya
+    pakai — dua proyek berklien TANPA kontrak induk berlaku. Seed yang
+    memenuhi namanya tapi bukan syaratnya tetap membuat test merah.
+  */
+  const { rows } = await c.query(
+    `SELECT count(*)::int n FROM projects p
+      WHERE p.client_id IS NOT NULL
+        AND p.company_id = (SELECT id FROM companies WHERE parent_company_id IS NULL
+                             ORDER BY created_at LIMIT 1)
+        AND NOT EXISTS (SELECT 1 FROM kontrak k
+                         WHERE k.project_id = p.id AND k.jenis = 'induk'
+                           AND k.status = 'berlaku')`)
+  if (rows[0].n < 2) {
+    throw new Error(`butuh >=2 proyek berklien tanpa kontrak induk berlaku, ada ${rows[0].n}`)
+  }
+})
+
 // ── DIAGNOSTIK state (evidence, bukan tebakan) ─────────────────────────────
 const one = async (q) => { try { return JSON.stringify((await c.query(q)).rows) } catch (e) { return 'ERR ' + e.message.split('\n')[0] } }
 console.log('\n[DIAG] roles:', await one(`SELECT count(*)::int n FROM roles`))

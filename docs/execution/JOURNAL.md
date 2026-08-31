@@ -32945,3 +32945,67 @@ YAML                sah
 ```
 
 Tanpa pesan itu saya akan menyunting dan meneruskan tanpa memeriksa.
+
+### Angka merah CI TIDAK bisa dipakai menilai kemajuan — 27 dari 74 goyah
+
+Run penuh kedua (`b830b2df`, memuat SEMUA perbaikan hari ini) melaporkan
+**63** berkas merah — **lebih buruk** dari run sebelumnya yang 58. Kode yang
+lebih banyak diperbaiki, angka yang lebih jelek.
+
+Sebelum menerima itu sebagai kemunduran, dibandingkan per-berkas:
+
+```
+diperbaiki (hilang) : 11 berkas
+muncul baru         : 16 berkas
+gabungan dua run    : 74 berkas
+gagal di KEDUANYA   : 47   ← kandidat cacat NYATA
+hanya di satu run   : 27   ← GOYAH
+```
+
+**Lebih dari sepertiga sinyalnya derau.** Dan derau itu bukan misteri:
+
+```
+matrix: shard: [1, 2, 3, 4, 5, 6]      ← enam shard PARALEL
+CI_DIRECT_URL                          ← SATU basis untuk semuanya
+```
+
+Keenam shard menyisip, menyapu, dan menghapus fixture satu sama lain di
+basis yang sama. Kalimat kegagalan yang baru muncul semuanya berbentuk BAHAN,
+bukan kode:
+
+```
+fixture tender asing tak terbentuk
+tak ada proyek tenant lain — fixture tak terbentuk
+nol proyek terperiksa — test ini tak menguji apa pun
+nol pihak dinilai
+```
+
+Ini cacat yang SAMA dengan yang CLAUDE.md §7 catat untuk dua suite lokal yang
+tumpang tindih (5853/95 vs 5837/111, kode identik) — bedanya di sini ia
+struktural, bukan kesalahan operator: `fileParallelism: false` menyerialkan
+berkas DI DALAM satu shard dan tak bisa berbuat apa pun terhadap lima shard
+lain di runner terpisah.
+
+**Konsekuensi cara kerja:** membandingkan "63 vs 58" antar-run TIDAK SAH.
+Yang sah: (a) cacat bernama hilang atau tidak, (b) himpunan yang gagal di
+KEDUA run.
+
+Dengan ukuran (a), perbaikan hari ini terbukti:
+
+| Cacat | Sebelum | Sesudah |
+|---|---:|---:|
+| `template_rab` (kebocoran lintas tenant) | ada | **0** |
+| `template_penerapan` | **94** | **0** |
+| `wa_api_key` | ada | **0** |
+| `kontrak_client_id_fkey` | 6 | 6 |
+
+Kelima seed baru terbukti jalan — dan karena tiap seed MELEMPAR bila nol
+baris, "seed OK" berarti bahannya benar-benar masuk:
+
+```
+seed OK: cash_account · worker x2 · kasbon x2 (approved + pending)
+seed OK: work_scope + weekly_wage_reports x3 · asset modal-mati + penyusutan
+```
+
+`kontrak_client_id_fkey` tetap 6 — perbaikan seed `clients` masuk di commit
+yang sama, jadi ini yang perlu diperiksa berikutnya.
