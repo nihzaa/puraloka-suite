@@ -109,8 +109,38 @@ for (const nama of readdirSync(DIR).filter((f) => f.endsWith('.sql')).sort()) {
 
   // Pernyataan INSERT dipisah kasar per `INSERT INTO` — cukup untuk pola ini,
   // dan tak menuntut parser SQL penuh yang justru punya cara gagal sendiri.
+  /*
+    Titik koma DI DALAM string SQL bukan akhir pernyataan.
+
+    Diukur 2026-08-31: migrasi 528 dituduh melanggar padahal ia menyaring
+    `WHERE c.is_active` dengan benar. Sebabnya `potongan.split(';')[0]` —
+    keterangan alur di dalamnya memuat kalimat "…bukan jadwal; keterlambatan
+    satu hari…", dan potongannya berhenti di situ, 1.291 karakter sebelum
+    klausa WHERE-nya.
+
+    Penjaga yang salah tuduh lebih berbahaya daripada penjaga yang diam:
+    orang akan "memperbaiki" migrasi yang sudah benar, atau menaikkan
+    ambangnya — dan yang kedua melemahkan penjagaannya untuk selamanya.
+
+    Kelas yang sama dengan komentar-terbaca-sebagai-kode yang berkali-kali
+    tercatat di repo ini, hanya berpindah dari komentar ke string.
+  */
+  const akhirPernyataan = (teks) => {
+    let q = null
+    for (let i = 0; i < teks.length; i++) {
+      const ch = teks[i]
+      if (q) {
+        if (ch === q) { if (teks[i + 1] === q) i++; else q = null }
+        continue
+      }
+      if (ch === "'" || ch === '"') { q = ch; continue }
+      if (ch === ';') return teks.slice(0, i)
+    }
+    return teks
+  }
+
   for (const potongan of kode.split(/\bINSERT\s+INTO\b/i).slice(1)) {
-    const sampaiTitikKoma = potongan.split(';')[0]
+    const sampaiTitikKoma = akhirPernyataan(potongan)
     if (!/\bFROM\s+companies\b/i.test(sampaiTitikKoma)) continue
     if (/\bis_active\b/i.test(sampaiTitikKoma)) continue
     /*
