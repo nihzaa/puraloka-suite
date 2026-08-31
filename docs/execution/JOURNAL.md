@@ -5,6 +5,84 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-31 — "gateway itu penghalangnya?" — ternyata bukan
+
+Founder bertanya apakah payment gateway satu-satunya yang tersisa. Diukur ke
+kode: **bukan**, dan bukan yang paling memutus.
+
+Alur jual SUDAH bisa jalan tanpa gateway — transfer manual, lalu founder
+menandai lunas. Gateway membuatnya tak repot, bukan membuatnya mungkin.
+
+Yang benar-benar memutus, ketiganya terukur:
+
+1. **Tagihan dibuat, tak ada yang mengirimnya.** `tagihan-berulang.ts` nol
+   pemanggilan pengiriman. Invoice lahir `draf` di konsol, dan pelanggan tak
+   pernah tahu ia ditagih. Ini lebih dalam daripada lubang gateway: tanpa
+   gateway orang masih bisa transfer; tanpa pemberitahuan ia tak tahu harus.
+2. **Pelanggan tak punya tempat melihat tagihannya.** Layar billing yang ada
+   milik vendor.
+3. **Nunggak tak menutup apa pun.** Gerbang modul yang baru saya bangun
+   menegakkan PAKET tapi tak menegakkan PEMBAYARAN.
+
+Keputusan founder: kirim otomatis penuh, dan baca-saja sesudah 30 hari.
+
+### Yang dibangun
+
+- vendor 017: kontak penagihan + `tagihan_kiriman` ber-UNIQUE (idempoten)
+- `kirim-tagihan.ts` — terbit / H-3 / lewat tempo, disambungkan ke penjadwal
+- produk 549 + penegakan baca-saja + `audit-baca-saja-terpasang.mjs`
+- `dorong-baca-saja.ts` — menghitung ULANG tiap jalan, dua arah
+- `lapor-tagihan-tanpa-kontak.mjs`
+
+### Kesalahan terbesar sesi ini — dan hanya rute sungguhan yang menangkapnya
+
+Penegakan baca-saja saya pasang sebagai `app.addHook('preHandler', …)` global.
+Hook instance-level berjalan **sebelum** preHandler rute, jadi
+`request.companyId` masih `undefined` dan hook pulang lebih awal pada SETIAP
+permintaan. Nol galat, nol jejak.
+
+Yang membuatnya berbahaya: **seluruh test tingkat-fungsi tetap hijau.**
+`bacaKeadaanBacaSaja()` bekerja sempurna — yang rusak cuma tempat ia dipanggil.
+
+    POST /api/v1/clients  →  201   ← saat tenant DITANDAI baca-saja
+
+Kalau saya "memeriksa" ini dengan membaca kode alih-alih memanggil rutenya,
+ia lolos sebagai perlindungan yang tak pernah ada. Dipindahkan ke dalam
+`authenticate()`, dan penjaga barunya mereproduksi mutasi itu.
+
+### Dua penjaga lama menangkap saya juga
+
+`lewat-tempo-satu-aturan.test.ts` merah dua kali: sekali karena saya MENYALIN
+aturan lewat-tempo alih-alih memanggil `sudahLewatTempo()` (penjaga itu
+benar — dua salinan pernah membuat ringkasan berkata "Rp 0" sementara
+barisnya merah), sekali lagi atas `t.jatuh_tempo <` yang sebenarnya cuma
+mengurutkan. Yang kedua penjaganya terlalu longgar, tapi melemahkannya butuh
+ratifikasi G-5 dan taruhannya lebih besar daripada satu baris — dipakai
+`localeCompare`.
+
+### Satu risiko yang saya temukan sendiri
+
+`kirimWa` tak berpagar test. `wa.test.ts` men-stub fetch jadi aman, tapi
+`kirim-tagihan.ts` mengirim ke nomor pelanggan SUNGGUHAN — satu test yang
+memanggilnya tanpa stub akan mengirim tagihan nyata ke orang nyata, dan pesan
+yang sudah sampai tak bisa ditarik. Pagar dipasang di `kirimWa` karena itu
+satu-satunya pintu keluar.
+
+### Diukur
+
+    admin-saas   553 lulus / 69 berkas · tsc bersih · migrasi 017 jalan
+    produk       209 penjaga hijau · 0 MERAH · 15 test baca-saja+gerbang
+    end-to-end   sehat 201 · baca-saja 402 · dipulihkan 201 (baca 200 selalu)
+
+### Yang masih menunggu founder
+
+Payment gateway (akun Midtrans/Xendit = perjanjian hukum PT). Alurnya jalan
+tanpa itu — cuma repot.
+
+Commit: vendor `699ba86`, produk `3620ba5e`.
+
+---
+
 ## 2026-08-31 — gerbang modul: 21 kunci terdaftar, NOL pernah ditegakkan
 
 Founder: kerjakan gerbang modul, riset dan brainstorming dipersilakan.
