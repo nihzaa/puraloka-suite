@@ -5,6 +5,98 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-01 — portal tagihan pelanggan, dan enam penjaga yang menangkap saya
+
+Lubang ketiga dari tiga: pelanggan tak punya tempat melihat tagihannya. Layar
+billing yang ada milik konsol vendor.
+
+Akibatnya berurutan — pelanggan tak tahu jatuh tempo kapan, lalu 30 hari
+sesudahnya akunnya beku dengan pesan yang menyebut NOMOR TAGIHAN yang tak
+pernah bisa ia periksa. Membekukan akun atas tagihan yang tak bisa dilihat
+pemiliknya adalah penegakan yang paling mudah dibenci.
+
+### Yang dibangun
+
+- produk 551 (`tagihan_tenant`, RLS+FORCE+RESTRICTIVE) + 552 (menunya)
+- `GET /api/v1/langganan-saya` — paket, keadaan, modul, kuota, tagihan
+- halaman `/pengaturan/langganan`
+- vendor `dorong-tagihan.ts` + 018 (`billing.cara_bayar`, sengaja kosong)
+
+### Enam penjaga menangkap enam kesalahan saya
+
+Halaman baru memerahkan **delapan** penjaga sekaligus. Semuanya benar:
+
+| penjaga | yang saya lakukan |
+|---|---|
+| `uji-token-css-ada` | `--pad-sel` tak ada — saya menebak namanya |
+| `kerapatan-ratchet` | padding 14/15/18 dipaku, ada tokennya |
+| `format-ratchet` | menulis formatter rupiah sendiri padahal ada `lib/format.ts` |
+| `tabel-mentah-ratchet` | `<table>` sendiri, padahal `<Tabel>` menjaga 4 hal |
+| `uji-layar-kosong` | keadaan kosong tanpa `<LayarKosong>` |
+| `audit-nav-yatim` | halaman YATIM — tak ada satu pun tautan ke sana |
+
+Plus `audit-sidebar-urutan` yang merah **dua kali** atas migrasi menu: 1649
+bentrok, lalu 1705 di luar rentang induk+1..+99. Keduanya tak mengeluarkan
+galat saat dijalankan — menu tetap tersisip, cuma di urutan yang tak
+diniatkan siapa pun.
+
+Yang paling saya syukuri `uji-token-css-ada`: token yang salah nama gagal
+**senyap**. CSS mengabaikan propertinya, dan spasinya hilang tanpa gejala.
+
+### Cacat yang HANYA memotret layar menemukannya
+
+Baris total `<tfoot>` berbaur dengan baris data. Terukur:
+
+    --surface-subtle #F9FAFB vs putih   1,05 : 1
+    --surface-hover  #F3F4F6 vs putih   1,10 : 1
+
+Pada 1,05:1 latarnya praktis tak ada — seluruh beban pemisahan jatuh ke garis
+2px sendirian. Di halaman keuangan, angka total yang disangka satu transaksi
+menggeser kesimpulan orang tentang uangnya sendiri.
+
+Diperbaiki di `components/dasar.tsx`, jadi menyentuh **semua** tabel bertotal.
+Tak ada penjaga yang menangkapnya: yang dijaga kontras TEKS, bukan kontras
+antar-PERMUKAAN.
+
+### Saya berhenti terlalu cepat — dan sesi lain menyelesaikannya
+
+Saya menulis "mode gelap belum terbukti" karena aplikasi memakai tema
+tersimpan, bukan `prefers-color-scheme`, jadi potret ber-`colorScheme:dark`
+tetap merender terang.
+
+Sesi `e7` menghitungnya tanpa merender:
+
+    GELAP (vs --bg #0F1117)
+      subtle #161921   1,075 : 1   lama
+      hover  #252840   1,310 : 1   baru      +22%
+
+Perubahan saya memperbaiki mode gelap **empat kali lebih banyak** daripada
+terang — dan mode gelap justru yang paling parah sebelumnya.
+
+Pelajarannya lebih umum daripada kasus ini: **kontras bisa DIHITUNG, tak
+perlu dilihat.** Saya berhenti pada "tak bisa dipotret" dan menuliskannya
+sebagai batasan, padahal ia bukan hal yang butuh mata.
+
+### Koordinasi lintas sesi
+
+`e7` memberi tahu bahwa berkas saya yang belum ter-commit memerahkan penjaga
+link-mati dan menahan deploy `f1` — menunya sudah masuk basis lewat migrasi
+saya, halamannya belum. Ia **tidak menyentuhnya**, dan itu benar: saat itu
+halaman saya sedang memerahkan 8 penjaga.
+
+### Diukur
+
+    puraloka-suite  210 penjaga hijau · 0 MERAH · 0 tak ketemu · tsc bersih
+    HTTP nyata      GET /api/v1/langganan-saya → 200, jumlah_idr bertipe number
+    potret layar    2× (sebelum & sesudah), dilihat dengan mata
+    dasar.test.tsx  16 lulus — komponen bersama tak rusak
+    admin-saas      test murni saya 12/12; 4 berkas ber-DB timeout (lingkungan,
+                    bukan kode — suite yang sama lulus 553/553 sebelumnya)
+
+Commit: produk `bab9b4ae`, vendor `80f1bd7`.
+
+---
+
 ## 2026-08-31 — "gateway itu penghalangnya?" — ternyata bukan
 
 Founder bertanya apakah payment gateway satu-satunya yang tersisa. Diukur ke
