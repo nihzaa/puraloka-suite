@@ -113,10 +113,32 @@ if (pemisah.length > 2) {
 
   Yang benar: pilih berdasarkan ISI. Dokumen yang DIPERTAHANKAN adalah yang
   memuat `overrides`/`settings` — itu lockfile sesungguhnya.
+
+  ── Dan pemisah `---` HARUS ikut dibuang
+
+  Versi kedua sudah memilih dokumen yang benar, tetapi menyisakan `---` di
+  awalnya — dan pnpm TETAP menolak dengan galat yang sama persis:
+
+      ERR_PNPM_LOCKFILE_CONFIG_MISMATCH
+      The current "overrides" configuration doesn't match the lockfile
+
+  Padahal `overrides`-nya utuh dan identik: 12 baris, `diff` nol.
+
+  Diukur 2026-09-01, tiga bentuk di salinan yang sama:
+
+      lockfile asli (2 dokumen)   → LOLOS
+      dokumen ke-2 DENGAN '---'   → ERR_PNPM_LOCKFILE_CONFIG_MISMATCH
+      dokumen ke-2 TANPA '---'    → LOLOS
+
+  Satu baris tiga karakter, dan galatnya menunjuk ke tempat lain sama
+  sekali. Berkas berawalan `---` dibaca sebagai dokumen bernomor, dan itu
+  mengubah cara pnpm menafsirkan konfigurasinya.
+
+  Itu sebabnya `+ 1` pada kedua `slice` di bawah.
 */
 const dok = [
-  baris.slice(pemisah[0], pemisah[1]).join('\n'),
-  baris.slice(pemisah[1]).join('\n'),
+  baris.slice(pemisah[0] + 1, pemisah[1]).join('\n'),
+  baris.slice(pemisah[1] + 1).join('\n'),
 ]
 const kandidat = dok.filter((d) => /^overrides:/m.test(d) || /^settings:/m.test(d))
 
