@@ -37,7 +37,7 @@
  * itu justru lebih tepat: yang dijaga adalah niat yang tertulis, bukan
  * keadaan satu basis pada satu saat.
  */
-import { readFileSync, existsSync } from 'fs'
+import { readFileSync, existsSync, readdirSync } from 'fs'
 import { resolve, dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 
@@ -79,6 +79,49 @@ const erp = kunciDari(isiErpTanpaKomentar, /\('((?:modul|kuota|sifat)\.[a-z0-9_]
 if (erp.size === 0) {
   console.error('✗ Nol kunci terbaca dari 538 — polanya berubah? Penjaga ini buta.')
   process.exit(1)
+}
+
+/**
+ * MIGRASI MAJU yang MENCABUT kunci — dan kenapa mengabaikannya membuat penjaga
+ * ini melapor merah atas keadaan yang benar.
+ *
+ * Membaca 538 saja berarti menganggap katalog beku sejak hari ia ditulis.
+ * Migrasi 544 memensiunkan `modul.mutu` (ia dijual sebagai barang ketiga
+ * padahal `/mutu/insiden` memanggil endpoint yang sama dengan `/k3/insiden`),
+ * dan sisi vendor mengikutinya. Tanpa bagian ini, penjaga melapor "ERP
+ * menegakkan kunci yang tak dikenal vendor" — padahal ERP sudah tak
+ * menegakkannya, cuma migrasi PERTAMA-nya yang masih menyebutkannya.
+ *
+ * Migrasi lama TIDAK BOLEH diedit (CLAUDE.md §5.5): ia sudah berjalan di
+ * lingkungan lain, dan mengubahnya membuat riwayat berbohong. Jadi keadaan
+ * sekarang = 538 DIKURANGI apa yang dicabut migrasi sesudahnya.
+ *
+ * ⚠ Yang dibaca hanya `DELETE FROM plan_features WHERE key = '…'`. Bentuk
+ * pencabutan lain (mis. lewat sub-query, atau kolom `aktif` bila kelak
+ * ditambahkan) TIDAK terbaca — dan diamnya tak bergejala. Kalau kelak ada
+ * bentuk baru, tambahkan polanya di sini; jangan biarkan penjaga menebak.
+ */
+const migrasiLain = readdirSync(join(AKAR, 'db', 'migrations'))
+  .filter((n) => /^\d+_.*\.sql$/.test(n) && !n.startsWith('538_'))
+  .sort()
+
+const dicabut = new Set()
+for (const berkas of migrasiLain) {
+  const isi = readFileSync(join(AKAR, 'db', 'migrations', berkas), 'utf8')
+    .split('\n')
+    .filter((b) => !b.trim().startsWith('--'))
+    .join('\n')
+  for (const m of isi.matchAll(
+    /DELETE\s+FROM\s+plan_features\s+WHERE\s+key\s*=\s*'((?:modul|kuota|sifat)\.[a-z0-9_]+)'/gi
+  )) {
+    dicabut.add(m[1])
+  }
+}
+
+for (const k of dicabut) erp.delete(k)
+
+if (dicabut.size) {
+  console.log(`  dicabut migrasi maju : ${[...dicabut].join(', ')}`)
 }
 
 let dirVendor = null
