@@ -188,10 +188,41 @@ const app = Fastify({
 await app.register(cors, {
   origin: (origin, cb) => {
     if (!origin) return cb(null, true)
+    /*
+      ⚠ DOMAIN PRODUKSI SEMPAT TAK ADA DI SINI, dan akibatnya web produksi
+      TIDAK PERNAH BISA LOGIN sejak di-deploy.
+
+      Diukur 2026-09-01 lewat API produksi:
+
+          tanpa header Origin  -> 200, akun dikenali, 228 izin
+          dengan Origin apa pun -> 500 Internal Server Error
+
+      Browser SELALU mengirim Origin pada permintaan lintas-domain, dan
+      `app.` ke `api.` memang lintas-domain. Jadi setiap login dari web
+      produksi jatuh ke `cb(new Error(...))` di bawah, yang jadi 500.
+
+      Yang membuatnya bertahan lama: dari terminal (curl tanpa Origin)
+      login BERHASIL, dan `/health` juga 200. Semua pemeriksaan yang
+      pernah dijalankan melewatkan satu-satunya jalur yang dipakai orang.
+      Bentuk yang sama dengan `expo export` yang tak pernah dijalankan.
+
+      ── Kenapa dari env, bukan dipaku
+
+      Domain berubah saat pindah hosting, dan domain yang dipaku di kode
+      berarti rilis baru untuk mengubah satu string. `WEB_ORIGIN` menerima
+      beberapa origin dipisah koma; kalau kosong, hanya jalur pengembangan
+      di bawah yang berlaku — dan produksi kembali gagal login, dengan
+      gejala yang persis sama. Karena itu ia DICATAT saat server mulai.
+    */
+    const dariEnv = (process.env.WEB_ORIGIN ?? '')
+      .split(',').map(x => x.trim()).filter(Boolean)
+    if (dariEnv.includes(origin)) return cb(null, true)
+
     const allowed = [
       /^http:\/\/localhost:\d+$/,
       /^http:\/\/192\.168\.\d+\.\d+:\d+$/,
       /^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/,
+      /^https:\/\/[a-z0-9-]+\.puraloka-suite\.duckdns\.org$/,
     ]
     if (allowed.some(re => re.test(origin))) return cb(null, true)
     cb(new Error('Not allowed by CORS'), false)

@@ -67,9 +67,38 @@ BEGIN
     RAISE EXCEPTION '247 gagal: approved_by masih NOT NULL (%)', v_nullable;
   END IF;
 
-  -- Data lama utuh: tak satu pun approval yang hilang.
-  SELECT count(*) INTO v_hilang FROM progress_payments WHERE approved_by IS NULL;
+  /*
+    Yang APPROVED wajib punya penyetuju — bukan "nol baris NULL".
+
+    ── Kenapa diubah (2026-09-01)
+
+    Versi asli menuntut NOL baris ber-`approved_by` kosong di seluruh tabel.
+    Waktu ditulis itu benar: kelima baris yang ada semuanya sudah disetujui.
+
+    Tapi tuntutan itu membusuk begitu migrasi ini BEKERJA. Ia membuat kolom
+    nullable justru supaya pembayaran `pending` bisa jujur mengaku belum
+    punya penyetuju — dan sesudah data baru masuk, keadaannya:
+
+        total 8 · approved_by kosong 3
+        yang kosong statusnya: pending (3)
+
+    Ketiganya `pending`. Itu BUKAN approval yang hilang; itu hasil yang
+    dituju migrasi ini sendiri. Verifikasinya menolak keberhasilannya
+    sendiri, gagal, tak tercatat, dan menghentikan rantai:
+
+        ✕ 247  3 baris kehilangan approved_by
+          BERHENTI — sisa 122 tak pernah dijalankan
+
+    Yang sesungguhnya dijaga: pembayaran yang SUDAH DISETUJUI tak boleh
+    kehilangan siapa penyetujunya. Baris `pending` tanpa penyetuju adalah
+    keadaan yang sah.
+
+    Menyunting 247 sah: diperiksa ke buku migrasi, BELUM PERNAH tercatat.
+  */
+  SELECT count(*) INTO v_hilang
+    FROM progress_payments
+   WHERE approved_by IS NULL AND status <> 'pending';
   IF v_hilang > 0 THEN
-    RAISE EXCEPTION '247 gagal: % baris kehilangan approved_by — migrasi ini tak boleh mengosongkan apa pun', v_hilang;
+    RAISE EXCEPTION '247 gagal: % pembayaran BUKAN-pending kehilangan approved_by', v_hilang;
   END IF;
 END $$;

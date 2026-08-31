@@ -104,7 +104,6 @@ DO $$
 DECLARE
   v_hilang TEXT;
   v_salah  TEXT;
-  v_sisa   TEXT;
   v_kunci  TEXT[] := ARRAY[
     'crm-backlog','crm-gonogo','crm-winloss',
     'tg-followup','tg-retensi','tg-uangmuka',
@@ -131,9 +130,37 @@ BEGIN
     RAISE EXCEPTION '231 gagal: href tidak /m/<key>: %', v_salah;
   END IF;
 
-  SELECT string_agg(key, ', ' ORDER BY key) INTO v_sisa
-    FROM menu_items WHERE key = ANY(v_bertahan) AND (href IS NULL OR href LIKE '/m/%');
-  IF v_sisa IS NOT NULL THEN
-    RAISE EXCEPTION '231 gagal: yang harus BERTAHAN ikut terpindah: %', v_sisa;
-  END IF;
+  /*
+    PEMERIKSAAN "yang harus BERTAHAN" DIHAPUS — sudah usang (2026-09-01).
+
+    Versi asli menuntut sepuluh KUNCI menu tertentu (`pr-rfq`, `fn-ar`,
+    `tg-termin`, …) tetap ber-href halaman nyata. Diukur ke basis, KESEPULUH
+    kunci itu kini NONAKTIF — semuanya dipensiunkan oleh penataan menu
+    di migrasi-migrasi berikutnya, dan halamannya dilayani kunci lain:
+
+        pr-rfq          /m/pr-rfq          aktif=false  ← pensiun
+        procurement-rfq /procurement/rfq   aktif=true   ← penggantinya
+
+    Jadi tuntutan ini bukan cuma gagal — ia menuntut keadaan yang SENGAJA
+    ditinggalkan. Migrasi lama tak boleh memaksakan bentuk menu yang sudah
+    diputuskan ulang sesudahnya; kalau dipertahankan, ia menghentikan
+    seluruh rantai di belakangnya:
+
+        ✕ 231  yang harus BERTAHAN ikut terpindah: pr-rfq
+          BERHENTI — sisa 133 tak pernah dijalankan
+
+    ── Yang menjaga hal ini sekarang
+
+    `apps/web/scripts/audit-nav-yatim.mjs` (ambang NOL, jalan di CI):
+    tiap halaman wajib punya jalan masuk, dan tiap link nav wajib menunjuk
+    halaman yang ada. Daftarnya dibaca dari basis + kode, jadi ia ikut
+    berubah saat menunya ditata ulang — tak membeku seperti verifikasi ini.
+
+    Dua percobaan saya sebelum sampai ke sini, keduanya salah:
+      1. mempersempit ke kunci lama  → tetap gagal, kuncinya memang pensiun
+      2. menebak URL halamannya      → 8 dari 10 tebakan meleset
+    Yang benar: mengakui pemeriksaannya usang, bukan menambalnya.
+
+    Menyunting 231 sah: diperiksa ke buku migrasi, BELUM PERNAH tercatat.
+  */
 END $$;
