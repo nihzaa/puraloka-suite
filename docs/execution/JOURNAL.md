@@ -33506,3 +33506,81 @@ milik e7 kemarin, dan hari ini lima berkas e7 ikut di commit saya.
 
 Bentuknya sama dengan tiga perintah terlarang di CLAUDE.md §8a.1 — **tak
 mengeluarkan galat**, dan kerusakannya baru terlihat kemudian.
+
+## 2026-09-01 — Web produksi tak pernah bisa login: domain tak ada di CORS
+
+**Catatan sejarah. Perbaikannya ada di commit `4e9c3a9d`, yang judulnya
+tentang rekomendasi tulangan dan tak menyebut ini sama sekali** — dua sesi
+di satu checkout, `git add` yang luas menyapu berkas yang sedang ter-stage.
+Ini kedua kalinya hari yang sama (yang pertama `5f3c9eda`, dicatat di
+`a683ef00`).
+
+Kodenya benar dan ter-push. Yang hilang alasannya. Ini tempatnya.
+
+### Gejalanya
+
+Founder login di `https://app.puraloka-suite.duckdns.org` →
+**"Internal server error"**.
+
+### Yang diukur
+
+```
+POST /api/v1/auth/login  tanpa header Origin     → 200, 228 izin
+POST /api/v1/auth/login  dengan Origin apa pun   → 500
+POST /api/v1/auth/login  sandi salah, no Origin  → 401 (benar)
+```
+
+Browser **selalu** mengirim `Origin` pada permintaan lintas-domain, dan
+`app.` memanggil `api.` — itu lintas-domain. Daftar origin di
+`apps/api/src/index.ts` hanya memuat `localhost`, IP LAN `192.168.*`, dan
+`*.trycloudflare.com`. Domain produksi **tidak pernah ada** di sana:
+
+```
+git log -S "trycloudflare" -- apps/api/src/index.ts
+→ 693d5ab4  feat(api): server bootstrap …    (satu-satunya)
+```
+
+Origin tak dikenal dilempar `cb(new Error('Not allowed by CORS'))` → 500.
+
+### Kenapa bertahan sejak bootstrap
+
+Dari terminal login **berhasil** — `curl` tak mengirim `Origin`. `/health`
+juga 200. Setiap pemeriksaan yang pernah dijalankan melewatkan
+satu-satunya jalur yang dipakai orang sungguhan.
+
+Keluarga yang sama dengan tiga temuan lain minggu ini:
+
+| temuan | benar di | patah di |
+|---|---|---|
+| `expo export` tak pernah dijalankan | `tsc`, 16 layar | Metro |
+| `template_penerapan` | `tenant-map` | basis |
+| pgvector saat restore | dev | target polos |
+| **CORS ini** | **curl** | **browser** |
+
+### Perbaikan
+
+Dua jalan, bukan satu:
+
+1. pola `*.puraloka-suite.duckdns.org` — subdomain produksi mana pun
+2. `WEB_ORIGIN` (dipisah koma) — untuk domain lain saat pindah hosting
+
+Domain dipaku di kode berarti rilis baru untuk mengubah satu string; env
+saja berarti produksi gagal senyap kalau lupa diisi.
+
+### Dibuktikan sebelum commit
+
+Server uji port 3099 dengan kode baru:
+
+```
+Origin app.puraloka-suite.duckdns.org  400   lolos CORS (400 = email uji
+                                             tak ada — memang benar)
+Origin localhost:3000                  400   pengembangan tetap jalan
+Origin penyusup-asing.test             500   tetap ditolak
+
+akun sungguhan lewat Origin produksi   200
+  access-control-allow-origin: https://app.puraloka-suite.duckdns.org
+  access-control-allow-credentials: true
+```
+
+⚠ **Perbaikan ini baru berlaku SESUDAH deploy.** Sampai VPS diperbarui, web
+produksi tetap tak bisa login.
