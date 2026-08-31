@@ -25,6 +25,50 @@
 # ── Wajib, karena .gitignore tak lagi dibaca ──
 node_modules
 .git
+
+# ── pnpm-lock.yaml SENGAJA tak dikirim ────────────────────────────────────
+#
+# Ini menukar reproduksibilitas dengan build yang jalan, dan tukarannya
+# disebutkan supaya tak diwarisi diam-diam saat aplikasi mulai dipakai.
+#
+# Lima build gagal berturut-turut karena lockfile. pnpm 11 menulisnya
+# sebagai DUA dokumen YAML; pnpm bawaan server EAS menolak bentuk itu:
+#
+#     ERR_PNPM_BROKEN_LOCKFILE  expected a single document, but found more
+#
+# Hook `eas-build-pre-install` BERHASIL menormalkannya (galat itu hilang,
+# `overrides ×1` terjaga — terbukti di log build kelima), tetapi muncul
+# galat kedua:
+#
+#     ERR_PNPM_LOCKFILE_CONFIG_MISMATCH
+#     The current "overrides" configuration doesn't match the lockfile
+#
+# Yang saya ukur, dan kenapa saya berhenti mengejarnya: `overrides`-nya
+# IDENTIK. Dua belas baris, dibandingkan satu per satu, nol beda. Lockfile
+# ASLI lolos `--frozen-lockfile` di salinan yang sama; yang dinormalkan
+# ditolak — padahal potongannya byte-identik dengan potongan manual.
+# pnpm melaporkan sebab yang bukan sebabnya.
+#
+# ── Yang HILANG, dan yang TIDAK
+#
+# HILANG: penguncian versi patch. `pnpm install` tanpa `--frozen-lockfile`
+# menyelesaikan ulang dari rentang di package.json, jadi `~19.0.10` boleh
+# jadi 19.0.x mana pun.
+#
+# TIDAK hilang: mayor dan minor. Itu dikunci `package.json`, bukan lockfile
+# — dan `audit-versi-expo-cocok.mjs` menjaganya terhadap Expo SDK.
+#
+# ── Kapan ini harus dicabut
+#
+# Founder 2026-09-01: "aplikasi masih development, belum dipakai di kerjaan
+# nyata". Selama itu benar, APK yang bisa dicoba lebih berharga daripada
+# APK yang identik byte-per-byte.
+#
+# Begitu aplikasi dipakai mandor sungguhan, kembalikan penguncian: hapus
+# baris di bawah, lalu selesaikan galat overrides itu. Sampai saat itu,
+# hook normalisasi TETAP terpasang — kalau EAS memperbarui pnpm-nya,
+# masalahnya hilang sendiri dan baris ini bisa dibuang tanpa kerja lain.
+pnpm-lock.yaml
 *.log
 .env
 .env.*
