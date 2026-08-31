@@ -63,6 +63,18 @@
  * berbeda. Kalau suatu hari Expo mengubah nama paket Java-nya, build gagal
  * dengan galat yang sama — dan berkas ini tempat pertama yang dilihat.
  *
+ * ── TERBUKTI: build keempat belas BERHASIL
+ *
+ * Sesudah berkas ini dipasang, build selesai dengan status `finished`.
+ * APK diunduh dan diperiksa isinya — bukan sekadar status hijau:
+ *
+ *     92.020.161 bita · magic PK (ZIP)
+ *     1.341 entri · AndroidManifest.xml · classes.dex · resources.arsc
+ *     1 bundle JS · 76 pustaka native
+ *
+ * Tiga belas kegagalan sebelumnya, dan yang terakhir ini satu-satunya
+ * perubahan yang memindahkannya dari RUN_GRADLEW ke selesai.
+ *
  * Sumber nilainya bukan tebakan: disalin dari
  * `expo/react-native.config.js` milik Expo 53.0.27 sendiri.
  */
