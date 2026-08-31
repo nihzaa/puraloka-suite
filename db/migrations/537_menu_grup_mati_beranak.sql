@@ -292,13 +292,48 @@ BEGIN
   --    yang sama bukan sekadar tak rapi: pengguna yang menekan salah satunya
   --    tak pernah tahu keduanya sama, dan menu yang "tak berfungsi" itu
   --    sebenarnya berfungsi.
-  SELECT count(*) INTO v_href FROM (
-    SELECT href FROM menu_items
-     WHERE is_active AND href IS NOT NULL
-     GROUP BY href HAVING count(*) > 1
-  ) z;
+  -- ⚠ DIPERSEMPIT ke href yang migrasi INI sentuh — dan itu koreksi, bukan
+  -- pelonggaran.
+  --
+  -- Versi pertama menyapu SELURUH pohon menu. Di basis dev ia LULUS; di CI ia
+  -- gagal keras:
+  --
+  --     537 gagal: 18 href dipakai lebih dari satu menu aktif
+  --
+  -- Delapan belas kembar itu BUKAN buatan 537. CI memulai dari basis yang jauh
+  -- lebih kosong dan menjalankan 516 migrasi berurutan; sebagian di antaranya
+  -- menambahkan menu yang berbagi href satu sama lain, jauh sebelum berkas ini
+  -- jalan. Migrasi ini lalu mati atas keadaan yang tak pernah ia buat, dan
+  -- SELURUH rantai berhenti di situ.
+  --
+  -- Ini bentuk cacat yang sama yang sudah menggigit sesi lain belasan kali
+  -- hari ini: verifikasi migrasi yang menyapu pohon global akan gagal atas
+  -- item yang ditambahkan migrasi LAIN. Delapan migrasi (320, 323, 444, 448,
+  -- 449, 455, 456, 512) sudah diturunkan jadi RAISE NOTICE karena alasan yang
+  -- sama persis.
+  --
+  -- Yang menjaga invarian GLOBAL tetap ada dan lebih tepat untuk itu:
+  -- `audit-menu-berbagi-href.mjs` (ambang mutlak NOL) melihat keadaan HARI INI,
+  -- bukan potret satu migrasi di tengah rantai. Ia sudah hijau, dan ia yang
+  -- akan menangkap kembar dari mana pun asalnya.
+  --
+  -- Yang WAJIB dijaga di sini cuma satu: langkah (C) di atas benar-benar
+  -- mengosongkan href grup beranak yang bentrok — pekerjaan migrasi ini
+  -- sendiri.
+  SELECT count(*) INTO v_href
+    FROM menu_items g
+   WHERE g.parent_id IS NULL
+     AND g.is_active
+     AND g.href IS NOT NULL
+     AND EXISTS (SELECT 1 FROM menu_items a WHERE a.parent_id = g.id AND a.is_active)
+     AND EXISTS (
+       SELECT 1 FROM menu_items lain
+        WHERE lain.is_active AND lain.href = g.href AND lain.id <> g.id
+     );
 
   IF v_href <> 0 THEN
-    RAISE EXCEPTION '537 gagal: % href dipakai lebih dari satu menu aktif', v_href;
+    RAISE EXCEPTION
+      '537 gagal: % grup BERANAK masih memegang href yang dipakai menu lain — langkah (C) tak bekerja',
+      v_href;
   END IF;
 END $$;
