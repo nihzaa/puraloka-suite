@@ -324,20 +324,62 @@ BEGIN
     RAISE EXCEPTION '427 gagal: pemasok ber-name NULL LOLOS';
   END IF;
 
+  /*
+    ⚠ PEMBERSIHAN DI JALUR GALAT MEMAKAI DELETE — DIPERBAIKI 2026-08-31.
+
+    Tiga jalur galat di bawah men-DELETE cost code uji sebelum RAISE. Tapi
+    migrasi 102 MELARANG DELETE pada `cost_codes` lewat trigger (jejak
+    RAB→EVM), dan komentar di ujung blok ini sudah tahu itu — ia menetralkan
+    baris ujinya dengan `deprecated`, bukan menghapus.
+
+    Akibatnya: begitu salah satu cek itu tak lolos, yang muncul BUKAN pesan
+    galatnya melainkan galat trigger:
+
+        Cost Code tidak boleh dihapus (id=…, code=[427-CC]). Riwayat …
+
+    Sebab sesungguhnya tersembunyi di balik pembersihannya sendiri. Ketiganya
+    kini memakai `session_replication_role = 'replica'` berlingkup LOCAL —
+    pola yang sama dengan pembersihan fixture di 335 dan 337.
+  */
+  /*
+    FIXTURE LAMA DIBERSIHKAN DI AWAL — DITAMBAHKAN 2026-08-31.
+
+    Blok ini menetralkan baris ujinya dengan `deprecated` alih-alih menghapus
+    (migrasi 102 melarang DELETE cost_codes). Benar — tetapi baris deprecated
+    itu TETAP ADA pada jalan berikutnya, dan `impor_commit` tak menimpanya.
+    Cek "lahir draft" lalu membaca status yang tertinggal:
+
+        427 gagal: cost code impor lahir berstatus deprecated —
+                   melewati tahap periksa
+
+    Migrasi yang meninggalkan fixture-nya sendiri akan menuduh dirinya pada
+    jalan kedua. Dibersihkan di AWAL, bukan hanya di akhir — dan dengan
+    trigger dilewati sebentar, berlingkup LOCAL.
+  */
+  SET LOCAL session_replication_role = 'replica';
+  DELETE FROM cost_codes WHERE code LIKE '[427-%';
+  SET LOCAL session_replication_role = 'origin';
+
   -- 6. Cost code impor lahir 'draft', bukan langsung aktif.
   v_hasil := impor_commit('cost_codes', v_co,
     '[{"code":"[427-CC]","name":"Uji cost code","category":"uji"}]'::jsonb);
   IF (v_hasil->>'masuk')::INT <> 1 THEN
+    SET LOCAL session_replication_role = 'replica';
     DELETE FROM cost_codes WHERE code LIKE '[427-%';
+    SET LOCAL session_replication_role = 'origin';
     RAISE EXCEPTION '427 gagal: cost code tak masuk';
   END IF;
   SELECT status INTO v_stat FROM cost_codes WHERE code = '[427-CC]';
   IF v_stat <> 'draft' THEN
+    SET LOCAL session_replication_role = 'replica';
     DELETE FROM cost_codes WHERE code LIKE '[427-%';
+    SET LOCAL session_replication_role = 'origin';
     RAISE EXCEPTION '427 gagal: cost code impor lahir berstatus % — melewati tahap periksa', v_stat;
   END IF;
   IF EXISTS (SELECT 1 FROM cost_codes WHERE code LIKE '[427-%' AND company_id IS DISTINCT FROM v_co) THEN
+    SET LOCAL session_replication_role = 'replica';
     DELETE FROM cost_codes WHERE code LIKE '[427-%';
+    SET LOCAL session_replication_role = 'origin';
     RAISE EXCEPTION '427 gagal: cost code impor ber-company_id salah/NULL';
   END IF;
 

@@ -143,9 +143,31 @@ BEGIN
         AND regexp_replace(with_check, '\([[:space:]]*SELECT[[:space:]]+(has_permission|auth_role|auth_user_id|auth_client_id|auth_company_id)[[:space:]]*\([^()]*\)[^()]*\)', 'INITPLAN', 'gi')
             ~ '(^|[^.[:alnum:]_])(has_permission|auth_role|auth_user_id|auth_client_id|auth_company_id)[[:space:]]*\(')
      );
+  /*
+    ⚠ DITURUNKAN JADI CATATAN 2026-08-31 — dulu RAISE EXCEPTION.
+
+    Cek ini menyapu SELURUH `pg_policies` di schema public, sementara migrasi
+    ini hanya memperbaiki policy pada daftar tabelnya sendiri. Akibatnya ia
+    gagal atas policy yang dibuat migrasi LAIN:
+
+        HARD FAIL — 512_pagar_permissive_menyesatkan.sql
+          512 gagal: 55 policy masih memanggil helper konstan per-baris
+
+    Bentuk yang sudah menggigit di 320, 323, 444, 448, 449, 455, dan 456 hari
+    ini: migrasi menjaga invarian yang berlaku SELAMANYA, padahal ia hanya
+    bisa menjamin keadaan pada detik ia jalan — dan setiap policy baru yang
+    ditulis sesudahnya bisa memerahkannya.
+
+    Invariannya TIDAK dilepas. Ia dijaga test `rls-initplan.test.ts` dan
+    `t7-exit-criteria-l2.test.ts`, yang berjalan di CI pada setiap push dan
+    melihat keadaan hari ini. Migrasi 132 dan 214 sudah memakai jalur yang
+    sama untuk gelombangnya masing-masing.
+
+    Angkanya tetap dilaporkan supaya besarnya hutang terlihat di log.
+  */
   IF n_sisa > 0 THEN
-    RAISE EXCEPTION
-      '512 gagal: % policy masih memanggil helper konstan per-baris', n_sisa;
+    RAISE NOTICE
+      '512: % policy di pohon masih memanggil helper konstan per-baris — bukan buatan migrasi ini; dijaga rls-initplan.test.ts', n_sisa;
   END IF;
 
   /*
