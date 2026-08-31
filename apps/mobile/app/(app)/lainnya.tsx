@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import React from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { useAuth } from '@/hooks/useAuth';
+import { PenandaAntrean } from '@/components/PenandaAntrean';
 
 /*
   ══════════════════════════════════════════════════════════════════════════
@@ -89,6 +90,21 @@ export default function Lainnya() {
       <Text style={s.keterangan}>
         Modul kantor. Dibuka di dalam aplikasi — sesi Anda ikut, tak perlu masuk lagi.
       </Text>
+
+      {/*
+        Penanda antrean — ditaruh di sini karena "Lainnya" adalah tempat
+        KEMBALI dari tiga layar lapangan yang dibuka darinya (temuan, NCR,
+        izin kerja): ketiganya `router.back()` sesudah simpan, dan pendaratan
+        itulah kesempatan pertama memberi tahu bahwa kirimannya masih di HP.
+
+        Sebelumnya penanda hanya ada di dashboard dan daftar kasbon. Mandor
+        yang melapor dari lokasi lalu menutup aplikasi tak pernah melewati
+        keduanya — jadi ia tak pernah tahu ada yang tertahan, dan yang ragu
+        akan MENGISI ULANG. Isian ulang punya kunci idempotensi berbeda, jadi
+        gerbang di server tak bisa menahannya: antrean yang tak terlihat
+        menghasilkan duplikat yang justru hendak dicegahnya.
+      */}
+      <PenandaAntrean />
 
       {terlihat.length === 0 ? (
         /*
