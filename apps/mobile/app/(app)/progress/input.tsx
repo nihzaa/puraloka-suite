@@ -217,6 +217,7 @@ export default function InputProgressScreen() {
                 key={p.id}
                 style={[styles.chip, selectedProject === p.id && styles.chipActive]}
                 onPress={() => setSelectedProject(p.id)}
+                accessibilityRole="button"
               >
                 <Text style={[styles.chipText, selectedProject === p.id && styles.chipTextActive]}>{p.name}</Text>
               </TouchableOpacity>
@@ -231,12 +232,14 @@ export default function InputProgressScreen() {
             <TouchableOpacity
               style={[styles.modeBtn, mode === 'daily' && styles.modeBtnActive]}
               onPress={() => setMode('daily')}
+              accessibilityRole="button"
             >
               <Text style={[styles.modeBtnText, mode === 'daily' && styles.modeBtnTextActive]}>📋 Harian Umum</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.modeBtn, mode === 'detail' && styles.modeBtnActive]}
               onPress={() => setMode('detail')}
+              accessibilityRole="button"
             >
               <Text style={[styles.modeBtnText, mode === 'detail' && styles.modeBtnTextActive]}>📊 Per Item RAB</Text>
             </TouchableOpacity>
@@ -284,18 +287,18 @@ export default function InputProgressScreen() {
               <Text style={styles.label}>Foto Dokumentasi ({photos.length}/5)</Text>
               <View style={styles.photoRow}>
                 {photos.map((uri, i) => (
-                  <TouchableOpacity key={i} onPress={() => setPhotos(prev => prev.filter((_, idx) => idx !== i))} style={styles.photoThumb}>
+                  <TouchableOpacity key={i} onPress={() => setPhotos(prev => prev.filter((_, idx) => idx !== i))} style={styles.photoThumb} accessibilityRole="button">
                     <Image source={{ uri }} style={styles.thumbImg} />
                     <View style={styles.removeX}><Text style={styles.removeXText}>✕</Text></View>
                   </TouchableOpacity>
                 ))}
                 {photos.length < 5 && (
                   <>
-                    <TouchableOpacity style={styles.addPhoto} onPress={takePhoto}>
+                    <TouchableOpacity style={styles.addPhoto} onPress={takePhoto} accessibilityRole="button">
                       <Text style={styles.addPhotoIcon}>📷</Text>
                       <Text style={styles.addPhotoText}>Kamera</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.addPhoto} onPress={pickPhoto}>
+                    <TouchableOpacity style={styles.addPhoto} onPress={pickPhoto} accessibilityRole="button">
                       <Text style={styles.addPhotoIcon}>🖼️</Text>
                       <Text style={styles.addPhotoText}>Galeri</Text>
                     </TouchableOpacity>
@@ -322,6 +325,7 @@ export default function InputProgressScreen() {
                       key={item.id}
                       style={[styles.rabItem, selectedRabItem === item.id && styles.rabItemActive]}
                       onPress={() => setSelectedRabItem(item.id)}
+                      accessibilityRole="button"
                     >
                       <View style={styles.rabItemRow}>
                         <Text style={[styles.rabItemNo, selectedRabItem === item.id && styles.rabItemTextActive]}>

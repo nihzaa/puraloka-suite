@@ -45,6 +45,7 @@ export function Button({ title, onPress, variant = 'primary', loading, disabled,
       onPress={onPress}
       disabled={disabled || loading}
       activeOpacity={0.8}
+      accessibilityRole="button"
     >
       {loading ? (
         <ActivityIndicator size="small" color={textColor} />

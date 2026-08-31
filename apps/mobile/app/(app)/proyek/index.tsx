@@ -79,7 +79,7 @@ export default function ProyekListScreen() {
           </View>
         )}
         {projects.map((p) => (
-          <TouchableOpacity key={p.id} onPress={() => router.push(`/(app)/proyek/${p.id}`)}>
+          <TouchableOpacity key={p.id} onPress={() => router.push(`/(app)/proyek/${p.id}`)} accessibilityRole="button">
             <Card style={styles.card}>
               <View style={styles.cardTop}>
                 <Text style={styles.projName} numberOfLines={2}>{p.name}</Text>

@@ -102,7 +102,7 @@ export default function NotificationsScreen() {
           {unread > 0 && <Text style={styles.unreadCount}>{unread} belum dibaca</Text>}
         </View>
         {unread > 0 && (
-          <TouchableOpacity onPress={markAllRead} style={styles.readAllBtn}>
+          <TouchableOpacity onPress={markAllRead} style={styles.readAllBtn} accessibilityRole="button">
             <Text style={styles.readAllText}>Tandai semua</Text>
           </TouchableOpacity>
         )}
@@ -119,7 +119,7 @@ export default function NotificationsScreen() {
           </View>
         )}
         {notifications.map((n) => (
-          <TouchableOpacity key={n.id} onPress={() => !n.is_read && markRead(n.id)} activeOpacity={0.8}>
+          <TouchableOpacity key={n.id} onPress={() => !n.is_read && markRead(n.id)} activeOpacity={0.8} accessibilityRole="button">
             <Card style={[styles.card, !n.is_read ? styles.cardUnread : undefined]}>
               <View style={styles.cardTop}>
                 <View style={styles.dotCol}>
@@ -138,6 +138,7 @@ export default function NotificationsScreen() {
                     style={[styles.actionBtn, styles.approveBtn]}
                     onPress={() => handleAction(n.id, 'approve')}
                     disabled={actionLoading === n.id}
+                    accessibilityRole="button"
                   >
                     <Text style={styles.approveBtnText}>
                       {actionLoading === n.id ? '...' : '✓ Setujui'}
@@ -147,6 +148,7 @@ export default function NotificationsScreen() {
                     style={[styles.actionBtn, styles.rejectBtn]}
                     onPress={() => handleAction(n.id, 'reject')}
                     disabled={actionLoading === n.id}
+                    accessibilityRole="button"
                   >
                     <Text style={styles.rejectBtnText}>✕ Tolak</Text>
                   </TouchableOpacity>

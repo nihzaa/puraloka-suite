@@ -61,6 +61,7 @@ function RabTree({ items, depth = 0 }: { items: RabItem[]; depth?: number }) {
                 item.level === 1 && styles.rabRowCat,
                 item.level === 2 && styles.rabRowSub,
               ]}
+              accessibilityRole="button"
             >
               <View style={styles.rabRowInner}>
                 {hasChildren && (
@@ -162,7 +163,7 @@ export default function ProyekDetailScreen() {
             ? <Galat judul="Proyek tidak bisa dimuat" pesan={galat} />
             : <Text style={styles.errorText}>Proyek tidak ditemukan</Text>}
         </View>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtnWrap}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtnWrap} accessibilityRole="button">
           <Text style={styles.backBtnText}>← Kembali</Text>
         </TouchableOpacity>
       </SafeAreaView>
@@ -172,7 +173,7 @@ export default function ProyekDetailScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtnWrap}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtnWrap} accessibilityRole="button">
           <Text style={styles.backBtnText}>← Kembali</Text>
         </TouchableOpacity>
       </View>
@@ -180,7 +181,7 @@ export default function ProyekDetailScreen() {
       {/* Tab bar */}
       <View style={styles.tabBar}>
         {(['ringkasan', 'rab', 'progress'] as Tab[]).map(t => (
-          <TouchableOpacity key={t} style={[styles.tabBtn, tab === t && styles.tabBtnActive]} onPress={() => setTab(t)}>
+          <TouchableOpacity key={t} style={[styles.tabBtn, tab === t && styles.tabBtnActive]} onPress={() => setTab(t)} accessibilityRole="button">
             <Text style={[styles.tabBtnText, tab === t && styles.tabBtnTextActive]}>
               {t === 'ringkasan' ? 'Ringkasan' : t === 'rab' ? 'RAB' : 'Progress'}
             </Text>

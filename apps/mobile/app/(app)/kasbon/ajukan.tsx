@@ -146,7 +146,7 @@ export default function AjukanKasbonScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.back()} accessibilityRole="button">
           <Text style={styles.backBtn}>← Kembali</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Ajukan Kasbon</Text>
@@ -165,6 +165,7 @@ export default function AjukanKasbonScreen() {
                   key={p.id}
                   style={[styles.chip, selectedProject === p.id && styles.chipActive]}
                   onPress={() => setSelectedProject(p.id)}
+                  accessibilityRole="button"
                 >
                   <Text style={[styles.chipText, selectedProject === p.id && styles.chipTextActive]}>{p.name}</Text>
                 </TouchableOpacity>
@@ -182,6 +183,7 @@ export default function AjukanKasbonScreen() {
               <TouchableOpacity
                 style={[styles.chip, selectedScope === '' && styles.chipActive]}
                 onPress={() => setSelectedScope('')}
+                accessibilityRole="button"
               >
                 <Text style={[styles.chipText, selectedScope === '' && styles.chipTextActive]}>— Tanpa Scope</Text>
               </TouchableOpacity>
@@ -190,6 +192,7 @@ export default function AjukanKasbonScreen() {
                   key={s.id}
                   style={[styles.chip, selectedScope === s.id && styles.chipActive]}
                   onPress={() => setSelectedScope(s.id)}
+                  accessibilityRole="button"
                 >
                   <Text style={[styles.chipText, selectedScope === s.id && styles.chipTextActive]}>{s.scope_name}</Text>
                 </TouchableOpacity>
@@ -220,6 +223,7 @@ export default function AjukanKasbonScreen() {
                 key={p.value}
                 style={[styles.option, purpose === p.value && styles.optionActive]}
                 onPress={() => setPurpose(p.value)}
+                accessibilityRole="button"
               >
                 <Text style={[styles.optionText, purpose === p.value && styles.optionTextActive]}>{p.label}</Text>
               </TouchableOpacity>
@@ -236,6 +240,7 @@ export default function AjukanKasbonScreen() {
                 key={f.value}
                 style={[styles.fundBtn, fundSource === f.value && styles.fundBtnActive, { flex: 1 }]}
                 onPress={() => setFundSource(f.value)}
+                accessibilityRole="button"
               >
                 <Text style={[styles.fundBtnText, fundSource === f.value && styles.fundBtnTextActive]}>{f.label}</Text>
               </TouchableOpacity>

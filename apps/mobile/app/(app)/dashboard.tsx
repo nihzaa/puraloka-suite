@@ -73,7 +73,7 @@ export default function DashboardScreen() {
             <Text style={styles.greeting}>Halo, {user?.name?.split(' ')[0]} 👋</Text>
             <Text style={styles.role}>{user?.role?.toUpperCase()}</Text>
           </View>
-          <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
+          <TouchableOpacity onPress={logout} style={styles.logoutBtn} accessibilityRole="button">
             <Text style={styles.logoutText}>Keluar</Text>
           </TouchableOpacity>
         </View>
