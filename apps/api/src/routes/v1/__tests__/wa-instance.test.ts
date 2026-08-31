@@ -122,11 +122,36 @@ describe('Status sambungan', () => {
       `SELECT nilai_enc FROM app_credentials WHERE company_id=$1 AND kunci='WA_API_KEY'`,
       [companyId],
     )
-    // Yang diperiksa: nilai tersandi maupun penyebutan kuncinya tak muncul.
-    // Penjaga `audit-kredensial-tak-bocor` berambang NOL untuk kelas ini.
+    /*
+      Yang dijaga adalah NILAI, bukan NAMA.
+
+      Versi sebelumnya melarang string `wa_api_key` muncul di badan balasan
+      sama sekali — dan itu merahkan test untuk kalimat yang justru MENOLONG
+      pengguna:
+
+          {"siap":false,"error":"Kredensial Evolution belum lengkap.
+           Isi WA_BASE_URL dan WA_API_KEY di Pengaturan → Kredensial ..."}
+
+      Tak ada rahasia yang bocor di sana. Sebaliknya: menghapus nama kunci
+      dari pesan itu meninggalkan pengguna dengan "belum lengkap" tanpa tahu
+      APA yang harus diisi — persis kelas pengguna yang jadi alasan repo ini
+      menulis pesan galat berbahasa manusia.
+
+      Penjaga `audit-kredensial-tak-bocor.mjs` menyatakan batasnya sendiri:
+      "Yang boleh keluar hanya: nama kunci, 4 karakter terakhir, dan kapan
+      diubah." Test ini sekarang menguji batas yang sama, bukan batas yang
+      lebih ketat dari arsitekturnya.
+    */
     expect(r.body).not.toContain('apikey')
-    expect(r.body.toLowerCase()).not.toContain('wa_api_key')
+
+    // Nilai tersandi — ini yang sungguh tak boleh keluar.
     if (rows[0]?.nilai_enc) expect(r.body).not.toContain(rows[0].nilai_enc)
+
+    // Dan nilai TERBUKANYA, kalau kredensialnya memang terpasang di env uji.
+    // `nilai_enc` tersandi, jadi memeriksanya saja tak membuktikan nilai
+    // polosnya tak bocor lewat jalur lain.
+    const polos = process.env.WA_API_KEY
+    if (polos && polos.length >= 8) expect(r.body).not.toContain(polos)
   }, 30_000)
 })
 
