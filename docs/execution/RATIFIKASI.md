@@ -3539,3 +3539,90 @@ SELECT r.name, count(*) izin,
 Ditemukan sesi `puraloka-suite-e7` saat membangun layar portal mobile, dan
 diverifikasi ulang di sesi ini. Tak ada baris `role_permissions` yang
 disentuh oleh keduanya.
+
+### Tambahan sesudah diukur ulang (2026-08-31, sesi kedua)
+
+Sesi `puraloka-suite-e7` sempat MENJALANKAN perbaikan bentuk 2 ke basis
+(pm 37 → 76 izin, tercatat di buku migrasi sebagai 541), lalu **memundurkannya
+sepenuhnya** setelah membaca entri ini — 2.847 baris dicabut, entri buku
+migrasi dihapus, berkas dihapus. Saya verifikasi mandiri: `541` tak ada di
+buku migrasi, pm kembali 37, `projects:view` tetap TIDAK. Basis bersih.
+
+Pengukuran ulang saya menemukan cacatnya **lebih besar** dari yang terlihat.
+
+**1. Bukan dua peran yatim, melainkan ENAM BELAS.**
+
+Migrasi 364 membuat 16 peran template — dan **semuanya nol izin**:
+
+    akuntan · auditor_internal · estimator · hrd · k3_officer · kasir
+    kontrak_admin · logistik · manajer_keuangan · payroll_officer
+    penagihan · procurement_officer · project_manager_senior · qaqc
+    qhse_manager · site_manager
+
+Ke-16 peran itu **0 pengguna**. Yang dipakai orang cuma lima peran lama
+(migrasi 050): admin 4 · pm 4 · mandor 8 · client 13 · direktur 0.
+
+**2. Bukan izinnya belum lahir.** Memutar ulang blok pemberian 364 di
+transaksi yang dibatalkan: **287 baris terpasang**, dan 0 dari 273 pasangan
+terhalang kunci yang lahir belakangan — ke-143 kunci izinnya ADA sejak dulu.
+Jadi INSERT-nya sah; hasilnya yang tak ada.
+
+**3. Yang paling serius: basis dev MELANGGAR verifikasi 364 sendiri.**
+
+364 diakhiri tuntutan ini, dan 364 **tercatat sudah jalan**:
+
+```sql
+IF n_kosong > 0 THEN
+  RAISE EXCEPTION '364 gagal: % role template tanpa satu pun izin', n_kosong;
+```
+
+Diukur terhadap dev sekarang: **`n_kosong = 16`**. Migrasi yang tercatat
+sukses meninggalkan basis dalam keadaan yang ia sendiri nyatakan gagal.
+
+CI tetap hijau karena CI memutar rantai dari basis kosong — di sana 364
+berjalan utuh dan tuntutannya terpenuhi. **Hijaunya CI bukan bukti bahwa
+basis yang dipakai orang benar.** Ini bentuk yang sama dengan cacat
+047↔167 yang dicatat CLAUDE.md §5.5.
+
+**4. `pm` tak disebut sama sekali di katalog 364** — diperiksa langsung pada
+petanya: nol kemunculan `'pm'`. Dua peran dirancang matang (30 dan 28 izin)
+tak dipakai siapa pun; satu peran dipakai empat orang terlewat karena
+namanya berbeda.
+
+**5. Migrasi 156 (punch) dan 189 (NCR) MENGASUMSIKAN pm punya
+`projects:view`** — komentarnya menyebut "admin, pm, mandor, client,
+direktur". Asumsi itu tak pernah benar, dan asumsi di komentar tak
+dijalankan siapa pun. *(diukur sesi e7)*
+
+### Yang ini mengubah pada pilihan founder
+
+`change_order:approve` **layak dipisahkan dari paket mana pun.** Ia mengubah
+NILAI KONTRAK, dan rutenya tak punya batas nominal sama sekali (diperiksa:
+nol ambang di `change-orders.ts`). Sekarang hanya admin & direktur yang
+memegangnya — diukur.
+
+Konsekuensinya pada sepuluh spek `deny: 'pm'`:
+
+| Pilihan | Spek yang jadi salah |
+|---|---|
+| bentuk 1 (baca saja) | nol |
+| **bentuk 2 TANPA `change_order:approve`** | **nol** |
+| bentuk 2 dengan `change_order:approve` | satu |
+| bentuk 3 (seperti 050) | tiga |
+
+Jadi **bentuk 2 tanpa `change_order:approve` tidak merahkan satu spek pun.**
+
+### Pertanyaan kedua yang ikut terbuka
+
+Ke-16 peran nol-izin itu mau diapakan? Tiga kemungkinan:
+
+- **dihidupkan** — jalankan pemberian 364 (287 baris) supaya peran yang sudah
+  dirancang bisa dipakai. Tak menyentuh `pm`.
+- **dihapus** — kalau memang tak akan dipakai, nama kosong di layar pemilihan
+  peran lebih berbahaya daripada tak ada.
+- **dibiarkan** — tapi kalau begitu, verifikasi 364 harus diperbaiki supaya
+  ia tak menuntut sesuatu yang sengaja tidak dipenuhi.
+
+Yang **tidak** boleh: dibiarkan seperti sekarang, di mana migrasi tercatat
+sukses sementara tuntutannya dilanggar. Itu membuat penjaga berhenti menjaga
+tanpa gejala.
