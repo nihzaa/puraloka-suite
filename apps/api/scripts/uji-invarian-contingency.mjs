@@ -90,11 +90,32 @@ const DITOLAK = new Set(['23514', '23502', '23503', '23505', '22003'])
 const SESI = Math.random().toString(36).slice(2, 8)
 const namaUji = () => `UJI-POS-${++nomor}-${PID.slice(0, 8)}-${SESI}`
 
-// Sisa fixture dari jalan yang gagal di tengah — disapu sebelum apa pun.
+/*
+  Sisa fixture dari jalan yang gagal di tengah — disapu, TAPI hanya yang TUA.
+
+  ⚠ DIPERSEMPIT 2026-08-31, sesudah sapuan pertama saya merusak shard lain.
+
+  Penjaga ini berjalan di KEENAM shard CI bersamaan, pada SATU basis. Sapuan
+  `LIKE 'UJI-POS-%'` tanpa syarat umur menghapus pos induk milik shard yang
+  sedang berjalan, dan shard itu lalu gagal dengan galat yang menuduh FK:
+
+      ❌ BOCOR penarikan sah DITOLAK (23503 insert or update on table
+         "penggunaan_contingency" violates foreign key)
+
+  Dua invarian terbaca BOCOR padahal basisnya benar — tuduhan paling buruk
+  yang bisa dikeluarkan penjaga keamanan, karena ia mengarahkan orang
+  memperbaiki pagar yang tak rusak.
+
+  Batas 10 menit: lebih lama daripada satu jalan penjaga ini (detik), jauh
+  lebih pendek daripada sisa yang benar-benar tertinggal dari jalan yang mati.
+*/
 await db.query(
   `DELETE FROM penggunaan_contingency WHERE pos_id IN
-     (SELECT id FROM pos_contingency WHERE nama LIKE 'UJI-POS-%')`)
-await db.query(`DELETE FROM pos_contingency WHERE nama LIKE 'UJI-POS-%'`)
+     (SELECT id FROM pos_contingency
+       WHERE nama LIKE 'UJI-POS-%' AND created_at < now() - INTERVAL '10 minutes')`)
+await db.query(
+  `DELETE FROM pos_contingency
+    WHERE nama LIKE 'UJI-POS-%' AND created_at < now() - INTERVAL '10 minutes'`)
 
 // Pos induk sementara untuk menguji penarikan.
 const { rows: induk } = await db.query(
