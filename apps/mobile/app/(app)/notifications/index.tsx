@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   notifTitle: { fontSize: 14, color: '#111827', marginBottom: 2 },
   bold: { fontWeight: '700' },
   notifBody: { fontSize: 13, color: '#6B7280', lineHeight: 18 },
-  timeAgo: { fontSize: 11, color: '#9CA3AF', marginTop: 4 },
+  timeAgo: { fontSize: 11, color: '#6B7280', marginTop: 4 },
   actionRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
   actionBtn: {
     flex: 1, paddingVertical: 8, borderRadius: 8,
@@ -196,8 +196,8 @@ const styles = StyleSheet.create({
   approveBtnText: { fontSize: 13, color: '#15803D', fontWeight: '600' },
   rejectBtn: { backgroundColor: '#FEE2E2', borderColor: '#B91C1C' },
   rejectBtnText: { fontSize: 13, color: '#B91C1C', fontWeight: '600' },
-  actionedLabel: { fontSize: 12, color: '#9CA3AF', fontStyle: 'italic' },
+  actionedLabel: { fontSize: 12, color: '#6B7280', fontStyle: 'italic' },
   empty: { alignItems: 'center', paddingTop: 80, gap: 8 },
   emptyIcon: { fontSize: 40 },
-  emptyText: { fontSize: 15, color: '#9CA3AF' },
+  emptyText: { fontSize: 15, color: '#6B7280' },
 });

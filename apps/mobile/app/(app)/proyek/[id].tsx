@@ -252,7 +252,7 @@ export default function ProyekDetailScreen() {
               </View>
             ) : rabTree.length === 0 ? (
               <View style={{ padding: 40, alignItems: 'center' }}>
-                <Text style={{ color: '#9CA3AF', fontSize: 13 }}>Belum ada RAB untuk proyek ini</Text>
+                <Text style={{ color: '#6B7280', fontSize: 13 }}>Belum ada RAB untuk proyek ini</Text>
               </View>
             ) : (
               <RabTree items={rabTree} />
@@ -287,7 +287,7 @@ export default function ProyekDetailScreen() {
               </View>
             ) : (
               <View style={{ padding: 40, alignItems: 'center' }}>
-                <Text style={{ color: '#9CA3AF', fontSize: 13 }}>Belum ada log progress</Text>
+                <Text style={{ color: '#6B7280', fontSize: 13 }}>Belum ada log progress</Text>
               </View>
             )}
           </>
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
   // RAB styles
   rabHeader: { padding: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
   rabHeaderTitle: { fontSize: 14, fontWeight: '700', color: '#111827' },
-  rabHeaderSub: { fontSize: 11, color: '#9CA3AF', marginTop: 2 },
+  rabHeaderSub: { fontSize: 11, color: '#6B7280', marginTop: 2 },
   rabRow: { paddingVertical: 9, paddingRight: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   rabRowCat: { backgroundColor: '#EBF2FF' },
   rabRowSub: { backgroundColor: '#F9FAFB' },
@@ -351,5 +351,5 @@ const styles = StyleSheet.create({
   rabProgressWrap: { width: 60, height: 4, backgroundColor: '#E5E7EB', borderRadius: 2, overflow: 'hidden' },
   rabProgressBar: { height: '100%', backgroundColor: '#003366', borderRadius: 2 },
   rabPct: { fontSize: 11, color: '#003366', fontWeight: '700' },
-  rabWeight: { fontSize: 11, color: '#9CA3AF', marginLeft: 8 },
+  rabWeight: { fontSize: 11, color: '#6B7280', marginLeft: 8 },
 });

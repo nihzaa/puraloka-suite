@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
   rabItemName: { flex: 1, fontSize: 13, color: '#111827', fontWeight: '500' },
   rabItemPct: { fontSize: 12, color: '#003366', fontWeight: '700', flexShrink: 0 },
   rabItemTextActive: { color: '#fff' },
-  emptyText: { fontSize: 13, color: '#9CA3AF', textAlign: 'center', paddingVertical: 16 },
+  emptyText: { fontSize: 13, color: '#6B7280', textAlign: 'center', paddingVertical: 16 },
   infoRow: { flexDirection: 'column', gap: 2, marginTop: 4 },
   infoText: { fontSize: 12, color: '#6B7280' },
 });

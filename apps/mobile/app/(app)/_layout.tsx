@@ -7,7 +7,17 @@ function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
   return <Text style={{ fontSize: focused ? 22 : 20, opacity: focused ? 1 : 0.6 }}>{emoji}</Text>;
 }
 
-const C = { navy: '#003366', gray: '#9CA3AF' };
+/*
+  `gray` dipakai sebagai `tabBarInactiveTintColor` — label tab yang tak
+  aktif, 11px, dan hadir di SETIAP layar.
+
+  Dihitung, bukan ditaksir: #9CA3AF pada putih = 2.54:1, gagal WCAG AA yang
+  menuntut 4.5:1 untuk teks normal. #6B7280 = 4.83:1.
+
+  Repo ini punya preseden kenapa dihitung: `kontras-situs.mjs` lahir karena
+  tiga angka kontras yang ditulis dari taksiran ketiganya meleset.
+*/
+const C = { navy: '#003366', gray: '#6B7280' };
 
 /*
   ══════════════════════════════════════════════════════════════════════════

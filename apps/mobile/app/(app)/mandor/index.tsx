@@ -143,5 +143,5 @@ const styles = StyleSheet.create({
   wageAmount: { fontSize: 16, fontWeight: '700', color: '#003366' },
   wageMeta: { fontSize: 12, color: '#6B7280' },
   empty: { alignItems: 'center', paddingTop: 60 },
-  emptyText: { fontSize: 15, color: '#9CA3AF' },
+  emptyText: { fontSize: 15, color: '#6B7280' },
 });

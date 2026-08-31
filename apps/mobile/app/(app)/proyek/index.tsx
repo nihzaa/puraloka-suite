@@ -125,5 +125,5 @@ const styles = StyleSheet.create({
   progressPct: { fontSize: 12, color: '#374151', fontWeight: '600', width: 32, textAlign: 'right' },
   contractValue: { fontSize: 13, color: '#003366', fontWeight: '600' },
   empty: { alignItems: 'center', paddingTop: 60 },
-  emptyText: { fontSize: 15, color: '#9CA3AF' },
+  emptyText: { fontSize: 15, color: '#6B7280' },
 });

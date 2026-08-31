@@ -192,5 +192,5 @@ const styles = StyleSheet.create({
   notes: { fontSize: 13, color: '#374151', fontStyle: 'italic' },
   empty: { alignItems: 'center', paddingTop: 60, gap: 6 },
   emptyText: { fontSize: 15, color: '#6B7280', fontWeight: '600' },
-  emptyPetunjuk: { fontSize: 13, color: '#9CA3AF', textAlign: 'center' },
+  emptyPetunjuk: { fontSize: 13, color: '#6B7280', textAlign: 'center' },
 });

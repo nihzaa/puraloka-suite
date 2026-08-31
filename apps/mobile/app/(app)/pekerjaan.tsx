@@ -565,7 +565,7 @@ const s = StyleSheet.create({
   kartuBeres: { backgroundColor: '#FAFAFA', borderColor: '#F0F1F3' },
   kartuKepala: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   jenisTag: { fontSize: 11, fontWeight: '700', color: '#003366', letterSpacing: 0.4, textTransform: 'uppercase' },
-  usia: { fontSize: 11, color: '#9CA3AF' },
+  usia: { fontSize: 11, color: '#6B7280' },
   judul: { fontSize: 14, color: '#111827', lineHeight: 20, fontWeight: '500' },
   judulBeres: { color: '#6B7280' },
   tempat: { fontSize: 12, color: '#6B7280', marginTop: 4 },

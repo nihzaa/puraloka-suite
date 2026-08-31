@@ -1807,6 +1807,21 @@ jobs:
       - name: Penjaga tercatat wajib jalan
         run: node scripts/audit-penjaga-tercatat-jalan.mjs
 
+      # Kontras teks mobile DIHITUNG, bukan ditaksir. Preseden di repo ini:
+      # `kontras-situs.mjs` lahir karena tiga angka kontras yang ditulis dari
+      # taksiran ketiganya meleset. `#9CA3AF` terlihat "abu-abu sedang yang
+      # wajar" padahal 2.54:1 — hampir setengah dari WCAG AA 4.5:1.
+      #
+      # Diukur 2026-08-31: 15 tempat `color:` memakainya, PLUS
+      # `tabBarInactiveTintColor` — label tab 11px yang hadir di SETIAP layar.
+      # Diganti #6B7280 (4.83:1).
+      #
+      # Berlatar gelap diperiksa terhadap navy, bukan dilewati: SplashMerek
+      # memakai #7FA8CC yang 5.03:1 di atas #003366 (lulus) tapi 2.51:1 di
+      # atas putih. Versi pertama penjaga ini merah untuk warna yang benar.
+      - name: Kontras teks mobile
+        run: node scripts/audit-kontras-mobile.mjs
+
       # Daftar jenis elemen struktur ada di DUA tempat yang harus sama: CHECK
       # `struktur_elemen_jenis_check` di basis, dan konstanta JENIS di
       # `routes/v1/struktur.ts`. Kalau berbeda, kegagalannya berbeda arah dan

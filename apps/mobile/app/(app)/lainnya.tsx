@@ -224,7 +224,7 @@ const s = StyleSheet.create({
      tertentu. Merah di dua belas baris sekaligus membuat layar terbaca
      seperti rusak. */
   barisBelumSiap: { fontSize: 12, color: '#92400E', marginTop: 2 },
-  panah: { fontSize: 22, color: '#9CA3AF', marginLeft: 8 },
+  panah: { fontSize: 22, color: '#6B7280', marginLeft: 8 },
   kosong: { paddingVertical: 40, alignItems: 'center' },
   kosongJudul: { fontSize: 15, fontWeight: '600', color: '#111827', marginBottom: 6 },
   kosongIsi: { fontSize: 13, color: '#5A616B', textAlign: 'center', lineHeight: 19 },

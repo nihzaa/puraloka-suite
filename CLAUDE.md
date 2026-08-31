@@ -344,6 +344,7 @@ sebelum menyentuh kode terkait** — bukan sekadar daftar isi.
 | `audit-token-mobile-terenkripsi.mjs` | token mobile wajib lewat `expo-secure-store`, bukan AsyncStorage — file SQLite biasa di Android yang ikut backup tak terenkripsi; `refresh_token` memperpanjang dirinya sendiri, jadi sekali terbaca berarti akses tanpa kedaluwarsa (ambang NOL) |
 | `audit-a11y-mobile.mjs` | tiap `Pressable`/`TouchableOpacity` wajib punya `accessibilityRole` atau `accessibilityLabel` — axe-core tak jalan di React Native, jadi 137 halaman web yang nol pelanggaran tak menjaga mobile sama sekali. Diukur 2026-08-31: 25 dari 43 telanjang, termasuk "Keluar" dan "Kembali". Pembaca layar menyebutnya teks biasa (ambang NOL) |
 | `audit-penjaga-tercatat-jalan.mjs` | penjaga yang TERCATAT di tabel ini wajib benar-benar dijalankan `ci.yml` — dokumen yang menjanjikan perlindungan tak ada membuat pembacanya berhenti memeriksa hal yang tak dijaga siapa pun, tanpa gejala. Arah sebaliknya (jalan tapi tak tertabel) sengaja TIDAK dijaga: 206 jalan vs 49 tertabel, dan tabel 206 baris tak seorang pun baca (ambang NOL) |
+| `audit-kontras-mobile.mjs` | warna teks mobile wajib >= 4.5:1 (WCAG AA) — DIHITUNG, bukan ditaksir. `#9CA3AF` terlihat wajar tapi 2.54:1, dan dipakai 15 tempat plus label tab yang hadir di SETIAP layar. Berlatar gelap dinilai terhadap navy, bukan dilewati (ambang NOL) |
 
 **Alur take-off → RAB — MANUAL, butuh API hidup:**
 
