@@ -2,6 +2,22 @@
   "name": "@puraloka/mobile",
   "version": "1.0.0",
   "main": "expo-router/entry",
+  "_catatan_packageManager": [
+    "EAS Build membaca package.json INI, bukan yang di akar.",
+    "Diukur 2026-09-01 dari log build (fase READ_PACKAGE_JSON):",
+    "ia mencetak `@puraloka/mobile`, lalu INSTALL_DEPENDENCIES",
+    "gagal dengan ERR_PNPM_BROKEN_LOCKFILE — pnpm bawaan server",
+    "menolak lockfile dua-dokumen yang ditulis pnpm 11.",
+    "",
+    "`packageManager` di package.json AKAR sudah ditambahkan lebih",
+    "dulu dan TIDAK menolong, karena bukan itu yang dibaca EAS.",
+    "",
+    "Versinya WAJIB sama dengan akar (pnpm@11.8.0). Dua tempat",
+    "berbeda versi berarti mesin pengembang dan server build",
+    "memakai pnpm berbeda, dan bedanya baru terlihat saat build",
+    "gagal — bukan saat menyunting."
+  ],
+  "packageManager": "pnpm@11.8.0",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
