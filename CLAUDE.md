@@ -591,6 +591,7 @@ dari gejala yang menunjuk ke tempat lain.
 | `git stash -u` | menyapu berkas belum-ter-commit sesi lain (`struktur.ts`, migrasi 458/459). `pop` menyelamatkannya, tapi menyisakan entri stash dan mengubah akhir baris jadi CRLF. |
 | `pnpm install` / `--filter` | mengosongkan `node_modules` workspace lain di tengah jalan. `tsc`/`vitest` sesi itu mati dengan "Cannot find package" — galat yang menuduh KODE. |
 | menulis `JOURNAL.md` | dua sesi menulis dengan konvensi berbeda; yang belakangan menimpa struktur yang pertama. |
+| `git add .` / `git add -A` | menyapu berkas yang sesi lain sedang stage. Terjadi 2026-08-31: commit `5f3c9eda` — berjudul "sembilan keluhan CI…" — ikut menelan upgrade Expo milik sesi lain (11 paket, React 18→19, lock 2.247 baris) dan menyembunyikannya di balik pesan tentang seed proyek. **Yang membuatnya sulit dilihat: `git status` si penyapu BERSIH sesudah commit** — nol gejala dari sisinya, dan yang kehilangan baru tahu saat mencari kerjanya sendiri. **Selalu sebut BERKAS-nya:** `git add -- path/ke/berkas`. |
 
 **Yang benar:** pindah ke worktree sendiri. Repo ini sudah punya jalurnya —
 `.claude/worktrees/` dan `.worktrees/` berisi beberapa, dan `git worktree list`
