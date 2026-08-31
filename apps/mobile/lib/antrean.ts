@@ -60,7 +60,15 @@ const FOLDER_ANTREAN = `${FileSystem.documentDirectory}antrean/`
 /** Jumlah percobaan sebelum kiriman ditandai perlu perhatian manusia. */
 const MAKS_PERCOBAAN = 5
 
-export type JenisKiriman = 'progres-harian' | 'progres-detail' | 'kasbon'
+/**
+ * Jenis kiriman yang bisa diantrekan.
+ *
+ * `absensi` ditambahkan 2026-08-31: tabel `absensi_harian` diukur 1.279 baris
+ * — yang paling sering diisi dari lapangan, dan justru satu-satunya dari
+ * empat teratas yang belum punya layar mobile. Mengisinya di lokasi tanpa
+ * sinyal adalah keadaan normal, bukan pengecualian.
+ */
+export type JenisKiriman = 'progres-harian' | 'progres-detail' | 'kasbon' | 'absensi'
 
 export interface Kiriman {
   id: string

@@ -127,9 +127,14 @@ export const storage = {
     if (RAHASIA.has(key) && (await secureTersedia())) {
       try {
         await SecureStore.deleteItemAsync(key);
-      } catch {
-        /* Lanjut menghapus yang biasa; kegagalan di sini tak boleh
-           menghentikan logout. */
+      } catch (e) {
+        /*
+          Kegagalan di sini tak boleh menghentikan logout — yang biasa tetap
+          dihapus di bawah. Tapi TIDAK didiamkan: kunci yang gagal dihapus
+          berarti sesi lama masih tersimpan terenkripsi, dan pengguna
+          berikutnya di perangkat yang sama bisa mewarisinya.
+        */
+        console.warn(`[storage] gagal menghapus "${key}" dari SecureStore:`, String(e));
       }
     }
     return AsyncStorage.removeItem(key);
@@ -145,8 +150,14 @@ export const storage = {
       for (const k of RAHASIA) {
         try {
           await SecureStore.deleteItemAsync(k);
-        } catch {
-          /* diabaikan — kunci yang memang tak ada melempar di sebagian versi */
+        } catch (e) {
+          /*
+            Sebagian versi SecureStore melempar untuk kunci yang memang tak
+            ada — itu bukan kegagalan. Tapi dicatat, karena kegagalan
+            SUNGGUHAN di sini meninggalkan token yang masih sah sesudah
+            logout, dan itu tak punya gejala lain.
+          */
+          console.warn(`[storage] hapus "${k}" saat clear:`, String(e));
         }
       }
     }

@@ -156,6 +156,28 @@ export default function AppLayout() {
         mengeluarkannya dari router; tanpa itu tiap modul akan muncul sebagai
         tab tersendiri dan bilahnya penuh.
       */}
+      {/*
+        Absensi harian — layar LAPANGAN, native penuh dengan antrean offline.
+        Diberi tab sendiri karena inilah yang paling sering diisi: 1.279 baris
+        di `absensi_harian`, lebih banyak daripada progres (272) dan kasbon
+        (67) digabung.
+
+        Disaring `mandor:wage:create`, izin yang sama dengan rute POST-nya —
+        menampilkan tab yang berujung 403 mengajari orang bahwa aplikasinya
+        suka gagal.
+      */}
+      <Tabs.Screen
+        name="absensi/input"
+        options={
+          punyaIzin('mandor:wage:create')
+            ? {
+                title: 'Absensi',
+                tabBarIcon: ({ focused }) => <TabIcon emoji="🗓️" focused={focused} />,
+              }
+            : { href: null }
+        }
+      />
+
       <Tabs.Screen name="web/[modul]" options={{ href: null }} />
     </Tabs>
   );
