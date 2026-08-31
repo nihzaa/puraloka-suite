@@ -60,7 +60,7 @@ jobs:
       # Target sekali-pakai. Ia mati bersama job — tak punya nilai yang bisa
       # hilang, dan tak bisa jadi target yang salah.
       target:
-        image: postgres:17
+        image: pgvector/pgvector:pg17
         env:
           POSTGRES_PASSWORD: drill
         ports: ['5433:5432']
@@ -366,6 +366,25 @@ jobs:
           -- bersamaan. Dipasang di `public` supaya operator class-nya terjangkau
           -- definisi constraint apa adanya dari dump.
           CREATE EXTENSION IF NOT EXISTS btree_gist;
+
+          -- vector (pgvector): `rag_potongan.embedding` bertipe `vector`, dan
+          -- tipe itu hidup di schema `public` (diukur: pg_type -> nspname=public).
+          -- Karena itu `pg_dump` schema public MENGELUARKAN kolomnya tapi TIDAK
+          -- mengeluarkan `CREATE EXTENSION`-nya — jadi di target polos tabelnya
+          -- gagal dibuat, dan drill melapor:
+          --
+          --     rag_potongan: TABEL TIDAK ADA di target
+          --     tabel   sumber=291 target=290
+          --     RLS     sumber=291 target=290
+          --     policy  sumber=816 target=814
+          --
+          -- Artinya cadangan TIDAK pulih utuh: satu tabel hilang, dan bersamanya
+          -- RLS + 2 policy-nya. Ini bukan cacat drill melainkan cacat PEMULIHAN
+          -- yang drill-nya berhasil menangkap.
+          --
+          -- Image target diganti `pgvector/pgvector:pg17` (postgres 17 yang
+          -- sama, plus ekstensinya) supaya baris ini bisa jalan.
+          CREATE EXTENSION IF NOT EXISTS vector;
 
           -- ── Schema `auth` — 21 policy tak bisa dibuat tanpanya ───────────
           --
