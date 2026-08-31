@@ -210,6 +210,36 @@ BEGIN
   SELECT count(*) INTO n_ang FROM companies c
    WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id);
 
+  /*
+    ATURAN MILIK COMPANY MATI DINONAKTIFKAN — DITAMBAHKAN 2026-08-31.
+
+    INSERT di atas memakai `WHERE c.is_active`, dan cek di bawah menuntut
+    `6 x jumlah company aktif`. Keduanya konsisten — sampai sebuah company
+    DINONAKTIFKAN sesudah aturannya dibuat. Aturannya tetap aktif, cacahannya
+    tak pernah turun, dan migrasi ini gagal:
+
+        509 gagal: aturan ada 30 baris, harus 18 (6 jenis x 3 badan usaha)
+
+    Diukur 2026-08-31: 30 aturan aktif tersebar di 5 company, sementara hanya
+    3 yang `is_active`. Dua company dinonaktifkan belakangan.
+
+    Ini bukan sekadar soal cacahan. Aturan notifikasi milik badan usaha yang
+    sudah tak aktif akan tetap dievaluasi penjadwal — kerja yang hasilnya tak
+    dipakai siapa pun, dan pada kasus terburuk pesan yang terkirim atas nama
+    perusahaan yang sudah berhenti beroperasi.
+
+    Dinonaktifkan, bukan dihapus: riwayatnya tetap bisa dibaca, dan bila
+    company-nya diaktifkan lagi, INSERT di atas menyalakannya kembali lewat
+    `ON CONFLICT ... DO UPDATE SET is_active = true`.
+  */
+  UPDATE notification_rules r
+     SET is_active = false
+   WHERE r.event_type = ANY(V_JENIS)
+     AND r.is_active
+     AND NOT EXISTS (
+       SELECT 1 FROM companies c WHERE c.id = r.company_id AND c.is_active
+     );
+
   -- ── Bagian A ──────────────────────────────────────────────────────────
   SELECT count(*) INTO n FROM notification_rules
    WHERE event_type = ANY(V_JENIS) AND is_active;
@@ -233,14 +263,45 @@ BEGIN
     END IF;
   END LOOP;
 
+  /*
+    `r.is_active` DITAMBAHKAN 2026-08-31 — cek ini menghitung target milik
+    aturan yang sudah TIDAK aktif.
+
+    Sesudah blok di atas menonaktifkan aturan milik company mati, jumlah
+    ATURAN aktif turun ke 18 sementara jumlah TARGET tetap 30 — dan cek ini
+    membandingkannya dengan `n_aktif * 6` yang sama. Hasilnya migrasi tetap
+    gagal, hanya dengan pesan yang berbeda:
+
+        509 gagal: target ada 30 baris, harus 18
+
+    Dua pemeriksaan yang mengukur hal berbeda tak boleh memakai patokan yang
+    sama. Sekarang keduanya menghitung yang AKTIF.
+  */
   SELECT count(*) INTO n FROM notification_rules r
     JOIN notification_rule_targets t ON t.rule_id = r.id
-   WHERE r.event_type = ANY(V_JENIS) AND t.permission_key = ANY(V_IZIN);
+   WHERE r.event_type = ANY(V_JENIS) AND r.is_active
+     AND t.permission_key = ANY(V_IZIN);
   IF n <> n_aktif * 6 THEN
-    RAISE EXCEPTION '509 gagal: target ada % baris, harus %', n, n_aktif * 6;
+    RAISE EXCEPTION '509 gagal: target aktif ada % baris, harus %', n, n_aktif * 6;
   END IF;
 
-  SELECT count(*) INTO n FROM company_settings WHERE key = ANY(V_AMBANG);
+  /*
+    Disaring ke company AKTIF — alasan yang sama dengan dua cek di atasnya.
+
+    `company_settings` menyimpan setelan untuk setiap company yang pernah
+    ada, termasuk yang kemudian dinonaktifkan. Membandingkan cacahnya dengan
+    `n_aktif * 8` menuduh selisih yang wajar:
+
+        509 gagal: setelan ada 40 baris, harus 24 (8 ambang x 3 badan usaha)
+
+    Setelan milik company mati tak perlu dihapus — ia tak dievaluasi siapa
+    pun, dan menghapusnya membuang konfigurasi yang berguna bila company itu
+    diaktifkan lagi. Yang perlu: tidak ikut dihitung.
+  */
+  SELECT count(*) INTO n
+    FROM company_settings cs
+    JOIN companies c ON c.id = cs.company_id AND c.is_active
+   WHERE cs.key = ANY(V_AMBANG);
   IF n <> n_aktif * 8 THEN
     RAISE EXCEPTION '509 gagal: setelan ada % baris, harus % (8 ambang x % badan usaha)',
       n, n_aktif * 8, n_aktif;
@@ -329,18 +390,37 @@ BEGIN
   END IF;
 
   -- ── Prasyarat data ────────────────────────────────────────────────────
+  /*
+    KETIADAAN DATA BUKAN KEGAGALAN MIGRASI — DITURUNKAN 2026-08-31.
+
+    Cek per-tabel di bawah mencegah kelumpuhan yang nyata: automation yang tak
+    punya bahan membalas 200 dengan nol notifikasi, tak terbedakan dari
+    "semuanya beres". Alasannya benar, dan pemeriksaan per-tabel (bukan
+    gabungan) memang lebih tajam.
+
+    Tapi di basis yang BARU LAHIR semua tabel itu kosong, dan RAISE EXCEPTION
+    menghentikan SELURUH rantai migrasi — di CI, VPS baru, dan mesin developer
+    baru. Sebelas migrasi sudah melakukan itu hari ini, dan tiap satunya
+    memakan satu putaran CI penuh untuk ditemukan.
+
+    Diturunkan jadi CATATAN, dengan nama tabelnya tetap disebut supaya yang
+    membaca log tahu automation mana yang belum punya bahan.
+
+    Automation tanpa data DIAM. Rantai migrasi yang berhenti membuat seluruh
+    sistem tak bisa dipasang sama sekali.
+  */
   SELECT count(*) INTO n FROM pemantauan_lingkungan;
-  IF n < 1 THEN RAISE EXCEPTION '509 gagal: pemantauan_lingkungan kosong'; END IF;
+  IF n < 1 THEN RAISE NOTICE '509: pemantauan_lingkungan kosong di basis ini — otomasi belum punya bahan'; END IF;
   SELECT count(*) INTO n FROM temuan_audit;
-  IF n < 1 THEN RAISE EXCEPTION '509 gagal: temuan_audit kosong'; END IF;
+  IF n < 1 THEN RAISE NOTICE '509: temuan_audit kosong di basis ini — otomasi belum punya bahan'; END IF;
   SELECT count(*) INTO n FROM itp_titik;
-  IF n < 1 THEN RAISE EXCEPTION '509 gagal: itp_titik kosong'; END IF;
+  IF n < 1 THEN RAISE NOTICE '509: itp_titik kosong di basis ini — otomasi belum punya bahan'; END IF;
   SELECT count(*) INTO n FROM sertifikat_ipc;
-  IF n < 1 THEN RAISE EXCEPTION '509 gagal: sertifikat_ipc kosong'; END IF;
+  IF n < 1 THEN RAISE NOTICE '509: sertifikat_ipc kosong di basis ini — otomasi belum punya bahan'; END IF;
   SELECT count(*) INTO n FROM cuti_ambil;
-  IF n < 1 THEN RAISE EXCEPTION '509 gagal: cuti_ambil kosong'; END IF;
+  IF n < 1 THEN RAISE NOTICE '509: cuti_ambil kosong di basis ini — otomasi belum punya bahan'; END IF;
   SELECT count(*) INTO n FROM nota_kredit;
-  IF n < 1 THEN RAISE EXCEPTION '509 gagal: nota_kredit kosong'; END IF;
+  IF n < 1 THEN RAISE NOTICE '509: nota_kredit kosong di basis ini — otomasi belum punya bahan'; END IF;
 
   RAISE NOTICE '509 OK: 6 aturan + target, 8 setelan, 1 harian + 5 mingguan; temuan_k3_lewat_tenggat DICABUT (% badan usaha)', n_aktif;
 END $$;

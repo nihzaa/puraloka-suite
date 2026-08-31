@@ -260,20 +260,39 @@ BEGIN
     Diperiksa per-tabel supaya pesannya menyebut TABEL MANA yang kosong; satu
     pemeriksaan gabungan akan lulus selama satu tabel saja terisi.
   */
+  /*
+    KETIADAAN DATA BUKAN KEGAGALAN MIGRASI — DITURUNKAN 2026-08-31.
+
+    Cek per-tabel di bawah mencegah kelumpuhan yang nyata: automation yang tak
+    punya bahan membalas 200 dengan nol notifikasi, tak terbedakan dari
+    "semuanya beres". Alasannya benar, dan pemeriksaan per-tabel (bukan
+    gabungan) memang lebih tajam.
+
+    Tapi di basis yang BARU LAHIR semua tabel itu kosong, dan RAISE EXCEPTION
+    menghentikan SELURUH rantai migrasi — di CI, VPS baru, dan mesin developer
+    baru. Sebelas migrasi sudah melakukan itu hari ini, dan tiap satunya
+    memakan satu putaran CI penuh untuk ditemukan.
+
+    Diturunkan jadi CATATAN, dengan nama tabelnya tetap disebut supaya yang
+    membaca log tahu automation mana yang belum punya bahan.
+
+    Automation tanpa data DIAM. Rantai migrasi yang berhenti membuat seluruh
+    sistem tak bisa dipasang sama sekali.
+  */
   SELECT count(*) INTO n FROM punch_items;
-  IF n < 1 THEN RAISE EXCEPTION '468 gagal: punch_items kosong'; END IF;
+  IF n < 1 THEN RAISE NOTICE '468: punch_items kosong di basis ini — otomasi belum punya bahan'; END IF;
   SELECT count(*) INTO n FROM ncr_items;
-  IF n < 1 THEN RAISE EXCEPTION '468 gagal: ncr_items kosong'; END IF;
+  IF n < 1 THEN RAISE NOTICE '468: ncr_items kosong di basis ini — otomasi belum punya bahan'; END IF;
   SELECT count(*) INTO n FROM inspection_requests;
-  IF n < 1 THEN RAISE EXCEPTION '468 gagal: inspection_requests kosong'; END IF;
+  IF n < 1 THEN RAISE NOTICE '468: inspection_requests kosong di basis ini — otomasi belum punya bahan'; END IF;
   SELECT count(*) INTO n FROM tindakan_mitigasi;
-  IF n < 1 THEN RAISE EXCEPTION '468 gagal: tindakan_mitigasi kosong'; END IF;
+  IF n < 1 THEN RAISE NOTICE '468: tindakan_mitigasi kosong di basis ini — otomasi belum punya bahan'; END IF;
   SELECT count(*) INTO n FROM notulen_tindakan;
-  IF n < 1 THEN RAISE EXCEPTION '468 gagal: notulen_tindakan kosong'; END IF;
+  IF n < 1 THEN RAISE NOTICE '468: notulen_tindakan kosong di basis ini — otomasi belum punya bahan'; END IF;
   SELECT count(*) INTO n FROM temuan_k3;
-  IF n < 1 THEN RAISE EXCEPTION '468 gagal: temuan_k3 kosong'; END IF;
+  IF n < 1 THEN RAISE NOTICE '468: temuan_k3 kosong di basis ini — otomasi belum punya bahan'; END IF;
   SELECT count(*) INTO n FROM rfq;
-  IF n < 1 THEN RAISE EXCEPTION '468 gagal: rfq kosong'; END IF;
+  IF n < 1 THEN RAISE NOTICE '468: rfq kosong di basis ini — otomasi belum punya bahan'; END IF;
 
   RAISE NOTICE '468 OK: 7 aturan + target, 5 setelan, 4 jadwal harian + 3 mingguan (% badan usaha)', n_aktif;
 END $$;

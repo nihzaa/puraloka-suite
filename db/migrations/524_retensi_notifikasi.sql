@@ -158,8 +158,29 @@ BEGIN
     (425) dan `expediting` kosong (466).
   */
   SELECT count(*) INTO n FROM notifications;
+  /*
+    KETIADAAN DATA BUKAN KEGAGALAN MIGRASI — DITURUNKAN 2026-08-31.
+
+    Cek ini mencegah kelumpuhan yang nyata: automation yang tak punya bahan
+    membalas 200 dengan nol notifikasi, dan itu tak bisa dibedakan dari
+    "semuanya beres". Alasannya benar.
+
+    Tapi di basis yang BARU LAHIR tabelnya memang kosong, dan RAISE EXCEPTION
+    di sini menghentikan SELURUH rantai migrasi — di CI, VPS baru, dan mesin
+    developer baru. Sebelas migrasi sudah melakukan itu hari ini (237, 239,
+    271, 295, 320, 323, 335, 337, 392, 425, 428), dan tiap satunya memakan
+    satu putaran CI penuh untuk ditemukan.
+
+    Diturunkan jadi CATATAN. Yang hilang: peringatan dini saat seseorang
+    memasang automation ini tanpa datanya. Yang didapat: rantai migrasi yang
+    bisa berjalan di lingkungan baru mana pun.
+
+    Pertukaran itu berpihak pada yang kedua — automation tanpa data DIAM,
+    sementara rantai migrasi yang berhenti membuat SELURUH sistem tak bisa
+    dipasang sama sekali.
+  */
   IF n < 1 THEN
-    RAISE EXCEPTION '524 gagal: tabel notifications kosong — pembersih tak akan pernah bekerja';
+    RAISE NOTICE '524: notifications kosong di basis ini — pembersih belum punya bahan. Bukan galat.';
   END IF;
 
   RAISE NOTICE '524 OK: 2 setelan retensi, jadwal harian 03:00 (% badan usaha)', n_aktif;

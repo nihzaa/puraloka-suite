@@ -183,8 +183,29 @@ BEGIN
     dari "tak ada perkara yang terlantar".
   */
   SELECT count(*) INTO n FROM sengketa;
+  /*
+    KETIADAAN DATA BUKAN KEGAGALAN MIGRASI — DITURUNKAN 2026-08-31.
+
+    Cek ini mencegah kelumpuhan yang nyata: automation yang tak punya bahan
+    membalas 200 dengan nol notifikasi, dan itu tak bisa dibedakan dari
+    "semuanya beres". Alasannya benar.
+
+    Tapi di basis yang BARU LAHIR tabelnya memang kosong, dan RAISE EXCEPTION
+    di sini menghentikan SELURUH rantai migrasi — di CI, VPS baru, dan mesin
+    developer baru. Sebelas migrasi sudah melakukan itu hari ini (237, 239,
+    271, 295, 320, 323, 335, 337, 392, 425, 428), dan tiap satunya memakan
+    satu putaran CI penuh untuk ditemukan.
+
+    Diturunkan jadi CATATAN. Yang hilang: peringatan dini saat seseorang
+    memasang automation ini tanpa datanya. Yang didapat: rantai migrasi yang
+    bisa berjalan di lingkungan baru mana pun.
+
+    Pertukaran itu berpihak pada yang kedua — automation tanpa data DIAM,
+    sementara rantai migrasi yang berhenti membuat SELURUH sistem tak bisa
+    dipasang sama sekali.
+  */
   IF n < 1 THEN
-    RAISE EXCEPTION '467 gagal: sengketa kosong — otomasi ini tak akan pernah berbunyi';
+    RAISE NOTICE '467: sengketa kosong di basis ini — otomasi belum punya bahan. Bukan galat.';
   END IF;
 
   RAISE NOTICE '467 OK: aturan + target, 4 setelan, jadwal mingguan (% badan usaha)', n_aktif;
