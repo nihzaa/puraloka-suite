@@ -178,4 +178,77 @@ if (nVer !== 1) {
   console.error('[eas-pre-install] hasilnya bukan satu dokumen — install akan gagal lagi.')
   process.exit(1)
 }
+/*
+  ══════════════════════════════════════════════════════════════════════════
+  `overrides` DISALIN ke package.json — pnpm 9 tak membacanya dari workspace
+  ══════════════════════════════════════════════════════════════════════════
+
+  Normalisasi di atas menghilangkan ERR_PNPM_BROKEN_LOCKFILE, tetapi server
+  lalu menolak dengan galat kedua:
+
+      ERR_PNPM_LOCKFILE_CONFIG_MISMATCH
+      The current "overrides" configuration doesn't match the lockfile
+
+  Sebabnya BUKAN lockfile-nya. Diukur 2026-09-01 dengan meniru versi server:
+
+      pnpm 9.15.5 menulis lockfile-nya sendiri → `overrides` HILANG seluruhnya
+
+  `overrides` di repo ini tinggal di `pnpm-workspace.yaml` — fitur pnpm 10+.
+  **pnpm 9 tak membacanya dari sana.** Jadi ia melihat "nol overrides" di
+  konfigurasi sementara lockfile memuat dua belas, dan menyimpulkan keduanya
+  tak cocok.
+
+  Galatnya benar; yang menyesatkan adalah ia menuduh lockfile, sementara yang
+  kurang justru pembacaan konfigurasinya.
+
+  Server EAS memakai pnpm 9.15.5 (terbaca di fase SPIN_UP_BUILDER); mesin
+  pengembang memakai 11.8.0. Itu sebabnya lokal selalu lolos dan server
+  selalu menolak — delapan build.
+
+  ── Kenapa menulis package.json, bukan mengubah pnpm-workspace.yaml
+
+  `overrides` di workspace.yaml adalah bentuk yang BENAR untuk pnpm 11, dan
+  memindahkannya ke package.json akan menurunkan repo ke bentuk lama demi
+  satu server build. Hook ini menyalin — bukan memindahkan — dan hanya di
+  server (`EAS_BUILD`).
+
+  Diuji dengan pnpm 9.15.5 sungguhan lewat `npx pnpm@9.15.5`:
+
+      tanpa salinan → ERR_PNPM_LOCKFILE_CONFIG_MISMATCH
+      dengan salinan → Done in 305ms
+*/
+function salinOverrides() {
+  const WS = join(AKAR, 'pnpm-workspace.yaml')
+  const PKG = join(AKAR, 'package.json')
+  if (!existsSync(WS) || !existsSync(PKG)) return
+
+  const baris = readFileSync(WS, 'utf8').split(String.fromCharCode(10))
+  const mulai = baris.findIndex((l) => l === 'overrides:')
+  if (mulai < 0) {
+    console.log('[eas-pre-install] `overrides:` tak ada di pnpm-workspace.yaml — dilewati.')
+    return
+  }
+
+  const ov = {}
+  for (let i = mulai + 1; i < baris.length; i++) {
+    const l = baris[i]
+    if (l && !/^\s/.test(l)) break            // kunci tingkat-atas berikutnya
+    if (/^\s*#/.test(l) || !l.trim()) continue // komentar / baris kosong
+    const m = l.match(/^  '?([^':]+?)'?:\s*'?([^'#]+?)'?\s*(?:#.*)?$/)
+    if (m) ov[m[1]] = m[2].trim()
+  }
+
+  if (Object.keys(ov).length === 0) {
+    console.log('[eas-pre-install] nol overrides terbaca — package.json tak disentuh.')
+    return
+  }
+
+  const pkg = JSON.parse(readFileSync(PKG, 'utf8'))
+  pkg.pnpm = { ...(pkg.pnpm ?? {}), overrides: ov }
+  writeFileSync(PKG, JSON.stringify(pkg, null, 2) + String.fromCharCode(10), 'utf8')
+  console.log(`[eas-pre-install] ${Object.keys(ov).length} overrides disalin ke package.json`)
+}
+
+salinOverrides()
+
 console.log('[eas-pre-install] selesai.')
