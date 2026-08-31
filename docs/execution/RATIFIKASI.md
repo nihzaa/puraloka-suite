@@ -3677,8 +3677,23 @@ Tabel konsekuensi terhadap sepuluh spek `deny: 'pm'` **tidak berubah**.
 
 **Lima policy `projects` memakai literal peran** `'admin'`/`'pm'`/`'mandor'`/
 `'client'` — diukur. ADR-004 melarang literal peran sebagai gerbang
-otorisasi, dan penjaga yang ada hanya memeriksa KODE; tak satu pun memeriksa
-`pg_policies`.
+otorisasi.
+
+> ⚠ Koreksi kecil atas koreksi ini: saya sempat menulis bahwa "tak satu pun
+> penjaga memeriksa `pg_policies`". **Salah** — `audit-rls-literal-peran.mjs`
+> ADA dan berjalan di CI. Dijalankan:
+>
+> ```
+> policy total            : 805
+> memakai literal peran   : 68
+> sudah has_permission()  : 350
+> lantai (maks)           : 68        ✅ tidak bertambah
+> ```
+>
+> Jadi kelima policy `projects` itu **terhitung dan dibekukan**, bukan luput.
+> Yang belum ada bukan penjaganya, melainkan keputusan untuk MENURUNKAN
+> lantai 68 itu. Penjaga ratchet menahan pertambahan; ia tak pernah
+> memerintahkan perbaikan.
 
 Akibatnya nyata dan tak terlihat: tenant yang membuat peran sendiri lewat UI
 (`direktur`, `kepala_proyek`, `site_manager`) **tak akan pernah lolos policy
