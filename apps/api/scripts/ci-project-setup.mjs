@@ -445,6 +445,57 @@ try {
   console.log('[grants] restore GRANT public → anon/authenticated/service_role OK')
 } catch (e) { console.warn('[grants] gagal:', e.message.split('\n')[0]) }
 
+// ── pegawai (bahan uji klaim perjalanan, sertifikat K3, timesheet) ─────────
+//
+// Sembilan test merah 2026-08-31 berbunyi "tak ada pegawai untuk diuji" —
+// klaim-perjalanan (6), sertifikat-K3, dan turunannya. Tabel `pegawai`
+// menyambungkan `users` ke modul SDM, dan tak ada satu pun seed yang
+// membuatnya.
+//
+// DUA pegawai, bukan satu: `klaim-perjalanan.test.ts` menguji pemisahan tugas
+// — pengaju tak boleh menyetujui klaimnya sendiri — dan itu butuh dua orang
+// yang berbeda. Satu pegawai membuat test-nya lewat tanpa menguji apa pun.
+await seed('pegawai x2 (bahan uji klaim & SDM)', async () => {
+  const co = (await c.query(`SELECT id FROM companies ORDER BY created_at LIMIT 1`)).rows[0]
+  if (!co) throw new Error('tak ada company untuk dipasangi pegawai')
+
+  for (const [email, jabatan] of [
+    ['ci-admin@puraloka.test', 'CI seed pegawai A'],
+    ['ci-pm@puraloka.test', 'CI seed pegawai B'],
+  ]) {
+    await c.query(
+      `INSERT INTO pegawai (company_id, user_id, jabatan)
+       SELECT $1::uuid, u.id, $2::text FROM public.users u
+        WHERE u.email = $3::text
+          AND NOT EXISTS (SELECT 1 FROM pegawai p WHERE p.user_id = u.id)`,
+      [co.id, jabatan, email])
+  }
+
+  const { rows } = await c.query(`SELECT count(*)::int n FROM pegawai`)
+  if (rows[0].n < 2) throw new Error(`hanya ${rows[0].n} pegawai — pemisahan tugas tak bisa diuji`)
+})
+
+// ── rab_items level `category` (bahan uji portofolio biaya) ────────────────
+//
+// `cost-control-portofolio.test.ts` menolak berjalan tanpa ini, dan
+// penolakannya benar: "basis tak punya satu pun rab_items level category —
+// test ini tak menguji apa pun". Test yang lewat tanpa bahan memberi rasa
+// aman yang salah.
+await seed('rab_items kategori (bahan uji portofolio biaya)', async () => {
+  const pr = (await c.query(`SELECT id FROM projects ORDER BY created_at LIMIT 1`)).rows[0]
+  if (!pr) throw new Error('tak ada proyek untuk dipasangi RAB')
+
+  await c.query(
+    `INSERT INTO rab_items (project_id, name, level)
+     SELECT $1::uuid, $2::text, 'category'
+      WHERE NOT EXISTS (SELECT 1 FROM rab_items WHERE name = $2::text)`,
+    [pr.id, 'CI seed kategori RAB'])
+
+  const { rows } = await c.query(
+    `SELECT count(*)::int n FROM rab_items WHERE level = 'category'`)
+  if (rows[0].n < 1) throw new Error('nol rab_items level category')
+})
+
 // ── DIAGNOSTIK state (evidence, bukan tebakan) ─────────────────────────────
 const one = async (q) => { try { return JSON.stringify((await c.query(q)).rows) } catch (e) { return 'ERR ' + e.message.split('\n')[0] } }
 console.log('\n[DIAG] roles:', await one(`SELECT count(*)::int n FROM roles`))
