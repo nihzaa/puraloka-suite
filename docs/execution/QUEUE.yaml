@@ -659,14 +659,30 @@ items:
       pemblokirnya lepas. Sama seperti F6-1 yang sempat tampak tak bisa
       disentuh padahal bisa (2026-08-07).
 
-      Tapi kriterianya memang BELUM terpenuhi. Diukur 2026-08-07:
+      ANGKA DI BAWAH INI SUDAH DIPERBAIKI 2026-08-31 — versi lamanya
+      ("96 halaman, 93 pakai useEffect-fetch", diukur 2026-08-07) BASI dan
+      menyesatkan: ia membuat item ini tampak seperti pekerjaan XL yang
+      belum tersentuh, padahal sudah hampir tuntas.
 
-        halaman page.tsx              96
-        yang memakai useEffect-fetch  93   <- kriteria: "turun drastis"
+      Diukur ulang 2026-08-31:
 
-      Ini pekerjaan XL yang nyata, bukan status yang perlu dikoreksi.
-      Butuh keputusan pustaka lebih dulu (TanStack Query atau SWR), dan itu
-      menyentuh 93 halaman sekaligus - lihat RATIFIKASI.
+        halaman page.tsx                   296   (bukan 96)
+        sudah memakai useData (cache)      254
+        masih useEffect-fetch tanpa cache    23   <- sisa pekerjaan
+
+      Jadi 273 dari 296 halaman SUDAH pindah. Keputusan pustaka pun sudah
+      lewat: lapis cache buatan sendiri (`apps/web/lib/data-cache.ts`) sudah
+      dipakai luas, jadi TanStack/SWR tak lagi jadi pertanyaan terbuka.
+
+      Dijaga ratchet `audit-halaman-pakai-cache.mjs` (lantai 23 per
+      2026-08-31, diturunkan dari 24). Sisanya dikerjakan bertahap; tiap
+      halaman yang pindah menurunkan lantainya.
+
+      PELAJARAN: angka di dokumen antrean membusuk sama seperti angka di
+      dokumen konteks. Kalau ragu, UKUR:
+
+        find apps/web/app -name page.tsx | wc -l
+        cd apps/api && node scripts/audit-halaman-pakai-cache.mjs
 
   - id: F4-3
     fase: 4

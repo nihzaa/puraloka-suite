@@ -46,6 +46,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { useData } from "@/lib/data-cache";
 import { useTerpasang } from "@/lib/use-terpasang";
 import { History, AlertTriangle, ShieldAlert } from "lucide-react";
 import { api } from "@/lib/api";
@@ -171,36 +172,39 @@ export default function HalamanRiwayatAsisten() {
 }
 
 function Konten() {
-  const [daftar, setDaftar] = useState<Percakapan[]>([]);
-  const [ringkas, setRingkas] = useState<Ringkas | null>(null);
-  const [keputusan, setKeputusan] = useState<Keputusan[]>([]);
-  const [memuat, setMemuat] = useState(true);
+  /*
+    Lapis cache bersama (F4-2) — dua permintaan ini dibagi lintas navigasi.
+
+    Sebelumnya: dua `api.get` di dalam `useCallback` + `useEffect`, yang
+    berarti tiap kali halaman ini dibuka permintaannya diulang meski datanya
+    baru saja diambil. `useData` men-dedup permintaan yang sama dan menahan
+    hasilnya, jadi berpindah halaman lalu kembali tak menembak API lagi.
+  */
+  const riwayat = useData<{ data: Percakapan[]; ringkas: Ringkas }>("/api/v1/ai/riwayat");
+  const kep = useData<{ data: Keputusan[] }>("/api/v1/ai/riwayat/keputusan");
+
+  const daftar = riwayat.data?.data ?? [];
+  const ringkas = riwayat.data?.ringkas ?? null;
+  const keputusan = kep.data?.data ?? [];
+  const memuat = riwayat.memuat || kep.memuat;
   const [terbuka, setTerbuka] = useState<string | null>(null);
   const [isi, setIsi] = useState<Record<string, Pesan[]>>({});
   const [pesan, setPesan] = useState<string | null>(null);
+  const galatMuat = riwayat.galat || kep.galat ? "Gagal memuat riwayat asisten" : null;
 
+  /*
+    `muat` kini hanya untuk MUAT ULANG sesudah aksi (hapus/ubah), bukan untuk
+    pengambilan pertama — itu tugas `useData` di atas.
+  */
   const muat = useCallback(async () => {
-    try {
-      const [r, k] = await Promise.all([
-        api.get<{ data: Percakapan[]; ringkas: Ringkas }>("/api/v1/ai/riwayat"),
-        api.get<{ data: Keputusan[] }>("/api/v1/ai/riwayat/keputusan"),
-      ]);
-      setDaftar(r.data.data ?? []);
-      setRingkas(r.data.ringkas);
-      setKeputusan(k.data.data ?? []);
-    } catch {
-      setPesan("Gagal memuat riwayat asisten");
-    } finally {
-      setMemuat(false);
-    }
-  }, []);
+    await Promise.all([riwayat.muatUlang(), kep.muatUlang()]);
+  }, [riwayat, kep]);
 
-  // `queueMicrotask`, bukan panggilan langsung: `muat()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
-  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
-  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
-  // menambah jeda yang terlihat.
-  useEffect(() => { queueMicrotask(() => { void muat(); }); }, [muat]);
+  /*
+    Effect pemuatan awal DIHAPUS — `useData` yang mengambil datanya, termasuk
+    penanganan galat dan status memuat. Menyisakan effect ini akan membuat
+    permintaan GANDA tiap halaman dibuka.
+  */
 
   async function buka(p: Percakapan) {
     const baru = terbuka === p.id ? null : p.id;
@@ -312,6 +316,18 @@ function Konten() {
         ]}
         catatan="Lama simpan riwayat diatur di halaman Asisten AI. Percakapan memuat kutipan data operasional, jadi menyimpannya tanpa batas bukan pilihan yang netral."
       />
+
+      {/*
+        Galat MUAT dan galat AKSI ditampilkan TERPISAH — dijaga
+        `uji-galat-muat-terpisah.mjs` (ambang NOL). Satu state bersama
+        membuat gagal-simpan MENGHAPUS pesan gagal-muat, dan pengguna
+        kehilangan alasan halamannya kosong.
+      */}
+      {galatMuat && (
+        <p role="status" style={{ marginBottom: 12, fontSize: 12.5, color: C.danger }}>
+          {galatMuat}
+        </p>
+      )}
 
       {pesan && (
         <p role="status" style={{ marginBottom: 12, fontSize: 12.5, color: C.danger }}>
