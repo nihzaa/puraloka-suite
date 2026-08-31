@@ -122,7 +122,19 @@ if (hanyaKode.length || hanyaBasis.length) {
   sesudah ia mengisi seluruh dimensinya.
 */
 const isiLib = readFileSync(BERKAS_LIB, 'utf8')
-const tanpaSatuan = kode.filter((s) => !new RegExp(`\\b${s}:\\s*'`).test(isiLib))
+/*
+  Menerima kutip TUNGGAL maupun GANDA — diperbaiki 2026-08-31.
+
+  Versi sebelumnya hanya mengenali `nama: '`. Satuan bored pile adalah
+  m-aksen (meter panjang, notasi resmi AHSP), dan apostrof di dalamnya
+  MEMAKSA kutip ganda di TypeScript.
+
+  Akibatnya penjaga melapor "Sektor tanpa satuan: bored_pile" untuk satuan
+  yang JELAS-JELAS ada di berkasnya — temuan palsu yang menuduh kode benar,
+  dan menuntun ke perbaikan yang justru merusak: mengganti satuannya jadi
+  m biasa akan menyamakannya dengan kusen/pipa.
+*/
+const tanpaSatuan = kode.filter((s) => !new RegExp(`\\b${s}:\\s*['"]`).test(isiLib))
 const tanpaCabang = kode.filter((s) => !new RegExp(`case '${s}':`).test(isiLib))
 
 if (tanpaSatuan.length || tanpaCabang.length) {

@@ -56,10 +56,12 @@ const SEKTOR = [
   { nilai: "sanitair", label: "Sanitair — per unit" },
   { nilai: "mep_pipa", label: "Pipa MEP — panjang" },
   { nilai: "mep_titik", label: "Titik MEP — per titik" },
+  { nilai: "bored_pile", label: "Bored pile — kedalaman × titik (m')" },
+  { nilai: "baja_profil", label: "Baja profil — panjang × berat/m (kg)" },
 ] as const;
 
 /** Dimensi yang ditampilkan per sektor — kolom yang tak relevan disembunyikan. */
-const MEDAN: Record<string, Array<"panjang" | "lebar" | "tinggi" | "kemiringan" | "cacah" | "bukaan">> = {
+const MEDAN: Record<string, Array<"panjang" | "lebar" | "tinggi" | "kemiringan" | "cacah" | "bukaan" | "beratPerMeter">> = {
   "": ["panjang", "lebar", "tinggi"],
   atap: ["panjang", "lebar", "kemiringan"],
   plafon: ["panjang", "lebar"],
@@ -70,6 +72,8 @@ const MEDAN: Record<string, Array<"panjang" | "lebar" | "tinggi" | "kemiringan" 
   sanitair: ["cacah"],
   mep_pipa: ["panjang"],
   mep_titik: ["cacah"],
+  bored_pile: ["panjang"],
+  baja_profil: ["panjang", "beratPerMeter"],
 };
 
 interface BarisBukaan { nama: string; lebar: string; tinggi: string; jumlah: string }
@@ -91,7 +95,7 @@ interface Hasil {
  */
 export function hitung(
   sektor: string,
-  d: { panjang: string; lebar: string; tinggi: string; kemiringan: string; cacah: string; jumlah: string; faktor: string },
+  d: { panjang: string; lebar: string; tinggi: string; kemiringan: string; cacah: string; jumlah: string; faktor: string; beratPerMeter?: string },
   bukaan: BarisBukaan[],
 ): Hasil | { galat: string } {
   const n = (v: string) => (v.trim() === "" ? NaN : Number(v));
@@ -112,6 +116,45 @@ export function hitung(
     return {
       volume: c * fak, satuan: sektor === "sanitair" ? "unit" : "titik",
       rincian: `${ang(c, 0)} titik${fak !== 1 ? ` × faktor ${ang(fak)}` : ""}`, catatan,
+    };
+  }
+
+  /*
+    BORED PILE — kedalaman × jumlah titik, satuan m' (meter panjang).
+
+    KEMBAR dengan `hitungBarisSektor` di apps/api/src/lib/takeoff-sektor.ts.
+    Rumusnya disalin dari AHSP resmi (SE Bina Konstruksi No. 47/2026),
+    sheet "Hitungan Volume" baris 100: =H100*J100 -> 10 x 20 = 200 M'.
+
+    Diameter TIDAK ikut dihitung — AHSP sudah memisahkan harganya per
+    diameter, jadi mengalikannya di sini menghitung diameter DUA KALI.
+  */
+  if (sektor === "bored_pile") {
+    if (!Number.isFinite(p) || p <= 0) return { galat: "Isi kedalaman lubang (panjang)" };
+    return {
+      volume: p * jml * fak, satuan: "m'",
+      rincian: `kedalaman ${ang(p)} m × ${ang(jml, 0)} titik${fak !== 1 ? ` × faktor ${ang(fak)}` : ""}`,
+      catatan,
+    };
+  }
+
+  /*
+    BAJA PROFIL — panjang × berat per meter × batang, satuan kg.
+
+    Bukan luas, bukan volume: seluruh pekerjaan struktur baja di AHSP resmi
+    bersatuan kg ("1 kg Pabrikasi dan Ereksi Baja Profil", butir 2.3.1.1).
+
+    Berat/m diminta EKSPLISIT, tak diturunkan dari dimensi — WF 200x100 dan
+    H 200x200 sama tingginya tapi beratnya jauh berbeda.
+  */
+  if (sektor === "baja_profil") {
+    const bpm = n(d.beratPerMeter ?? "");
+    if (!Number.isFinite(p) || p <= 0) return { galat: "Isi panjang batang" };
+    if (!Number.isFinite(bpm) || bpm <= 0) return { galat: "Isi berat per meter profil (kg/m)" };
+    return {
+      volume: p * bpm * jml * fak, satuan: "kg",
+      rincian: `${ang(p)} m × ${ang(bpm)} kg/m × ${ang(jml, 0)} batang${fak !== 1 ? ` × faktor ${ang(fak)}` : ""}`,
+      catatan,
     };
   }
 

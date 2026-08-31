@@ -65,16 +65,44 @@ export type Sektor =
   | 'sanitair'    // closet, wastafel, kran          → unit
   | 'mep_pipa'    // pipa air bersih/kotor           → m
   | 'mep_titik'   // titik lampu, saklar, stop kontak → titik
+  | 'bored_pile'  // pengeboran pondasi bor           → m' (kedalaman × titik)
+  | 'baja_profil' // pabrikasi & ereksi baja profil   → kg (panjang × berat/m)
 
 export const SEKTOR_SAH: readonly Sektor[] = [
   'atap', 'plafon', 'dinding', 'lantai', 'kusen', 'daun', 'sanitair',
   'mep_pipa', 'mep_titik',
+  // Dua sektor STRUKTUR — ditambahkan 2026-08-31 dari sumber resmi, bukan
+  // ditebak. Lihat komentar SATUAN_SEKTOR di bawah.
+  'bored_pile', 'baja_profil',
 ]
 
 /** Satuan hasil per sektor — kembar dengan satuan AHSP-nya di basis. */
 export const SATUAN_SEKTOR: Record<Sektor, string> = {
   atap: 'm2', plafon: 'm2', dinding: 'm2', lantai: 'm2',
   kusen: 'm', daun: 'm2', sanitair: 'unit', mep_pipa: 'm', mep_titik: 'titik',
+  /*
+    DUA SATUAN INI DIAMBIL DARI AHSP RESMI, BUKAN DITEBAK.
+
+    Sumber: `_source/ahsp/` — SE Bina Konstruksi No. 47 Tahun 2026.
+
+      bored_pile → m'   "Pengeboran 1 m' lubang bored pile φ 20 cm ..."
+                        (Daftar Harga Satuan Pekerjaan, butir 2.2.2.3.x)
+                        Rumus volumenya terbaca langsung dari sel Excel
+                        `Hitungan Volume` baris 100: `=H100*J100`
+                        → 10 (kedalaman) × 20 (titik) = 200 M'
+
+      baja_profil → kg  "1 kg Pabrikasi dan Ereksi Baja Profil" (butir
+                        2.3.1.1), dan bahannya "Baja Profil | kg | Rp16.480".
+                        Seluruh pekerjaan struktur baja di sheet BAJA
+                        bersatuan kg — nol yang bersatuan m² atau m³.
+
+    Kenapa ini penting sampai ditulis sepanjang ini: menebak salah satunya
+    menghasilkan kuantitas RAB yang salah TANPA satu pun galat. Harga per m³
+    yang tersalin ke baris kg pernah membuat 1 m³ beton terhitung Rp 626 juta
+    dan menyebar ke 32 AHSP — itulah alasan penjaga
+    `audit-harga-satuan-waras.mjs` dibuat.
+  */
+  bored_pile: "m'", baja_profil: 'kg',
 }
 
 /**
@@ -124,6 +152,15 @@ export interface BarisSektorInput {
   bukaan?: Bukaan[]
   /** Cacah langsung — untuk `sanitair` dan `mep_titik`. */
   cacah?: number
+  /**
+   * Berat per meter profil, kg/m — WAJIB untuk sektor `baja_profil`.
+   *
+   * Diminta eksplisit, TIDAK diturunkan dari dimensi: WF 200×100 dan
+   * H 200×200 punya tinggi sama tapi berat sangat berbeda, dan angkanya
+   * datang dari tabel profil pabrikan. Menebaknya menghasilkan tonase yang
+   * salah tanpa satu pun galat, lalu menyebar ke harga.
+   */
+  beratPerMeter?: number
 }
 
 export interface BarisSektorHasil {
@@ -246,6 +283,58 @@ export function hitungBarisSektor(input: BarisSektorInput): BarisSektorHasil {
     case 'mep_titik': {
       volume = wajibPositif('cacah', input.cacah) * faktor
       rincian = `${ang(input.cacah!, 0)} titik${faktor !== 1 ? ` × faktor ${ang(faktor)}` : ''}`
+      break
+    }
+
+    /*
+      BORED PILE — kedalaman × jumlah titik, hasilnya METER PANJANG.
+
+      Rumus ini DISALIN dari sumber resmi, bukan dikarang. `_source/ahsp/
+      Format RAB Khusus Bangunan Gedung AHSP NO 47Tahun 2026.xlsm`, sheet
+      "Hitungan Volume" baris 100:
+
+          Pengeboran Bored Piled dia. 40 cm | M' | ( P ) | 10.00 | 20.00 | 200.00
+          sel M100 rumus: =H100*J100          → kedalaman × titik
+
+      Diameternya TIDAK masuk hitungan volume — dan itu memang benar, bukan
+      kelalaian. AHSP-nya sudah memisahkan harga per diameter ("φ 20 cm",
+      "φ 30 cm" adalah butir yang berbeda dengan harga berbeda), jadi
+      mengalikan luas penampang di sini akan menghitung diameter DUA KALI.
+
+      `panjangM` dipakai sebagai KEDALAMAN per titik, `jumlah` sebagai
+      banyaknya titik — sama dengan H dan J di rumus aslinya.
+    */
+    case 'bored_pile': {
+      const dalam = wajibPositif('panjang', input.panjangM)
+      volume = dalam * jumlah * faktor
+      rincian = `kedalaman ${ang(dalam)} m × ${ang(jumlah, 0)} titik`
+        + `${faktor !== 1 ? ` × faktor ${ang(faktor)}` : ''}`
+      break
+    }
+
+    /*
+      BAJA PROFIL — panjang × berat per meter, hasilnya KILOGRAM.
+
+      Bukan luas, bukan volume. Seluruh pekerjaan struktur baja di AHSP
+      resmi bersatuan kg: "1 kg Pabrikasi dan Ereksi Baja Profil" (2.3.1.1),
+      "1 kg Pemasangan angkur" (2.3.1.2), "1 kg Pemasangan Mur dan Baut"
+      (2.3.1.3). Bahannya pun "Baja Profil | kg | Rp16.480".
+
+      Berat per meter TIDAK boleh ditebak dari dimensi — profil WF 200×100
+      dan H 200×200 punya tinggi sama tapi berat sangat berbeda, dan angkanya
+      datang dari tabel profil pabrikan. Karena itu ia diminta EKSPLISIT
+      lewat `beratPerMeter`, dan tanpa itu fungsi ini menolak alih-alih
+      menebak — menebak di sini menghasilkan tonase yang salah tanpa satu
+      pun galat, lalu menyebar ke harga.
+
+      `panjangM` = panjang batang, `jumlah` = banyaknya batang.
+    */
+    case 'baja_profil': {
+      const p = wajibPositif('panjang', input.panjangM)
+      const bpm = wajibPositif('beratPerMeter', input.beratPerMeter)
+      volume = p * bpm * jumlah * faktor
+      rincian = `${ang(p)} m × ${ang(bpm)} kg/m × ${ang(jumlah, 0)} batang`
+        + `${faktor !== 1 ? ` × faktor ${ang(faktor)}` : ''}`
       break
     }
 
