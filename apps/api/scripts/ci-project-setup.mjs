@@ -529,6 +529,104 @@ await seed('rab_items kategori (bahan uji portofolio biaya)', async () => {
   if (rows[0].n < 1) throw new Error('nol rab_items level category')
 })
 
+/*
+  ── BAHAN UJI YANG SELAMA INI HILANG ──────────────────────────────────────
+  Ditambahkan 2026-08-31, sesudah CI melaporkan 20 kegagalan berbentuk sama:
+
+      tenant uji tak punya kasbon approved — test ini tak menguji apa pun
+      basis tak punya rekening kas aktif
+      basis tak punya tukang aktif — test tak menguji apa pun
+      basis tak punya kasbon belum lunas — test ini tak menguji apa pun
+
+  Kalimat-kalimat itu ditulis oleh test-nya sendiri, dan bunyinya tepat: yang
+  gagal BUKAN kodenya melainkan ketiadaan bahan. Semua test ini HIJAU di dev,
+  karena dev punya data yang lahir dari pemakaian. CI membangun dari nol.
+
+  Itu perbedaan yang berbahaya: test yang lewat karena "tak ada bahan" akan
+  hijau selamanya di lingkungan baru sambil tak menguji apa pun — kelas cacat
+  yang sama dengan penjaga yang melewati dirinya sendiri (lihat seed `assets`).
+
+  Bentuk kolom & enum di bawah DIUKUR dari basis, bukan ditebak:
+
+      kasbon_fund_source  owner_advance | client_fund
+      kasbon_status       pending | approved | rejected | settled
+      cash_account_type   main | collector | petty_cash
+*/
+await seed('cash_account (bahan uji kas & alokasi dana)', async () => {
+  await c.query(
+    `INSERT INTO cash_accounts (company_id, name, type, is_active, created_by)
+     SELECT (SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1),
+            'CI Seed Kas Utama', 'main', true,
+            COALESCE((SELECT id FROM public.users WHERE email='ci-admin@puraloka.test' LIMIT 1),
+                     (SELECT id FROM public.users ORDER BY created_at LIMIT 1))
+      WHERE NOT EXISTS (SELECT 1 FROM cash_accounts WHERE name='CI Seed Kas Utama')
+        AND EXISTS (SELECT 1 FROM companies WHERE parent_company_id IS NULL)`)
+
+  const { rows } = await c.query(
+    `SELECT count(*)::int n FROM cash_accounts WHERE is_active`)
+  if (rows[0].n === 0) throw new Error('nol rekening kas aktif sesudah seed')
+})
+
+/*
+  `mandor_id` lewat COALESCE, BUKAN lewat JOIN — diperbaiki setelah diuji.
+
+  Versi pertama mengambil mandor dengan `FROM (SELECT ... LIKE 'ci-mandor%') m`
+  lalu CROSS JOIN. Diuji terhadap basis: **0 baris tersisip**, senyap, exit 0 —
+  karena baris kiri kosong membuat CROSS JOIN kosong.
+
+  Di CI user itu ADA, jadi cacat ini tak akan pernah merah di sana. Tapi seed
+  yang bisa menghasilkan nol baris tanpa mengeluh adalah persis kelas cacat
+  yang seluruh blok ini dibuat untuk menutup.
+*/
+await seed('worker x2 (bahan uji tukang & beban mandor)', async () => {
+  await c.query(
+    `INSERT INTO workers (company_id, mandor_id, name, phone, is_active)
+     SELECT (SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1),
+            COALESCE(
+              (SELECT id FROM public.users WHERE email LIKE 'ci-mandor%' ORDER BY created_at LIMIT 1),
+              (SELECT id FROM public.users ORDER BY created_at LIMIT 1)),
+            v.nama, v.telp, true
+       FROM (VALUES ('CI Seed Tukang A', '0811000001'),
+                    ('CI Seed Tukang B', '0811000002')) AS v(nama, telp)
+      WHERE NOT EXISTS (SELECT 1 FROM workers w WHERE w.name = v.nama)
+        AND EXISTS (SELECT 1 FROM public.users)`)
+
+  const { rows } = await c.query(
+    `SELECT count(*)::int n FROM workers WHERE is_active`)
+  if (rows[0].n === 0) throw new Error('nol tukang aktif sesudah seed')
+})
+
+/*
+  Kasbon DUA STATUS, sengaja.
+
+  Satu test menuntut "kasbon approved" dan test LAIN menuntut "tak semua
+  kasbon approved — saringan status tak teruji". Menyeed satu status saja
+  memperbaiki yang satu dan merahkan yang lain; keduanya benar, dan yang
+  dibutuhkan memang dua-duanya.
+*/
+await seed('kasbon x2 (approved + pending, bahan uji saringan status)', async () => {
+  await c.query(
+    `INSERT INTO kasbons (company_id, project_id, amount, fund_source, purpose,
+                          status, requested_by)
+     SELECT (SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1),
+            (SELECT id FROM projects ORDER BY created_at LIMIT 1),
+            v.jml, 'owner_advance', v.tujuan, v.st::kasbon_status,
+            COALESCE((SELECT id FROM public.users WHERE email LIKE 'ci-mandor%' ORDER BY created_at LIMIT 1),
+                     (SELECT id FROM public.users ORDER BY created_at LIMIT 1))
+       FROM (VALUES (2500000, 'CI Seed kasbon disetujui', 'approved'),
+                    (1500000, 'CI Seed kasbon menunggu',  'pending')) AS v(jml, tujuan, st)
+      WHERE NOT EXISTS (SELECT 1 FROM kasbons k WHERE k.purpose = v.tujuan)
+        AND EXISTS (SELECT 1 FROM projects)`)
+
+  // Kedua cabang harus benar-benar ada — bukan cuma "seed jalan".
+  const { rows } = await c.query(
+    `SELECT count(*) FILTER (WHERE status='approved')::int a,
+            count(*) FILTER (WHERE status <> 'approved')::int b
+       FROM kasbons`)
+  if (rows[0].a === 0) throw new Error('nol kasbon approved sesudah seed')
+  if (rows[0].b === 0) throw new Error('SEMUA kasbon approved — saringan status tak akan teruji')
+})
+
 // ── DIAGNOSTIK state (evidence, bukan tebakan) ─────────────────────────────
 const one = async (q) => { try { return JSON.stringify((await c.query(q)).rows) } catch (e) { return 'ERR ' + e.message.split('\n')[0] } }
 console.log('\n[DIAG] roles:', await one(`SELECT count(*)::int n FROM roles`))
