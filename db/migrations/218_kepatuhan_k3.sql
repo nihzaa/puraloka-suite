@@ -75,6 +75,38 @@ BEGIN
                      JOIN permissions p2 ON p2.id = rp.permission_id
                     WHERE rp.role_id = r.id AND p2.key = pasangan[i][2])
     ON CONFLICT DO NOTHING;
+
+    /*
+      CADANGAN — DITAMBAHKAN 2026-08-31.
+
+      Pemberian di atas BERSYARAT: izin baru diturunkan hanya ke peran yang
+      sudah memegang izin pasangannya. Kebijakannya benar — yang melihat
+      pengadaan boleh melihat kepatuhan, yang memverifikasi punch boleh
+      memutuskan izin kerja.
+
+      Tapi bila TAK ADA peran yang memegang izin pasangan itu, INSERT-nya
+      memasukkan NOL baris tanpa galat, dan `uji-invarian-kepatuhan.mjs`
+      merah jauh di belakang:
+
+          ❌ BOCOR permission kepatuhan:view tak dimiliki peran mana pun —
+             halaman lahir terkunci
+
+      Kelima izin ini kena sekaligus di basis yang baru lahir. Halaman
+      kepatuhan dan izin kerja lalu 403 untuk SEMUA orang, termasuk pemilik —
+      fitur yang utuh, teruji, dan mati.
+
+      Diberikan ke `admin` HANYA bila belum ada pemegang sama sekali; di basis
+      yang izin pasangannya sudah tersebar ia no-op. Tunduk ADR-004: satu
+      pemegang awal supaya fiturnya bisa dicapai, sisanya lewat UI peran.
+
+      Pola yang sama dengan 238, 271, 295, 337, dan 340 hari ini.
+    */
+    INSERT INTO role_permissions (role_id, permission_id)
+    SELECT r.id, p.id FROM roles r CROSS JOIN permissions p
+     WHERE r.name = 'admin'
+       AND p.key = pasangan[i][1]
+       AND NOT EXISTS (SELECT 1 FROM role_permissions rp WHERE rp.permission_id = p.id)
+    ON CONFLICT DO NOTHING;
   END LOOP;
 END $$;
 
