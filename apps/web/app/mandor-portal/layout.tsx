@@ -87,7 +87,7 @@ export default function MandorPortalLayout({ children }: { children: React.React
     { href: "/mandor-portal/scope", label: "Scope", icon: Briefcase },
     { href: "/mandor-portal/kasbon", label: "Kasbon", icon: Wallet },
     { href: "/mandor-portal/progress", label: "Progress", icon: ClipboardList },
-    { href: "/mandor-portal/lainnya", label: "Lainnya", icon: FolderKanban },
+    { href: "/mandor-portal/lainnya", label: "Lainnya", icon: FolderKanban, akhirDiSidebar: true },
   ];
 
   const modeSwitcher = isPM ? (

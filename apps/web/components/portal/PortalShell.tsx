@@ -42,6 +42,26 @@ export interface NavItem {
   label: string;
   icon: LucideIcon;
   exact?: boolean;
+  /**
+   * Selalu diletakkan PALING BAWAH di sidebar PC, berapa pun posisinya di
+   * `navItems`.
+   *
+   * Kenapa perlu: urutan `navItems` ditentukan oleh bottom nav HP, yang
+   * hanya mengambil empat item pertama (`navItems.slice(0, 4)`). Portal
+   * dengan lebih dari empat tujuan menaruh entri kelimanya SESUDAH entri
+   * "Lainnya" supaya empat slot HP tak bergeser — keputusan yang benar
+   * untuk HP, dan terdokumentasi panjang di masing-masing layout.
+   *
+   * Sidebar PC merender SELURUH array, jadi urutan yang sama membuat
+   * "Lainnya" muncul di TENGAH dengan tujuan nyata sesudahnya. Terbaca
+   * seperti menu yang salah susun.
+   *
+   * `tsc` hijau untuk itu, dan pengukuran adaptif pun hijau — sidebar
+   * memang tampil, bottom nav memang tersembunyi, lebar baca memang
+   * terjaga. Ketahuan hanya dari MEMOTRET (2026-09-01, /admin-portal
+   * @1440px).
+   */
+  akhirDiSidebar?: boolean;
 }
 
 export interface PortalShellProps {
@@ -82,6 +102,21 @@ export default function PortalShell({
   const pathname = usePathname();
   const primaryItems = navItems.slice(0, 4);
   const hasMore = navItems.length > 4;
+
+  /*
+    Sidebar PC memakai urutan SENDIRI: item bertanda `akhirDiSidebar`
+    turun ke dasar. Bottom nav HP tetap memakai `navItems` apa adanya,
+    jadi empat slot pertamanya tak bergeser sedikit pun.
+
+    `filter` dua kali, bukan `sort` — `sort` pada perbandingan boolean
+    tak stabil di seluruh mesin, dan urutan menu yang berubah-ubah antar
+    peramban adalah cacat yang lebih sulit dilacak daripada yang
+    diperbaikinya.
+  */
+  const sidebarItems = [
+    ...navItems.filter((i) => !i.akhirDiSidebar),
+    ...navItems.filter((i) => i.akhirDiSidebar),
+  ];
 
   return (
     <div
@@ -273,7 +308,7 @@ export default function PortalShell({
           className="portal-sidebar-nav"
           style={{ flexDirection: "column", gap: 2, marginTop: 20 }}
         >
-          {navItems.map((item) => {
+          {sidebarItems.map((item) => {
             const aktif = isActive(pathname, item.href, item.exact);
             const Ikon = item.icon;
             return (

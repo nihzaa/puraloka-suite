@@ -68,7 +68,7 @@ export default function PmPortalLayout({ children }: { children: React.ReactNode
     { href: "/pm-portal/approval", label: "Approval", icon: Inbox },
     { href: "/pm-portal/proyek", label: "Proyek", icon: FolderKanban },
     { href: "/pm-portal/keuangan", label: "Keuangan", icon: Wallet },
-    { href: "/pm-portal/lainnya", label: "Lainnya", icon: Users },
+    { href: "/pm-portal/lainnya", label: "Lainnya", icon: Users, akhirDiSidebar: true },
   ];
 
   return (

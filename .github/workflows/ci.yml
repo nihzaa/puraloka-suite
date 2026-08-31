@@ -3014,6 +3014,23 @@ jobs:
       - name: Tiap modul punya nama di breadcrumb
         run: node scripts/uji-remah-lengkap.mjs
 
+      # "Lainnya" wajib jadi entri TERAKHIR di sidebar PC. navItems melayani
+      # dua pembaca dengan aturan berbeda: bottom nav HP mengambil empat
+      # pertama, sidebar PC merender semuanya. Menaruh entri kelima SESUDAH
+      # "Lainnya" adalah keputusan yang benar untuk HP (empat slot tak
+      # bergeser) dan salah untuk sidebar.
+      #
+      # Diukur 2026-09-01 di /admin-portal @1440px:
+      #   Beranda · Approval · Proyek · Keuangan · Lainnya · Kontrak
+      #
+      # tsc hijau, test hijau, dan potret-portal-adaptif pun HIJAU untuk
+      # ketiga pengukurannya. Semua benar; menunya tetap salah susun.
+      #
+      # Ambang NOL. Bukti merah: tiga arah (tanda dicabut · entri lain ikut
+      # bertanda · korpus kosong).
+      - name: "Lainnya" di dasar sidebar portal
+        run: node scripts/uji-lainnya-di-dasar-sidebar.mjs
+
       # Ubin ikon judul hanya boleh digambar DUA komponen bersama, dan
       # keduanya harus sebentuk. Founder 2026-08-14 menyebut tiga gejala yang
       # tampak terpisah — "ada yg double icon", "grup pengadaan/akuntansi/

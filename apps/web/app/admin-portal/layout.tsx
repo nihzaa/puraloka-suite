@@ -119,7 +119,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin-portal/inbox", label: "Approval", icon: Inbox },
   { href: "/admin-portal/proyek", label: "Proyek", icon: FolderKanban },
   { href: "/admin-portal/keuangan", label: "Keuangan", icon: Wallet },
-  { href: "/admin-portal/kategori", label: "Lainnya", icon: MoreHorizontal },
+  { href: "/admin-portal/kategori", label: "Lainnya", icon: MoreHorizontal, akhirDiSidebar: true },
   { href: "/admin-portal/kontrak/register", label: "Kontrak", icon: FileSignature },
 ];
 

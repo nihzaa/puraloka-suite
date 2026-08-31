@@ -63,6 +63,14 @@ mkdirSync(KELUAR, { recursive: true })
    memakai sandi yang sama. Kalau suatu hari berbeda, tambahkan
    LAYAR_SANDI_PM / LAYAR_SANDI_MANDOR di sini. */
 const HALAMAN = [
+  /*
+    admin-portal DULU: akun admin berhak, jadi ia terukur TANPA menunggu
+    sandi akun peran. Meletakkan yang terblokir di depan membuat seluruh
+    laporan jadi nol temuan — dan nol temuan dari korpus kosong tak
+    membuktikan apa pun.
+  */
+  ['admin-portal', '/admin-portal', EMAIL],
+  ['admin-keuangan', '/admin-portal/keuangan/kas', EMAIL],
   ['pm-portal', '/pm-portal', process.env.LAYAR_EMAIL_PM ?? 'uji.pm.portal@puraloka.test'],
   ['mandor-portal', '/mandor-portal', process.env.LAYAR_EMAIL_MANDOR ?? 'uji.mandor.portal@puraloka.test'],
 ]
