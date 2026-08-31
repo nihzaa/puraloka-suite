@@ -44,7 +44,8 @@
  * sekilas tanpa membaca teksnya.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useData } from "@/lib/data-cache";
 import { useIzin } from "@/lib/use-izin";
 import {
   Workflow, Play, RefreshCw, Plus, Pencil, ChevronRight,
@@ -244,14 +245,31 @@ export default function HalamanAlurOtomasi() {
   const bolehJalankan = useIzin("otomasi:alur:jalankan");
   const bolehKelola = useIzin("otomasi:alur:kelola");
 
-  const [daftar, setDaftar] = useState<Alur[]>([]);
-  const [n8nSiap, setN8nSiap] = useState(true);
-  const [memuat, setMemuat] = useState(true);
+  /*
+    Lapis cache bersama (F4-2) untuk dua bacaan katalog.
+
+    `muatLog` (log eksekusi) sengaja TIDAK ikut: ia dipanggil MALAS, hanya
+    saat tab "log" dibuka pertama kali (baris ~630). Memindahkannya ke
+    `useData` akan menembakkannya tiap halaman dibuka — kebalikan dari yang
+    dirancang.
+  */
+  const sAlur = useData<{ data: Alur[]; n8n_siap: boolean }>("/api/v1/otomasi/alur");
+  const sIkhtisar = useData<Ikhtisar>("/api/v1/otomasi/alur/ikhtisar");
+  const daftar = useMemo(() => sAlur.data?.data ?? [], [sAlur.data]);
+  const n8nSiap = sAlur.data?.n8n_siap ?? true;
+  const memuat = sAlur.memuat || sIkhtisar.memuat;
+
+  /*
+    Galat MUAT punya barisnya sendiri, TIDAK numpang `pesan` (galat aksi).
+    Katalog alur yang gagal dimuat tampil kosong dan terbaca "belum ada
+    otomasi" — padahal mungkin ada tujuh yang sedang berjalan.
+  */
+  const galatMuat = sAlur.galat || sIkhtisar.galat ? "Gagal memuat katalog alur" : null;
   const [jejak, setJejak] = useState<Record<string, Jalan[]>>({});
   const [terbuka, setTerbuka] = useState<string | null>(null);
   const [sedang, setSedang] = useState<string | null>(null);
   const [pesan, setPesan] = useState<{ tipe: "ok" | "err"; teks: string } | null>(null);
-  const [ikhtisar, setIkhtisar] = useState<Ikhtisar | null>(null);
+  const ikhtisar = sIkhtisar.data ?? null;
   const [logLintas, setLogLintas] = useState<JalanLintas[] | null>(null);
   const [bagian, setBagian] = useState<Bagian>("monitor");
   const [formBuka, setFormBuka] = useState(false);
@@ -262,21 +280,13 @@ export default function HalamanAlurOtomasi() {
   const [konfirmHapus, setKonfirmHapus] = useState<string | null>(null);
   const [sedangHapus, setSedangHapus] = useState<string | null>(null);
 
+  /*
+    Hanya untuk MUAT ULANG sesudah aksi (hidup/mati/hapus alur) —
+    pengambilan pertama dikerjakan `useData` di atas.
+  */
   const muat = useCallback(async () => {
-    try {
-      const [r, k] = await Promise.all([
-        api.get<{ data: Alur[]; n8n_siap: boolean }>("/api/v1/otomasi/alur"),
-        api.get<Ikhtisar>("/api/v1/otomasi/alur/ikhtisar"),
-      ]);
-      setDaftar(r.data.data ?? []);
-      setN8nSiap(r.data.n8n_siap);
-      setIkhtisar(k.data);
-    } catch {
-      setPesan({ tipe: "err", teks: "Gagal memuat katalog alur" });
-    } finally {
-      setMemuat(false);
-    }
-  }, []);
+    await Promise.all([sAlur.muatUlang(), sIkhtisar.muatUlang()]);
+  }, [sAlur, sIkhtisar]);
 
   const muatLog = useCallback(async () => {
     try {
@@ -291,12 +301,10 @@ export default function HalamanAlurOtomasi() {
     }
   }, []);
 
-  // `queueMicrotask`, bukan panggilan langsung: `muat()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
-  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
-  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
-  // menambah jeda yang terlihat.
-  useEffect(() => { queueMicrotask(() => { void muat(); }); }, [muat]);
+  /*
+    Effect pemuatan awal DIHAPUS — `useData` yang mengambil datanya.
+    Menyisakannya membuat permintaan GANDA tiap halaman dibuka.
+  */
 
   async function bukaJejak(a: Alur) {
     const baru = terbuka === a.id ? null : a.id;
@@ -557,6 +565,17 @@ export default function HalamanAlurOtomasi() {
             </a>.
           </span>
         </div>
+      )}
+
+      {/*
+        Galat MUAT terpisah dari galat AKSI — uji-galat-muat-terpisah.mjs.
+        Katalog alur yang gagal dimuat tampil kosong dan terbaca "belum ada
+        otomasi", padahal mungkin ada tujuh yang sedang berjalan.
+      */}
+      {galatMuat && (
+        <p role="status" style={{ marginBottom: 12, fontSize: 12.5, color: "var(--danger)" }}>
+          {galatMuat}
+        </p>
       )}
 
       {pesan && (
