@@ -45,7 +45,7 @@
  * entitas asing (I-4, penanda paling awal upaya injeksi lewat dokumen).
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useData } from "@/lib/data-cache";
 import { useTerpasang } from "@/lib/use-terpasang";
 import { History, AlertTriangle, ShieldAlert } from "lucide-react";
@@ -193,12 +193,11 @@ function Konten() {
   const galatMuat = riwayat.galat || kep.galat ? "Gagal memuat riwayat asisten" : null;
 
   /*
-    `muat` kini hanya untuk MUAT ULANG sesudah aksi (hapus/ubah), bukan untuk
-    pengambilan pertama — itu tugas `useData` di atas.
+    Tak ada `muat()` lagi: sesudah pindah ke `useData`, nol pemanggil
+    tersisa (diperiksa `grep "muat("`). Membiarkannya hanya menambah warning
+    untuk fungsi yang tak pernah dipanggil, dan ratchet lint berambang NOL
+    untuk `no-unused-vars`. Muat ulang manual: `riwayat.muatUlang()`.
   */
-  const muat = useCallback(async () => {
-    await Promise.all([riwayat.muatUlang(), kep.muatUlang()]);
-  }, [riwayat, kep]);
 
   /*
     Effect pemuatan awal DIHAPUS — `useData` yang mengambil datanya, termasuk

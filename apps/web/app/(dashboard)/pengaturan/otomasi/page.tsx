@@ -48,6 +48,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useData } from "@/lib/data-cache";
 import Link from "next/link";
 import { Bot, Save, SlidersHorizontal } from "lucide-react";
 import { api } from "@/lib/api";
@@ -117,36 +118,51 @@ function formatSatuan(n: number, satuan: string): string {
 }
 
 export default function PengaturanOtomasiPage() {
-  const [ambang, setAmbang] = useState<Ambang[]>([]);
-  const [awal, setAwal] = useState<Record<string, number> | null>(null);
+  /*
+    Lapis cache bersama (F4-2). Yang di-cache hanya BACAAN dari server;
+    `nilai` tetap state lokal karena ia isian form yang sedang disunting —
+    menimpanya dari cache akan MENGHAPUS ketikan orang saat cache menyegarkan
+    dirinya.
+  */
+  const sumber = useData<{ ambang: Ambang[] }>("/api/v1/settings/ambang-otomasi");
+  /*
+    `useMemo`, bukan `?? []` telanjang: literal array baru tiap render
+    membuat `useMemo` di bawah (baris ~180) menghitung ulang SETIAP kali,
+    yang justru menghapus manfaat memo-nya.
+  */
+  const ambang = useMemo(() => sumber.data?.ambang ?? [], [sumber.data]);
+
+  const awal = sumber.data
+    ? Object.fromEntries((sumber.data.ambang ?? []).map((a) => [a.kunci, a.nilai]))
+    : null;
+
   const [nilai, setNilai] = useState<Record<string, number>>({});
   const [galat, setGalat] = useState<string | null>(null);
+  // Galat MUAT terpisah dari galat AKSI — dijaga uji-galat-muat-terpisah.mjs.
+  const galatMuat = sumber.galat ? "Gagal memuat pengaturan otomasi" : null;
   const [pesan, setPesan] = useState<string | null>(null);
   const [menyimpan, setMenyimpan] = useState(false);
 
-  // `setGalat(null)` di dalam blok async — lihat alasannya di halaman
-  // Katalog Otomasi: sebagai baris pertama ia menaikkan ratchet lint.
+  /*
+    `muat` kini hanya untuk MUAT ULANG sesudah menyimpan — pengambilan
+    pertama dikerjakan `useData` di atas. Menyisakan pengambilan di sini
+    membuat permintaan GANDA tiap halaman dibuka.
+  */
   const muat = useCallback(async () => {
-    try {
-      setGalat(null);
-      const r = await api.get<{ ambang: Ambang[] }>(
-        "/api/v1/settings/ambang-otomasi",
-      );
-      const daftar = r.data.ambang ?? [];
-      const peta: Record<string, number> = {};
-      for (const a of daftar) peta[a.kunci] = a.nilai;
-      setAmbang(daftar);
-      setAwal(peta);
-      setNilai(peta);
-    } catch (e) {
-      setGalat(e instanceof Error ? e.message : "Gagal memuat pengaturan otomasi");
-    }
-  }, []);
+    setGalat(null);
+    await sumber.muatUlang();
+  }, [sumber]);
 
-  // `queueMicrotask` — sama dengan halaman Katalog Otomasi dan Riwayat
-  // Asisten; tanpa itu `setState` berjalan sinkron di badan efek dan ratchet
-  // lint naik.
-  useEffect(() => { queueMicrotask(() => { void muat(); }); }, [muat]);
+  /*
+    Isian form disamakan dengan data server HANYA saat data itu berganti —
+    bukan tiap render. Tanpa penjaga `awal`, tiap penyegaran cache akan
+    menimpa ketikan yang belum disimpan.
+  */
+  useEffect(() => {
+    if (!awal) return;
+    queueMicrotask(() => { setNilai(awal); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sumber.data]);
 
   /*
     Hanya yang BERUBAH yang dikirim.
@@ -178,7 +194,17 @@ export default function PengaturanOtomasiPage() {
       await api.put("/api/v1/settings/config", {
         updates: berubah.map((k) => ({ key: k, value: nilai[k] })),
       });
-      setAwal({ ...nilai });
+      /*
+        MUAT ULANG, bukan `setAwal({...nilai})`.
+
+        `awal` kini diturunkan dari data server, jadi menyalin nilai form ke
+        dalamnya tak lagi mungkin — dan itu justru lebih benar: yang dipakai
+        sebagai pembanding "sudah berubah atau belum" kini nilai yang SUNGGUH
+        tersimpan di server, bukan yang kita KIRA tersimpan. Kalau server
+        menormalkan angkanya (pembulatan, batas), perbedaannya langsung
+        terlihat alih-alih tersembunyi sampai halaman dibuka ulang.
+      */
+      await sumber.muatUlang();
       setPesan(`${berubah.length} pengaturan tersimpan. Berlaku pada pemeriksaan berikutnya.`);
     } catch (e) {
       setGalat(e instanceof Error ? e.message : "Gagal menyimpan pengaturan");
@@ -212,6 +238,14 @@ export default function PengaturanOtomasiPage() {
         }
       />
 
+      {/*
+        Dua galat, dua baris — dijaga `uji-galat-muat-terpisah.mjs`.
+        Galat MUAT ("halaman tak bisa mengambil datanya") dan galat AKSI
+        ("simpan gagal") tak boleh berbagi satu state: gagal simpan akan
+        MENGHAPUS pesan gagal muat, dan orang kehilangan alasan halamannya
+        kosong.
+      */}
+      {galatMuat && <Galat pesan={galatMuat} onCobaLagi={() => void muat()} />}
       {galat && <Galat pesan={galat} onCobaLagi={() => void muat()} />}
       {!awal && !galat && <Rangka tinggi={104} jumlah={5} />}
 

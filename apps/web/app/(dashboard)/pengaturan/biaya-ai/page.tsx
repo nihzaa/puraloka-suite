@@ -36,12 +36,12 @@
  * netral.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useData } from "@/lib/data-cache";
 import { useTerpasang } from "@/lib/use-terpasang";
 import {
   Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
-import { api } from "@/lib/api";
 import { Coins, Info, Zap } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
@@ -97,32 +97,39 @@ export default function BiayaAiPage() {
 }
 
 function Konten() {
-  const [muatan, setMuatan] = useState<Muatan | null>(null);
   const [hari, setHari] = useState(30);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState<string | null>(null);
 
-  const muat = useCallback(async (n: number) => {
-    setMemuat(true);
-    setGalat(null);
-    try {
-      const r = await api.get<Muatan>(`/api/v1/ai/biaya?hari=${n}`);
-      setMuatan(r.data);
-    } catch {
-      // Dinyatakan, bukan dibiarkan kosong: halaman yang diam saat gagal
-      // terbaca sebagai "belum ada pemakaian" — kesimpulan yang keliru.
-      setGalat("Gagal memuat riwayat biaya.");
-    } finally {
-      setMemuat(false);
-    }
-  }, []);
+  /*
+    Lapis cache bersama (F4-2) — dan di halaman ini efeknya paling terasa.
 
-  // `queueMicrotask`, bukan panggilan langsung: `muat()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
-  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
-  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
-  // menambah jeda yang terlihat.
-  useEffect(() => { queueMicrotask(() => { void muat(hari); }); }, [muat, hari]);
+    URL-nya ikut `hari`, jadi 30/60/90 masing-masing punya entri cache
+    sendiri. Bolak-balik antar rentang TAK menembak API lagi sesudah
+    pertama kali; sebelumnya tiap klik memicu permintaan baru.
+
+    `useData` juga yang mengosongkan datanya saat URL berganti, sehingga
+    angka rentang LAMA tak sempat terlihat di bawah label rentang BARU.
+  */
+  const sumber = useData<Muatan>(`/api/v1/ai/biaya?hari=${hari}`);
+  const muatan = sumber.data;
+  const memuat = sumber.memuat;
+
+  // Galat MUAT terpisah dari galat aksi — dijaga uji-galat-muat-terpisah.mjs.
+  // Dinyatakan, bukan dibiarkan kosong: halaman yang diam saat gagal terbaca
+  // sebagai "belum ada pemakaian" — kesimpulan yang keliru.
+  const galat = sumber.galat ? "Gagal memuat riwayat biaya." : null;
+
+  /*
+    Tak ada `muat()` lagi — sesudah pindah ke `useData`, tak satu pun
+    pemanggil tersisa (diperiksa: nol kecocokan `muat(`). Menyisakannya
+    sebagai pembungkus `muatUlang` hanya menambah warning lint untuk fungsi
+    yang tak pernah dipanggil. Muat ulang manual, bila kelak dibutuhkan,
+    tinggal `sumber.muatUlang()`.
+  */
+
+  /*
+    Effect pemuatan DIHAPUS — `useData` sudah mengikuti `hari` lewat URL-nya.
+    Menyisakannya membuat permintaan GANDA tiap rentang diganti.
+  */
 
   const t = muatan?.total;
   const adaData = (t?.panggilan ?? 0) > 0;
