@@ -4044,3 +4044,78 @@ SELECT g.key, g.label, count(a.id) anak
    AND a.href LIKE '/%' AND a.href NOT LIKE '/m/%'
  GROUP BY g.key, g.label ORDER BY 3 DESC;
 ```
+
+---
+
+## R-022 · Otomasi: 329 tugas terjadwal, NOL denyut yang memanggilnya
+
+**Diajukan 2026-09-01. Belum ada yang diubah.**
+
+### Yang diukur, dan yang ternyata SALAH dari laporan awal
+
+`lapor-otomasi-hidup.mjs` menyebut *"11 aktif, 5 nol jalan"*. Ditelusuri,
+angka itu jauh lebih kecil dari kenyataannya:
+
+```
+jadwal_tugas         329 baris · SEMUANYA aktif
+otomasi_jalan          8 baris  ← total sepanjang masa
+eksekusi 7 hari terakhir: NOL
+sukses terakhir      2026-08-14   (18 hari lalu)
+```
+
+Dan kelima alur yang dilaporkan "nol jalan" ternyata **tak terdaftar sama
+sekali** di `jadwal_tugas` — jadi bukan "aktif tapi tak jalan", melainkan
+tak pernah dijadwalkan.
+
+### Rutenya BEKERJA — dibuktikan, bukan diasumsikan
+
+Dipanggil langsung dari dalam container produksi:
+
+```
+HTTP 200
+{"ok":true,"diperiksa":329,"sukses":0,"gagal":0,"dilewati":329,
+ "alasan":"sudah-jalan-periode-ini"}
+```
+
+Rute `POST /api/v1/jadwal/jalankan` sehat, klaim atomiknya jalan,
+`SCHEDULER_SECRET` sudah terpasang di `.env` VPS (32 karakter), dan
+`scripts/penjadwal-lokal.mjs` sudah ditulis lengkap.
+
+**Yang hilang cuma satu: sesuatu yang memanggilnya secara berkala.**
+
+Diperiksa di VPS — nol cron, nol systemd timer, nol container penjadwal:
+
+```bash
+crontab -l | grep -i jadwal          → kosong
+systemctl list-timers | grep puraloka → kosong
+docker ps | grep -iE 'jadwal|sched'   → kosong
+```
+
+### Kenapa TIDAK saya pasang sendiri
+
+Menyalakan denyut 15 menit atas 329 tugas di basis yang melayani produksi
+berarti **otomasi mulai mengirim notifikasi, WhatsApp, dan tagihan** —
+sebagian ke pihak luar. Itu bukan keputusan teknis.
+
+Yang perlu diputuskan:
+
+1. **Denyutnya dinyalakan?** Kalau ya, otomasi yang selama ini diam akan
+   mulai bekerja — dan 329 tugas × 13 badan usaha berarti banyak sekali
+   pesan pada denyut pertama.
+2. **Kalau ya, bertahap atau sekaligus?** Saran saya: jalankan
+   `--sekali` lebih dulu di jam kerja sambil ditonton, baru dipasang
+   sebagai layanan tetap.
+3. **Cara memasangnya** — cron di VPS, systemd timer, atau container
+   sendiri di `docker-compose.yml`. Yang ketiga paling rapi karena ikut
+   ter-deploy, tapi menambah satu container.
+
+### Cara mengukur ulang
+
+```bash
+cd apps/api && node -r dotenv/config scripts/lapor-otomasi-hidup.mjs
+```
+
+```sql
+SELECT count(*) FROM jadwal_tugas WHERE aktif;
+SELECT max(dimulai_pada) FROM otomasi_jalan;
+```
