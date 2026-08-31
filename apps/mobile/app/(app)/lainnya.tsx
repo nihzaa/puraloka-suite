@@ -36,8 +36,16 @@ type Modul = {
   judul: string;
   ringkas: string;
   emoji: string;
-  /** Izin yang dibutuhkan. `null` = terbuka untuk semua yang sudah masuk. */
-  izin: string | null;
+  /**
+   * Izin yang dibutuhkan. `null` = terbuka untuk semua yang sudah masuk.
+   *
+   * Array berarti SALAH SATU cukup, bukan semuanya. Dibutuhkan oleh layar
+   * yang menyatukan beberapa jenis: "Pekerjaan Saya" berguna bagi yang
+   * hanya punya `ncr:view`, dan menuntut `punch:view` juga akan
+   * menyembunyikannya dari orang yang seharusnya melihatnya. Layarnya
+   * sendiri menyaring lagi per jenis, jadi tak ada yang bocor.
+   */
+  izin: string | string[] | null;
   /**
    * Jalur NATIVE di dalam aplikasi. Kalau diisi, item ini membuka layar
    * React Native — bukan WebView.
@@ -52,6 +60,10 @@ type Modul = {
 const MODUL: Modul[] = [
   /* Layar LAPANGAN (native) di atas — yang paling sering dipakai orang yang
      membuka daftar ini dari lokasi, bukan dari kantor. */
+  {
+    kunci: 'pekerjaan', judul: 'Pekerjaan Saya', ringkas: 'Nasib temuan, NCR, dan izin yang Anda kirim',
+    emoji: '📋', izin: ['punch:view', 'ncr:view', 'k3:permit:view'], nativeJalur: '/pekerjaan',
+  },
   {
     kunci: 'punch', judul: 'Lapor Temuan', ringkas: 'Catat cacat di lokasi',
     emoji: '📌', izin: 'punch:manage', nativeJalur: '/punch/lapor',
@@ -81,7 +93,11 @@ const MODUL: Modul[] = [
 export default function Lainnya() {
   const { izin } = useAuth();
 
-  const boleh = (m: Modul) => m.izin === null || izin?.has(m.izin);
+  const boleh = (m: Modul) => {
+    if (m.izin === null) return true;
+    const perlu = Array.isArray(m.izin) ? m.izin : [m.izin];
+    return perlu.some((k) => izin?.has(k));
+  };
   const terlihat = MODUL.filter(boleh);
 
   return (

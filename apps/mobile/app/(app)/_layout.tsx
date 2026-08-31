@@ -207,6 +207,20 @@ export default function AppLayout() {
       */}
       <Tabs.Screen name="izin-kerja/ajukan" options={{ href: null }} />
 
+      {/*
+        Pekerjaan Saya — layar BACA untuk temuan, NCR, dan izin kerja.
+
+        Diukur 2026-08-31: mobile punya enam layar TULIS lapangan dan nol
+        layar baca untuk tiga di antaranya. Mandor bisa mengirim, lalu tak
+        pernah tahu nasibnya — dan izin kerja adalah GERBANG: pekerjaan
+        berbahaya menunggu persetujuan yang tak terlihat dari alat yang
+        dipakai mengajukannya.
+
+        Tak jadi tab (bilah sudah delapan); dibuka dari "Lainnya", di atas
+        ketiga layar lapor — orang memeriksa nasib sebelum melapor yang baru.
+      */}
+      <Tabs.Screen name="pekerjaan" options={{ href: null }} />
+
       <Tabs.Screen name="web/[modul]" options={{ href: null }} />
     </Tabs>
   );
