@@ -5,6 +5,77 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-31 — perkakas penjaga menipu dirinya sendiri, tiga lapis
+
+Sesi paralel (worktree `feat/batas-paket`). Tak menyentuh peran/izin —
+itu milik sesi lain.
+
+### Lapis 1 — penjaga yang BUTA di tempat ia dijalankan
+
+`audit-akhir-baris.mjs` memberi jawaban berbeda tergantung cwd:
+
+    dari akar repo   → exit 1, menyebut berkas yang akhir barisnya berubah
+    dari apps/api    → exit 0, "tak ada berkas yang berubah"
+
+`jalankan-semua-penjaga.mjs` menjalankannya dari `apps/api`. Jadi penjaga itu
+buta persis di tempat ia dipakai. Sebabnya `execFileSync('git', …)` tanpa
+`cwd`: git membatasi hasilnya ke direktori pemanggil. Diperbaiki dengan
+memaku cwd ke `git rev-parse --show-toplevel`.
+
+### Lapis 2 — merah palsu yang menenggelamkan merah sungguhan
+
+Runner menyamakan "MERAH" dengan "tak bisa dijalankan di luar CI". Tiga
+skrip yang butuh rahasia/artefak CI selalu merah di laptop, dan cacat Lapis 1
+tenggelam di antaranya. Runner sekarang membedakan MERAH dari DILEWATI,
+menyebut alasan tiap yang dilewati, dan exit code mengikuti yang merah saja.
+
+### Lapis 3 — dan mekanisme itu sendiri jadi pintu belakang
+
+Diuji dengan mutasi: penjaga dirusak (`process.exit(1)`) **plus** namanya
+ditambahkan ke daftar-lewat → kegagalannya muncul sebagai "dilewati", bukan
+"MERAH". Yang berubah cuma satu angka hijau (197 → 196) yang tak ada yang
+hafal. Nol galat.
+
+Jadi daftarnya dapat penjaganya sendiri: `audit-daftar-lewat-jujur.mjs`
+(ambang NOL, terdaftar di CI). Tiap entri DIJALANKAN, lalu kegagalannya wajib
+cocok pola lingkungan-hilang — bukan cacat kode yang sedang ditutupi.
+Terbukti merah dua arah: penjaga sehat diselundupkan → exit 1; penjaga
+merah-sungguhan diselundupkan → exit 1; dipulihkan → exit 0.
+
+### Saya salah — dan penjaga baru itu yang menangkapnya
+
+Saya mendaftarkan `coverage-ratchet.mjs` dan `audit-route-coverage-nol.mjs`
+sebagai "butuh CI" karena keduanya merah **di worktree**. Sebabnya bukan CI:
+`coverage/coverage-summary.json` cuma belum dibuat di sana. Di checkout utama
+keduanya LULUS.
+
+Saya menggeneralisasi dari satu keadaan mesin, dan nyaris mematikan dua
+penjaga nyata lewat mekanisme yang tak mengeluarkan galat apa pun. Yang
+menangkapnya penjaga yang baru saya buat beberapa menit sebelumnya, pada
+kesalahan saya sendiri. Keduanya dikeluarkan; sebab-akibat + jalan keluarnya
+(`npx vitest run --coverage`) ditulis di komentar supaya tak terulang.
+
+### Ikut ketahuan
+
+`.github/workflows/ci.yml` sempat tertulis CRLF oleh penyuntingan saya (LF di
+HEAD) — persis kerusakan yang membuat diff 17 baris membengkak jadi 3.685.
+Ditangkap `audit-akhir-baris` yang baru diperbaiki, pada perubahan saya
+sendiri, di commit yang sama. Fixture mutasi `docs/uji-crlf-sementara.md`
+yang tak sengaja ter-commit di `124df56f` dihapus.
+
+### Diukur
+
+    checkout utama, sesudah merge:
+    207 hijau · 0 MERAH · 4 dilewati (butuh CI) · 0 tak ketemu   exit 0
+
+Naik dari 202 hijau / 8 merah di awal sesi. Yang naik bukan cuma angkanya —
+delapan "merah" itu tujuh di antaranya artefak lingkungan, dan satu cacat
+nyata yang tak terlihat karena tertimbun.
+
+Commit: `124df56f`, `bc22b5c5`, merge `4f654683`, `d3492927`.
+
+---
+
 ## 2026-08-31 — klien membaca buku besar, dan lima sektor yang menutupnya
 
 Founder meminta empat hal: portal bisa tampilan PC, mobile native digarap
