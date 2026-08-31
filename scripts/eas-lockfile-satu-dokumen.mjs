@@ -79,7 +79,7 @@ if (!existsSync(LOCK)) {
 }
 
 const asli = readFileSync(LOCK, 'utf8')
-const baris = asli.split('\n')
+const baris = asli.split(String.fromCharCode(10)).map((b) => b.replace(/[\r]/g, ''))
 
 const pemisah = []
 baris.forEach((b, i) => { if (b === '---') pemisah.push(i) })
@@ -222,7 +222,9 @@ function salinOverrides() {
   const PKG = join(AKAR, 'package.json')
   if (!existsSync(WS) || !existsSync(PKG)) return
 
-  const baris = readFileSync(WS, 'utf8').split(String.fromCharCode(10))
+  // CR dibuang — pnpm-workspace.yaml juga CRLF, dan `l === 'overrides:'`
+  // tak pernah cocok dengan `overrides:` yang membawa CR di ujungnya.
+  const baris = readFileSync(WS, 'utf8').split(String.fromCharCode(10)).map((b) => b.replace(/[\r]/g, ''))
   const mulai = baris.findIndex((l) => l === 'overrides:')
   if (mulai < 0) {
     console.log('[eas-pre-install] `overrides:` tak ada di pnpm-workspace.yaml — dilewati.')
