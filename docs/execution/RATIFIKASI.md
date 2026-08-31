@@ -3954,3 +3954,93 @@ SELECT count(*) FILTER (WHERE required_permissions IS NULL
        count(*) AS total
   FROM menu_items WHERE is_active;
 ```
+
+---
+
+## R-021 · 246 menu mati sesudah rantai migrasi — 36 halaman kini yatim
+
+**Diajukan 2026-09-01. Belum ada yang diubah. Ditemukan sesi
+`puraloka-suite-7b`, ditelusuri di sini.**
+
+### Yang diukur
+
+Sesudah 164 migrasi tertinggal dijalankan:
+
+```
+menu total      420
+aktif           144
+NONAKTIF        276      ← 246 di antaranya diubah HARI INI
+```
+
+`audit-nav-yatim` merah:
+
+```
+halaman (page.tsx)  : 298
+href sidebar (DB)   : 112      ← sebelumnya 151
+❌ YATIM — halaman tanpa satu pun tautan nav: 36
+```
+
+**Enam belas grup induk mati**, dan bersamanya 104 anak yang halamannya
+NYATA:
+
+| Grup | Anak berhalaman |
+|---|---:|
+| Master Data | 16 |
+| Mandor & Subkon | 13 |
+| Layanan & Plafon AI | 13 |
+| K3 & Lingkungan | 8 |
+| Rencana & Uji Mutu | 8 |
+| Pengadaan · Budget · Laporan | 7 masing-masing |
+| Gudang · Risiko | 6 masing-masing |
+| dan tujuh grup lain | 1–4 |
+
+Diperiksa: dari 104 anak itu, **nol yang aktif**. Jadi bukan sekadar induk
+yang mati — seluruh cabangnya mati.
+
+### Kenapa ini TIDAK saya perbaiki sendiri
+
+Menyalakan 104 menu sekaligus **mengubah tampilan aplikasi secara besar**,
+dan saya tak bisa memastikan mana yang sengaja dipensiunkan.
+
+Sebagian jelas memang harus mati: `crm-lead` dan `crm-proposal` sama-sama
+menunjuk `/tender`, dan menyalakan keduanya melanggar aturan "satu rute satu
+tautan" (ambang NOL). Sebagian lain — Master Data, Gudang, K3 — terlihat
+seperti modul yang memang dipakai.
+
+Menebak di sini berarti salah satu dari dua kerusakan:
+
+- **menyalakan yang salah** → menu ganda, penjaga merah, dan pengguna
+  melihat pintu yang tak seharusnya ada
+- **membiarkan** → 36 halaman hanya bisa dibuka dengan mengetik URL
+
+### Yang mungkin jadi sebabnya — dan saya TIDAK memastikannya
+
+246 menu berubah HARI INI, bertepatan dengan rantai 164 migrasi yang saya
+jalankan. Migrasi `537_menu_grup_mati_beranak` justru MENYALAKAN grup yang
+punya anak aktif — jadi ia bukan pelakunya, dan mungkin justru berjalan
+SEBELUM anak-anaknya dimatikan migrasi lain.
+
+Saya tak menelusurinya sampai ketemu migrasi mana. Menulis tebakan sebagai
+fakta persis racun konteks yang dilarang pembuka `CLAUDE.md`.
+
+### Yang perlu diputuskan
+
+1. **Modul mana yang memang dipakai?** Master Data, Gudang & Material, K3 &
+   Lingkungan, Pengadaan — kalau dipakai, menunya harus hidup.
+2. **Bertahap atau sekaligus?** Saran saya per modul, sama seperti R-020:
+   satu migrasi per grup bisa diperiksa mata manusia; 104 menu sekaligus
+   tidak.
+
+### Cara mengukur ulang
+
+```bash
+cd apps/web && node scripts/audit-nav-yatim.mjs
+```
+
+```sql
+SELECT g.key, g.label, count(a.id) anak
+  FROM menu_items g JOIN menu_items a ON a.parent_id = g.id
+ WHERE g.parent_id IS NULL AND NOT g.is_active
+   AND a.href LIKE '/%' AND a.href NOT LIKE '/m/%'
+ GROUP BY g.key, g.label ORDER BY 3 DESC;
+```
