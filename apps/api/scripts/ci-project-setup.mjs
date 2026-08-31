@@ -299,36 +299,35 @@ await seed('milestone x2 (bahan uji invarian jadwal)', async () => {
     `SELECT id FROM projects ORDER BY created_at LIMIT 1`)
   if (!pr.length) throw new Error('tak ada proyek untuk dipasangi milestone')
 
+  /*
+    Tipe parameter ditulis EKSPLISIT, dan created_by punya cadangan.
+
+    Dua cacat diperbaiki 2026-08-31, keduanya membuat seed ini gagal DIAM:
+
+    (a) `$2` dipakai sebagai nilai kolom `title` DAN sebagai pembanding di
+        `WHERE NOT EXISTS`. Postgres menyimpulkan tipenya dari kedua
+        pemakaian dan menyerah:
+
+            inconsistent types deduced for parameter $2
+
+    (b) `created_by` NOT NULL diisi subquery yang mencari akun CI. Subquery
+        yang tak menemukan apa-apa memulangkan NULL, dan galatnya menuduh
+        KOLOM alih-alih akun yang hilang.
+
+    Seed yang gagal TIDAK menghentikan CI (per-item try/catch, sengaja),
+    jadi kegagalannya lewat sebagai satu baris di antara sebelas 'seed OK'.
+    Yang meledak kemudian test-test yang butuh milestone — jauh dari
+    sebabnya, dan bunyinya seperti cacat kode.
+
+    ⚠ Komentar penjelasan ini SENGAJA di luar template SQL. Percobaan
+    pertama menaruhnya di dalam, dan backtick di dalamnya menutup template
+    literal-nya — seluruh skrip mati SyntaxError, dan CI berhenti di
+    'Prepare CI project' sebelum satu migrasi pun dijalankan.
+  */
   for (const [judul, urut] of [['CI seed milestone A', 901], ['CI seed milestone B', 902]]) {
     await c.query(
-      /*
-        ⚠ TIPE PARAMETER DITULIS EKSPLISIT — DIPERBAIKI 2026-08-31.
-
-        Versi sebelumnya memakai `$2` di dua tempat: sebagai nilai kolom
-        `title` dan sebagai pembanding di `WHERE NOT EXISTS`. Postgres
-        menyimpulkan tipenya dari kedua pemakaian itu dan menyerah:
-
-            seed GAGAL: milestone x2 (bahan uji invarian jadwal)
-              → inconsistent types deduced for parameter $2
-
-        Seed yang gagal TIDAK menghentikan CI (per-item try/catch, sengaja),
-        jadi kegagalannya lewat sebagai satu baris di antara sebelas "seed OK".
-        Yang meledak kemudian test-test yang butuh milestone — jauh dari
-        sebabnya, dan bunyinya seperti cacat kode.
-
-        `::text` dan `::int` menghapus penyimpulan itu.
-      */
       `INSERT INTO milestones (project_id, title, target_date, sort_order, created_by)
        SELECT $1::uuid, $2::text, CURRENT_DATE + ($3::int - 900) * 30, $3::int,
-              /*
-                Jatuh ke pengguna mana pun bila akun CI belum ada.
-
-                `created_by` NOT NULL, dan subquery yang tak menemukan apa-apa
-                memulangkan NULL — INSERT-nya lalu mati dengan galat yang
-                menuduh KOLOM, bukan akun yang hilang. Seed ini berjalan
-                sesudah seed `user admin`, jadi akunnya ADA di CI; fallback ini
-                untuk lingkungan lain yang menjalankan skrip ini.
-              */
               COALESCE(
                 (SELECT id FROM public.users WHERE email='ci-admin@puraloka.test' LIMIT 1),
                 (SELECT id FROM public.users ORDER BY created_at LIMIT 1))
