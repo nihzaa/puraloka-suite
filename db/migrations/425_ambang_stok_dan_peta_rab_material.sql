@@ -125,6 +125,30 @@ SELECT p.project_id, p.material_id,
 DO $$
 DECLARE n INT; n_nol INT; n_peta INT; n_proyek INT; terkecil NUMERIC;
 BEGIN
+  /*
+    GERBANG — DITAMBAHKAN 2026-08-31.
+
+    Kedua pemeriksaan di bawah menilai HASIL BACKFILL pada tabel `materials`.
+    Di basis yang baru lahir tabel itu kosong, dan cek kedua gagal:
+
+        HARD FAIL — 425_ambang_stok_dan_peta_rab_material.sql
+          425 gagal: hanya 0 nilai min_stock berbeda — CASE satuan tak cocok
+
+    "0 nilai berbeda" pada tabel kosong bukan gejala CASE yang tak cocok; itu
+    gejala tak ada apa-apa untuk dinilai. Migrasi lalu menghentikan seluruh
+    rantai di CI, VPS baru, dan mesin developer baru.
+
+    Sama seperti gerbang 237, 239, 392, dan 428 hari ini: verifikasi yang
+    bermakna hanya bila ada datanya tak boleh jadi syarat berjalannya rantai.
+
+    Kalau materialnya ada, kedua cek berlaku penuh — termasuk cek "seragam"
+    yang justru paling berharga.
+  */
+  IF NOT EXISTS (SELECT 1 FROM materials) THEN
+    RAISE NOTICE '425 verifikasi dilewati: nol material di basis ini — tak ada yang bisa dinilai. Bukan galat.';
+    RETURN;
+  END IF;
+
   -- 1. Tak boleh ada material aktif ber-ambang nol lagi.
   SELECT count(*) INTO n_nol FROM materials WHERE coalesce(min_stock, 0) = 0;
   IF n_nol > 0 THEN
