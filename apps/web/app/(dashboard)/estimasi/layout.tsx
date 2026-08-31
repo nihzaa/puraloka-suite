@@ -59,6 +59,7 @@ const BAGIAN: Bagian[] = [
   { href: "/estimasi/rab", label: "Susun RAB" },
   { href: "/estimasi/rap", label: "Anggaran Pelaksanaan" },
   { href: "/estimasi/struktur", label: "Analisa Struktur" },
+  { href: "/estimasi/pembesian", label: "Rekomendasi Pembesian" },
   { href: "/estimasi/kas", label: "Proyeksi Kas" },
   { href: "/estimasi/varians", label: "Varians Biaya" },
   /*
@@ -103,6 +104,8 @@ const KETERANGAN: Record<string, string> = {
     "Pagu vs komitmen vs belanja aktual per cost code — apakah belanja masih di dalam anggaran.",
   "/estimasi/struktur":
     "Kekuatan penampang dan volume beton/bekisting/besi dihitung dari input yang sama — desain dan RAP tak bisa berselisih diam-diam.",
+  "/estimasi/pembesian":
+    "Dari dimensi dan beban ke usulan tulangan — arah kebalikan dari Analisa Struktur, yang justru menuntut tulangannya lebih dulu.",
 };
 
 export default function EstimasiLayout({ children }: { children: React.ReactNode }) {
