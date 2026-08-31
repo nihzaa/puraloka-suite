@@ -67,7 +67,34 @@ let bocor = 0
 let nomor = 0
 
 const DITOLAK = new Set(['23514', '23502', '23503', '23505', '22003'])
-const namaUji = () => `UJI-POS-${++nomor}-${PID.slice(0, 8)}`
+/*
+  NAMA FIXTURE HARUS UNIK PER JALAN — DIPERBAIKI 2026-08-31.
+
+  Versi sebelumnya memakai `UJI-POS-<n>-<8 char proyek>`: deterministik,
+  jadi jalan KEDUA menabrak barisnya sendiri:
+
+      error: duplicate key value violates unique constraint
+             "pos_contingency_nama_unik"
+
+  Crash-nya exit 1 — terbaca persis seperti penjaga yang MENEMUKAN
+  pelanggaran, padahal ia mati sebelum memeriksa apa pun.
+
+  Skrip ini membersihkan fixture di akhir, tetapi hanya bila SAMPAI ke
+  sana. Satu kegagalan di tengah meninggalkan barisnya, dan seluruh jalan
+  berikutnya mati di baris pertama — kelas cacat yang sama dengan migrasi
+  471 hari ini (fixture yang menuduh dirinya sendiri pada jalan kedua).
+
+  Dua perbaikan: nama diberi akhiran acak, DAN sisa fixture dari jalan
+  sebelumnya disapu di awal.
+*/
+const SESI = Math.random().toString(36).slice(2, 8)
+const namaUji = () => `UJI-POS-${++nomor}-${PID.slice(0, 8)}-${SESI}`
+
+// Sisa fixture dari jalan yang gagal di tengah — disapu sebelum apa pun.
+await db.query(
+  `DELETE FROM penggunaan_contingency WHERE pos_id IN
+     (SELECT id FROM pos_contingency WHERE nama LIKE 'UJI-POS-%')`)
+await db.query(`DELETE FROM pos_contingency WHERE nama LIKE 'UJI-POS-%'`)
 
 // Pos induk sementara untuk menguji penarikan.
 const { rows: induk } = await db.query(
