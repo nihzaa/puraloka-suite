@@ -6,12 +6,27 @@
 -- ============================================================
 -- KATEGORI INDUK
 -- ============================================================
+-- ⚠ `ON CONFLICT (id) DO NOTHING` DITAMBAHKAN 2026-08-31.
+--
+-- Seed ini memakai id yang dipaku, jadi dijalankan dua kali ia mati:
+--
+--     duplicate key value violates unique constraint
+--     "expense_category_templates_pkey"
+--
+-- Migrasi di repo ini wajib idempoten (CLAUDE.md §8a.5). Yang tak idempoten
+-- baru menggigit saat replay — di lingkungan baru, atau saat rantainya
+-- diputar ulang untuk diperiksa.
+--
+-- Ditemukan dengan menjalankan SETIAP migrasi dua kali berturut-turut, bukan
+-- dari CI: 462 diuji, 4 tak idempoten.
+
 INSERT INTO expense_category_templates (id, name, type, parent_id, sort_order) VALUES
   ('c1000000-0000-0000-0000-000000000001', 'Material',     'material',    NULL, 1),
   ('c2000000-0000-0000-0000-000000000001', 'Upah',         'labor',       NULL, 2),
   ('c3000000-0000-0000-0000-000000000001', 'Peralatan',    'equipment',   NULL, 3),
   ('c4000000-0000-0000-0000-000000000001', 'Operasional',  'operational', NULL, 4),
-  ('c5000000-0000-0000-0000-000000000001', 'Lain-lain',    'other',       NULL, 5);
+  ('c5000000-0000-0000-0000-000000000001', 'Lain-lain',    'other',       NULL, 5)
+ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
 -- SUB-KATEGORI: MATERIAL
@@ -94,7 +109,8 @@ INSERT INTO expense_category_templates (id, name, type, parent_id, sort_order) V
   ('c1000000-0000-0000-0000-000000000094', 'MCB / Breaker',            'material', 'c1000000-0000-0000-0000-000000000001', 57),
   ('c1000000-0000-0000-0000-000000000095', 'Panel listrik',            'material', 'c1000000-0000-0000-0000-000000000001', 58),
   ('c1000000-0000-0000-0000-000000000096', 'Pompa air',                'material', 'c1000000-0000-0000-0000-000000000001', 59),
-  ('c1000000-0000-0000-0000-000000000097', 'Conduit / pipa listrik',   'material', 'c1000000-0000-0000-0000-000000000001', 60);
+  ('c1000000-0000-0000-0000-000000000097', 'Conduit / pipa listrik',   'material', 'c1000000-0000-0000-0000-000000000001', 60)
+ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
 -- SUB-KATEGORI: UPAH
@@ -112,7 +128,8 @@ INSERT INTO expense_category_templates (id, name, type, parent_id, sort_order) V
   ('c2000000-0000-0000-0000-000000000019', 'Tukang baja ringan',       'labor', 'c2000000-0000-0000-0000-000000000001', 10),
   ('c2000000-0000-0000-0000-000000000020', 'Kenek',                    'labor', 'c2000000-0000-0000-0000-000000000001', 11),
   ('c2000000-0000-0000-0000-000000000021', 'Helper / asisten',         'labor', 'c2000000-0000-0000-0000-000000000001', 12),
-  ('c2000000-0000-0000-0000-000000000022', 'Mandor',                   'labor', 'c2000000-0000-0000-0000-000000000001', 13);
+  ('c2000000-0000-0000-0000-000000000022', 'Mandor',                   'labor', 'c2000000-0000-0000-0000-000000000001', 13)
+ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
 -- SUB-KATEGORI: PERALATAN
@@ -126,7 +143,8 @@ INSERT INTO expense_category_templates (id, name, type, parent_id, sort_order) V
   ('c3000000-0000-0000-0000-000000000015', 'Sewa genset',              'equipment', 'c3000000-0000-0000-0000-000000000001', 6),
   ('c3000000-0000-0000-0000-000000000016', 'Beli peralatan kecil',     'equipment', 'c3000000-0000-0000-0000-000000000001', 7),
   ('c3000000-0000-0000-0000-000000000017', 'Bahan bakar alat',         'equipment', 'c3000000-0000-0000-0000-000000000001', 8),
-  ('c3000000-0000-0000-0000-000000000018', 'Perawatan & servis alat',  'equipment', 'c3000000-0000-0000-0000-000000000001', 9);
+  ('c3000000-0000-0000-0000-000000000018', 'Perawatan & servis alat',  'equipment', 'c3000000-0000-0000-0000-000000000001', 9)
+ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
 -- SUB-KATEGORI: OPERASIONAL
@@ -141,7 +159,8 @@ INSERT INTO expense_category_templates (id, name, type, parent_id, sort_order) V
   ('c4000000-0000-0000-0000-000000000016', 'Komunikasi & pulsa',       'operational', 'c4000000-0000-0000-0000-000000000001', 7),
   ('c4000000-0000-0000-0000-000000000017', 'Air bersih / PDAM',        'operational', 'c4000000-0000-0000-0000-000000000001', 8),
   ('c4000000-0000-0000-0000-000000000018', 'Listrik sementara',        'operational', 'c4000000-0000-0000-0000-000000000001', 9),
-  ('c4000000-0000-0000-0000-000000000019', 'Keamanan / satpam',        'operational', 'c4000000-0000-0000-0000-000000000001', 10);
+  ('c4000000-0000-0000-0000-000000000019', 'Keamanan / satpam',        'operational', 'c4000000-0000-0000-0000-000000000001', 10)
+ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
 -- SUB-KATEGORI: LAIN-LAIN
@@ -152,4 +171,5 @@ INSERT INTO expense_category_templates (id, name, type, parent_id, sort_order) V
   ('c5000000-0000-0000-0000-000000000012', 'Biaya konsultan',          'other', 'c5000000-0000-0000-0000-000000000001', 3),
   ('c5000000-0000-0000-0000-000000000013', 'Biaya notaris',            'other', 'c5000000-0000-0000-0000-000000000001', 4),
   ('c5000000-0000-0000-0000-000000000014', 'Tak terduga',              'other', 'c5000000-0000-0000-0000-000000000001', 5),
-  ('c5000000-0000-0000-0000-000000000015', 'Biaya lainnya',            'other', 'c5000000-0000-0000-0000-000000000001', 6);
+  ('c5000000-0000-0000-0000-000000000015', 'Biaya lainnya',            'other', 'c5000000-0000-0000-0000-000000000001', 6)
+ON CONFLICT (id) DO NOTHING;

@@ -80,9 +80,33 @@ BEGIN
   SELECT count(*) INTO n_sesudah
     FROM menu_items WHERE parent_id = v_induk AND is_active;
 
-  IF n_sesudah <> n_sebelum - 4 THEN
-    RAISE EXCEPTION '359 gagal: harap % item aktif, dapat % (sebelum %)',
-      n_sebelum - 4, n_sesudah, n_sebelum;
+  /*
+    ⚠ DIPERIKSA KEADAAN AKHIR, BUKAN SELISIH — DIPERBAIKI 2026-08-31.
+
+    Versi sebelumnya menuntut `n_sesudah = n_sebelum - 4`. Itu benar sekali
+    jalan, dan SALAH pada jalan kedua: keempat item sudah nonaktif, jadi tak
+    ada lagi yang berkurang, dan selisihnya nol.
+
+        359 gagal: harap 8 item aktif, dapat 12 (sebelum 12)
+
+    Migrasi di repo ini wajib idempoten (CLAUDE.md §8a.5) — CI memutar ulang,
+    dan lingkungan baru bisa mengulang. Yang tak idempoten baru menggigit saat
+    replay, jauh dari tempat ia ditulis.
+
+    Ditemukan dengan menjalankan SETIAP migrasi dua kali berturut-turut: 462
+    diuji, 4 tak idempoten. Bukan dari CI.
+
+    Yang dimaksudkan pemeriksaan ini jelas: keempat item itu nonaktif. Itu
+    yang diperiksa sekarang — pernyataan yang bernilai sama pada jalan pertama
+    maupun kesepuluh.
+  */
+  IF EXISTS (
+    SELECT 1 FROM menu_items
+     WHERE key IN ('ai-asisten-pemilik', 'ai-asisten-staf',
+                   'ai-asisten-web', 'ai-asisten-wawasan')
+       AND is_active
+  ) THEN
+    RAISE EXCEPTION '359 gagal: masih ada anak asisten yang AKTIF sesudah dinonaktifkan';
   END IF;
 
   -- Pintu masuknya WAJIB tetap ada. Tanpa ini, menonaktifkan keempat anak

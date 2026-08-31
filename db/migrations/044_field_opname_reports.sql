@@ -74,6 +74,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_protect_field_opname_created_at ON field_opname_reports;
 CREATE TRIGGER trg_protect_field_opname_created_at
   BEFORE UPDATE ON field_opname_reports
   FOR EACH ROW EXECUTE FUNCTION protect_field_opname_created_at();
@@ -87,6 +88,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_set_field_opname_updated_at ON field_opname_reports;
 CREATE TRIGGER trg_set_field_opname_updated_at
   BEFORE UPDATE ON field_opname_reports
   FOR EACH ROW EXECUTE FUNCTION set_field_opname_updated_at();
