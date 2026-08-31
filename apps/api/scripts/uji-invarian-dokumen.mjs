@@ -109,7 +109,24 @@ const nom = (awalan) => `${awalan}-UJI-${CAP}-${++seri}`
 for (const t of ['register_gambar', 'transmittal']) {
   try {
     const { rowCount } = await db.query(
-      `DELETE FROM ${t} WHERE nomor LIKE '%-UJI-%'`)
+      /*
+        ⚠ SYARAT UMUR WAJIB — DITAMBAHKAN 2026-08-31.
+
+        Penjaga ini berjalan di KEENAM shard CI bersamaan, pada SATU basis.
+        Sapuan tanpa syarat umur menghapus fixture shard yang SEDANG berjalan,
+        dan shard itu lalu gagal dengan galat yang menuduh foreign key —
+        invarian terbaca BOCOR padahal pagarnya utuh.
+
+        Persis itu yang terjadi pada `uji-invarian-contingency.mjs` hari ini,
+        dan sapuannya saya sendiri yang menambahkan. Penjaga ini punya bentuk
+        yang sama dan belum menggigit hanya karena belum kebetulan bertabrakan.
+
+        10 menit: lebih lama daripada satu jalan penjaga ini (detik), jauh
+        lebih pendek daripada sisa dari jalan yang mati di tengah.
+      */
+      `DELETE FROM ${t}
+        WHERE nomor LIKE '%-UJI-%'
+          AND created_at < now() - INTERVAL '10 minutes'`)
     if (rowCount > 0) console.log(`  🧹 ${t}: ${rowCount} baris sisa uji dibersihkan`)
   } catch (e) {
     // Tabel bisa saja belum ada di lingkungan tertentu — bukan alasan gagal.
