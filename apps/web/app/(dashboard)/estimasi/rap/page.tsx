@@ -27,7 +27,8 @@
  * `/estimasi/rap`.
  */
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useData } from "@/lib/data-cache";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
@@ -99,7 +100,8 @@ function RapTab() {
     router.push(id ? `/estimasi/rap?proyek=${id}` : "/estimasi/rap");
   }, [router]);
 
-  const [projects, setProjects] = useState<Project[]>([]);
+  const sProyek = useData<{ projects: Project[] }>("/api/v1/projects");
+  const projects = useMemo(() => sProyek.data?.projects ?? [], [sProyek.data]);
   const [rapList, setRapList] = useState<RapSummary[]>([]);
   const [rapId, setRapId] = useState("");
   const [detail, setDetail] = useState<RapDetail | null>(null);
@@ -112,9 +114,18 @@ function RapTab() {
   const [err, setErr] = useState("");
   const [pesan, setPesan] = useState("");
 
-  useEffect(() => {
-    api.get<{ projects: Project[] }>("/api/v1/projects").then(r => setProjects(r.data.projects ?? [])).catch(() => {});
-  }, []);
+  /*
+    Lapis cache bersama (F4-2) untuk daftar proyek.
+
+    Empat fetch lain di halaman ini sengaja TIDAK ikut — semuanya
+    bergantung pilihan pengguna (`/projects/:id/rap`, `/rap/:id`,
+    `/rap/:id/change-log`, `/projects/:id/scenarios`) dan dimuat MALAS
+    setelah proyek dipilih. Memindahkannya ke `useData` akan menembakkannya
+    saat halaman dibuka, sebelum ada proyek yang dipilih.
+
+    `/api/v1/projects` dipakai banyak halaman lain — permintaannya di-dedup
+    lintas navigasi.
+  */
 
   const loadRapList = useCallback(async (pid: string) => {
     if (!pid) { setRapList([]); setRapId(""); return; }
