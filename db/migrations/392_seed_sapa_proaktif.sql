@@ -58,11 +58,28 @@ BEGIN
      AND terverifikasi_pada IS NOT NULL
    LIMIT 1;
 
+  /*
+    ⚠ DITURUNKAN JADI NO-OP 2026-08-31 — dulu RAISE EXCEPTION.
+
+    Nomor itu milik founder, terdaftar di basis dev. Di basis yang baru lahir
+    — CI, VPS baru, mesin developer baru — belum ada nomor WhatsApp mana pun,
+    dan migrasi ini menghentikan SELURUH rantai:
+
+        HARD FAIL — 392_seed_sapa_proaktif.sql
+          392 gagal: nomor 6281311081813 tak terdaftar/aktif/terverifikasi
+
+    Penilaiannya benar untuk basis yang MEMANG memakai nomor itu: menyalakan
+    sapaan tanpa nomor tujuan menghasilkan tugas yang tak pernah berbuah. Tapi
+    di basis yang belum punya nomor sama sekali, yang benar bukan berhenti —
+    melainkan tak menyalakan apa-apa.
+
+    Sama seperti gerbang seed 237, 239, dan 428 hari ini: data yang hanya ada
+    di satu basis tak boleh jadi syarat berjalannya rantai migrasi.
+  */
   IF co IS NULL THEN
-    RAISE EXCEPTION
-      '392 gagal: nomor 6281311081813 tak terdaftar/aktif/terverifikasi — '
-      'menyalakan sapaan tanpa nomor tujuan berarti tugas yang tak pernah '
-      'menghasilkan apa pun';
+    RAISE NOTICE '392 dilewati: belum ada nomor WhatsApp aktif & terverifikasi di basis ini. '
+                 'Sapaan proaktif tak dinyalakan — bukan galat.';
+    RETURN;
   END IF;
 
   INSERT INTO jadwal_tugas (
@@ -99,8 +116,16 @@ DECLARE
 BEGIN
   SELECT * INTO t FROM jadwal_tugas WHERE tugas = 'sapa-proaktif' LIMIT 1;
 
+  /*
+    Verifikasi tunduk pada gerbang yang sama — pelajaran 237 dan 239.
+
+    Tanpa ini blok ini tetap berjalan di basis yang seed-nya di-no-op dan
+    gagal karena tugasnya memang sengaja tak dibuat. Gerbang di satu tempat
+    saja tidak menolong: rantainya tetap mati, hanya dengan pesan lain.
+  */
   IF t IS NULL THEN
-    RAISE EXCEPTION '392 gagal: tugas sapa-proaktif tak terdaftar';
+    RAISE NOTICE '392 verifikasi dilewati: sapaan tak dinyalakan di basis ini.';
+    RETURN;
   END IF;
   IF NOT t.aktif THEN
     RAISE EXCEPTION '392 gagal: tugas terdaftar tetapi NONAKTIF';

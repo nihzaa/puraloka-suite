@@ -41,6 +41,17 @@ DROP POLICY IF EXISTS wa_masuk_kelola ON wa_pesan_masuk_dedup;
 
 -- Permissive: gerbang dasar. Tanpa satu pun policy permissive, tabel ber-RLS
 -- mati total — restrictive hanya MEMPERSEMPIT, tak pernah memberi akses.
+--
+-- ⚠ DROP-nya DITAMBAHKAN 2026-08-31. Sebelumnya migrasi ini men-DROP
+-- `wa_masuk_kelola` (nama LAIN, di baris atas) lalu membuat `wa_masuk_dasar`
+-- tanpa membuangnya lebih dulu, sehingga dijalankan dua kali ia mati:
+--
+--     policy "wa_masuk_dasar" for table "wa_pesan_masuk_dedup" already exists
+--
+-- Semua policy lain di berkas ini memakai pola DROP-lalu-CREATE; yang satu ini
+-- luput. Migrasi yang tak idempoten baru menggigit saat replay — di lingkungan
+-- baru, atau saat rantainya diputar ulang untuk diperiksa.
+DROP POLICY IF EXISTS wa_masuk_dasar ON wa_pesan_masuk_dedup;
 CREATE POLICY wa_masuk_dasar ON wa_pesan_masuk_dedup
   FOR ALL USING (true) WITH CHECK (true);
 
