@@ -478,6 +478,26 @@ cd apps/api && npx vitest run          # test (integration, butuh DB)
 # bentrok + anak di luar rentang, keduanya dari migrasi sesi itu sendiri).
 cd apps/api && node scripts/jalankan-semua-penjaga.mjs   # SEMUA penjaga CI
 
+# ⚠ PEMANTAU YANG TAK PERNAH MEMBACA APA PUN. Diukur 2026-09-01 — loop
+# pemantau build EAS berjalan enam menit dan mencetak `?` tiap tiga puluh
+# detik. Yang salah bukan build-nya, melainkan perintah pengukurnya:
+#
+#     npx eas-cli build:view <id> --json --non-interactive
+#     → Nonexistent flag: --non-interactive
+#
+# `--json` dan `--non-interactive` sah untuk `eas build`, TIDAK untuk
+# `build:view`. Galatnya dibuang ke /dev/null oleh loop itu sendiri, jadi
+# yang terlihat cuma nilai jatuhan `?` — yang terbaca seperti "status
+# belum diketahui", bukan seperti "perintahnya gagal".
+#
+# Bentuk yang sama dengan jebakan CR di §7a: NOL HASIL BUKAN BUKTI
+# KETIADAAN. Sebuah pemantau yang tak bisa membedakan "belum selesai"
+# dari "saya tak bisa mengukur" akan diam persis selama yang dipantaunya
+# gagal.
+#
+# Aturannya: sebelum meninggalkan loop berjalan, JALANKAN perintahnya
+# SEKALI di depan mata dan lihat keluarannya. Nilai jatuhan hanya boleh
+# dipasang sesudah bentuk keluaran yang benar terbukti.
 # ── n8n & Evolution: MILIK PURALOKA, bukan milik TJS ──────────────────
 #
 # Di mesin ini ada DUA proyek yang memakai keduanya, dan instance-nya
