@@ -29,6 +29,11 @@ const breadcrumbMap: Array<[string, string]> = [
   ["/pm-portal",     "Portal PM"],
   ["/portal",        "Portal Klien"],
   ["/dashboard",     "Beranda"],
+  // Halaman modul terkunci (migrasi 548). Namanya sengaja MENYEBUT keadaannya,
+  // bukan nama modulnya: breadcrumb "Akuntansi" pada halaman yang justru
+  // menjelaskan bahwa akuntansi TAK terbuka akan membingungkan — orang mengira
+  // ia sudah berada di dalam modulnya.
+  ["/modul-terkunci", "Modul Terkunci"],
   ["/proyek",        "Proyek"],
   ["/keuangan",      "Keuangan"],
   ["/kas",           "Kas"],

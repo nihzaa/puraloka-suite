@@ -1745,6 +1745,21 @@ jobs:
       # Bukti merah: gerbang dilucuti dari gl.ts -> exit 1 · urutan dibalik ->
       # exit 1 · auth.ts digerbang -> exit 1 · berkas hantu di peta -> exit 1 ·
       # dipulihkan -> exit 0.
+      # Halaman /modul-terkunci ada untuk memandu orang KELUAR dari jalan
+      # buntu. Tautan mati DI SANA adalah kegagalan yang paling menyakitkan
+      # bentuknya: orang yang sudah terhalang sekali, mengklik jalan keluar
+      # yang ditawarkan aplikasi sendiri, lalu menemui 404.
+      #
+      # Bukan bahaya teoretis — saat halaman itu ditulis, tautannya menunjuk
+      # /pengaturan/langganan, rute yang tak pernah ada. Next.js me-render
+      # <Link> ke rute apa pun tanpa galat; 404-nya baru muncul saat diklik.
+      #
+      # Bukti merah: tautan diarahkan ke rute tak ada -> exit 1 · kunci hantu
+      # di ISI_MODUL -> exit 1 · halaman dihapus -> exit 1 · dipulihkan -> 0.
+      - name: Tautan upsell hidup (ambang NOL)
+        run: node scripts/audit-tautan-upsell-hidup.mjs
+        working-directory: apps/api
+
       - name: Rute modul berbayar bergerbang (ambang NOL)
         run: node scripts/audit-modul-punya-gerbang.mjs
         working-directory: apps/api

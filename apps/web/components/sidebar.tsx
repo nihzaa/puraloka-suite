@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { rutenyaAktifPenuh } from "@/lib/rute-aktif";
 import { TitikKesiapan } from "@/components/titik-kesiapan";
+import { GembokModul } from "@/components/gembok-modul";
 import { ikonMenu, IkonMenu } from "@/lib/ikon-menu";
 import {
   LogOut,
@@ -52,6 +53,20 @@ interface MenuNode {
   section: string;
   /** `hidup` | `sebagian` | `rencana` — migrasi 241. Ditampilkan sebagai titik. */
   kesiapan?: string;
+  /**
+   * Modul ini tak termasuk paket perusahaan (migrasi 548).
+   *
+   * ⚠ BUKAN lapis keamanan. Menu tetap tampil dan tetap bisa diklik —
+   * penegakannya `requireModul` di API (402). Menandainya di sini murni
+   * KOMUNIKASI: memberi tahu bahwa fiturnya ada dan bisa dibeli.
+   *
+   * Sengaja TIDAK disembunyikan: yang disembunyikan tak pernah diketahui ada,
+   * dan pengguna menyimpulkan produk ini tak punya fiturnya — lalu mencari
+   * produk lain. Menyembunyikan mengubah peluang menjual jadi alasan berhenti.
+   */
+  terkunci?: boolean;
+  modul_terkunci?: string;
+  paket_nama?: string | null;
   children: MenuNode[];
 }
 
@@ -338,7 +353,16 @@ function GrupCollapsible({
             return (
               <Link
                 key={child.key}
-                href={child.href ?? "#"}
+                // Menu bergembok dialihkan ke halaman yang MENJELASKAN,
+                // bukan ke halamannya sendiri: halaman asli akan gagal memuat
+                // dengan 402, dan penolakan tanpa penjelasan terbaca sebagai
+                // aplikasi rusak. Yang menutup tetap API; ini soal ke mana
+                // orang diantar.
+                href={
+                  child.terkunci && child.modul_terkunci
+                    ? `/modul-terkunci/${child.modul_terkunci}`
+                    : (child.href ?? "#")
+                }
                 aria-current={active ? "page" : undefined}
                 title={belumAdaHalaman
                   ? `${child.label} belum punya halaman sendiri — tautannya membuka halaman bersama grup ini.`
@@ -395,6 +419,13 @@ function GrupCollapsible({
                   yang benar-benar berarti. Alasan lengkap di komponennya.
                 */}
                 <TitikKesiapan kesiapan={child.kesiapan} />
+                {/*
+                  Gembok modul (migrasi 548). Menu TETAP tampil dan tetap bisa
+                  diklik — yang menutup `requireModul` di API. Menandainya di
+                  sini supaya pengguna tahu fiturnya ADA dan bisa dibeli;
+                  menyembunyikannya membuat ia mengira produk ini tak punya.
+                */}
+                <GembokModul terkunci={child.terkunci} paketNama={child.paket_nama} />
                 {/* `title` tidak terbaca andal oleh pembaca layar dan sama
                     sekali tak terjangkau lewat keyboard. Keterangan ini
                     dibaca, tapi tak menambah kebisingan visual. */}

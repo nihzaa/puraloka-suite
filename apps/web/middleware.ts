@@ -43,7 +43,20 @@ const ROLE_HOME: Record<string, string> = {
 };
 
 const ROLE_ALLOWED: Record<string, string[]> = {
-  client:  ["/portal", "/verify"],
+  // `/modul-terkunci` ADA DI SEMUA PERAN, tanpa kecuali.
+  //
+  // Halaman itu dibangun untuk memandu orang KELUAR dari jalan buntu: ia
+  // muncul saat modulnya tak termasuk paket, dan menjelaskan apa yang
+  // tertutup serta cara membukanya.
+  //
+  // Menahannya di satu peran berarti pengguna yang terhalang dialihkan
+  // diam-diam ke home — tanpa 404, tanpa pesan, tanpa log. Ia mengklik menu,
+  // mendarat di dashboard, dan tak pernah tahu kenapa. Itu persis kegagalan
+  // yang halaman ini dibuat untuk MENCEGAH.
+  //
+  // Ditemukan `uji-izin-rute-lengkap.mjs` pada jalan pertamanya, sebelum
+  // halaman ini sempat dipakai siapa pun.
+  client:  ["/portal", "/verify", "/modul-terkunci"],
   // mandor bisa akses /pm-portal juga — guard di layout PM akan verifikasi apakah dia memang PM di proyek
   // `/lapangan` (punch list, inspeksi, submittal) dan `/mutu` (NCR): temuan
   // lapangan DITEMUKAN mandor, jadi ia harus bisa mencatatnya. Apa yang boleh
@@ -60,7 +73,7 @@ const ROLE_ALLOWED: Record<string, string[]> = {
   // `/mandor-portal`: mandor bekerja dari HP di lapangan, dan mendaratkannya
   // di dashboard desktop berarti memaksanya menempuh dua ketukan tambahan
   // untuk pekerjaan yang setiap hari ia buka.
-  mandor:  ["/dashboard", "/mandor-portal", "/pm-portal", "/proyek", "/verify", "/mutu", "/lapangan", "/k3"],
+  mandor:  ["/dashboard", "/mandor-portal", "/pm-portal", "/proyek", "/verify", "/mutu", "/lapangan", "/k3", "/modul-terkunci"],
   // `/m` = halaman peta menu (`/m/<key>`). Satu rute untuk 100+ menu yang
   // belum punya halamannya sendiri — mendaftarkannya satu per satu di sini
   // akan jadi daftar 100 baris yang pasti ketinggalan saat menu bertambah.
@@ -98,7 +111,7 @@ const ROLE_ALLOWED: Record<string, string[]> = {
   // Itu DISENGAJA untuk sekarang: membukanya butuh rute register dipisah dari
   // induk yang menaungi sengketa — pekerjaan tersendiri, bukan tambalan satu
   // baris yang kebetulan lolos penjaga.
-  pm:      ["/dashboard", "/pm-portal", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/verify", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/approval-inbox", "/risiko/izin", "/k3", "/m"],
+  pm:      ["/dashboard", "/pm-portal", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/verify", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/approval-inbox", "/risiko/izin", "/k3", "/m", "/modul-terkunci"],
   // `/gudang` = rekonsiliasi material. Ditahan di admin: angkanya menuduh —
   // "susut 12%" pada material yang dipegang mandor tertentu. Yang dituduh
   // tidak boleh jadi yang pertama membacanya.
@@ -136,7 +149,7 @@ const ROLE_ALLOWED: Record<string, string[]> = {
   // error. Layout admin-portal sendiri (app/admin-portal/layout.tsx) sudah
   // menjaga whitelist role admin+direktur; baris ini hanya membuka pintu
   // middleware supaya layout itu sempat dimuat.
-  admin:   ["/dashboard", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/keuangan", "/akuntansi", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/gudang", "/approval-inbox", "/otomasi", "/sdm", "/risiko", "/k3", "/m", "/master", "/peta-modul", "/admin-portal"],
+  admin:   ["/dashboard", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/keuangan", "/akuntansi", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/gudang", "/approval-inbox", "/otomasi", "/sdm", "/risiko", "/k3", "/m", "/master", "/peta-modul", "/admin-portal", "/modul-terkunci"],
 };
 
 /**

@@ -44,7 +44,7 @@ export default async function menuRoutes(app: FastifyInstance) {
     // Perilakunya identik: katalog A tak disaring company_id.
     const { data, error } = await request.db!
       .shared('menu_items')
-      .select('id, key, label, href, icon, parent_id, required_permissions, sort_order, section, kesiapan')
+      .select('id, key, label, href, icon, parent_id, required_permissions, sort_order, section, kesiapan, modul_kunci')
       .eq('is_active', true)
       .order('section', { ascending: true })
       .order('sort_order', { ascending: true })
@@ -123,6 +123,66 @@ export default async function menuRoutes(app: FastifyInstance) {
         roots.push(node)
       }
     }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // GEMBOK MODUL — menu tetap TAMPIL, tapi ditandai terkunci
+    // ══════════════════════════════════════════════════════════════════════
+    //
+    // ⚠ Ini BUKAN lapis keamanan, alasan yang sama dengan penyembunyian menu
+    // per-company di atas: menandai menu terkunci tidak menutup endpoint-nya.
+    // Penegakannya `requireModul` di rute masing-masing (402). Kalau gembok
+    // ini dianggap penjaga, orang berhenti memasang gerbang yang sebenarnya
+    // sementara URL yang diketik langsung tetap tembus.
+    //
+    // Yang dikerjakan di sini murni KOMUNIKASI: memberi tahu pengguna bahwa
+    // fiturnya ADA dan bisa dibeli.
+    //
+    // ── Kenapa tidak disembunyikan saja
+    //
+    // Menyembunyikan membuat pengguna tak pernah tahu fiturnya ada — ia
+    // menyimpulkan produk ini tak punya akuntansi, lalu mencari produk lain.
+    // Menyembunyikan mengubah peluang menjual jadi alasan berhenti langganan.
+    //
+    // ── Satu kueri, bukan satu per menu
+    //
+    // Snapshot dibaca SEKALI lalu dipetakan. Memanggil `bacaKeadaanModul()`
+    // per menu berarti 29 kueri tiap sidebar dimuat — dan sidebar dimuat di
+    // setiap halaman.
+    const terkunci = new Set<string>()
+    let paketNama: string | null = null
+
+    if (request.companyId) {
+      const { data: snapshot, error: errSnapshot } = await request.db!
+        .from('entitlement_snapshot')
+        .select('kunci, terbuka, paket_nama')
+
+      if (errSnapshot) {
+        // Gagal membaca entitlement TIDAK menggembok apa pun — arah yang sama
+        // dengan `gerbang-modul.ts`. Menggembok saat ragu memasang gembok di
+        // menu yang sudah dibayar pelanggan, dan gejalanya adalah keluhan
+        // "menu saya hilang" yang tak menunjuk ke sini.
+        request.log.warn({ err: errSnapshot }, 'gagal memuat entitlement — menu tak digembok')
+      } else {
+        for (const e of (snapshot ?? []) as { kunci: string; terbuka: boolean | null; paket_nama: string | null }[]) {
+          // Hanya `false` yang mengunci. NULL = belum ditetapkan = terbuka.
+          if (e.terbuka === false) terkunci.add(e.kunci)
+          if (e.paket_nama) paketNama = e.paket_nama
+        }
+      }
+    }
+
+    // Diwariskan induk → anak: modul dijual per-grup, dan anak yang tak ikut
+    // tergembok akan jadi pintu terbuka di bawah induk yang terkunci.
+    const tandaiTerkunci = (n: MenuNode, kunciInduk: string | null) => {
+      const kunci = (n as MenuNode & { modul_kunci?: string | null }).modul_kunci ?? kunciInduk
+      if (kunci && terkunci.has(kunci)) {
+        ;(n as MenuNode & { terkunci?: boolean; modul_terkunci?: string; paket_nama?: string | null }).terkunci = true
+        ;(n as MenuNode & { modul_terkunci?: string }).modul_terkunci = kunci
+        ;(n as MenuNode & { paket_nama?: string | null }).paket_nama = paketNama
+      }
+      n.children.forEach((a) => tandaiTerkunci(a, kunci))
+    }
+    roots.forEach((r) => tandaiTerkunci(r, null))
 
     // Sudah terurut dari query; children mengikuti urutan insert (sort_order asc).
     const sortChildren = (n: MenuNode) => {

@@ -122,6 +122,12 @@ const CONTOH_ID = {
   // ketahuan — audit yang melaporkan "0 pelanggaran" sambil melewati enam
   // halaman terbaca seperti cakupan penuh.
   '/m/[key]': process.env.LAYAR_KUNCI_MENU,
+  // Halaman modul terkunci (migrasi 548). Nilainya BUKAN id dari basis
+  // melainkan kunci modul — dan ia dipaku, bukan dari env: `modul.akuntansi`
+  // selalu ada di katalog, jadi menuntut env terisi hanya akan membuat rute
+  // ini terlewat pada mesin yang lupa mengisinya. Rute yang tak pernah
+  // dipindai adalah rute yang cacatnya tak pernah ketahuan.
+  '/modul-terkunci/[modul]': 'modul.akuntansi',
   '/verify/invoice/[id]': process.env.LAYAR_ID_INVOICE,
   // G6b — baseline jadwal. Memakai id proyek yang sama: halamannya sub-rute
   // proyek, jadi tak butuh id tersendiri.
