@@ -100,14 +100,30 @@ BEGIN
   -- berarti memutuskan mana yang menang — keputusan tentang menu yang tak
   -- diminta oleh pekerjaan ini. Dicatat di JOURNAL.md, bukan diselundupkan
   -- ke migrasi yang judulnya bicara soal hal lain.
+  -- Dihitung dari yang AKTIF saja — diperbaiki 2026-09-01.
+  --
+  -- Versi asli menghitung SEMUA baris berlabel sama, termasuk yang sudah
+  -- dipensiunkan. Diukur ke basis:
+  --
+  --     kontrak           Register Kontrak  /kontrak           aktif=true
+  --     kontrak-register  Register Kontrak  /kontrak/register  aktif=false
+  --     kt-register       Register Kontrak  /m/kt-register     aktif=false
+  --
+  -- Tiga baris, SATU yang menyala. Itu bukan kembar di sidebar — dua sisanya
+  -- tak dirender sama sekali. Menuntut nol baris berlabel sama berarti
+  -- melarang menu lama disimpan dalam keadaan nonaktif, dan itu justru cara
+  -- penataan menu di repo ini bekerja.
+  --
+  -- Yang sesungguhnya dijaga: pengguna tak melihat dua pintu berlabel sama.
   SELECT count(*) INTO v_kembar
     FROM menu_items
    WHERE parent_id = (SELECT id FROM menu_items WHERE key = 'g-kontrak')
      AND label IN ('Register Kontrak', 'Ringkasan Kontrak')
+     AND is_active
    GROUP BY label HAVING count(*) > 1;
 
   IF COALESCE(v_kembar, 0) > 0 THEN
-    RAISE EXCEPTION '345: "Register Kontrak"/"Ringkasan Kontrak" masih kembar di grup Kontrak';
+    RAISE EXCEPTION '345: dua menu AKTIF berlabel sama di grup Kontrak';
   END IF;
 
   RAISE NOTICE '345 OK — Register Kontrak → /kontrak/register; ringkasan dilabeli ulang; nol label kembar';

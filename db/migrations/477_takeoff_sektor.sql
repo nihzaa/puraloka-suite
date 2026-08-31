@@ -72,7 +72,19 @@ ALTER TABLE takeoff_dimensi DROP CONSTRAINT IF EXISTS takeoff_sektor_sah;
 ALTER TABLE takeoff_dimensi ADD CONSTRAINT takeoff_sektor_sah CHECK (
   sektor IS NULL OR sektor = ANY (ARRAY[
     'atap', 'plafon', 'dinding', 'lantai', 'kusen', 'daun',
-    'sanitair', 'mep_pipa', 'mep_titik'
+    'sanitair', 'mep_pipa', 'mep_titik',
+    -- Dua sektor STRUKTUR ditambahkan 2026-09-01.
+    --
+    -- Migrasi 553 menambahkannya lewat jalur maju, tapi 477 berjalan LEBIH
+    -- DULU dan CHECK sembilan-sektornya menolak baris yang sudah ada:
+    --
+    --     check constraint "takeoff_sektor_sah" is violated by some row
+    --
+    -- Basis memang punya baris bored_pile & baja_profil, dan kode sudah
+    -- menghitung volumenya. Satuannya dari AHSP resmi (SE Bina Konstruksi
+    -- No. 47/2026 di _source/ahsp/): bored_pile per m-panjang, baja_profil
+    -- per kg. 553 tetap ada dan jadi no-op di sini.
+    'bored_pile', 'baja_profil'
   ])
 );
 

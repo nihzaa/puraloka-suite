@@ -28,6 +28,29 @@
 -- dan pengaju adalah orang yang paling sering membukanya.
 -- ════════════════════════════════════════════════════════════════════════════
 
+/*
+  ── Duplikat href dilepas lebih dulu (2026-09-01)
+
+  Migrasi 531 membuat `yt-sdm-klaim` yang menunjuk href YANG SAMA. Ia lahir
+  jauh sesudah migrasi ini, dan saat rantai diputar dari nol keduanya bertemu:
+
+      x 338  2 menu menunjuk /sdm/klaim-perjalanan (harus 1)
+
+  Aturan 232 (satu rute = satu tautan) BENAR dan tak dilonggarkan — dua menu
+  ke halaman yang sama membuat sidebar punya dua pintu identik, dan
+  `audit-menu-berbagi-href` berambang NOL untuk itu.
+
+  Yang dilepas href-nya: `yt-sdm-klaim`. Alasannya bisa diukur — ia menu
+  YATIM otomatis (awalan `yt-`) yang dibuat massal untuk menutup halaman
+  tanpa tautan, sementara `hr-reimburse` menu bernama yang sudah lama ada
+  dan sengaja dipindahkan ke sini. Yang bernama menang atas yang otomatis.
+
+  Idempoten: hanya menyentuh baris yang masih memegang href itu.
+*/
+UPDATE menu_items
+   SET href = NULL, is_active = FALSE
+ WHERE key = 'yt-sdm-klaim'
+   AND href = '/sdm/klaim-perjalanan';
 UPDATE menu_items
    SET href = '/sdm/klaim-perjalanan',
        label = 'Klaim Perjalanan',
@@ -112,28 +135,37 @@ BEGIN
   END IF;
 
   -- Satu rute = satu tautan (aturan 232).
-  SELECT count(*) INTO n FROM menu_items WHERE is_active AND href = '/sdm/klaim-perjalanan';
+  -- Dihitung dari yang TERDAFTAR, bukan yang aktif: modul SDM sedang
+  -- dimatikan seluruhnya, dan aturan 'satu rute satu tautan' tetap berlaku
+  -- baik menunya menyala maupun tidak.
+  SELECT count(*) INTO n FROM menu_items WHERE href = '/sdm/klaim-perjalanan';
   IF n <> 1 THEN
-    RAISE EXCEPTION '338 gagal: % menu aktif menunjuk /sdm/klaim-perjalanan (harus 1)', n;
+    RAISE EXCEPTION '338 gagal: % menu menunjuk /sdm/klaim-perjalanan (harus 1)', n;
   END IF;
 
-  -- Induk WAJIB aktif.
+  -- Induk wajib ADA — nyala-matinya urusan penataan menu, dan seluruh grup
+  -- g-hr sedang dimatikan sengaja. Item tanpa induk sama sekali BARU
+  -- menggantung; item di bawah induk yang sedang disembunyikan tidak.
   IF NOT EXISTS (
     SELECT 1 FROM menu_items m JOIN menu_items p ON p.id = m.parent_id
-     WHERE m.key = 'hr-reimburse' AND p.is_active
+     WHERE m.key = 'hr-reimburse'
   ) THEN
-    RAISE EXCEPTION '338 gagal: induk hr-reimburse nonaktif — itemnya menggantung';
+    RAISE EXCEPTION '338 gagal: hr-reimburse tak punya induk — itemnya menggantung';
   END IF;
 
-  -- sort_order tak bentrok DI ANTARA YANG AKTIF.
+  -- sort_order tak bentrok dengan SAUDARA SEKELOMPOK.
+  --
+  -- Angkanya TIDAK dipaku: 858 adalah celah saat migrasi ini ditulis, dan
+  -- migrasi 530 menomori ulang seluruh pohon berjarak. Yang dijaga bentrokan,
+  -- bukan angka tertentu.
   SELECT count(*) INTO n
     FROM menu_items m
-   WHERE m.is_active
-     AND m.parent_id = (SELECT parent_id FROM menu_items WHERE key = 'hr-reimburse' LIMIT 1)
-     AND m.sort_order = 858;
-  IF n <> 1 THEN
-    RAISE EXCEPTION '338 gagal: % item AKTIF ber-sort_order 858 di grup itu (harus 1)', n;
+   WHERE m.parent_id = (SELECT parent_id FROM menu_items WHERE key = 'hr-reimburse' LIMIT 1)
+     AND m.sort_order = (SELECT sort_order FROM menu_items WHERE key = 'hr-reimburse')
+     AND m.key <> 'hr-reimburse';
+  IF n > 0 THEN
+    RAISE EXCEPTION '338 gagal: % saudara berbagi sort_order dengan hr-reimburse', n;
   END IF;
 
-  RAISE NOTICE '338 OK — /sdm/klaim-perjalanan hidup berizin di urutan 858';
+  RAISE NOTICE '338 OK — /sdm/klaim-perjalanan terdaftar berizin, nol bentrok urutan';
 END $$;
