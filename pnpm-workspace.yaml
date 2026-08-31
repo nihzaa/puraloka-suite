@@ -101,6 +101,32 @@ overrides:
   #   sesuatu yang jarang dipanggil gagal di produksi.
   nanoid: '>=3.3.18 <4'
 
+  # ── react-native-webview DIPAKU, dan alasannya bukan keamanan ──────────
+  #
+  # Build APK kesebelas gagal di RUN_GRADLEW:
+  #
+  #     PackageList.java:16: error: cannot find symbol
+  #     import expo.core.ExpoModulesPackage;
+  #
+  # `expo.core.ExpoModulesPackage` tak ada di Expo modern. Autolinking
+  # membacanya karena lockfile memuat DUA pohon dependensi paralel:
+  #
+  #     react-native-webview@13.13.5 + @types/react@19.0.14 + react@19.0.0
+  #     react-native-webview@14.0.1  + @types/react@19.2.17 + react@19.2.4
+  #
+  # Yang kedua lahir karena `apps/web` memakai React 19.2.4 sementara
+  # `apps/mobile` dikunci 19.0.0 oleh Expo 53. Dua pohon itu SAH — React
+  # web dan React Native memang boleh beda — tetapi autolinking Android
+  # memindai node_modules dan menemukan versi webview yang salah.
+  #
+  # Yang dipaku HANYA webview, bukan React: menyamakan React akan merusak
+  # salah satu sisi. 13.13.5 adalah versi yang dituntut Expo 53 (diukur
+  # `npx expo install --check`).
+  #
+  # Membangun ulang lockfile dari nol TIDAK menghapus duplikasi ini —
+  # ia lahir dari dua tuntutan yang sama-sama sah, bukan dari sisa.
+  react-native-webview: '13.13.5'
+
 # ── auditConfig — HANYA untuk temuan yang terbukti tidak berlaku ────────────
 #
 # ⚠️ Daftar ini BUKAN tempat membuang temuan yang merepotkan. Tiap entri wajib
