@@ -32898,6 +32898,28 @@ tak membawa ekstensinya.
 rewel, melainkan karena pemulihannya memang cacat — dan cacat itu tak punya
 gejala apa pun di dev, tempat ekstensinya selalu ada.
 
+#### Kenapa baru sekarang merah, padahal pgvector sejak 2026-08-10
+
+Pertanyaan yang WAJIB dijawab sebelum menerima diagnosis apa pun: drill ini
+HIJAU pada 17 dan 24 Agustus. Kalau sebabnya pgvector, kenapa tidak dulu?
+
+Diukur dari log run yang hijau itu:
+
+```
+2026-08-24   tabel sumber=131 target=131 · policy sumber=404 target=404
+2026-08-31   tabel sumber=291 target=290 · policy sumber=816 target=814
+```
+
+Sumbernya `CI_DIRECT_URL` — proyek CI, bukan dev. Ia punya **131** tabel
+pada 24 Agustus dan **291** hari ini, karena rantai migrasi baru belakangan
+ini benar-benar replay utuh di sana. `rag_potongan` **tak disebut sama
+sekali** di log 24 Agustus: ia belum ada.
+
+Jadi cacatnya LAMA (sejak 2026-08-10) tapi baru bisa terlihat sesudah
+tabelnya ikut terbentuk di target. Drill yang hijau atas 131 tabel bukan
+bukti pemulihan 291 tabel akan berhasil — **cakupan alat ukur berubah
+diam-diam saat basisnya tumbuh.**
+
 Ini anggota keempat keluarga yang sama hari ini:
 
 | Artefak | Benar di dev | Patah di basis baru |
