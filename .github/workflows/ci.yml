@@ -1773,6 +1773,27 @@ jobs:
       - name: Token mobile terenkripsi
         run: node scripts/audit-token-mobile-terenkripsi.mjs
 
+      # Aksesibilitas mobile. Repo ini menjalankan axe-core sungguhan di web
+      # (137 halaman, nol pelanggaran) — dan angka itu TIDAK mengatakan apa pun
+      # tentang aplikasi HP: axe-core bekerja pada DOM, React Native tak punya
+      # DOM. Jadi mobile berjalan tanpa satu pun pemeriksaan a11y sampai
+      # 2026-08-31, dan 25 dari 43 elemen sentuh ternyata tak punya
+      # `accessibilityRole` maupun `accessibilityLabel` — termasuk "Keluar" di
+      # dashboard dan "Kembali" di seluruh layar isian.
+      #
+      # TalkBack/VoiceOver menyebut elemen semacam itu TEKS BIASA. Penggunanya
+      # tahu ada tulisan di layar, tapi tak diberi tahu itu bisa ditekan — dan
+      # yang paling bergantung pada pembaca layar justru pengguna berperangkat
+      # lama dan berliterasi digital rendah yang jadi alasan WCAG wajib di repo
+      # ini (CLAUDE.md §8a.3).
+      #
+      # Yang diperiksa KEPUTUSAN DI KODE, bukan hasil render — jadi ini bukan
+      # "mobile sudah teraudit a11y". Ia menjaga satu hal yang bisa dijaga
+      # tanpa emulator. Ambang NOL: lantainya sudah bersih, tak ada hutang
+      # yang sedang dicicil.
+      - name: A11y mobile (tombol punya role)
+        run: node scripts/audit-a11y-mobile.mjs
+
       # Daftar jenis elemen struktur ada di DUA tempat yang harus sama: CHECK
       # `struktur_elemen_jenis_check` di basis, dan konstanta JENIS di
       # `routes/v1/struktur.ts`. Kalau berbeda, kegagalannya berbeda arah dan

@@ -313,6 +313,8 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 | `audit-takeoff-kembar-sepakat.mjs` | rumus take-off ditulis DUA kali (modul API + kalkulator di layar, sengaja — kalkulator yang memanggil API tiap ketukan tombol tak dipakai orang); dijaga daftar sektor, ambang kemiringan, dan satuannya. Dua implementasi yang menyimpang tak mengeluarkan galat: layar memperlihatkan satu angka, RAB memakai yang tersimpan (ambang NOL) |
 | `audit-batas-tak-basi.mjs` | catatan "BELUM diperiksa" tak boleh menyebut yang SUDAH ADA — catatan itu TAMPIL DI LAYAR, dan pembacanya menyimpulkan pemeriksaannya tak ada lalu mencari konsultan lain untuk hal yang sudah dihitung. Dua catatan terbukti basi 2026-08-20 (ambang NOL) |
 | `audit-batas-terpetakan.mjs` | tiap catatan batas wajib SUDAH DITIMBANG terhadap daftar klaim — penjaga di atasnya bekerja dari daftar tulisan tangan, jadi ia hanya menjaga yang didaftarkan. Dua catatan basi berjam-jam tanpa terdeteksi 2026-08-20. Penjaga yang tak bisa tahu dirinya tertinggal akan pelan-pelan berhenti menjaga tanpa gejala (ambang NOL) |
+| `audit-token-mobile-terenkripsi.mjs` | token mobile wajib lewat `expo-secure-store`, bukan AsyncStorage — file SQLite biasa di Android yang ikut backup tak terenkripsi; `refresh_token` memperpanjang dirinya sendiri, jadi sekali terbaca berarti akses tanpa kedaluwarsa (ambang NOL) |
+| `audit-a11y-mobile.mjs` | tiap `Pressable`/`TouchableOpacity` wajib punya `accessibilityRole` atau `accessibilityLabel` — axe-core tak jalan di React Native, jadi 137 halaman web yang nol pelanggaran tak menjaga mobile sama sekali. Diukur 2026-08-31: 25 dari 43 telanjang, termasuk "Keluar" dan "Kembali". Pembaca layar menyebutnya teks biasa (ambang NOL) |
 
 **Alur take-off → RAB — MANUAL, butuh API hidup:**
 
@@ -623,6 +625,32 @@ terlewat bukan bukti apa-apa.**
 Diukur 2026-08-16 (akun admin, id dinamis terisi otomatis oleh pembungkus):
 **137 halaman, 0 pelanggaran** — naik dari 133 (2026-08-13) dan 129
 sebelumnya. Baris "rute dinamis TERLEWAT" tetap hilang.
+
+⚠ **Angka 137 halaman itu TIDAK berlaku untuk aplikasi mobile.** axe-core
+bekerja pada DOM; React Native tak punya DOM, jadi tak satu pun dari angka
+di atas mengatakan apa pun tentang aplikasi HP.
+
+Diukur 2026-08-31, saat mobile pertama kali diperiksa: **25 dari 43** elemen
+`Pressable`/`TouchableOpacity` tak punya `accessibilityRole` maupun
+`accessibilityLabel` — termasuk "Keluar" di dashboard dan "Kembali" di
+seluruh layar isian. TalkBack/VoiceOver menyebutnya teks biasa; penggunanya
+tahu ada tulisan di layar tapi tak diberi tahu itu bisa ditekan.
+
+Sudah nol, dan dijaga:
+
+```bash
+cd apps/api && node scripts/audit-a11y-mobile.mjs   # ambang NOL
+```
+
+Yang dijaga penjaga itu **keputusan di kode**, bukan hasil render. Ia tak
+tahu apa-apa soal kontras warna, urutan fokus, atau ukuran sasaran sentuh
+yang sesungguhnya di perangkat. Jadi hijaunya BUKAN berarti "mobile sudah
+teraudit a11y" — ia menjaga satu hal yang bisa dijaga tanpa emulator.
+
+Yang belum terjaga dan sudah terukur: **18 tempat ber-`fontSize` di bawah
+12px** pada teks bacaan (tiga di antaranya 9–10px). Tak diubah karena
+mengubah ukuran huruf menggeser tata letak, dan itu perlu dilihat di layar
+sungguhan — bukan disunting massal.
 
 Kredensial akun ujinya sudah tersimpan di `apps/web/.env.local`
 (`LAYAR_EMAIL`/`LAYAR_SANDI`/`LAYAR_BASIS`) — berkas itu ter-gitignore, jadi
