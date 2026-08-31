@@ -133,6 +133,30 @@ export default function AppLayout() {
           tabBarIcon: ({ focused }) => <TabIcon emoji="🔔" focused={focused} />,
         }}
       />
+
+      {/*
+        Pintu ke modul KANTOR (keuangan, akuntansi, estimasi, dst) yang dibuka
+        lewat WebView — keputusan founder 2026-08-31.
+
+        Diberi tab sendiri, bukan disembunyikan: modul yang hanya bisa dicapai
+        lewat tautan dalam tak akan pernah ditemukan orang, dan "kemampuan
+        penuh" yang tak bisa dijangkau sama saja dengan tak ada.
+      */}
+      <Tabs.Screen
+        name="lainnya"
+        options={{
+          title: 'Lainnya',
+          tabBarIcon: ({ focused }) => <TabIcon emoji="⋯" focused={focused} />,
+        }}
+      />
+
+      {/*
+        Layar WebView-nya sendiri TIDAK jadi tab — ia dibuka dari daftar di
+        "Lainnya". `href: null` menyembunyikannya dari bilah tab tanpa
+        mengeluarkannya dari router; tanpa itu tiap modul akan muncul sebagai
+        tab tersendiri dan bilahnya penuh.
+      */}
+      <Tabs.Screen name="web/[modul]" options={{ href: null }} />
     </Tabs>
   );
 }
