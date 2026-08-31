@@ -473,10 +473,69 @@ DECLARE
   n_kosong  int;
   n_langgar text;
 BEGIN
+  /*
+    AMBANG 21 -> 20, DIPERBAIKI 2026-08-31.
+
+    "5 lama" adalah asumsi yang salah, dan asumsi yang SAMA baru diperbaiki di
+    migrasi 363 satu putaran CI sebelumnya. Migrasi 050 — satu-satunya sumber
+    role di basis yang baru lahir — membuat tepat EMPAT: admin, pm, mandor,
+    client. Role kelima yang terhitung di basis dev lahir dari pemakaian, bukan
+    dari migrasi.
+
+    Diukur langsung, bukan ditebak: dengan role tambahan dihapus lebih dulu,
+    basis punya 4 sebelum migrasi ini dan 20 sesudahnya. Empat plus enam belas.
+
+        HARD FAIL — 364_katalog_role_konstruksi.sql
+          364 gagal: template role hanya 20, harusnya 5 lama + 16 baru
+
+    Angka 20 di pesan galatnya adalah jawabannya sendiri.
+  */
   SELECT count(*) INTO n_role FROM public.roles WHERE company_id IS NULL;
-  IF n_role < 21 THEN
-    RAISE EXCEPTION '364 gagal: template role hanya %, harusnya 5 lama + 16 baru', n_role;
+  IF n_role < 20 THEN
+    RAISE EXCEPTION '364 gagal: template role hanya %, harusnya 4 lama (migrasi 050) + 16 baru', n_role;
   END IF;
+
+  /*
+    PEMULIHAN PEMBERIAN DASAR — DITAMBAHKAN 2026-08-31.
+
+    Cek di bawah benar dan penting: role tanpa satu pun izin adalah nama
+    kosong. Tapi di basis yang baru lahir ia menuduh dua role yang BUKAN
+    buatan migrasi ini:
+
+        HARD FAIL — 364_katalog_role_konstruksi.sql
+          364 gagal: 2 role template tanpa satu pun izin   (client, mandor)
+
+    Keduanya lahir dari migrasi 050, yang memang memberi mereka izin — 10
+    untuk mandor, 3 untuk client. Diukur: kesepuluh kunci itu ADA di tabel
+    `permissions`, jadi yang hilang pemberiannya, bukan izinnya.
+
+    Migrasi ini tak bisa tahu kapan hilangnya. Yang bisa ia lakukan: memulihkan
+    pemberian dasar itu sebelum menuntut keberadaannya — sesuai daftar yang
+    sama persis dengan migrasi 050, tanpa menambah kewenangan apa pun.
+
+    Bentuk yang sama dengan 271, 295, 337, 340, dan 363 hari ini: migrasi yang
+    MEMERIKSA sesuatu tanpa MENGERJAKANNYA. Bedanya di sini yang dituntut
+    memang pantas ada — jadi yang benar mengerjakannya, bukan melonggarkan
+    pemeriksaannya.
+  */
+  INSERT INTO role_permissions (role_id, permission_id)
+  SELECT r.id, p.id
+    FROM public.roles r
+    CROSS JOIN public.permissions p
+   WHERE r.company_id IS NULL
+     AND (
+       (r.name = 'mandor' AND p.key IN (
+          'projects:view', 'finance:view', 'mandor:view', 'mandor:worker:manage',
+          'mandor:wage:create', 'mandor:kasbon:create', 'procurement:view',
+          'procurement:mr:manage', 'reports:view', 'reports:progress'))
+       OR
+       (r.name = 'client' AND p.key IN (
+          'projects:view', 'finance:view', 'reports:progress'))
+     )
+     AND NOT EXISTS (
+       SELECT 1 FROM public.role_permissions rp WHERE rp.role_id = r.id
+     )
+  ON CONFLICT DO NOTHING;
 
   -- Role tanpa satu pun izin adalah nama kosong — persis cacat yang sedang
   -- diperbaiki, dibuat ulang dalam bentuk baru.
