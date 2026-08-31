@@ -61,7 +61,7 @@
  *
  * Pakai:  node apps/web/scripts/audit-menu-punya-halaman.mjs
  */
-import { existsSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { buatClient } from '../../../scripts/db/_koneksi.mjs'
@@ -90,13 +90,36 @@ function adaHalaman(href) {
     if (existsSync(join(dasar, ...bagian, 'page.tsx'))) return true
   }
 
-  // Rute dinamis: `/proyek/<uuid>` dilayani `/proyek/[id]/page.tsx`.
+  /*
+    Rute dinamis: `/proyek/<uuid>` dilayani `/proyek/[id]/page.tsx`.
+
+    ⚠ Nama parameternya DIBACA dari disk, bukan ditebak `[id]`.
+
+    Diukur 2026-08-31: penjaga ini menuduh 85 menu menunjuk halaman yang tak
+    ada — seluruhnya berpola `/m/<kunci>`. Halamannya ADA:
+    `app/(dashboard)/m/[key]/page.tsx`, halaman "belum dibangun" yang sengaja
+    dan informatif (ia menjelaskan APA, KENAPA belum ada, dan apa gantinya).
+
+    Yang keliru penjaganya: ia hanya mencoba `[id]`, sementara Next.js
+    menerima nama parameter apa pun. Penjaga yang salah tuduh membuat orang
+    "memperbaiki" hal yang sudah benar — dan pada 85 baris sekaligus, ia
+    justru mengajari orang mengabaikan penjaganya.
+  */
   for (let i = bagian.length - 1; i >= 0; i--) {
-    const uji = [...bagian]
-    uji[i] = '[id]'
     for (const g of grup) {
       const dasar = g ? join(APP, g) : APP
-      if (existsSync(join(dasar, ...uji, 'page.tsx'))) return true
+      const indukJalur = join(dasar, ...bagian.slice(0, i))
+      if (!existsSync(indukJalur)) continue
+
+      // Nama parameter dinamis yang BENAR-BENAR ada di direktori itu.
+      let anak
+      try { anak = readdirSync(indukJalur, { withFileTypes: true }) } catch { continue }
+      for (const e of anak) {
+        if (!e.isDirectory() || !/^\[.+\]$/.test(e.name)) continue
+        const uji = [...bagian]
+        uji[i] = e.name
+        if (existsSync(join(dasar, ...uji, 'page.tsx'))) return true
+      }
     }
   }
   return false
