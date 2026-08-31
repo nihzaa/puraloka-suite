@@ -2816,7 +2816,23 @@ jobs:
       # halaman yang tak ada) yang juga merah.
       - name: Klaim layar di peta-menu terbukti di kode
         run: node apps/web/scripts/audit-klaim-layar-nyata.mjs
-        working-directory: apps/web
+        # ⚠ `working-directory: apps/web` DIHAPUS 2026-08-31 — path-nya ganda.
+        #
+        # Ia berpasangan dengan `node apps/web/scripts/…`, jadi CI mencari
+        #
+        #     apps/web/apps/web/scripts/audit-klaim-layar-nyata.mjs
+        #
+        # dan mati `Cannot find module` — exit 1 yang terbaca seperti penjaga
+        # MENEMUKAN pelanggaran, padahal ia tak pernah berjalan sama sekali.
+        #
+        # Penjaga yang crash tidak menjaga apa pun. Kelas cacat yang sudah
+        # tercatat tiga kali di repo ini (SyntaxError di audit-nav-yatim,
+        # ENOENT dari cwd di penjaga ini sendiri, dan tujuh penjaga yang mati
+        # exit 2 karena `process.exit` tak bisa ditangkap try/catch).
+        #
+        # Lokal ia HIJAU (0 klaim tak terbukti dari 230 entri) — jadi merahnya
+        # di CI sama sekali bukan tentang kode yang diperiksanya.
+        working-directory: .
 
       - name: Drift peta-menu.ts vs menu_items
         run: node apps/web/scripts/audit-peta-menu-vs-db.mjs
