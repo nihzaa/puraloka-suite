@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 301 dokumen** — antrean 16 · acuan 216 · riwayat 69.
+**Total 302 dokumen** — antrean 16 · acuan 217 · riwayat 69.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -102,6 +102,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [GALIAN-92-OTOMASI](execution/GALIAN-92-OTOMASI.md) | riwayat |  | Galian 92 Otomasi Tersisa — diukur, bukan dibaca |
 | [GOLDEN-FILE-INVESTIGASI](execution/GOLDEN-FILE-INVESTIGASI.md) | acuan | ✓ | Investigasi Golden File — Angka Jangkar (C-5 / R-005) |
 | [JOURNAL](execution/JOURNAL.md) | riwayat | ✓ | JOURNAL — Catatan Sesi |
+| [KERJA-PARALEL](execution/KERJA-PARALEL.md) | acuan |  | Kerja Paralel — dua sesi atau lebih, tanpa saling menimpa |
 | [LEDGER-DIFF](execution/LEDGER-DIFF.md) | acuan |  | LEDGER-DIFF — Buku Migrasi vs Artefak Fisik |
 | [PETA-WORKTREE](execution/PETA-WORKTREE.md) | acuan |  | Peta Worktree — apa yang sudah tampil di UI, apa yang belum |
 | [PROMPT-SESI-ASISTEN](execution/PROMPT-SESI-ASISTEN.md) | acuan |  | Prompt untuk sesi ASISTEN — salin seluruh blok di bawah |
