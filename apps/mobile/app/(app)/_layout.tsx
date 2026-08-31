@@ -189,6 +189,16 @@ export default function AppLayout() {
       */}
       <Tabs.Screen name="punch/lapor" options={{ href: null }} />
 
+      {/*
+        Lapor NCR — ketidaksesuaian mutu. Terpisah dari punch list karena
+        keduanya benda berbeda: punch = cacat yang tinggal dirapikan, NCR =
+        penyimpangan dari sesuatu yang TERTULIS, dengan rantai status enam
+        langkah dan kemungkinan berujung klaim biaya.
+
+        Sama-sama `href: null` dan dibuka dari "Lainnya".
+      */}
+      <Tabs.Screen name="ncr/lapor" options={{ href: null }} />
+
       <Tabs.Screen name="web/[modul]" options={{ href: null }} />
     </Tabs>
   );

@@ -55,6 +55,10 @@ const MODUL: Modul[] = [
     kunci: 'punch', judul: 'Lapor Temuan', ringkas: 'Catat cacat di lokasi',
     emoji: '📌', izin: 'punch:manage', nativeJalur: '/punch/lapor',
   },
+  {
+    kunci: 'ncr', judul: 'Lapor NCR', ringkas: 'Pekerjaan menyimpang dari spesifikasi',
+    emoji: '⚠️', izin: 'ncr:manage', nativeJalur: '/ncr/lapor',
+  },
   { kunci: 'approval', judul: 'Persetujuan', ringkas: 'Yang menunggu keputusan Anda', emoji: '✅', izin: null },
   { kunci: 'keuangan', judul: 'Keuangan', ringkas: 'Invoice, kas, piutang', emoji: '💰', izin: 'finance:view' },
   { kunci: 'akuntansi', judul: 'Akuntansi', ringkas: 'Jurnal & buku besar', emoji: '📒', izin: 'gl:view' },

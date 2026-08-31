@@ -68,7 +68,7 @@ const MAKS_PERCOBAAN = 5
  * empat teratas yang belum punya layar mobile. Mengisinya di lokasi tanpa
  * sinyal adalah keadaan normal, bukan pengecualian.
  */
-export type JenisKiriman = 'progres-harian' | 'progres-detail' | 'kasbon' | 'absensi' | 'punch'
+export type JenisKiriman = 'progres-harian' | 'progres-detail' | 'kasbon' | 'absensi' | 'punch' | 'ncr'
 
 export interface Kiriman {
   id: string
