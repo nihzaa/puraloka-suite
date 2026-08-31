@@ -103,6 +103,82 @@ bukan bukti benarnya hierarki.
 
 ---
 
+## 2026-09-01 — kuota penyimpanan, dan mutasi yang membuktikan test saya buta
+
+`kuota.penyimpanan_gb` terdaftar di katalog sejak migrasi 538 dan dijual di
+halaman paket. Diukur: **nol pembaca** di seluruh `apps/`. Paket yang
+menjanjikan "5 GB" tak membatasi apa pun.
+
+⚠ **Kerja ini ada di commit `f64a68b7`** yang berjudul "docs(jurnal)" — 14
+berkas (877 baris) tertelan commit sesi lain. Kodenya utuh dan benar; yang
+salah judulnya. Dicatat di sini supaya bisa ditemukan.
+
+### Dihitung dari `storage.objects`, bukan tabel penghitung
+
+Tujuh titik unggah = tujuh kesempatan lupa, dan yang lupa membuat hitungannya
+terlalu kecil tanpa gejala. `storage.objects` sudah mencatat ukuran tiap objek
+dan selalu benar, karena Storage yang memeliharanya.
+
+### Migrasi 555 salah, dan salahnya halus
+
+555 mendaftarkan TIGA bucket; kode menulis ke **ENAM**. Lebih halus lagi:
+keenamnya punya **dua pola jalur** — `<uuid proyek>/` dan `<uuid company>/`.
+Menambahkan tiga bucket yang terlewat ke daftar 555 tak akan menolong, karena
+JOIN-nya ke `projects` tak pernah cocok; daftarnya cuma terlihat lebih lengkap.
+
+Kuota yang melewatkan sebagian pemakaian **tetap terlihat bekerja** — ia
+menolak saat "penuh", cuma penuhnya di angka yang salah.
+
+### Mutasi menemukan test saya buta terhadap dua cacat serius
+
+Test pertama 7/7 hijau. Lalu dua mutasi **lolos**:
+
+    NULL → 0          paket "tak terbatas" jadi paket yang tak bisa
+                      mengunggah apa pun            → tetap 7/7 HIJAU
+    gagal-TERTUTUP    satu gangguan menghentikan semua unggahan
+                                                    → tetap 7/7 HIJAU
+
+Keduanya akan sampai ke pelanggan. Dua test ditambahkan; sesudah itu ketiganya
+merah. **Ini alasan mutasi dijalankan, bukan diasumsikan** — test yang hijau
+tak memberi tahu apa yang tak diujinya.
+
+### Diagnosis koneksi: saya salah DUA KALI berturut-turut
+
+Suite admin-saas jatuh 553 lulus → 66 gagal → 97 gagal → refused, kode sama.
+
+1. Saya melapor **"PostgREST vendor MATI"**. Salah. Diukur ke container:
+   up 9 jam, nol restart, 22 MB, tak OOM, dan `curl` **200 dari dalam VPS**.
+   Yang mati terowongan SSH lokal.
+2. Saya menyebutnya **"terowongan zombi"**. Juga salah. Prosesnya (PID 25948)
+   sudah tak ada sama sekali — yang tersisa **soket yatim**: Windows menahan
+   entri LISTENING sesudah pemiliknya hilang, dan `netstat` tetap menampilkan
+   PID mati.
+
+Yang menyelamatkan diagnosis pertama: saran sesi `e7` untuk **mencatat bukti
+sebelum restart**. Kalau saya langsung `restart vendor-rest`, saya akan
+menyembuhkan yang tak sakit, menghapus buktinya, dan kerusakannya kembali
+besok tanpa catatan.
+
+`netstat` bilang LISTENING padahal prosesnya mati. `curl` yang membedakan —
+dan port alternatif membuktikan VPS sehat sepenuhnya.
+
+### Diukur
+
+    migrasi 555/556/557   diterapkan, ketiga verifikasi lolos
+    vitest kuota          9 lulus / 9
+    mutasi                3 arah merah
+    audit-unggah-berkuota hijau; merah 3 arah termasuk "kuota jadi komentar"
+    tsc --noEmit          bersih
+
+### Sisa yang bukan dari saya
+
+36 halaman yatim dan `gambarUntuk()` hilang — dari rantai 164-migrasi yang
+dijalankan sesi lain. Menu saya sendiri ikut tersapu (lahir `true`, terbaca
+`false`); diperbaiki lewat 557 tanpa menuduh migrasi tertentu, karena saya
+tak menelusurinya sampai ketemu.
+
+---
+
 ## 2026-09-01 — portal tagihan pelanggan, dan enam penjaga yang menangkap saya
 
 Lubang ketiga dari tiga: pelanggan tak punya tempat melihat tagihannya. Layar
