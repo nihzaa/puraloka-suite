@@ -77,9 +77,25 @@ DO $$
 DECLARE
   n_aktif INT; n_anggota INT; n INT; uid UUID; rid UUID;
 BEGIN
+  /*
+    ⚠ DIGERBANGI 2026-08-31.
+
+    `layar.admin@puraloka.test` adalah akun UJI yang dibuat di basis dev, dan
+    tak ada migrasi mana pun yang membuatnya — diukur: hanya berkas ini yang
+    menyebut alamat itu di seluruh db/migrations.
+
+    Di basis yang baru lahir akun itu belum ada, dan RAISE EXCEPTION di sini
+    menghentikan seluruh rantai migrasi. Verifikasi keanggotaan penjadwal tak
+    bisa dilakukan tanpa akunnya — dan tak perlu, karena tanpa akun itu tak
+    ada penjadwal yang bisa 403.
+
+    Pola yang sama dengan gerbang 237, 239, 392, dan 428: data yang hanya ada
+    di satu basis tak boleh jadi syarat berjalannya rantai.
+  */
   SELECT id INTO uid FROM users WHERE email = 'layar.admin@puraloka.test';
   IF uid IS NULL THEN
-    RAISE EXCEPTION '523 gagal: akun penjadwal (layar.admin@puraloka.test) tidak ada di tabel users';
+    RAISE NOTICE '523 verifikasi dilewati: akun penjadwal (layar.admin@puraloka.test) belum ada di basis ini. Bukan galat.';
+    RETURN;
   END IF;
 
   /*

@@ -60,9 +60,27 @@ UPDATE progress_logs
 DO $$
 DECLARE n INT; n_isi INT;
 BEGIN
+  /*
+    ⚠ DITURUNKAN JADI CATATAN 2026-08-31.
+
+    Migrasi ini MENYERAGAMKAN nilai `weather` yang sudah ada. Kalau belum ada
+    satu pun catatan cuaca, tak ada yang bisa diseragamkan — dan itu keadaan
+    basis yang baru lahir, bukan kegagalan:
+
+        HARD FAIL — 431_cuaca_seragam.sql
+          431 gagal: tak ada satu pun catatan cuaca untuk diseragamkan
+
+    Backfill yang tak menemukan apa pun untuk di-backfill sudah selesai
+    pekerjaannya. Pertukaran yang sama dengan 425, 426, 429, 430, 466, 467,
+    485, 509, dan 524 hari ini.
+
+    Yang tetap RAISE EXCEPTION di bawah: bila ADA catatan cuaca tetapi masih
+    tersisa yang belum seragam — itu berarti UPDATE-nya benar-benar gagal.
+  */
   SELECT count(*) INTO n_isi FROM progress_logs WHERE weather IS NOT NULL;
   IF n_isi < 1 THEN
-    RAISE EXCEPTION '431 gagal: tak ada satu pun catatan cuaca untuk diseragamkan';
+    RAISE NOTICE '431: nol catatan cuaca di basis ini — tak ada yang perlu diseragamkan. Bukan galat.';
+    RETURN;
   END IF;
 
   -- Tak boleh ada sisa yang berbeda dari bentuk normalnya.
