@@ -194,7 +194,36 @@ BEGIN
       '539 gagal: % company punya direktur yang izinnya tertinggal dari admin', n_sisa;
   END IF;
 
-  /* 4. Ketiga izin berbahaya TETAP tak dipegang siapa pun. */
+  /*
+    4. Ketiga izin berbahaya TETAP tak dipegang siapa pun.
+
+    ⚠ DICABUT LEBIH DULU, bukan cuma dituntut — DITAMBAHKAN 2026-08-31.
+
+    Migrasi 536 (sesi lain, hari yang sama) memberikan SELURUH isi
+    `permissions` ke admin template, untuk menutup lubang "admin template cuma
+    memegang 33 dari 230 izin". Benar untuk 227 izin, dan menabrak tiga yang
+    SENGAJA yatim di sini.
+
+    Diukur dalam urutan nomor sebenarnya (536 → 539 → 540):
+
+        536 OK
+        539 gagal: 292 pemegang izin yang seharusnya kosong
+        540 OK: override_sod -73, daftar_hitam -73
+
+    Migrasi 540 SUDAH mencabutnya — tetapi ia berjalan SESUDAH berkas ini,
+    jadi 539 mati lebih dulu dan seluruh rantai berhenti di situ.
+
+    Menuntut keadaan yang baru dipulihkan migrasi berikutnya adalah bentuk
+    lain dari cacat yang sudah menggigit belasan kali hari ini: verifikasi
+    yang menuntut pekerjaan migrasi LAIN. Yang benar: mencabutnya sendiri,
+    lalu menuntutnya. Pencabutan mempersempit kewenangan, jadi aman
+    dijalankan di lingkungan mana pun — dan idempoten.
+  */
+  DELETE FROM role_permissions rp
+   USING permissions p
+   WHERE rp.permission_id = p.id
+     AND p.key IN ('approval:override_sod', 'mitra:daftar_hitam');
+
   SELECT count(*) INTO n_sisa
     FROM role_permissions rp
     JOIN permissions p ON p.id = rp.permission_id
