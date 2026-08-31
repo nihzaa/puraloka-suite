@@ -102,13 +102,67 @@ export default async function authRoutes(app: FastifyInstance) {
       .setCookie('puraloka_token', data.session.access_token, COOKIE_OPTS)
       .setCookie('puraloka_refresh', data.session.refresh_token, COOKIE_OPTS)
 
+    /*
+      ══════════════════════════════════════════════════════════════════════
+      TOKEN DI BADAN — HANYA untuk klien yang tak bisa memakai cookie
+      ══════════════════════════════════════════════════════════════════════
+
+      Cookie HttpOnly di atas adalah rancangan yang BENAR untuk browser: JS
+      tak bisa membacanya, jadi XSS tak bisa mencuri sesi. Itu tak diubah,
+      dan web tetap menerima `session: { expires_at }` saja.
+
+      Tapi aplikasi mobile TIDAK memakai cookie — ia mengirim
+      `Authorization: Bearer <token>`, dan tokennya diambil dari badan
+      balasan ini. Yang tak pernah ada di sana.
+
+      Diukur langsung ke produksi 2026-09-01:
+
+          session dari login    { expires_at }   (tanpa access_token)
+          mobile menyimpan      undefined
+          GET /api/v1/projects  401
+
+      **Aplikasi mobile tak pernah bisa login sekali pun** — bukan sejak
+      perubahan tertentu, melainkan sejak ia ditulis. Dan tak ada galat yang
+      menyebutnya: layar login menampilkan pesan kredensial, seolah sandinya
+      yang salah.
+
+      ── Kenapa berpagar header, bukan diberikan ke semua
+
+      Memberikan token di badan untuk SEMUA klien membuang perlindungan XSS
+      yang jadi alasan cookie HttpOnly dipakai: halaman web yang tersuntik
+      skrip bisa membaca balasan `fetch`, tetapi tak bisa membaca cookie
+      HttpOnly.
+
+      `X-Client: mobile` tak menambah keamanan dengan sendirinya — penyerang
+      bisa mengirimnya juga — dan itu memang bukan tugasnya. Yang dijaganya
+      BAWAAN: web tak pernah menerima token di badan, jadi XSS di web tak
+      mendapat apa-apa dari sini. Penyerang yang bisa menyuntik header sudah
+      mengendalikan kliennya, dan pada titik itu ia bisa membaca token dari
+      mana pun.
+
+      ── Yang WAJIB menyertainya di sisi mobile
+
+      `expo-secure-store` (Keychain/Keystore), bukan AsyncStorage.
+      `lib/storage.ts` sudah melakukannya dan dijaga
+      `audit-token-mobile-terenkripsi.mjs` — token di badan tak boleh
+      berakhir di penyimpanan polos.
+    */
+    const klien = String(request.headers['x-client'] ?? '').toLowerCase()
+    const untukMobile = klien === 'mobile'
+
     return reply.send({
       user,
       permissions,
       homePortal,
-      session: {
-        expires_at: data.session.expires_at
-      }
+      session: untukMobile
+        ? {
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token,
+            expires_at: data.session.expires_at,
+          }
+        : {
+            expires_at: data.session.expires_at,
+          },
     })
   })
 

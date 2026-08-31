@@ -37,6 +37,24 @@ if (!API_URL) {
 export const api = axios.create({ baseURL: API_URL });
 
 api.interceptors.request.use(async (config) => {
+  /*
+    `X-Client: mobile` memberi tahu API bahwa klien ini tak bisa memakai
+    cookie, sehingga `POST /auth/login` memulangkan `access_token` di badan.
+
+    Tanpa header ini, login memulangkan `session: { expires_at }` saja —
+    token hanya dikirim sebagai cookie HttpOnly, yang benar untuk browser
+    (XSS tak bisa membacanya) dan mustahil untuk aplikasi ini.
+
+    Diukur 2026-09-01: tanpa header, mobile menyimpan `undefined` sebagai
+    token dan SETIAP permintaan dijawab 401. Aplikasi ini tak pernah bisa
+    login sekali pun sejak ditulis, dan tak ada galat yang menyebutnya —
+    layar login menampilkan pesan kredensial, seolah sandinya salah.
+
+    Dikirim pada SEMUA permintaan, bukan hanya login: bawaan yang bergantung
+    pada satu tempat mudah terlewat saat rute baru ditambahkan.
+  */
+  config.headers['X-Client'] = 'mobile';
+
   const token = await storage.get('puraloka_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
