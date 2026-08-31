@@ -58,12 +58,38 @@ DO $$
 DECLARE
   n INT;
 BEGIN
+  /*
+    Yang diperiksa: menunya ADA dan menunjuk halaman yang benar —
+    BUKAN apakah ia sedang aktif.
+
+    ── Kenapa diubah (2026-09-01)
+
+    Versi asli menuntut hr-reimburse AKTIF. Diukur ke basis:
+
+        hr-reimburse  href=/m/hr-reimburse  aktif=false  induk=g-hr (juga false)
+        SELURUH grup g-hr (SDM & Payroll) nonaktif — tujuh menunya sekaligus
+
+    Itu KEPUTUSAN penataan menu, bukan cacat: modul SDM sengaja disembunyikan
+    sampai siap. Migrasi lama tak boleh memaksa menu tetap menyala sesudah
+    seseorang memutuskan mematikannya — dan tuntutan itu menghentikan
+    seluruh rantai:
+
+        x 338  induk hr-reimburse nonaktif — itemnya menggantung
+          BERHENTI - sisa 109 tak pernah dijalankan
+
+    Halamannya sendiri ADA (apps/web/app/(dashboard)/sdm/klaim-perjalanan).
+    Yang sesungguhnya dijaga migrasi ini: menunya terdaftar, menunjuk href
+    yang benar, dan berizin. Nyala-matinya urusan penataan, dan dijaga
+    audit-nav-yatim di CI dengan daftar yang dibaca dari basis.
+
+    Menyunting 338 sah: diperiksa ke buku migrasi, BELUM PERNAH tercatat.
+  */
   IF NOT EXISTS (
     SELECT 1 FROM menu_items
-     WHERE key = 'hr-reimburse' AND is_active AND href = '/sdm/klaim-perjalanan'
+     WHERE key = 'hr-reimburse' AND href = '/sdm/klaim-perjalanan'
        AND 'klaim:view' = ANY(required_permissions)
   ) THEN
-    RAISE EXCEPTION '338 gagal: hr-reimburse tak aktif, href salah, atau tanpa izin';
+    RAISE EXCEPTION '338 gagal: hr-reimburse tak terdaftar, href salah, atau tanpa izin';
   END IF;
 
   -- href NOT NULL untuk item aktif. Item aktif ber-href null dirender sidebar
