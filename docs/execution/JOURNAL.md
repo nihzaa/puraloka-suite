@@ -33879,3 +33879,72 @@ Perbandingannya tak setara, dan ia menyatakannya sendiri.
 build → tunggu sehat → buktikan). Rantai 376→543 hari ini ada di basis
 karena dijalankan manual, bukan hasil deploy — dan itu tetap begitu untuk
 migrasi berikutnya.
+
+### ⚠ Commit `f64a68b7` menelan 877 baris kerja sesi lain — saya yang salah
+
+Commit berjudul **"docs(jurnal): deploy VPS 0732c61d"** ternyata memuat
+15 berkas, dan hanya 55 baris terakhirnya jurnal:
+
+```
+.github/workflows/ci.yml                      19 +
+apps/api/scripts/audit-unggah-berkuota.mjs   160 +
+apps/api/src/utils/kuota-penyimpanan.ts      131 +
+apps/api/src/utils/__tests__/kuota-…test.ts  177 +
+apps/api/src/routes/v1/  (7 rute unggah)      86 +
+db/migrations/555, 556, 557                  304 +
+docs/execution/JOURNAL.md                     55 +   ← cuma ini jurnal
+                                             ───
+                                             932 baris
+```
+
+Sisanya **modul kuota penyimpanan milik sesi `puraloka-suite-7b`**.
+
+#### Yang membuat ini buruk
+
+Bukan kodenya — 7b sudah memverifikasi semuanya utuh (9 test lulus, penjaga
+kuota hijau, `tsc` bersih). Yang rusak **jejaknya**: siapa pun yang kelak
+bertanya *"dari mana modul kuota penyimpanan datang?"* akan mencari di
+riwayat dan tak menemukannya, karena judulnya bicara soal jurnal deploy.
+
+Dan gejalanya nol dari sisi saya: `git status` bersih sesudah commit. 7b
+baru tahu karena `git commit`-nya menjawab *"nothing to commit, working tree
+clean"* untuk berkas yang jelas-jelas baru ia tulis.
+
+#### Ini KEDUA kalinya hari ini, dan saya yang mengingatkan aturannya
+
+Sore tadi commit `5f3c9eda` saya menelan 2.247 baris upgrade Expo milik
+`e7`. Aturannya lalu ditulis ke CLAUDE.md §8a.1 — **`git add` sebut berkas,
+tak pernah `.` atau `-A`** — dan beberapa jam lalu saya sendiri yang
+mengingatkannya ke 7b.
+
+Lalu saya mengulanginya. Sebabnya: saya memakai
+`git add -- docs/execution/JOURNAL.md`, yang benar — **tetapi berkas lain
+sudah ter-stage lebih dulu oleh sesi lain**, dan `git commit` membawa
+seluruh isi index, bukan hanya yang baru saya tambahkan.
+
+**Aturan yang kurang, dan sekarang ditulis:** sebut-nama saat `add` TIDAK
+cukup. Sebelum `git commit` di checkout bersama, periksa isi index:
+
+```bash
+git diff --cached --name-only     # apa yang SEBENARNYA akan ter-commit
+```
+
+Kalau ada yang bukan milik sesi ini, keluarkan dengan
+`git restore --staged -- <berkas>` lebih dulu.
+
+#### Riwayat TIDAK diubah — sengaja
+
+`f64a68b7` sudah ter-push ke `main` DAN `deploy/vps-perdana`, dan sudah
+ter-deploy ke VPS. Membongkarnya lebih berisiko daripada riwayat yang salah
+judul. Catatan ini yang jadi jembatannya.
+
+#### Konteks yang seharusnya ada di pesan commit itu
+
+**Modul kuota penyimpanan** (sesi `puraloka-suite-7b`): tujuh rute unggah
+kini memeriksa kuota sebelum menerima berkas, dengan penjaga
+`audit-unggah-berkuota.mjs` di CI. Migrasi 555 sempat mendaftarkan TIGA
+bucket sementara kodenya menulis ke ENAM — ditutup 556.
+
+**Migrasi 557**: menu `pengaturan-langganan` lahir `is_active = true`
+(migrasi 552) tapi terbaca `false`, dan `audit-nav-yatim` merahkannya.
+Diperbaiki lewat migrasi maju.
