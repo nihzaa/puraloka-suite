@@ -36,6 +36,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { useData } from "@/lib/data-cache";
 import { useIzin } from "@/lib/use-izin";
 import { api } from "@/lib/api";
 import { Bot, Info, Loader2, Save, TrendingUp, Wallet } from "lucide-react";
@@ -160,34 +161,40 @@ const rupiah = (n: number) => `Rp ${Math.round(n).toLocaleString("id-ID")}`;
 export default function PenyediaAiPage() {
   const bolehKelola = useIzin("settings:ai:manage");
 
-  const [muatan, setMuatan] = useState<Muatan | null>(null);
-  const [memuat, setMemuat] = useState(true);
+  /*
+    Lapis cache bersama (F4-2). `draf` tetap state lokal — ia isian yang
+    sedang disunting, dan menimpanya dari cache akan menghapus ketikan orang.
+  */
+  const sumber = useData<Muatan>("/api/v1/ai/config");
+  const muatan = sumber.data;
+  const memuat = sumber.memuat;
+
+  /*
+    Galat MUAT punya barisnya sendiri, TIDAK numpang `toast`.
+
+    Toast menghilang sendiri setelah 5 detik dan dipakai untuk hasil aksi;
+    galat muat harus BERTAHAN selama datanya memang tak ada, karena ia
+    menjelaskan kenapa halamannya kosong. Dijaga uji-galat-muat-terpisah.mjs.
+  */
+  const galatMuat = sumber.galat ? "Gagal memuat konfigurasi AI" : null;
   const [draf, setDraf] = useState<Record<string, Partial<Konfigurasi>>>({});
   const [sedangSimpan, setSedangSimpan] = useState<string | null>(null);
   const [toast, setToast] = useState<{ tipe: "ok" | "err"; pesan: string } | null>(null);
 
+  /*
+    Hanya untuk MUAT ULANG sesudah simpan — pengambilan pertama dikerjakan
+    `useData`. `setDraf({})` dipertahankan: sesudah tersimpan, isian yang
+    belum dikirim memang harus dikosongkan agar tak menutupi nilai server.
+  */
   const muat = useCallback(async () => {
-    try {
-      const r = await api.get<Muatan>("/api/v1/ai/config");
-      setMuatan(r.data);
-      setDraf({});
-    } catch {
-      setToast({ tipe: "err", pesan: "Gagal memuat konfigurasi AI" });
-    } finally {
-      setMemuat(false);
-    }
-  }, []);
+    await sumber.muatUlang();
+    setDraf({});
+  }, [sumber]);
 
-  // `queueMicrotask`, bukan panggilan langsung: `muat()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect
-  // memicu render kedua sebelum yang pertama selesai
-  // (react-hooks/set-state-in-effect). Menunda satu microtask
-  // memindahkannya keluar dari fase render tanpa jeda yang terlihat.
-  //
-  // Pola yang sama sudah dipakai 131 tempat di aplikasi ini.
-  useEffect(() => {
-    queueMicrotask(() => { void muat(); });
-  }, [muat]);
+  /*
+    Effect pemuatan awal DIHAPUS — `useData` yang mengambil datanya.
+    Menyisakannya membuat permintaan GANDA tiap halaman dibuka.
+  */
 
   useEffect(() => {
     if (!toast) return;
@@ -406,6 +413,17 @@ export default function PenyediaAiPage() {
             Butuh kapabilitas <code>settings:ai:manage</code>.
           </div>
         </div>
+      )}
+
+      {/*
+        GALAT MUAT: barisnya sendiri, bertahan selama datanya tak ada.
+        Toast di atas menghilang setelah 5 detik — cocok untuk hasil aksi,
+        salah untuk menjelaskan kenapa halaman ini kosong.
+      */}
+      {galatMuat && (
+        <p role="status" style={{ marginBottom: 12, fontSize: 12.5, color: "var(--danger)" }}>
+          {galatMuat}
+        </p>
       )}
 
       {memuat ? (

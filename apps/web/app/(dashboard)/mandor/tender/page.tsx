@@ -40,6 +40,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useData } from "@/lib/data-cache";
 import { Gavel, RefreshCw, Trophy, TriangleAlert, MinusCircle } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { DialogBersama } from "@/components/dialog-bersama";
@@ -213,33 +214,44 @@ function Kpi({ label, nilai, keterangan, warna }: {
 }
 
 export default function TenderSubkonPage() {
-  const [daftar, setDaftar] = useState<Tender[]>([]);
+  /*
+    Lapis cache bersama (F4-2) untuk DAFTAR tender.
+
+    Fetch DETAIL (baris ~268) sengaja TIDAK ikut: kuncinya
+    `${idEfektif}#${muatUlangKe}` — ia memaksa detail ikut segar tiap kali
+    daftar dimuat ulang, dan hubungan itu akan putus kalau dipindah ke
+    `useData` yang hanya mengenal URL.
+  */
+  const sumberDaftar = useData<{ tender: Tender[] }>("/api/v1/tender-subkon");
+  const daftar = useMemo(() => sumberDaftar.data?.tender ?? [], [sumberDaftar.data]);
   const [terpilih, setTerpilih] = useState("");
   const [banding, setBanding] = useState<Perbandingan | null>(null);
   const [bandingItem, setBandingItem] = useState<PerbandinganItem | null>(null);
   const [tenderAktif, setTenderAktif] = useState<Tender | null>(null);
   const [galat, setGalat] = useState("");
+  // Galat MUAT daftar terpisah dari galat aksi — uji-galat-muat-terpisah.mjs.
+  const galatMuat = sumberDaftar.galat ? "Gagal memuat daftar tender" : null;
   const [muatUlangKe, setMuatUlangKe] = useState(0);
   // Pemuatan dilacak lewat APA yang sudah tiba, bukan bendera boolean yang
   // dinyalakan di badan efek. Bendera memaksa `setState` sinkron — render
   // bertingkat, dan lint menandainya — sementara membandingkan "putaran
   // muat ulang yang datanya sudah sampai" dengan putaran sekarang menjawab
   // pertanyaan yang sama tanpa satu pun setState tambahan.
-  const [daftarPutaran, setDaftarPutaran] = useState(-1);
   const [detailUntuk, setDetailUntuk] = useState<string | null>(null);
 
+  /*
+    Effect pemuatan daftar DIHAPUS — `useData` yang mengambilnya, termasuk
+    pembatalan saat komponen lepas. `muatUlangKe` DIPERTAHANKAN karena ia
+    juga jadi bagian kunci detail di bawah; saat naik, daftar ikut disegarkan
+    lewat effect kecil ini.
+  */
   useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ tender: Tender[] }>("/api/v1/tender-subkon", { signal: ac.signal })
-      .then((r) => {
-        setDaftar(r.data.tender ?? []);
-        setGalat("");
-      })
-      .catch((e) => { if (!ac.signal.aborted) setGalat(e?.response?.data?.error ?? "Gagal memuat daftar tender"); })
-      .finally(() => { if (!ac.signal.aborted) setDaftarPutaran(muatUlangKe); });
-    return () => ac.abort();
+    if (muatUlangKe === 0) return;
+    void sumberDaftar.muatUlang();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [muatUlangKe]);
-  const memuatDaftar = daftarPutaran !== muatUlangKe;
+
+  const memuatDaftar = sumberDaftar.memuat;
 
   // Pilihan awal jatuh ke tender yang PUNYA penawaran, bukan yang paling
   // baru. Daftar diurutkan `tanggal DESC` di API, jadi tanpa aturan ini
@@ -492,6 +504,18 @@ export default function TenderSubkonPage() {
           menang bukan yang termurah. Tanpa ini, jawabannya hanya ada di ingatan orang.
         </p>
       </div>
+
+      {/*
+        Galat MUAT DAFTAR terpisah dari galat aksi — dijaga
+        uji-galat-muat-terpisah.mjs. Daftar tender yang gagal dimuat tampil
+        kosong dan terbaca "belum ada tender", padahal mungkin ada yang
+        menunggu keputusan.
+      */}
+      {galatMuat && (
+        <p role="status" style={{ marginBottom: 12, fontSize: 12.5, color: "var(--danger)" }}>
+          {galatMuat}
+        </p>
+      )}
 
       {galat && (
         <div role="alert" style={{
