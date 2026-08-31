@@ -822,6 +822,79 @@ await seed('proyek kedua berklien (bahan uji kontrak)', async () => {
   }
 })
 
+/*
+  Proyek BERSIFAT — sembilan keluhan CI yang ternyata satu sebab.
+
+  Kesembilan kalimat ini ditulis test-nya sendiri, dan semuanya menyebut
+  PROYEK dengan sifat tertentu:
+
+      nol proyek ber-EVM (aktif 0, tak terhitung 0)
+      basis tak punya proyek beretensi — test ini tak menguji apa pun
+      nol notifikasi — tak ada proyek mendekati akhir
+      tak satu pun proyek yang SUDAH berakhir ikut disapa
+      SEMUA proyek berpagu nol — tanda ketiga query gagal dan errornya ditelan
+      tak ada proyek aktif ber-RAB
+      nol proyek terperiksa · nol proyek tertegur
+      melebarkan jendela tak menambah proyek — ambangnya tak dipakai
+
+  Yang kurang BUKAN sembilan hal berbeda, melainkan proyek dengan sifat
+  berbeda-beda. Seed ini membuat empat, masing-masing menutup satu sifat
+  yang tak dimiliki `CI Seed Project`:
+
+      AKHIR-DEKAT   berakhir 7 hari lagi   -> "mendekati akhir"
+      LEWAT         berakhir 10 hari lalu  -> "SUDAH berakhir"
+      RETENSI       retention_pct 5%       -> "proyek beretensi"
+      PAGU          contract_value besar   -> "berpagu bukan nol"
+
+  Bentuk kolom DIUKUR dari basis, bukan ditebak:
+
+      contract_value  numeric  NOT NULL     retention_pct   numeric NOT NULL
+      start_date      date     NOT NULL     end_date        date    NOT NULL
+      status project_status NOT NULL: draft|active|on_hold|completed|cancelled
+
+  `company_id` dan `client_id` DISALIN dari proyek induk — pelajaran seed
+  `clients` dan `CI Seed Project 2`: default yang memilih company SALAH
+  membuat galat muncul di tempat lain berjam-jam kemudian.
+*/
+await seed('proyek bersifat x4 (bahan uji otomasi & EVM)', async () => {
+  await c.query(
+    `INSERT INTO projects (company_id, client_id, pm_id, name, location,
+                           start_date, end_date, status, contract_value,
+                           retention_pct, created_by)
+     SELECT p.company_id, p.client_id, p.pm_id, v.nama, 'Bandung',
+            CURRENT_DATE - v.mulai, CURRENT_DATE + v.selesai,
+            'active'::project_status, v.nilai, v.retensi, p.created_by
+       FROM projects p
+       CROSS JOIN (VALUES
+              ('CI Seed Proyek Akhir-Dekat', 90, 7,   2000000000, 0),
+              ('CI Seed Proyek Lewat',      120, -10, 1500000000, 0),
+              ('CI Seed Proyek Retensi',     60, 45,  3000000000, 5),
+              ('CI Seed Proyek Pagu',        30, 120, 5000000000, 0)
+            ) AS v(nama, mulai, selesai, nilai, retensi)
+      WHERE p.name = 'CI Seed Project'
+        AND NOT EXISTS (SELECT 1 FROM projects x WHERE x.name = v.nama)`)
+
+  /*
+    Diperiksa per-SIFAT, bukan "empat proyek ada". Seed yang menambah baris
+    tanpa sifat yang dituntut tetap membuat test merah, dan pesan galatnya
+    akan menunjuk test — bukan seed ini.
+  */
+  const { rows } = await c.query(
+    `SELECT count(*) FILTER (WHERE end_date BETWEEN CURRENT_DATE
+                               AND CURRENT_DATE + 30)::int AS dekat,
+            count(*) FILTER (WHERE end_date < CURRENT_DATE)::int AS lewat,
+            count(*) FILTER (WHERE retention_pct > 0)::int AS retensi,
+            count(*) FILTER (WHERE contract_value > 0)::int AS berpagu,
+            count(*) FILTER (WHERE status = 'active')::int AS aktif
+       FROM projects WHERE is_deleted = false`)
+  const { dekat, lewat, retensi, berpagu, aktif } = rows[0]
+  if (dekat === 0)   throw new Error('nol proyek MENDEKATI akhir')
+  if (lewat === 0)   throw new Error('nol proyek yang SUDAH berakhir')
+  if (retensi === 0) throw new Error('nol proyek BERETENSI')
+  if (berpagu === 0) throw new Error('nol proyek BERPAGU — semua contract_value nol')
+  if (aktif === 0)   throw new Error('nol proyek AKTIF')
+})
+
 // ── DIAGNOSTIK state (evidence, bukan tebakan) ─────────────────────────────
 const one = async (q) => { try { return JSON.stringify((await c.query(q)).rows) } catch (e) { return 'ERR ' + e.message.split('\n')[0] } }
 console.log('\n[DIAG] roles:', await one(`SELECT count(*)::int n FROM roles`))

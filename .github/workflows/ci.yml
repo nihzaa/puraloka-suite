@@ -1822,6 +1822,22 @@ jobs:
       - name: Kontras teks mobile
         run: node scripts/audit-kontras-mobile.mjs
 
+      # Versi paket mobile wajib cocok dengan Expo SDK. Diukur 2026-08-31,
+      # PERTAMA kalinya `expo export` dijalankan di repo ini: bundling GAGAL,
+      # dan sebelas paket tak cocok — React 18 (butuh 19), React Native 0.76
+      # (butuh 0.79), expo-router 4 (butuh 5, beda MAYOR).
+      #
+      # Artinya aplikasi mobile TAK PERNAH BISA DI-BUILD jadi APK, dan itu
+      # bertahan lama karena `tsc` hijau, 16 layar typecheck bersih, seluruh
+      # penjaga mobile hijau — tak satu pun menjalankan Metro. TypeScript
+      # memeriksa tipe; ia tak tahu apa-apa soal transformasi Babel di dalam
+      # node_modules.
+      #
+      # Satu keluarga dengan template_penerapan dan pgvector: benar di satu
+      # lapis, patah di lapis yang sesungguhnya dipakai.
+      - name: Versi paket mobile cocok Expo SDK
+        run: node scripts/audit-versi-expo-cocok.mjs
+
       # Daftar jenis elemen struktur ada di DUA tempat yang harus sama: CHECK
       # `struktur_elemen_jenis_check` di basis, dan konstanta JENIS di
       # `routes/v1/struktur.ts`. Kalau berbeda, kegagalannya berbeda arah dan

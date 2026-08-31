@@ -345,6 +345,7 @@ sebelum menyentuh kode terkait** — bukan sekadar daftar isi.
 | `audit-a11y-mobile.mjs` | tiap `Pressable`/`TouchableOpacity` wajib punya `accessibilityRole` atau `accessibilityLabel` — axe-core tak jalan di React Native, jadi 137 halaman web yang nol pelanggaran tak menjaga mobile sama sekali. Diukur 2026-08-31: 25 dari 43 telanjang, termasuk "Keluar" dan "Kembali". Pembaca layar menyebutnya teks biasa (ambang NOL) |
 | `audit-penjaga-tercatat-jalan.mjs` | penjaga yang TERCATAT di tabel ini wajib benar-benar dijalankan `ci.yml` — dokumen yang menjanjikan perlindungan tak ada membuat pembacanya berhenti memeriksa hal yang tak dijaga siapa pun, tanpa gejala. Arah sebaliknya (jalan tapi tak tertabel) sengaja TIDAK dijaga: 206 jalan vs 49 tertabel, dan tabel 206 baris tak seorang pun baca (ambang NOL) |
 | `audit-kontras-mobile.mjs` | warna teks mobile wajib >= 4.5:1 (WCAG AA) — DIHITUNG, bukan ditaksir. `#9CA3AF` terlihat wajar tapi 2.54:1, dan dipakai 15 tempat plus label tab yang hadir di SETIAP layar. Berlatar gelap dinilai terhadap navy, bukan dilewati (ambang NOL) |
+| `audit-versi-expo-cocok.mjs` | versi paket mobile wajib cocok Expo SDK — diukur 2026-08-31 saat `expo export` pertama kali dijalankan: bundling GAGAL, 11 paket tak cocok, aplikasi TAK PERNAH bisa jadi APK. `tsc` hijau selama itu karena typecheck tak menjalankan Metro. Mayor+minor wajib sama, patch boleh lebih tinggi (ambang NOL) |
 
 **Alur take-off → RAB — MANUAL, butuh API hidup:**
 
@@ -500,6 +501,53 @@ Env: `apps/api/.env`, `apps/web/.env.local` (contoh: `.env.example` masing-masin
 kutip. Parser env buatan sendiri harus melucuti keduanya — atau cukup pakai
 `scripts/db/_koneksi.mjs` yang sudah menanganinya.
 
+
+### 7a. Mobile — `tsc` hijau BUKAN berarti bisa dibangun
+
+```bash
+# Yang membuktikan aplikasi benar-benar bisa jadi APK.
+cd apps/mobile && MSYS_NO_PATHCONV=1 \
+  npx expo export --platform android --output-dir .uji-bundle
+```
+
+Diukur 2026-08-31, pertama kalinya perintah itu dijalankan di repo ini:
+**GAGAL.** Sebelas paket tak cocok dengan Expo 53 — React 18 (butuh 19),
+React Native 0.76 (butuh 0.79), expo-router 4 (butuh 5, beda MAYOR). Aplikasi
+mobile tak pernah bisa dibangun, dan itu bertahan lama karena `tsc` hijau,
+16 layar typecheck bersih, seluruh penjaga mobile hijau — **tak satu pun
+menjalankan Metro.**
+
+Sesudah `npx expo install --fix`: bundle berhasil, 3,05 MB.
+
+⚠ **Pasang paket mobile dengan `npx expo install`, bukan `pnpm add`.**
+`react-native-webview` dipasang dengan `pnpm add` dan mendapat 14.0.1
+sementara Expo 53 menuntut 13.13.5. `pnpm add` memilih yang terbaru; `expo
+install` memilih yang cocok. Bedanya tak terlihat sampai Metro berjalan.
+Dijaga `audit-versi-expo-cocok.mjs`.
+
+⚠ **`--output-dir` DIRUSAK Git Bash** dengan cara yang sama seperti `--url`
+di skrip a11y: MSYS mengubah path absolut jadi path Windows, dan
+`$TMPDIR/bundle` berakhir sebagai `C:\Program Files\Git\bundle`. Pakai
+`MSYS_NO_PATHCONV=1` dan path relatif.
+
+⚠ **pnpm v11 MENGABAIKAN `.npmrc` — diam-diam.** Setelan seperti
+`public-hoist-pattern` harus di `pnpm-workspace.yaml` (tempat `allowBuilds`,
+`verifyDepsBeforeRun`, dan `overrides` sudah berada). Ditulis di `.npmrc`,
+`pnpm config get` memulangkan `undefined` dan `pnpm install` menjawab
+"Already up to date" **tanpa satu pun galat** — lalu Anda menyimpulkan
+setelannya sudah berlaku dan mengejar sebab yang salah.
+
+⚠ **Setelan yang menuntut penghapusan `node_modules` — ukur dulu apakah
+masalahnya masih ada.** Saya hampir memaksa `publicHoistPattern` (yang
+memicu `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY`, penghapusan seluruh
+workspace) untuk sebuah galat `Cannot find module '@babel/traverse'` yang
+**sudah hilang** begitu `expo install --fix` selesai. Yang menahannya cuma
+pnpm menolak jalan tanpa TTY. Ukur lebih dulu:
+
+```bash
+node -e "const {createRequire}=require('node:module');
+  console.log(createRequire('<paket>/package.json').resolve('<dependensi>'))"
+```
 ## 8. Kejujuran (CHARTER §7 — tidak bisa ditawar)
 
 - Dilarang mengklaim test hijau tanpa menempelkan ringkasan run sungguhan.
