@@ -538,6 +538,7 @@ export const PETA_MENU: GrupMenu[] = [
       { key: 'pengaturan-kredensial', label: 'Kredensial & Integrasi', status: 'hidup', href: '/pengaturan/kredensial', guna: 'Kunci sambungan ke layanan luar.', catatan: 'Nilai kredensial TAK PERNAH keluar server — dijaga `audit-kredensial-tak-bocor.mjs` (ambang NOL).' },
       { key: 'pengaturan-situs', label: 'Situs Publik', status: 'hidup', href: '/pengaturan/situs', guna: 'Isi halaman profil perusahaan yang dilihat publik.' },
       { key: 'keamanan-akun', label: 'Keamanan Akun', status: 'hidup', href: '/pengaturan/keamanan', guna: 'Sandi, sesi, dan perangkat yang pernah masuk.' },
+      { key: 'pengaturan-langganan', label: 'Langganan', status: 'hidup', href: '/pengaturan/langganan', guna: 'Paket yang berlaku, tagihan, dan keadaan akun.', catatan: 'SENGAJA tak bermodul — halaman ini yang dituju orang saat modul lain tertutup, jadi menggemboknya mengunci pelanggan di luar pintu yang ia bayar untuk masuk.' },
       { key: 'audit', label: 'Audit Log', status: 'hidup', href: '/audit', guna: 'Siapa mengubah apa, dan kapan.', catatan: 'Immutability audit log termasuk Ember [C] — tak boleh dibuat bisa dikonfigurasi dari UI.' },
       { key: 'sistem', label: 'Pemeliharaan Sistem', status: 'hidup', href: '/sistem', guna: 'Perawatan basis dan pemeriksaan kesehatan.' },
       { key: 'sys-recycle-bin', label: 'Recycle Bin', status: 'hidup', href: '/sistem/recycle-bin', guna: 'Data yang dihapus, sebelum benar-benar hilang.' },

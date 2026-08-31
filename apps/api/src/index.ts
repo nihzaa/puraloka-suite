@@ -141,6 +141,7 @@ import rantaiKontrakRoutes from './routes/v1/rantai-kontrak.js'
 import wipRoutes from './routes/v1/wip.js'
 import { supabase } from './utils/supabase.js'
 import { registerObservability } from './utils/observability.js'
+import langgananSayaRoutes from './routes/v1/langganan-saya.js'
 
 dotenv.config()
 
@@ -360,6 +361,7 @@ app.get('/health', async (_request, reply) => {
 // Karena itu penegakannya diuji lewat rute SUNGGUHAN (`baca-saja.test.ts`),
 // bukan dari membaca kode ini. Hook yang urutannya salah tidak mengeluarkan
 // galat — ia cuma diam, dan diamnya terbaca persis seperti bekerja.
+await app.register(langgananSayaRoutes)
 await app.register(authRoutes)
 await app.register(projectRoutes)
 await app.register(dashboardRoutes)

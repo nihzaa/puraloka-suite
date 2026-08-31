@@ -556,9 +556,30 @@ export function Tabel<T>({ kolom, data, kunciBaris, caption, kosong, tandaiBaris
         </tbody>
         {total && total.length > 0 && (
           <tfoot>
+            {/*
+              Latar `--surface-hover`, BUKAN `--surface-subtle`.
+
+              Diukur 2026-09-01 dari potret layar halaman Langganan: baris
+              total berbaur dengan baris data. Sebabnya terhitung, bukan
+              selera —
+
+                  --surface-subtle #F9FAFB vs putih   1,05 : 1
+                  --surface-hover  #F3F4F6 vs putih   1,10 : 1
+                  garis 2px --border #E5E7EB          1,24 : 1
+
+              Pada 1,05:1 latarnya praktis tak ada, jadi seluruh beban
+              pemisahan jatuh ke garis 2px sendirian. Baris total yang
+              terbaca sebagai baris data adalah kesalahan baca yang mahal:
+              di halaman keuangan, angka total yang disangka satu transaksi
+              menggeser kesimpulan orang tentang uangnya sendiri.
+
+              Tak ada penjaga yang menangkap ini — kontras antar-PERMUKAAN
+              tak diperiksa siapa pun (yang dijaga kontras TEKS). Ditemukan
+              hanya karena halamannya dipotret dan dilihat.
+            */}
             <tr style={{
               borderTop: `2px solid ${C.border}`,
-              background: "var(--surface-subtle)",
+              background: "var(--surface-hover)",
             }}>
               {total.map((sel) => (
                 <td key={sel.kunci} colSpan={sel.rentang} style={{

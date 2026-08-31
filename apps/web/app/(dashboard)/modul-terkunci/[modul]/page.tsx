@@ -240,8 +240,12 @@ export default function ModulTerkunciPage({
           berdampingan tak terlihat salah di satu halaman, tapi selisihnya
           terasa saat pengguna BERPINDAH halaman.
         */}
-        <Tombol href="/pengaturan/perusahaan" jenis="utama" ikon={<ArrowRight size={14} aria-hidden="true" />}>
-          Lihat paket perusahaan
+        {/* `/pengaturan/langganan` — paket, tagihan, dan keadaan akun.
+            ⚠ Rute ini sempat ditulis dari INGATAN sebelum halamannya ada,
+            dan `audit-tautan-upsell-hidup.mjs` merahkannya. Sekarang hidup;
+            penjaganya tetap ada supaya tak terulang. */}
+        <Tombol href="/pengaturan/langganan" jenis="utama" ikon={<ArrowRight size={14} aria-hidden="true" />}>
+          Lihat paket & tagihan
         </Tombol>
 
         <Link href="/dashboard" style={{ fontSize: 13, fontWeight: 500, color: C.mid, textDecoration: "none" }}>

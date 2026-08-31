@@ -148,6 +148,10 @@ export const JALUR_PEMULIHAN: readonly string[] = [
   'companies.ts',
   'users.ts',
   'roles.ts',
+  // Halaman langganan pelanggan — tempat ia mencari tahu KENAPA sesuatu
+  // tertutup. Menggerbangnya mengunci orang di luar pintu yang ia bayar untuk
+  // masuk, dan pelanggan yang ingin membayar harus menelepon.
+  'langganan-saya.ts',
   // ⚠ TIDAK ada `billing.ts`/`langganan.ts` di produk — saya sempat
   // mendaftarkan keduanya dari ingatan, dan keduanya berkas HANTU.
   // Langganan diurus konsol vendor (repo admin-saas), bukan produk ini.
