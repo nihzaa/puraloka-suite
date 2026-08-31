@@ -104,7 +104,7 @@ export const PETA_MENU: GrupMenu[] = [
     key: 'g-crm', label: 'Pra-Konstruksi', icon: 'Gavel', urutan: 20,
     items: [
       { key: 'crm-lead', label: 'Pipeline Prospek', status: 'hidup', href: '/tender', guna: 'Prospek pekerjaan sebelum jadi tender resmi.', catatan: 'Register tender `bids` dengan status prospek→go/no_go→diajukan→menang/kalah, halaman /tender 571 baris. CRM pipeline penuh (lead→opportunity→quote, probabilitas, follow-up) SENGAJA DICORET — `PETA-PRIORITAS-ERP.md` §Sengaja tidak dibangun, ditegaskan di migrasi 147:15-20. Href lama /crm/prospek tak pernah ada.' },
-      { key: 'yt-tender-penawaran', label: 'Penawaran Tender', status: 'hidup', href: '/tender/penawaran', guna: 'Penawaran yang disusun untuk tender yang diikuti.', catatan: 'Didaftarkan 2026-08-31 bersama migrasi 531/534, yang membuat menunya. Halamannya SUDAH ADA dan selama ini hanya bisa dibuka dengan mengetik URL — `audit-nav-yatim.mjs` menemukannya begitu ia mulai bekerja (sebelum commit c153150c penjaga itu MATI exit 2 di CI, jadi 28 halaman yatim tak terlihat entah sejak kapan). Status `rencana`, bukan `hidup`: halamannya ada, tetapi kelengkapan isinya belum diverifikasi layar per layar — menandainya `hidup` akan mengklaim hal yang tak diukur.' DIUKUR 2026-08-31 sebelum menaikkannya ke `hidup`: halaman ada (418/865/696 baris), rute API-nya ada, dan test-nya hijau — penawaran-rute, cuti-karyawan-endpoint, payroll-staf-endpoint, tarif-payroll-endpoint dan lima berkas lain: 9 passed. Status `rencana` sempat dipakai karena kelengkapannya belum diukur; sesudah diukur, `rencana` justru klaim yang terlalu rendah — dan `audit-peta-modul-vs-halaman.mjs` memerahkannya, dengan alasan yang benar: Peta Modul satu-satunya layar yang menjawab "apa yang sudah bisa dipakai", dan entri yang meremehkan diri sendiri sama menyesatkannya dengan yang melebih-lebihkan.' },
+      { key: 'yt-tender-penawaran', label: 'Penawaran Tender', status: 'hidup', href: '/tender/penawaran', guna: 'Penawaran yang disusun untuk tender yang diikuti.', catatan: 'Didaftarkan 2026-08-31 bersama migrasi 531/534, yang membuat menunya. Halamannya SUDAH ADA dan selama ini hanya bisa dibuka dengan mengetik URL — `audit-nav-yatim.mjs` menemukannya begitu ia mulai bekerja (sebelum commit c153150c penjaga itu MATI exit 2 di CI, jadi 28 halaman yatim tak terlihat entah sejak kapan). Status `rencana`, bukan `hidup`: halamannya ada, tetapi kelengkapan isinya belum diverifikasi layar per layar — menandainya `hidup` akan mengklaim hal yang tak diukur. DIUKUR 2026-08-31 sebelum menaikkannya ke `hidup`: halaman ada (418/865/696 baris), rute API-nya ada, dan test-nya hijau — penawaran-rute, cuti-karyawan-endpoint, payroll-staf-endpoint, tarif-payroll-endpoint dan lima berkas lain: 9 passed. Status `rencana` sempat dipakai karena kelengkapannya belum diukur; sesudah diukur, `rencana` justru klaim yang terlalu rendah — dan `audit-peta-modul-vs-halaman.mjs` memerahkannya, dengan alasan yang benar: Peta Modul satu-satunya layar yang menjawab "apa yang sudah bisa dipakai", dan entri yang meremehkan diri sendiri sama menyesatkannya dengan yang melebih-lebihkan.' },
       { key: 'crm-tender', label: 'Register Tender', status: 'hidup', href: '/tender', guna: 'Tender yang diikuti, nilai penawaran, dan hasilnya.' },
       { key: 'crm-gonogo', label: 'Keputusan Go / No-Go', status: 'hidup', href: '/tender', guna: 'Memutuskan ikut atau lewat, beserta alasannya.' },
       { key: 'crm-prakualifikasi', label: 'Dokumen Prakualifikasi', status: 'hidup', href: '/procurement/kualifikasi', guna: 'Berkas administrasi & teknis untuk lolos prakualifikasi.', catatan: 'SELESAI 2026-08-07 — catatan lama "diperlukan saat mulai ikut tender pemerintah" membuatnya terbaca sebagai rencana, padahal `routes/v1/vendor-kualifikasi.ts` + `/procurement/kualifikasi` sudah jalan (migrasi 210). Ditemukan 2026-08-12 saat founder membaca Peta Modul dan bertanya "masih banyak yang belum dikerjakan, benar?" — tiga dari empat kartu "Direncanakan" ternyata sudah selesai.' },
@@ -266,8 +266,8 @@ export const PETA_MENU: GrupMenu[] = [
   {
     key: 'g-hr', label: 'SDM & Payroll', icon: 'Users', urutan: 120,
     items: [
-      { key: 'yt-sdm-cuti', label: 'Cuti & Izin', status: 'hidup', href: '/sdm/cuti', guna: 'Pengajuan dan persetujuan cuti serta izin karyawan.', catatan: 'Didaftarkan 2026-08-31 bersama migrasi 531/534, yang membuat menunya. Halamannya SUDAH ADA dan selama ini hanya bisa dibuka dengan mengetik URL — `audit-nav-yatim.mjs` menemukannya begitu ia mulai bekerja (sebelum commit c153150c penjaga itu MATI exit 2 di CI, jadi 28 halaman yatim tak terlihat entah sejak kapan). Status `rencana`, bukan `hidup`: halamannya ada, tetapi kelengkapan isinya belum diverifikasi layar per layar — menandainya `hidup` akan mengklaim hal yang tak diukur.' DIUKUR 2026-08-31 sebelum menaikkannya ke `hidup`: halaman ada (418/865/696 baris), rute API-nya ada, dan test-nya hijau — penawaran-rute, cuti-karyawan-endpoint, payroll-staf-endpoint, tarif-payroll-endpoint dan lima berkas lain: 9 passed. Status `rencana` sempat dipakai karena kelengkapannya belum diukur; sesudah diukur, `rencana` justru klaim yang terlalu rendah — dan `audit-peta-modul-vs-halaman.mjs` memerahkannya, dengan alasan yang benar: Peta Modul satu-satunya layar yang menjawab "apa yang sudah bisa dipakai", dan entri yang meremehkan diri sendiri sama menyesatkannya dengan yang melebih-lebihkan.' },
-      { key: 'yt-sdm-payroll', label: 'Payroll', status: 'hidup', href: '/sdm/payroll', guna: 'Penggajian staf: periode, perhitungan, dan slip.', catatan: 'Didaftarkan 2026-08-31 bersama migrasi 531/534, yang membuat menunya. Halamannya SUDAH ADA dan selama ini hanya bisa dibuka dengan mengetik URL — `audit-nav-yatim.mjs` menemukannya begitu ia mulai bekerja (sebelum commit c153150c penjaga itu MATI exit 2 di CI, jadi 28 halaman yatim tak terlihat entah sejak kapan). Status `rencana`, bukan `hidup`: halamannya ada, tetapi kelengkapan isinya belum diverifikasi layar per layar — menandainya `hidup` akan mengklaim hal yang tak diukur.' DIUKUR 2026-08-31 sebelum menaikkannya ke `hidup`: halaman ada (418/865/696 baris), rute API-nya ada, dan test-nya hijau — penawaran-rute, cuti-karyawan-endpoint, payroll-staf-endpoint, tarif-payroll-endpoint dan lima berkas lain: 9 passed. Status `rencana` sempat dipakai karena kelengkapannya belum diukur; sesudah diukur, `rencana` justru klaim yang terlalu rendah — dan `audit-peta-modul-vs-halaman.mjs` memerahkannya, dengan alasan yang benar: Peta Modul satu-satunya layar yang menjawab "apa yang sudah bisa dipakai", dan entri yang meremehkan diri sendiri sama menyesatkannya dengan yang melebih-lebihkan.' },
+      { key: 'yt-sdm-cuti', label: 'Cuti & Izin', status: 'hidup', href: '/sdm/cuti', guna: 'Pengajuan dan persetujuan cuti serta izin karyawan.', catatan: 'Didaftarkan 2026-08-31 bersama migrasi 531/534, yang membuat menunya. Halamannya SUDAH ADA dan selama ini hanya bisa dibuka dengan mengetik URL — `audit-nav-yatim.mjs` menemukannya begitu ia mulai bekerja (sebelum commit c153150c penjaga itu MATI exit 2 di CI, jadi 28 halaman yatim tak terlihat entah sejak kapan). Status `rencana`, bukan `hidup`: halamannya ada, tetapi kelengkapan isinya belum diverifikasi layar per layar — menandainya `hidup` akan mengklaim hal yang tak diukur. DIUKUR 2026-08-31 sebelum menaikkannya ke `hidup`: halaman ada (418/865/696 baris), rute API-nya ada, dan test-nya hijau — penawaran-rute, cuti-karyawan-endpoint, payroll-staf-endpoint, tarif-payroll-endpoint dan lima berkas lain: 9 passed. Status `rencana` sempat dipakai karena kelengkapannya belum diukur; sesudah diukur, `rencana` justru klaim yang terlalu rendah — dan `audit-peta-modul-vs-halaman.mjs` memerahkannya, dengan alasan yang benar: Peta Modul satu-satunya layar yang menjawab "apa yang sudah bisa dipakai", dan entri yang meremehkan diri sendiri sama menyesatkannya dengan yang melebih-lebihkan.' },
+      { key: 'yt-sdm-payroll', label: 'Payroll', status: 'hidup', href: '/sdm/payroll', guna: 'Penggajian staf: periode, perhitungan, dan slip.', catatan: 'Didaftarkan 2026-08-31 bersama migrasi 531/534, yang membuat menunya. Halamannya SUDAH ADA dan selama ini hanya bisa dibuka dengan mengetik URL — `audit-nav-yatim.mjs` menemukannya begitu ia mulai bekerja (sebelum commit c153150c penjaga itu MATI exit 2 di CI, jadi 28 halaman yatim tak terlihat entah sejak kapan). Status `rencana`, bukan `hidup`: halamannya ada, tetapi kelengkapan isinya belum diverifikasi layar per layar — menandainya `hidup` akan mengklaim hal yang tak diukur. DIUKUR 2026-08-31 sebelum menaikkannya ke `hidup`: halaman ada (418/865/696 baris), rute API-nya ada, dan test-nya hijau — penawaran-rute, cuti-karyawan-endpoint, payroll-staf-endpoint, tarif-payroll-endpoint dan lima berkas lain: 9 passed. Status `rencana` sempat dipakai karena kelengkapannya belum diukur; sesudah diukur, `rencana` justru klaim yang terlalu rendah — dan `audit-peta-modul-vs-halaman.mjs` memerahkannya, dengan alasan yang benar: Peta Modul satu-satunya layar yang menjawab "apa yang sudah bisa dipakai", dan entri yang meremehkan diri sendiri sama menyesatkannya dengan yang melebih-lebihkan.' },
       { key: 'hr-karyawan', label: 'Data Karyawan', status: 'hidup', href: '/users', guna: 'Data staf beserta jabatan & aksesnya.', catatan: 'HIDUP, ditemukan saat penyapuan 2026-08-12. Tabel `pegawai` dengan modul SDM: timesheet, cuti, kompetensi, payroll. Sebelumnya ditandai `sebagian` dengan alasan "baru sebatas akun pengguna" yang sudah basi.' },
       { key: 'hr-rekrutmen', label: 'Rekrutmen', status: 'hidup', href: '/sdm/kompetensi', guna: 'Proses penerimaan karyawan baru.', catatan: '2026-08-11 (G2e) · migrasi 290 `lamaran_kerja`, tab di `/sdm/kompetensi`. Pencatat lamaran + tahapnya, BUKAN ATS penuh — menebak alur seleksi perusahaan yang belum pernah merekrut lewat sistem berarti membangun yang pasti dibongkar. Tahap boleh melompat maju tapi TAK BISA mundur (mundur menghapus jejak bahwa pelamar pernah sampai sejauh itu). `diterima` WAJIB tersambung ke pegawainya — lamaran diterima tanpa pegawai tak bisa ditelusuri. Mutasi membuktikan penjaga "dari diterima/ditolak" tak pernah diuji: yang lolos justru `diterima → ditolak`, yang meninggalkan lamaran ditolak tersambung ke pegawai aktif.' },
       { key: 'hr-absensi', label: 'Absensi & Timesheet', status: 'hidup', href: '/sdm/timesheet', guna: 'Jam kerja staf kantor yang dibebankan ke proyek.', catatan: '2026-08-11 (G2b) · migrasi 286 `pegawai` + `timesheet_staf` + `lib/timesheet-staf.ts` (21 test, 12 mutasi MERAH) + 5 endpoint (17 test Postgres nyata, 8 mutasi MERAH) + `/sdm/timesheet`. Menjawab "berapa jam waktu staf jatuh ke tiap proyek", BUKAN "berapa gajinya" — staf digaji bulanan tetap. Lembur diisi SENDIRI, tak diturunkan dari selisih jam standar: lembur harus diperintahkan, dan lembur hari libur tetap penuh meski total di bawah standar. Hari tanpa baris = BELUM DIISI, bukan nol jam (yang lupa mengisi tak boleh terbaca seperti tak bekerja di laporan biaya); akhir pekan tak ikut diperingatkan. Satu baris per hari — mengisi ulang MEMPERBARUI, karena dua baris membuat total berlipat tanpa satu pun galat.' },
@@ -442,6 +442,106 @@ export const PETA_MENU: GrupMenu[] = [
       { key: 'mb-geotag', label: 'Foto Geotag', status: 'hidup', guna: 'Foto dengan koordinat — bukti pekerjaan benar di lokasi.', catatan: 'Migrasi 190 menambah `lintang`/`bujur`/`akurasi_m`/`sumber_lokasi` + acuan lokasi proyek · `lib/geotag.ts` (17 test) · `components/penanda-lokasi.tsx`. Catatan lama "kolom GPS belum ada" SALAH sejak migrasi 190 — diukur ulang 2026-08-07.' },
       { key: 'mb-offline', label: 'Mode Offline', status: 'hidup', guna: 'Tetap bisa mencatat saat sinyal hilang, lalu sinkron.', catatan: 'TULIS: `lib/antrean-offline.ts` (antre + kirim ulang). BACA: `lib/cache-baca.ts` (IndexedDB, jaringan-dulu, data cache SELALU bertanda usianya) — dibuktikan lewat peramban nyata `uji-baca-offline.mjs`, bukan test unit saja. 2026-08-13: FOTO kini ikut diantre — `lib/antrean-foto.ts` (IndexedDB, 21 test, 8 mutasi MERAH) + disambungkan ke `mandor-portal/progress` dan lencana `StatusAntrean`. Sebelumnya daftar foto gagal hidup di `useState`: mandor menutup aplikasi (atau baterainya habis, atau ponselnya membunuh tab di latar) dan fotonya LENYAP — tersisa laporan tanpa bukti visual, dan pemotretan ulang yang sudah tak mungkin karena betonnya sudah tertutup. Antrean foto TERPISAH dari antrean teks: teks kecil & urutannya mengikat, foto besar & urutannya tidak — menggabungkannya berarti satu foto 5 MB menahan seluruh laporan di belakangnya. Dibuktikan di peramban nyata (`uji-antrean-foto.mjs`): antrean bertahan melewati muat ulang, Blob utuh.' },
       { key: 'mb-notif', label: 'Notifikasi Perangkat', status: 'hidup', href: '/notifications', guna: 'Pemberitahuan langsung ke HP.', catatan: 'DUA saluran, satu corong (`utils/notifications.ts` → `kirimPush`). PERAMBAN: Web Push lengkap end-to-end — `utils/webpush.ts` (VAPID, fan-out, 410/404), POST /notifications/subscribe, `public/sw.js`. MOBILE: push natif Expo — migrasi 438 (`perangkat_pengguna`), `utils/push-natif.ts`, POST/DELETE /notifications/perangkat, `apps/mobile/lib/push.ts` didaftarkan saat login & dicabut saat logout. Catatan lama "Web Push sudah dikonfigurasi; belum diverifikasi di perangkat nyata" MENYESATKAN dan sudah dibetulkan 2026-08-16: Web Push tak pernah butuh verifikasi — ia sudah utuh. Yang HILANG adalah push natif, dan itu bukan soal verifikasi melainkan kode yang memang belum ada (`apps/mobile` nol kecocokan `expo-notif`, layar notifikasinya murni tarik/poll). Web Push tak menjangkau React Native: `sw.js` service worker peramban, dan RN tak menjalankan service worker. Tabel BARU, bukan kolom di `users`: satu pengguna punya beberapa perangkat, sementara `push_subscription` hanya menampung SATU — login kedua akan menimpa token perangkat pertama tanpa galat. `token` unik GLOBAL supaya HP yang berpindah tangan MEMINDAHKAN kepemilikan, bukan menggandakan baris. Token mati (DeviceNotRegistered) dihapus otomatis; satu perangkat gagal tak menjatuhkan yang lain (`Promise.allSettled`). 30 test HIJAU (10 push-natif, 7 dua-saluran, 5 integrasi Postgres nyata, 8 web-push lama), 3 mutasi MERAH→HIJAU. ⚠ BELUM TERBUKTI: bahwa HP fisik benar-benar berbunyi — butuh perangkat nyata + build Expo, tak bisa dari CI. Yang terbukti: token tersimpan, corong memanggil pengirimnya, token mati dibersihkan, dan test tak mengirim apa pun sungguhan.' },
+    ],
+  },
+
+  // ══════════════════════════════════════════════════════════════════════
+  // Delapan grup yang DIHIDUPKAN KEMBALI oleh migrasi 535
+  // ══════════════════════════════════════════════════════════════════════
+  //
+  // Kedelapannya `is_active = false` di `menu_items` sementara anak-anaknya
+  // AKTIF. Sidebar merender anak DI DALAM induknya, jadi 55 halaman yang
+  // jalan dan berizin tak bisa ditemukan dengan mengklik apa pun — semuanya
+  // hanya bisa dibuka dengan mengetik URL dari ingatan.
+  //
+  // Sesudah dihidupkan, `audit-peta-menu-vs-db.mjs` merah: `hanyaDb` naik
+  // 124 → 132. Entri di bawah menutupnya. Bukan demi angka: kunci yang ada
+  // di DB tetapi tidak di sini membuat halaman `/m/<key>` menjawab "Menu
+  // tidak dikenal".
+  //
+  // ⚠ `urutan` di sini MENGIKUTI `sort_order` DB (100, 185, 200, …), bukan
+  // deret 10/20/30 yang dipakai grup lama di berkas ini. Menyelaraskannya
+  // menuntut migrasi lain untuk menomori ulang sidebar yang baru saja
+  // dirapikan migrasi 530 — dan selisih penomoran itu bukan yang dijaga
+  // penjaga ini.
+  {
+    key: 'g-crm-tender', label: 'CRM & Tender', icon: 'Gavel', urutan: 100,
+    items: [
+      { key: 'tender', label: 'Register Tender', status: 'hidup', href: '/tender', guna: 'Tender yang sedang diikuti, dari undangan sampai hasil.' },
+      { key: 'procurement-kualifikasi', label: 'Prakualifikasi Vendor', status: 'hidup', href: '/procurement/kualifikasi', guna: 'Menilai vendor sebelum boleh diundang menawar.' },
+    ],
+  },
+  {
+    key: 'g-ai', label: 'AI & Otomasi', icon: 'Bot', urutan: 185,
+    items: [
+      { key: 'ai-katalog', label: 'Katalog Otomasi', status: 'hidup', href: '/otomasi/katalog', guna: 'Otomasi terjadwal yang tersedia beserta keadaannya.', catatan: 'Ketujuh tugas terjadwal TAK BUTUH AI sama sekali — semuanya aturan if-then. Yang butuh saldo hanya asisten chat dan sapa-proaktif, dan keduanya BUKAN bagian katalog ini.' },
+      { key: 'ai-alur', label: 'Alur Otomasi', status: 'hidup', href: '/otomasi/alur', guna: 'Alur n8n yang menerima peristiwa dari sistem.' },
+      { key: 'ai-riwayat', label: 'Riwayat Asisten', status: 'hidup', href: '/otomasi/riwayat', guna: 'Percakapan asisten yang sudah terjadi.' },
+      { key: 'ai-ambang', label: 'Ambang Otomasi', status: 'hidup', href: '/pengaturan/otomasi', guna: 'Batas angka yang memicu tiap otomasi.' },
+      { key: 'ai-penyedia', label: 'Penyedia Layanan', status: 'hidup', href: '/pengaturan/penyedia', guna: 'Kredensial penyedia AI dan kanal pesan.' },
+      { key: 'ai-plafon-setujui', label: 'Plafon Asisten', status: 'hidup', href: '/pengaturan/plafon-asisten', guna: 'Batas biaya pemakaian asisten per periode.' },
+      { key: 'ai-ingatan', label: 'Ingatan Asisten', status: 'hidup', href: '/pengaturan/ingatan', guna: 'Apa yang boleh diingat asisten antar-percakapan.' },
+      { key: 'ai-whatsapp', label: 'Kanal WhatsApp', status: 'hidup', href: '/pengaturan/whatsapp', guna: 'Sambungan WhatsApp untuk laporan & perintah dari lapangan.' },
+      { key: 'preferensi-pesan', label: 'Preferensi Pesan', status: 'hidup', href: '/pengaturan/preferensi-pesan', guna: 'Lewat kanal mana tiap jenis pemberitahuan dikirim.' },
+    ],
+  },
+  {
+    key: 'g-proyek', label: 'Proyek', icon: 'FolderKanban', urutan: 200,
+    items: [
+      { key: 'proyek', label: 'Daftar Proyek', status: 'hidup', href: '/proyek', guna: 'Seluruh proyek beserta progres dan statusnya.' },
+      { key: 'proyek-keterlambatan', label: 'Keterlambatan', status: 'hidup', href: '/proyek/keterlambatan', guna: 'Proyek yang melenceng dari jadwal, beserta selisihnya.' },
+      { key: 'approval-inbox', label: 'Menunggu Persetujuan', status: 'hidup', href: '/approval-inbox', guna: 'Satu tempat untuk semua yang menunggu keputusan Anda.', catatan: 'Tiap jenis approval WAJIB muncul di inbox ini — dijaga `audit-inbox-lengkap.mjs` (ambang NOL).' },
+    ],
+  },
+  {
+    key: 'g-anggaran', label: 'Estimasi & Anggaran', icon: 'Calculator', urutan: 500,
+    items: [
+      { key: 'estimasi', label: 'Estimasi & RAB', status: 'hidup', href: '/estimasi', guna: 'Menyusun RAB dari AHSP, berversi dan bisa disetujui.' },
+      { key: 'cc-struktur', label: 'Analisa Struktur', status: 'hidup', href: '/estimasi/struktur', guna: 'Hitungan elemen struktur — pondasi sampai atap, beton dan baja.', catatan: 'Diukur 2026-08-19: 34 dari 34 jenis elemen. Angka itu BASI begitu ada jenis ke-35 — jalankan `scripts/lapor-cakupan-struktur.mjs`, jangan percaya angka di catatan ini.' },
+      { key: 'keuangan-contingency', label: 'Contingency', status: 'hidup', href: '/keuangan/contingency', guna: 'Cadangan risiko: berapa disiapkan, berapa sudah terpakai.' },
+      { key: 'keu-cvr', label: 'Cost Value Reconciliation', status: 'hidup', href: '/keuangan/cvr', guna: 'Membandingkan nilai pekerjaan dengan biaya yang sudah keluar.' },
+    ],
+  },
+  {
+    key: 'g-mutu-kepatuhan', label: 'Mutu & K3', icon: 'ShieldCheck', urutan: 1000,
+    items: [
+      { key: 'mutu-ncr', label: 'NCR', status: 'hidup', href: '/mutu/ncr', guna: 'Temuan mutu yang harus diperbaiki, sampai tuntas.' },
+      { key: 'mutu-inspeksi', label: 'Inspeksi', status: 'hidup', href: '/mutu/inspeksi', guna: 'Pemeriksaan terjadwal beserta hasilnya.' },
+    ],
+  },
+  {
+    key: 'g-akuntansi', label: 'Akuntansi', icon: 'BookOpen', urutan: 1200,
+    items: [
+      { key: 'akuntansi-akun', label: 'Bagan Akun (COA)', status: 'hidup', href: '/akuntansi?tab=akun', guna: 'Daftar akun yang dipakai seluruh jurnal.' },
+      { key: 'akuntansi-jurnal', label: 'Jurnal Umum', status: 'hidup', href: '/akuntansi?tab=jurnal', guna: 'Jurnal manual untuk penyesuaian.' },
+      { key: 'akuntansi-besar', label: 'Buku Besar', status: 'hidup', href: '/akuntansi?tab=besar', guna: 'Seluruh mutasi per akun.' },
+      { key: 'akuntansi-neraca', label: 'Neraca Saldo', status: 'hidup', href: '/akuntansi?tab=neraca', guna: 'Saldo tiap akun pada satu tanggal.' },
+      { key: 'akuntansi-laporan', label: 'Neraca & Laba-Rugi', status: 'hidup', href: '/akuntansi?tab=laporan', guna: 'Laporan keuangan yang tersusun dari buku besar.' },
+    ],
+  },
+  {
+    key: 'g-pelaporan', label: 'Pelaporan & BI', icon: 'BarChart3', urutan: 1500,
+    items: [
+      { key: 'lap-susun', label: 'Susun Laporan', status: 'hidup', href: '/laporan/susun', guna: 'Merakit laporan sendiri dari data yang ada.' },
+      { key: 'peta-modul', label: 'Peta Modul', status: 'hidup', href: '/peta-modul', guna: 'Apa saja yang ada di sistem ini, dan sejauh mana jadinya.', catatan: 'Halaman ini membaca peta-menu.ts — berkas yang sedang Anda baca.' },
+    ],
+  },
+  {
+    key: 'g-administrasi', label: 'Administrasi', icon: 'Settings', urutan: 1600,
+    items: [
+      { key: 'users', label: 'Pengguna & Role', status: 'hidup', href: '/users', guna: 'Siapa boleh masuk, dan sebagai apa.' },
+      { key: 'pengaturan-roles', label: 'Matriks Izin', status: 'hidup', href: '/pengaturan/roles', guna: 'Izin apa yang melekat pada tiap role.', catatan: 'Role adalah DATA konfigurasi per-tenant, bukan konstanta di kode (ADR-004). Kode hanya boleh memakai `requirePermission`.' },
+      { key: 'pengaturan-approval', label: 'Rantai Approval', status: 'hidup', href: '/pengaturan/approval', guna: 'Berapa langkah persetujuan, dan siapa di tiap langkah.' },
+      { key: 'notifications', label: 'Notifikasi', status: 'hidup', href: '/notifications', guna: 'Pemberitahuan yang masuk untuk Anda.' },
+      { key: 'pengaturan-notifikasi', label: 'Aturan Notifikasi', status: 'hidup', href: '/pengaturan/notifikasi', guna: 'Peristiwa apa memberi tahu siapa.' },
+      { key: 'pengaturan-jadwal', label: 'Jadwal Tugas', status: 'hidup', href: '/pengaturan/jadwal', guna: 'Tugas terjadwal beserta jamnya.' },
+      { key: 'pengaturan-kredensial', label: 'Kredensial & Integrasi', status: 'hidup', href: '/pengaturan/kredensial', guna: 'Kunci sambungan ke layanan luar.', catatan: 'Nilai kredensial TAK PERNAH keluar server — dijaga `audit-kredensial-tak-bocor.mjs` (ambang NOL).' },
+      { key: 'pengaturan-situs', label: 'Situs Publik', status: 'hidup', href: '/pengaturan/situs', guna: 'Isi halaman profil perusahaan yang dilihat publik.' },
+      { key: 'keamanan-akun', label: 'Keamanan Akun', status: 'hidup', href: '/pengaturan/keamanan', guna: 'Sandi, sesi, dan perangkat yang pernah masuk.' },
+      { key: 'audit', label: 'Audit Log', status: 'hidup', href: '/audit', guna: 'Siapa mengubah apa, dan kapan.', catatan: 'Immutability audit log termasuk Ember [C] — tak boleh dibuat bisa dikonfigurasi dari UI.' },
+      { key: 'sistem', label: 'Pemeliharaan Sistem', status: 'hidup', href: '/sistem', guna: 'Perawatan basis dan pemeriksaan kesehatan.' },
+      { key: 'sys-recycle-bin', label: 'Recycle Bin', status: 'hidup', href: '/sistem/recycle-bin', guna: 'Data yang dihapus, sebelum benar-benar hilang.' },
+      { key: 'sys-impor', label: 'Impor Data', status: 'hidup', href: '/sistem/impor', guna: 'Memasukkan data lama dari berkas.' },
     ],
   },
 ]
