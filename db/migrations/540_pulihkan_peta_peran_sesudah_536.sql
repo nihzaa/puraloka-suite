@@ -1,19 +1,19 @@
 -- ============================================================================
--- 537 · Pulihkan peta peran yang tertimpa migrasi 536
+-- 540 · Pulihkan peta peran yang tertimpa migrasi 536
 -- ============================================================================
 --
 -- ══════════════════════════════════════════════════════════════════════════
 -- BUKAN KESALAHAN SIAPA-SIAPA — DUA PERBAIKAN YANG SALING MENIMPA
 -- ══════════════════════════════════════════════════════════════════════════
 --
--- Migrasi 526 (hari ini) mencabut lima izin pembukuan dari `client` dan empat
+-- Migrasi 539 (hari ini) mencabut lima izin pembukuan dari `client` dan empat
 -- dari `mandor`, karena klien — PIHAK LUAR yang membayar kontraktor — memegang
 -- `gl:view` (buku besar) dan `gudang:susut:view` (rencana susut = MARGIN).
 --
 -- Migrasi 536 (hari ini juga, sesi lain) menutup cacat yang berbeda: 16
 -- migrasi disunting SESUDAH tercatat, jadi suntingannya tak pernah berlaku.
 -- Ia me-replay tindakan mereka — dan dua di antaranya mengembalikan apa yang
--- 526 cabut:
+-- 539 cabut:
 --
 --   · blok "364" memberi ulang `finance:view` ke `client`
 --   · blok "378" memberi admin SELURUH 230 izin, termasuk dua yang sengaja
@@ -100,7 +100,7 @@ BEGIN
   /*
     3. `mandor` diperiksa juga — 536 blok "364" menyebutnya, dan meski
        `finance:view` tak ada di daftar cabutnya untuk mandor, empat izin
-       lain dari 526 bisa ikut kembali lewat penyelarasan template↔tenant.
+       lain dari 539 bisa ikut kembali lewat penyelarasan template↔tenant.
   */
   DELETE FROM role_permissions rp
    USING roles r, permissions p
@@ -126,7 +126,7 @@ BEGIN
     galat menyebutkan kenapa (tab disaring izin, ADR-004).
 
     Daftar di bawah = daftar migrasi 536 blok "364", DIKURANGI yang sengaja
-    dicabut migrasi 526, ditambah izin lapangan yang memang dipakai
+    dicabut migrasi 539, ditambah izin lapangan yang memang dipakai
     `mandor-portal`. `gudang:view` DIPERTAHANKAN untuk mandor — ia perlu tahu
     stok material; itu bedanya dengan client.
   */
@@ -161,7 +161,7 @@ BEGIN
     4. Direktur disamakan lagi dengan admin.
 
     Blok "378" di migrasi 536 memberi admin SELURUH 230 izin, tetapi tidak
-    menyentuh direktur — jadi direktur yang migrasi 526 naikkan ke 227 kini
+    menyentuh direktur — jadi direktur yang migrasi 539 naikkan ke 227 kini
     tertinggal lagi, sekarang dari admin yang izinnya bertambah.
 
     Ini bukan penyimpangan dari keputusan founder ("direktur setara
@@ -190,7 +190,7 @@ BEGIN
      AND p.key IN ('gl:view', 'assets:view', 'gudang:view',
                    'gudang:susut:view', 'finance:view');
   IF n_sisa > 0 THEN
-    RAISE EXCEPTION '537 gagal: client masih memegang % izin pembukuan', n_sisa;
+    RAISE EXCEPTION '540 gagal: client masih memegang % izin pembukuan', n_sisa;
   END IF;
 
   /* Nol izin pembukuan di mandor (gudang:view dikecualikan — ia perlu stok). */
@@ -201,7 +201,7 @@ BEGIN
    WHERE r.name = 'mandor'
      AND p.key IN ('gl:view', 'assets:view', 'gudang:susut:view', 'finance:view');
   IF n_sisa > 0 THEN
-    RAISE EXCEPTION '537 gagal: mandor masih memegang % izin pembukuan', n_sisa;
+    RAISE EXCEPTION '540 gagal: mandor masih memegang % izin pembukuan', n_sisa;
   END IF;
 
   /* Dua izin berbahaya kembali kosong. */
@@ -211,7 +211,7 @@ BEGIN
    WHERE p.key IN ('approval:override_sod', 'mitra:daftar_hitam');
   IF n_sisa > 0 THEN
     RAISE EXCEPTION
-      '537 gagal: % pemegang izin yang seharusnya kosong', n_sisa;
+      '540 gagal: % pemegang izin yang seharusnya kosong', n_sisa;
   END IF;
 
   /* Direktur TETAP setara admin — 536 tak boleh membatalkan itu juga. */
@@ -229,7 +229,7 @@ BEGIN
                              AND rpd.permission_id = rpa.permission_id));
   IF n_sisa > 0 THEN
     RAISE EXCEPTION
-      '537 gagal: % company punya direktur yang tertinggal dari admin', n_sisa;
+      '540 gagal: % company punya direktur yang tertinggal dari admin', n_sisa;
   END IF;
 
   /*
@@ -244,7 +244,7 @@ BEGIN
    WHERE r.name = 'mandor' AND r.company_id IS NULL;
   IF n_sisa < 20 THEN
     RAISE EXCEPTION
-      '537 gagal: mandor template hanya % izin — terlalu sedikit untuk bekerja', n_sisa;
+      '540 gagal: mandor template hanya % izin — terlalu sedikit untuk bekerja', n_sisa;
   END IF;
 
   SELECT count(*) INTO n_sisa
@@ -252,10 +252,10 @@ BEGIN
    WHERE r.name = 'client' AND r.company_id IS NULL;
   IF n_sisa < 6 THEN
     RAISE EXCEPTION
-      '537 gagal: client template hanya % izin — portal klien akan kosong', n_sisa;
+      '540 gagal: client template hanya % izin — portal klien akan kosong', n_sisa;
   END IF;
 
   RAISE NOTICE
-    '537 OK: client -%, override_sod -%, daftar_hitam -%; verifikasi 6/6 lulus',
+    '540 OK: client -%, override_sod -%, daftar_hitam -%; verifikasi 6/6 lulus',
     n_client, n_sod, n_hitam;
 END $$;

@@ -1,5 +1,5 @@
 -- ============================================================================
--- 526 · Peta peran dibenahi — klien & mandor melihat pembukuan, direktur tidak
+-- 539 · Peta peran dibenahi — klien & mandor melihat pembukuan, direktur tidak
 -- ============================================================================
 --
 -- ══════════════════════════════════════════════════════════════════════════
@@ -161,7 +161,7 @@ BEGIN
                    'gudang:susut:view', 'finance:view');
   IF n_sisa > 0 THEN
     RAISE EXCEPTION
-      '526 gagal: client masih memegang % izin pembukuan/gudang', n_sisa;
+      '539 gagal: client masih memegang % izin pembukuan/gudang', n_sisa;
   END IF;
 
   /* 2. Nol izin pembukuan tersisa di mandor (gudang:view dikecualikan). */
@@ -173,7 +173,7 @@ BEGIN
      AND p.key IN ('gl:view', 'assets:view', 'gudang:susut:view', 'finance:view');
   IF n_sisa > 0 THEN
     RAISE EXCEPTION
-      '526 gagal: mandor masih memegang % izin pembukuan', n_sisa;
+      '539 gagal: mandor masih memegang % izin pembukuan', n_sisa;
   END IF;
 
   /* 3. Tak ada company yang direkturnya masih tertinggal dari adminnya. */
@@ -191,7 +191,7 @@ BEGIN
                              AND rpd.permission_id = rpa.permission_id));
   IF n_sisa > 0 THEN
     RAISE EXCEPTION
-      '526 gagal: % company punya direktur yang izinnya tertinggal dari admin', n_sisa;
+      '539 gagal: % company punya direktur yang izinnya tertinggal dari admin', n_sisa;
   END IF;
 
   /* 4. Ketiga izin berbahaya TETAP tak dipegang siapa pun. */
@@ -201,11 +201,11 @@ BEGIN
    WHERE p.key IN ('approval:override_sod', 'mitra:daftar_hitam');
   IF n_sisa > 0 THEN
     RAISE EXCEPTION
-      '526 gagal: % pemegang izin yang seharusnya kosong (override_sod / daftar_hitam)',
+      '539 gagal: % pemegang izin yang seharusnya kosong (override_sod / daftar_hitam)',
       n_sisa;
   END IF;
 
   RAISE NOTICE
-    '526 OK: client -% izin, mandor -% izin, direktur +% izin; verifikasi 4/4 lulus',
+    '539 OK: client -% izin, mandor -% izin, direktur +% izin; verifikasi 4/4 lulus',
     n_client, n_mandor, n_direktur;
 END $$;
