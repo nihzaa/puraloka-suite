@@ -13,7 +13,8 @@
  * `/estimasi/page.tsx`.
  */
 
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { useData } from "@/lib/data-cache";
 import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
 import { useVirtualList } from "@/lib/use-virtual-list";
@@ -59,7 +60,8 @@ const GRUP_LABEL: Record<string, { huruf: string; judul: string }> = {
 };
 
 function KatalogTab() {
-  const [editions, setEditions] = useState<Edition[]>([]);
+  const sEditions = useData<{ data: Edition[] }>("/api/v1/cecep/editions");
+  const editions = useMemo(() => sEditions.data?.data ?? [], [sEditions.data]);
   /**
    * Satu nilai untuk seluruh penyaringan katalog:
    *   ""                → semua
@@ -71,8 +73,6 @@ function KatalogTab() {
   const edition = saring.startsWith("edition:") ? saring.slice(8) : "";
   const sumber = saring === "company" || saring === "national" ? saring : "";
   const [cari, setCari] = useState("");
-  const [assemblies, setAssemblies] = useState<Assembly[]>([]);
-  const [total, setTotal] = useState<number | null>(null);
   /** { assembly_id: jumlah resource yang belum berharga } — hanya yang > 0. */
   const [kurangHarga, setKurangHarga] = useState<Record<string, number>>({});
   const [hanyaKurang, setHanyaKurang] = useState(false);
@@ -96,16 +96,15 @@ function KatalogTab() {
     } finally { setAktivasi(null); }
   }
 
-  useEffect(() => {
-    // TIDAK memilih edisi secara otomatis. Sebelumnya edisi ber-`source_sha256`
-    // dipilih sendiri saat halaman dibuka — akibatnya katalog terbuka dalam
-    // keadaan TERSARING ("SE-47-2026 — nasional saja") tanpa pemakai memintanya,
-    // dan 423 analisa perusahaan tak terlihat sejak awal. Default: tampilkan
-    // semua, biarkan penyaringan jadi tindakan sadar.
-    api.get<{ data: Edition[] }>("/api/v1/cecep/editions")
-      .then(r => setEditions(r.data.data ?? []))
-      .catch(() => {});
-  }, []);
+  /*
+    Lapis cache bersama (F4-2). Katalog edisi jarang berubah dan dipakai tiap
+    kali layar ini dibuka — dedup-nya langsung terasa.
+
+    TIDAK memilih edisi otomatis: sebelumnya edisi ber-`source_sha256`
+    dipilih sendiri saat halaman dibuka, dan katalog terbuka dalam keadaan
+    TERSARING tanpa pemakai memintanya — 423 analisa perusahaan tak terlihat
+    sejak awal. Default: tampilkan semua, penyaringan jadi tindakan sadar.
+  */
 
   // SELURUH katalog dimuat sekali (limit 5.000), lalu pencarian dilakukan di
   // memori — instan, tanpa bolak-balik server per ketikan.
@@ -115,38 +114,53 @@ function KatalogTab() {
   // lama (potong 200 + cari ke server) membuat analisa di baris ke-500 tak
   // pernah bisa DILIHAT oleh orang yang sedang mencari-cari justru karena
   // belum tahu kata kuncinya.
-  const muat = useCallback(() => {
-    const p = new URLSearchParams();
-    if (edition) p.set("edition", edition);
-    if (sumber) p.set("source", sumber);
-    p.set("limit", "5000");
-    api.get<{ data: Assembly[]; total: number | null }>(`/api/v1/cecep/assemblies?${p}`)
-      .then(r => { setAssemblies(r.data.data ?? []); setTotal(r.data.total ?? null); })
-      .catch(() => {});
+  /*
+    URL-nya ikut saringan (edisi + sumber), jadi tiap kombinasi punya entri
+    cache sendiri: bolak-balik antar saringan tak menembak API lagi.
+
+    SELURUH katalog dimuat sekali (limit 5.000), lalu pencarian di memori —
+    instan, tanpa bolak-balik server per ketikan. Beratnya dijaga di sisi
+    render lewat virtualisasi (~30 baris kapan pun), bukan dengan memotong
+    data: cara lama (potong 200 + cari ke server) membuat analisa di baris
+    ke-500 tak pernah bisa DILIHAT oleh orang yang belum tahu kata kuncinya.
+  */
+  const urlAssemblies = useMemo(() => {
+    const q = new URLSearchParams();
+    if (edition) q.set("edition", edition);
+    if (sumber) q.set("source", sumber);
+    q.set("limit", "5000");
+    return `/api/v1/cecep/assemblies?${q}`;
   }, [edition, sumber]);
 
-  useEffect(() => { muat(); }, [muat]);
+  const sAssemblies = useData<{ data: Assembly[]; total: number | null }>(urlAssemblies);
+  const assemblies = useMemo(() => sAssemblies.data?.data ?? [], [sAssemblies.data]);
+  const total = sAssemblies.data?.total ?? null;
+
+  const muat = useCallback(() => { void sAssemblies.muatUlang(); }, [sAssemblies]);
 
   // Jumlah per pilihan saringan, supaya dropdown bisa menyebut angkanya sendiri
   // ("Analisa perusahaan saja (423)") alih-alih memaksa pemakai memilih dulu
   // untuk tahu ada isinya atau tidak.
-  const [jumlahPerSaring, setJumlahPerSaring] = useState<Record<string, number>>({});
-  useEffect(() => {
-    let batal = false;
-    void Promise.all([
-      api.get<{ total: number | null }>("/api/v1/cecep/assemblies?limit=1"),
-      api.get<{ total: number | null }>("/api/v1/cecep/assemblies?source=company&limit=1"),
-      api.get<{ total: number | null }>("/api/v1/cecep/assemblies?source=national&limit=1"),
-    ])
-      .then(([s, c, n]) => {
-        if (batal) return;
-        setJumlahPerSaring({
-          semua: s.data.total ?? 0, company: c.data.total ?? 0, national: n.data.total ?? 0,
-        });
-      })
-      .catch(() => {});
-    return () => { batal = true; };
-  }, []);
+  /*
+    Tiga hitungan saringan, masing-masing entri cache sendiri.
+
+    Angkanya dipakai supaya dropdown bisa menyebut jumlahnya sendiri
+    ("Analisa perusahaan saja (423)") alih-alih memaksa pemakai memilih dulu
+    untuk tahu ada isinya atau tidak.
+
+    Galatnya sengaja diam: ini ANGKA BANTU di label dropdown. Dropdown yang
+    kehilangan angkanya tetap bisa dipakai; pesan merah untuknya justru
+    mengalihkan perhatian dari katalog yang jadi pekerjaan utama.
+  */
+  const sSemua    = useData<{ total: number | null }>("/api/v1/cecep/assemblies?limit=1");
+  const sCompany  = useData<{ total: number | null }>("/api/v1/cecep/assemblies?source=company&limit=1");
+  const sNational = useData<{ total: number | null }>("/api/v1/cecep/assemblies?source=national&limit=1");
+
+  const jumlahPerSaring = useMemo(() => ({
+    semua:    sSemua.data?.total ?? 0,
+    company:  sCompany.data?.total ?? 0,
+    national: sNational.data?.total ?? 0,
+  }), [sSemua.data, sCompany.data, sNational.data]);
 
   // Cakupan harga dimuat sekali per kombinasi filter — bukan per analisa dibuka.
   // Tanpa ini, analisa yang HSP-nya tak bisa dihitung baru ketahuan setelah

@@ -13,7 +13,8 @@
  * `/estimasi/page.tsx`.
  */
 
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useData } from "@/lib/data-cache";
 import { api } from "@/lib/api";
 import { useVirtualList } from "@/lib/use-virtual-list";
 import { C } from "@/lib/warna-ui";
@@ -639,17 +640,24 @@ interface ResourceTanpaHarga {
  * yang dampaknya kecil dulu, sekadar karena namanya duluan di huruf A.
  */
 function PrioritasHarga({ onIsi }: { onIsi: (r: { code: string; name: string; unit_code: string }) => void }) {
-  const [data, setData] = useState<ResourceTanpaHarga[]>([]);
-  const [total, setTotal] = useState(0);
   const [buka, setBuka] = useState(true);
 
-  const muat = useCallback(() => {
-    api.get<{ data: ResourceTanpaHarga[]; total_tanpa_harga: number }>(
-      "/api/v1/cecep/prices/missing?limit=15")
-      .then(r => { setData(r.data.data ?? []); setTotal(r.data.total_tanpa_harga ?? 0); })
-      .catch(() => {});
-  }, []);
-  useEffect(() => { muat(); }, [muat]);
+  /*
+    Lapis cache bersama (F4-2). Panel ini muncul di layar harga yang sering
+    dibuka-tutup saat estimator mengisi harga satu per satu — dedup-nya
+    langsung terasa.
+
+    Galatnya sengaja TETAP diam (`total === 0` menyembunyikan panel): ini
+    panel BANTU, bukan sumber kebenaran. Panel bantu yang gagal memuat lalu
+    menampilkan pesan merah justru mengalihkan perhatian dari daftar harga
+    yang jadi pekerjaan utama halaman ini.
+  */
+  const sumber = useData<{ data: ResourceTanpaHarga[]; total_tanpa_harga: number }>(
+    "/api/v1/cecep/prices/missing?limit=15");
+  const data = useMemo(() => sumber.data?.data ?? [], [sumber.data]);
+  const total = sumber.data?.total_tanpa_harga ?? 0;
+  // Tak ada `muat()`: sesudah pindah ke `useData`, nol pemanggil tersisa.
+  // Muat ulang manual, bila kelak dibutuhkan: `sumber.muatUlang()`.
 
   if (total === 0) return null; // tak ada gunanya menunjukkan daftar kosong
 
