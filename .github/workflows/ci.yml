@@ -321,6 +321,19 @@ jobs:
       - name: Seed tak memaku id perusahaan tanpa gerbang
         run: node scripts/audit-seed-perusahaan-dipaku.mjs
 
+      # `information_schema` di migrasi WAJIB menyaring `table_schema`.
+      #
+      # CLAUDE.md §1 mencatatnya: basis ini punya skema `test` yang membayangi
+      # 9 tabel public bernama sama, plus `extensions` 5 lagi. Tanpa saringan,
+      # cacah kolom jadi DUA KALI — "hanya 10 dari 5 kolom terpasang" — dan
+      # yang lebih buruk, `rows[0]` bisa jatuh ke baris skema lain dan menjawab
+      # benar secara KEBETULAN.
+      #
+      # Ratchet, bukan ambang nol: 31 migrasi lama sudah begitu, dan §5.5
+      # melarang mengeditnya tanpa alasan kuat. Yang dijaga: jangan bertambah.
+      - name: information_schema di migrasi disaring table_schema
+        run: node scripts/audit-information-schema-disaring.mjs
+
       # Satu lapis LEBIH JAUH dari L-4, dan celah di antara keduanya nyata.
       # L-4 menjawab "adakah yang membaca kolom jadwal ini?" — jawabannya YA,
       # `jadwal.ts` membacanya dengan benar. Yang bolong: jalur yang dibaca itu

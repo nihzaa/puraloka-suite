@@ -204,9 +204,31 @@ BEGIN
                     'aturan notifikasi bisa menunjuk peran yang tak ada';
   END IF;
 
+  /*
+    ⚠ AMBANG DITURUNKAN 5 → 4 pada 2026-08-31.
+
+    Angka 5 diukur di basis dev, yang saat itu sudah punya role tambahan dari
+    migrasi 364 (`katalog_role_konstruksi`) — dan 364 berjalan SESUDAH berkas
+    ini. Jadi 363 menuntut hasil pekerjaan migrasi berikutnya.
+
+    Di basis yang baru lahir, satu-satunya sumber role adalah migrasi 050,
+    yang membuat tepat EMPAT: admin, pm, mandor, client. Karena itu:
+
+        HARD FAIL — 363_roles_per_tenant.sql
+          363 gagal: hanya 4 role jadi template, harusnya >= 5
+
+    Empat itulah yang benar-benar dijamin ada pada titik ini. Yang diperiksa
+    migrasi ini sesungguhnya bukan "berapa banyak" melainkan "penandaannya
+    bekerja" — dan empat sudah membuktikannya.
+
+    Bentuk cacat yang sama dengan 271, 295, 337, dan 340 hari ini: verifikasi
+    yang mengukur keadaan basis DEV, bukan keadaan yang dijamin urutan
+    migrasinya sendiri.
+  */
   SELECT count(*) INTO n_tmpl FROM public.roles WHERE is_template;
-  IF n_tmpl < 5 THEN
-    RAISE EXCEPTION '363 gagal: hanya % role jadi template, harusnya >= 5', n_tmpl;
+  IF n_tmpl < 4 THEN
+    RAISE EXCEPTION '363 gagal: hanya % role jadi template, harusnya >= 4 '
+                    '(admin, pm, mandor, client dari migrasi 050)', n_tmpl;
   END IF;
 
   RAISE NOTICE '363: role per-tenant siap · % template · pengganti FK aktif', n_tmpl;
