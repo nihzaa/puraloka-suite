@@ -154,14 +154,44 @@ export default function KpiCard({ label, nilai, tren, sparklineData, icon: Icon 
         </div>
       )}
 
-      {sparklineData && sparklineData.length > 1 && (
+      {sparklineData && sparklineData.length > 1 ? (
         <div style={{ marginTop: 12 }}>
           <MiniChart
             data={sparklineData.map((v, i) => ({ label: String(i), value: v }))}
             tipe="area"
           />
         </div>
-      )}
+      ) : sparklineData ? (
+        /*
+          Deret KOSONG (atau satu titik) — kartunya tetap harus BICARA.
+
+          Diukur 2026-09-01 di /admin-portal: `invoice_belum_lunas`
+          memulangkan `[]` karena memang tak ada invoice belum lunas.
+          Benar, tetapi kartunya lalu berdiri tanpa grafik di sebelah tiga
+          kartu yang punya — dan kekosongan itu terbaca sebagai GAGAL MUAT,
+          bukan sebagai kabar baik.
+
+          Ketahuan dari MEMOTRET, bukan dari kode: `sparklineData.length > 1`
+          adalah syarat yang benar, dan `tsc` tak punya pendapat soal apa
+          yang dilihat orang.
+
+          Tingginya disamakan dengan MiniChart supaya kartu-kartu dalam satu
+          baris tetap sejajar. Kartu yang tingginya beda-beda membuat mata
+          menyangka salah satunya belum selesai dimuat.
+        */
+        <div
+          style={{
+            marginTop: 12,
+            height: 48,
+            display: "flex",
+            alignItems: "center",
+            fontSize: 12,
+            color: "var(--text-muted)",
+          }}
+        >
+          Belum ada riwayat pada periode ini
+        </div>
+      ) : null}
     </div>
   );
 }
