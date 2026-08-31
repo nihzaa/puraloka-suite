@@ -75,11 +75,35 @@ await c.connect()
   `sent_at::date` bukan `created_at`: dedup di `otomasi-terjadwal.ts`
   menyaring `sent_at`, jadi penjaga harus mengukur kolom yang SAMA. Mengukur
   kolom lain berarti penjaga dan kode memakai dua definisi "hari ini".
+
+  ⚠ `company_id` WAJIB ikut di partisi — dan ketiadaannya membuat penjaga ini
+  menuduh selama entah berapa lama.
+
+  Diukur 2026-09-01: penjaga melaporkan 46 kembar hari itu. Dibuka satu per
+  satu, ke-46-nya notifikasi SAH:
+
+      01:55:25  rid=05e21439  user=ca951b9f  co=8e7e65b0
+      01:55:46  rid=05e21439  user=ca951b9f  co=3c69311b   ← perusahaan LAIN
+
+  Satu orang bisa jadi anggota beberapa badan usaha — itu justru inti produk
+  ini (satu pemilik, beberapa PT). `record_id` menunjuk material master yang
+  dipakai bersama, jadi dua perusahaan yang sama-sama kehabisan material itu
+  masing-masing WAJIB memberi tahu orangnya. Menekan yang kedua berarti satu
+  perusahaan diam-diam tak pernah dikabari kehabisan stok.
+
+  Diukur dengan `company_id` ikut: 46 → **0**. Nol kembar sungguhan.
+
+  Bentuk kesalahannya sama dengan yang ditemukan hari itu juga pada
+  `otomasi_jalan` vs `jadwal_tugas`: mengukur dengan kunci yang lebih sempit
+  daripada yang dipakai kode, lalu percaya pada angkanya. Penjaga yang
+  menuduh perilaku benar lebih berbahaya daripada tak ada penjaga — ia
+  mengajari pembacanya bahwa merahnya boleh diabaikan.
 */
 const { rows: [hari] } = await c.query(`
   WITH b AS (
     SELECT row_number() OVER (
-             PARTITION BY user_id, type, action_data->>'record_id', sent_at::date
+             PARTITION BY user_id, type, action_data->>'record_id',
+                          company_id, sent_at::date
              ORDER BY sent_at
            ) rn
       FROM notifications
@@ -96,7 +120,8 @@ const { rows: [hari] } = await c.query(`
 const { rows: [riwayat] } = await c.query(`
   WITH b AS (
     SELECT row_number() OVER (
-             PARTITION BY user_id, type, action_data->>'record_id', sent_at::date
+             PARTITION BY user_id, type, action_data->>'record_id',
+                          company_id, sent_at::date
              ORDER BY sent_at
            ) rn
       FROM notifications
