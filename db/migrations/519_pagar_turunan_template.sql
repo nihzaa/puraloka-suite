@@ -24,35 +24,64 @@
 -- EXISTS ke induk, disaring `auth_company_id()`.
 -- ============================================================================
 
--- ── template_input → template_rab ───────────────────────────────────────────
-DROP POLICY IF EXISTS tenant_isolation ON template_input;
-CREATE POLICY tenant_isolation ON template_input AS RESTRICTIVE FOR ALL
-  USING (EXISTS (
-    SELECT 1 FROM template_rab t
-     WHERE t.id = template_input.template_id
-       AND (t.company_id IS NULL OR t.company_id = (SELECT auth_company_id()))))
-  WITH CHECK (EXISTS (
-    SELECT 1 FROM template_rab t
-     WHERE t.id = template_input.template_id
-       AND (t.company_id IS NULL OR t.company_id = (SELECT auth_company_id()))));
+/*
+  ⚠ DIBUNGKUS PEMERIKSAAN KEBERADAAN — DITAMBAHKAN 2026-08-31.
 
-DROP POLICY IF EXISTS template_input_baca ON template_input;
-CREATE POLICY template_input_baca ON template_input FOR SELECT USING (true);
+  `template_rab`, `template_input`, dan `template_item` TIDAK dibuat oleh
+  migrasi mana pun di repo ini — diukur dengan memindai seluruh CREATE TABLE
+  di db/migrations. Ketiganya ada di basis dev karena lahir di luar jalur
+  migrasi.
 
--- ── template_item → template_rab ────────────────────────────────────────────
-DROP POLICY IF EXISTS tenant_isolation ON template_item;
-CREATE POLICY tenant_isolation ON template_item AS RESTRICTIVE FOR ALL
-  USING (EXISTS (
-    SELECT 1 FROM template_rab t
-     WHERE t.id = template_item.template_id
-       AND (t.company_id IS NULL OR t.company_id = (SELECT auth_company_id()))))
-  WITH CHECK (EXISTS (
-    SELECT 1 FROM template_rab t
-     WHERE t.id = template_item.template_id
-       AND (t.company_id IS NULL OR t.company_id = (SELECT auth_company_id()))));
+  Tanpa pemeriksaan ini migrasi mati di lingkungan baru:
 
-DROP POLICY IF EXISTS template_item_baca ON template_item;
-CREATE POLICY template_item_baca ON template_item FOR SELECT USING (true);
+      relation "template_input" does not exist
+
+  Sama dengan perbaikan 518 pada commit sebelumnya. Pagarnya menyala begitu
+  tabelnya muncul; selama belum ada, tak ada yang bisa bocor.
+
+  `saas_invoice_line_items` di bawah TIDAK dibungkus — tabel itu memang
+  dibuat migrasi, jadi ketiadaannya akan menjadi gejala yang layak diteriakkan.
+*/
+DO $pagar_turunan_template$
+BEGIN
+  IF to_regclass('public.template_rab') IS NULL
+     OR to_regclass('public.template_input') IS NULL
+     OR to_regclass('public.template_item') IS NULL THEN
+    RAISE NOTICE '519: tabel template_* tak ada di basis ini — pagar turunan dilewati. '
+                 'Tak satu pun migrasi membuatnya; ketiganya lahir di luar jalur migrasi.';
+    RETURN;
+  END IF;
+
+  -- ── template_input → template_rab ─────────────────────────────────────────
+  EXECUTE 'DROP POLICY IF EXISTS tenant_isolation ON template_input';
+  EXECUTE 'CREATE POLICY tenant_isolation ON template_input AS RESTRICTIVE FOR ALL
+    USING (EXISTS (
+      SELECT 1 FROM template_rab t
+       WHERE t.id = template_input.template_id
+         AND (t.company_id IS NULL OR t.company_id = (SELECT auth_company_id()))))
+    WITH CHECK (EXISTS (
+      SELECT 1 FROM template_rab t
+       WHERE t.id = template_input.template_id
+         AND (t.company_id IS NULL OR t.company_id = (SELECT auth_company_id()))))';
+
+  EXECUTE 'DROP POLICY IF EXISTS template_input_baca ON template_input';
+  EXECUTE 'CREATE POLICY template_input_baca ON template_input FOR SELECT USING (true)';
+
+  -- ── template_item → template_rab ──────────────────────────────────────────
+  EXECUTE 'DROP POLICY IF EXISTS tenant_isolation ON template_item';
+  EXECUTE 'CREATE POLICY tenant_isolation ON template_item AS RESTRICTIVE FOR ALL
+    USING (EXISTS (
+      SELECT 1 FROM template_rab t
+       WHERE t.id = template_item.template_id
+         AND (t.company_id IS NULL OR t.company_id = (SELECT auth_company_id()))))
+    WITH CHECK (EXISTS (
+      SELECT 1 FROM template_rab t
+       WHERE t.id = template_item.template_id
+         AND (t.company_id IS NULL OR t.company_id = (SELECT auth_company_id()))))';
+
+  EXECUTE 'DROP POLICY IF EXISTS template_item_baca ON template_item';
+  EXECUTE 'CREATE POLICY template_item_baca ON template_item FOR SELECT USING (true)';
+END $pagar_turunan_template$;
 
 -- ── saas_invoice_line_items → saas_invoices ─────────────────────────────────
 DROP POLICY IF EXISTS tenant_isolation ON saas_invoice_line_items;
@@ -75,6 +104,18 @@ DECLARE
   v_tabel text; v_r int; v_p int; v_saring int;
 BEGIN
   FOREACH v_tabel IN ARRAY ARRAY['template_input','template_item','saas_invoice_line_items'] LOOP
+    /*
+      Tabel yang TAK ADA dilewati — 2026-08-31, sama dengan 518.
+
+      Tanpa ini verifikasi menuduh "isi template terbaca lintas tenant" atas
+      tabel yang belum ada, dan pembacanya akan mengira ada kebocoran.
+      Tak ada tabel berarti tak ada yang bocor.
+    */
+    IF to_regclass('public.' || v_tabel) IS NULL THEN
+      RAISE NOTICE '519: tabel % tak ada di basis ini — verifikasi pagar dilewati', v_tabel;
+      CONTINUE;
+    END IF;
+
     SELECT count(*) INTO v_r FROM pg_policies
      WHERE schemaname=current_schema() AND tablename=v_tabel AND permissive='RESTRICTIVE';
     SELECT count(*) INTO v_p FROM pg_policies
