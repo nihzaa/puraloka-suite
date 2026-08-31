@@ -47,6 +47,7 @@ function batas(daftar: BatasFitur[], paketNama = 'Pro'): BatasPaket {
     paketKode: 'pro',
     paketNama,
     status: 'active',
+    trialHabis: false,
     fitur: new Map(daftar.map((f) => [f.kunci, f])),
   }
 }
@@ -56,6 +57,7 @@ const TANPA_LANGGANAN: BatasPaket = {
   paketKode: null,
   paketNama: null,
   status: null,
+  trialHabis: false,
   fitur: new Map(),
 }
 
@@ -70,6 +72,31 @@ describe('arah gagal — tanpa langganan berarti TAK DIBATASI', () => {
   it('kuota tak berlaku saat tenant tak punya langganan, berapa pun terpakainya', () => {
     expect(masihMuat(TANPA_LANGGANAN, 'kuota.proyek', 0).boleh).toBe(true)
     expect(masihMuat(TANPA_LANGGANAN, 'kuota.proyek', 9_999).boleh).toBe(true)
+  })
+})
+
+describe('trial yang habis TETAP tunduk pada batas paketnya', () => {
+  // ⚠ Percobaan pertama saya memulangkan "tak dibatasi" untuk trial yang
+  // habis — artinya trial KEDALUWARSA memberi akses LEBIH BANYAK daripada
+  // yang masih jalan. Membiarkan trial lewat jadi menguntungkan.
+  //
+  // Test ini ada supaya arah itu tak bisa kembali diam-diam.
+  const habis: BatasPaket = {
+    ...batas([fitur({ kunci: 'kuota.proyek', label: 'Proyek', jenis: 'integer', angka: 3 })]),
+    status: 'trialing',
+    trialHabis: true,
+  }
+
+  it('batas kuotanya TETAP menahan', () => {
+    expect(masihMuat(habis, 'kuota.proyek', 3).boleh).toBe(false)
+    expect(masihMuat(habis, 'kuota.proyek', 1).boleh).toBe(true)
+  })
+
+  it('penandanya terbawa supaya layar bisa mengatakannya', () => {
+    // Yang menutup akses adalah mengubah status langganan di konsol vendor,
+    // bukan gerbang ini. Penanda ini cuma supaya keadaannya bisa DIKATAKAN.
+    expect(habis.trialHabis).toBe(true)
+    expect(habis.dibatasi).toBe(true)
   })
 })
 

@@ -82,6 +82,8 @@ interface BarisLangganan {
   id: string
   plan_id: string | null
   status: string
+  /** NULL = bukan trial, atau trial tanpa tanggal habis. */
+  trial_ends_at: string | null
   plans: { code: string | null; name: string | null } | null
 }
 
@@ -108,6 +110,15 @@ export interface BatasPaket {
   paketNama: string | null
   /** Status langganan apa adanya (`active`, `trialing`, …). NULL bila tak ada. */
   status: string | null
+  /**
+   * true = statusnya masih `trialing` tetapi `trial_ends_at` sudah LEWAT.
+   *
+   * Batas paketnya TETAP berlaku seperti biasa — yang habis masa mencobanya,
+   * bukan paketnya. Penanda ini ada supaya layar bisa mengatakannya kepada
+   * pengguna dan konsol vendor bisa menemukan trial yang perlu ditindaklanjuti,
+   * BUKAN untuk menutup akses (alasan penuh di `bacaBatasPaket`).
+   */
+  trialHabis: boolean
   fitur: Map<string, BatasFitur>
 }
 
@@ -116,6 +127,7 @@ const TAK_DIBATASI: BatasPaket = Object.freeze({
   paketKode: null,
   paketNama: null,
   status: null,
+  trialHabis: false,
   fitur: new Map(),
 })
 
@@ -148,7 +160,7 @@ export async function bacaBatasPaket(companyId: string): Promise<BatasPaket> {
 
   const { data: langganan, error: galatLangganan } = await supabase
     .from('subscriptions')
-    .select('id, plan_id, status, plans ( code, name )')
+    .select('id, plan_id, status, trial_ends_at, plans ( code, name )')
     .eq('company_id', companyId)
     // Satu perusahaan bisa punya riwayat langganan. Yang berlaku adalah yang
     // TERBARU — tanpa ORDER BY, `limit(1)` memulangkan baris sembarang, dan
@@ -169,6 +181,37 @@ export async function bacaBatasPaket(companyId: string): Promise<BatasPaket> {
   if (!baris || !baris.plan_id || !STATUS_BERLAKU.has(baris.status)) {
     return TAK_DIBATASI
   }
+
+  // ── Trial yang SUDAH HABIS ───────────────────────────────────────────────
+  //
+  // `trialing` masuk STATUS_BERLAKU karena orang yang sedang mencoba harus
+  // bisa memakai produknya. Tetapi statusnya TIDAK berubah sendiri saat masanya
+  // habis — tak ada penjadwal yang mengubahnya, dan sebelum ini tak ada satu
+  // pun pembaca `trial_ends_at` di seluruh repo (diukur 2026-08-31).
+  //
+  // ⚠ Percobaan pertama saya di sini SALAH ARAH, dan pantas dicatat: saya
+  // memulangkan TAK_DIBATASI untuk trial yang habis. Itu berarti trial
+  // KEDALUWARSA memberi akses LEBIH BANYAK daripada trial yang masih jalan —
+  // batasnya justru hilang. Membiarkan trial lewat jadi menguntungkan.
+  //
+  // Yang benar: trial habis tetap tunduk pada batas PAKETNYA. Ia sudah memilih
+  // paket saat mendaftar; yang habis cuma masa mencobanya, bukan paketnya.
+  //
+  // Yang TIDAK dilakukan di sini: menutup akses. Modul ini gagal-TERBUKA di
+  // semua cabang lain karena 1878 perusahaan hidup tanpa langganan, dan
+  // membuat satu cabang gagal-tertutup di tengahnya adalah kejutan yang
+  // menunggu. Yang benar-benar menghentikan akses adalah mengubah status
+  // langganan jadi `canceled`/`expired` — keputusan komersial, tempatnya
+  // konsol vendor, bukan gerbang yang berjalan di tiap permintaan.
+  //
+  // Jadi cabang ini tidak mengubah APA yang berlaku; ia menandai `trialHabis`
+  // supaya pemanggil bisa mengatakannya kepada pengguna, dan supaya laporan
+  // vendor bisa menemukan trial yang perlu ditindaklanjuti.
+  const trialHabis =
+    baris.status === 'trialing' &&
+    baris.trial_ends_at !== null &&
+    Number.isFinite(Date.parse(baris.trial_ends_at)) &&
+    Date.parse(baris.trial_ends_at) <= Date.now()
 
   const { data: nilai, error: galatNilai } = await supabase
     .from('plan_feature_values')
@@ -236,6 +279,7 @@ export async function bacaBatasPaket(companyId: string): Promise<BatasPaket> {
     paketKode: baris.plans?.code ?? null,
     paketNama: baris.plans?.name ?? null,
     status: baris.status,
+    trialHabis,
     fitur,
   }
 }

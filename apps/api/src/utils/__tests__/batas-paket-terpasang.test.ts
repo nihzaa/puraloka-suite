@@ -145,6 +145,40 @@ describe('gerbang batas paket terpasang di rutenya', () => {
     }
   })
 
+  it('trial yang habis TIDAK dilepas dari batas paketnya', () => {
+    // ⚠ Penjaga ini lahir dari kesalahan saya sendiri, dan dari penjaga LAIN
+    // yang gagal menangkapnya.
+    //
+    // Percobaan pertama menulis `return TAK_DIBATASI` untuk trial yang habis —
+    // artinya trial KEDALUWARSA memberi akses LEBIH BANYAK daripada yang masih
+    // jalan. Membiarkan trial lewat jadi menguntungkan.
+    //
+    // `batas-paket.test.ts` TIDAK menangkapnya, dan itu bukan kelalaian: test
+    // di sana menyusun `BatasPaket` dengan tangan supaya bisa murni tanpa
+    // basis, jadi ia tak pernah melewati cabang yang memutuskan. Mutasinya
+    // dicoba dan 14 test tetap hijau.
+    //
+    // Yang bisa diperiksa tanpa basis adalah BENTUKNYA: cabang trial tak boleh
+    // memulangkan TAK_DIBATASI.
+    const modul = readFileSync(join(AKAR, 'src', 'utils', 'batas-paket.ts'), 'utf-8')
+    const baris = modul.split(String.fromCharCode(10))
+
+    const i = baris.findIndex((b) => b.includes("baris.status === 'trialing'"))
+    expect(i, 'cabang trial tak ditemukan — bentuknya berubah?').toBeGreaterThan(-1)
+
+    // Lima baris sesudah cabang trial dimulai: cukup untuk menangkap
+    // `return TAK_DIBATASI` yang ditulis di dalamnya, dan cukup sempit untuk
+    // tak menyenggol cabang lain yang memang berhak memulangkannya.
+    const sekitar = baris.slice(i, i + 5).join(' ')
+    expect(
+      sekitar.includes('TAK_DIBATASI'),
+      'Cabang trial memulangkan TAK_DIBATASI. Trial yang HABIS akan mendapat ' +
+        'akses lebih banyak daripada yang masih jalan — batasnya justru hilang, ' +
+        'dan membiarkan trial lewat jadi menguntungkan. Trial habis TETAP ' +
+        'tunduk pada batas paketnya.'
+    ).toBe(false)
+  })
+
   it('daftar rute berpagar tidak kosong', () => {
     // Penjaga yang daftarnya kosong selalu hijau, dan diamnya tak bisa
     // dibedakan dari lulus.
