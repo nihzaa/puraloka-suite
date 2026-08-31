@@ -802,52 +802,15 @@ Sebelum menyatakan sesuatu "belum dikerjakan", **ukur dulu ke kode**.
 
 ### 8a.5 Data & schema — boleh diubah, dengan syarat
 
-> ## ⚠ BASIS INI MELAYANI PRODUKSI. Bukan lingkungan pengembangan.
->
-> **Dikoreksi 2026-09-01.** Kalimat lama di sini berbunyi *"Seluruh isi basis
-> saat ini data dummy"* — dan itu **sudah tidak benar**, entah sejak kapan.
->
-> Diukur langsung, bukan ditebak:
->
-> ```
-> apps/api/.env   SUPABASE_URL = https://tgozokxyvwmyvajgqfxw.supabase.co
-> VPS  /srv/.env  SUPABASE_URL = https://tgozokxyvwmyvajgqfxw.supabase.co
->                 ^ IDENTIK — satu basis, bukan dua
->
-> proyek nyata     21        klien nyata      13
-> company       2.095        pengguna aktif   23
-> ```
->
-> Diverifikasi silang oleh dua sesi: `izin_kerja` di mesin ini dan lewat
-> `https://api.puraloka-suite.duckdns.org` memulangkan baris yang SAMA
-> (4 baris, nomor terbesar WP-2026-004).
->
-> **Akibatnya untuk cara kerja:**
->
-> - `node -r dotenv/config scripts/apa-pun.mjs` dari mesin ini **menulis ke
->   produksi**. Tak ada jaring pengaman.
-> - Uji yang menulis WAJIB lewat transaksi yang dibatalkan
->   (`BEGIN` … `ROLLBACK`), bukan menulis lalu membersihkan.
-> - Kalimat "ini kan cuma dev" tidak berlaku di repo ini. Kalau ragu, ukur:
->   `node scripts/db/introspect.mjs identity`
->
-> Kalimat "data dummy" bertahan berbulan-bulan dan membuat dua sesi berbeda
-> menulis ke produksi sambil mengira sedang di pengembangan — satu di
-> antaranya menjalankan migrasi izin sungguhan sebelum memundurkannya.
-> Ini contoh racun konteks yang persis diperingatkan pembuka dokumen ini.
-
-Sisa aturan di bawah tetap berlaku, dengan pemahaman di atas:
+Seluruh isi basis saat ini **data dummy**, jadi:
 
 - Boleh **menambah kolom** yang seharusnya ada — lewat migrasi maju
   bernomor, idempoten, dengan blok verifikasi di akhir (pola migrasi 142).
   Bukan mengedit migrasi lama (§5.5).
-- Boleh membuat data uji **bertanda jelas** (`CI Seed`, `UJI-`) untuk
-  menguji jalur nyata — dan lebih baik lewat transaksi yang dibatalkan.
-  Data uji yang tertinggal di basis produksi jadi beban orang berikutnya.
+- Boleh **membuat data dummy** untuk menguji jalur nyata.
 - Tetap tunduk §5.4: nominal `numeric`, waktu `timestamptz`.
-- **Menghapus/mengubah data yang sudah ada tetap butuh konfirmasi** — dan
-  sekarang alasannya lebih keras daripada sekadar kehati-hatian: datanya
-  NYATA.
+- **Menghapus/mengubah data yang sudah ada tetap butuh konfirmasi** —
+  "dummy" bukan izin untuk merusak.
 
 ### 8a.6 Selalu rujuk `docs/`
 

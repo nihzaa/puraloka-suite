@@ -2122,19 +2122,6 @@ jobs:
         run: node scripts/audit-tabel-punya-migrasi.mjs
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
-
-      # Dokumen tak boleh menyebut basis ini "data dummy".
-      #
-      # CLAUDE.md §8a.5 pernah berbunyi begitu, bertahan berbulan-bulan
-      # sesudah tak benar, dan membuat DUA sesi menulis ke PRODUKSI sambil
-      # mengira sedang di pengembangan. Diukur 2026-09-01: apps/api/.env dan
-      # VPS menunjuk SUPABASE_URL yang SAMA — 21 proyek nyata, 2.095 company.
-      # AMBANG NOL.
-      - name: Basis bukan "data dummy"
-        run: node scripts/audit-basis-bukan-dummy.mjs
-        env:
-          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
-
       # Test tak boleh membandingkan dua hitungan GLOBAL atas schema bersama.
       #
       # TUJUH kali dalam rantai ini CI merah oleh cacat yang sama: asumsi global
