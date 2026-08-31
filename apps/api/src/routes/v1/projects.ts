@@ -5,6 +5,7 @@ import { createNotification, createNotifications } from '../../utils/notificatio
 import { resolveRecipients } from '../../utils/notification-routing.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { getEffectiveFinancialValue } from '../../utils/financial-config.js'
+import { bacaBatasPaket, masihMuat } from '../../utils/batas-paket.js'
 import { todayWIB } from '../../lib/financial-config.js'
 
 export default async function projectRoutes(app: FastifyInstance) {
@@ -223,6 +224,49 @@ export default async function projectRoutes(app: FastifyInstance) {
     }
     const retAmount = Number(contract_value) * (retPct / 100)
     const createdBy = request.currentUser!.id
+
+    // ── Batas paket: cukup ruang untuk satu proyek lagi? ──────────────────
+    //
+    // Diperiksa DI SINI, tepat sebelum menyisipkan — bukan di preHandler.
+    // Alasannya: proyek yang ditolak karena kuota harus ditolak SESUDAH
+    // muatannya terbukti sah, supaya penggunanya tak menerima "kuota habis"
+    // atas permintaan yang sebenarnya juga salah isi, lalu memperbaiki
+    // kuotanya dan mendapat galat kedua yang berbeda.
+    //
+    // ⚠ Gerbang ini gagal-TERBUKA saat tenant tak punya langganan. Itu
+    // disengaja dan dijelaskan di utils/batas-paket.ts: 1878 perusahaan
+    // hidup tanpa satu baris `subscriptions` pun, dan gerbang yang
+    // gagal-tertutup akan mematikan semuanya sekaligus.
+    const batas = await bacaBatasPaket(request.companyId!)
+    if (batas.dibatasi) {
+      // Dicacah lewat `request.db` — sadar tenant. `supabase` mentah di sini
+      // akan mencacah proyek SELURUH pelanggan, dan tenant kecil pun akan
+      // selalu terlihat melewati batasnya.
+      const { count, error: galatHitung } = await request.db!
+        .from('projects')
+        .select('id', { count: 'exact', head: true })
+        .neq('status', 'completed')
+        .neq('status', 'cancelled')
+
+      if (galatHitung) {
+        // Gagal MENGHITUNG tak boleh diam-diam jadi "masih muat" — itu
+        // membuat batasnya hilang tiap kali basis tersendat.
+        request.log.error({ err: galatHitung }, 'gagal menghitung proyek aktif untuk batas paket')
+        return reply.status(503).send({ error: 'Gagal memeriksa batas paket. Coba lagi.' })
+      }
+
+      const muat = masihMuat(batas, 'kuota.proyek_aktif', count ?? 0)
+      if (!muat.boleh) {
+        // 402, bukan 403. Yang pertama berarti "bayar untuk melanjutkan";
+        // yang kedua berarti "Anda tak berhak" — dan pengguna yang membaca
+        // 403 akan mencari admin untuk minta izin, bukan menaikkan paketnya.
+        return reply.status(402).send({
+          error: muat.alasan,
+          batas: muat.batas,
+          terpakai: muat.terpakai,
+        })
+      }
+    }
 
     const { data: project, error: projError } = await request.db!
       .from('projects')
