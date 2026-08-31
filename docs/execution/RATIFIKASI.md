@@ -3626,3 +3626,70 @@ Ke-16 peran nol-izin itu mau diapakan? Tiga kemungkinan:
 Yang **tidak** boleh: dibiarkan seperti sekarang, di mana migrasi tercatat
 sukses sementara tuntutannya dilanggar. Itu membuat penjaga berhenti menjaga
 tanpa gejala.
+
+---
+
+### ⚠ KOREKSI ATAS ENTRI DI ATAS (2026-08-31, sore) — "PM buta" TIDAK BENAR
+
+Kalimat pembuka entri ini — **"PM tak bisa melihat proyek. Klien bisa."** —
+menyesatkan, dan saya yang menulisnya. Ditemukan sesi `puraloka-suite-e7`,
+diverifikasi ulang di sini terhadap `pg_policies`.
+
+**`projects` tak punya SATU PUN policy yang memeriksa `projects:view`.**
+Diukur — nol:
+
+```
+policy SELECT di projects            memeriksa apa
+  projects_admin        ALL          auth_role() = 'admin'
+  projects_pm_select    SELECT       auth_role() = 'pm' AND pm_id = auth_user_id()
+  projects_mandor_select SELECT      auth_role() = 'mandor' AND is_assigned_mandor(id)
+  projects_client_select SELECT      auth_role() = 'client' AND client_id = auth_client_id()
+  tenant_isolation      RESTRICTIVE  company_id = auth_company_id()
+```
+
+PM melihat proyek lewat **`pm_id`**, bukan lewat izin. Dan empat dari enam
+PM sudah bisa melihat proyeknya hari ini:
+
+```
+Rizky Firmansyah   6 proyek     Juan Septianto  0
+Dinda Permatasari  5 proyek     Uji pm          0   ← belum ditugaskan
+Ahmad Fauzi        4 proyek
+[UJI] PM Portal    3 proyek
+```
+
+Dua yang nol memang belum ditugaskan ke proyek mana pun — keadaan data,
+bukan cacat izin.
+
+#### Apa yang berubah pada pilihan founder
+
+**Bentuk 1 ("baca saja") hampir tak berefek.** Memberi `projects:view` tak
+mengubah apa pun untuk daftar proyek — nol policy membacanya. Yang NYATA
+terhalang izin adalah **punch, NCR, dan izin kerja**, yang policy-nya memang
+memanggil `has_permission()` (diukur: 2 policy ber-`has_permission` di
+masing-masing tabel itu, nol literal peran).
+
+Jadi kalau tujuannya "PM bisa mengerjakan lapangannya", yang menutup gejala
+adalah izin punch/NCR/izin-kerja — bukan `projects:view`.
+
+Tabel konsekuensi terhadap sepuluh spek `deny: 'pm'` **tidak berubah**.
+
+#### Temuan terpisah yang ikut terbuka: ADR-004 dilanggar di lapis RLS
+
+**Lima policy `projects` memakai literal peran** `'admin'`/`'pm'`/`'mandor'`/
+`'client'` — diukur. ADR-004 melarang literal peran sebagai gerbang
+otorisasi, dan penjaga yang ada hanya memeriksa KODE; tak satu pun memeriksa
+`pg_policies`.
+
+Akibatnya nyata dan tak terlihat: tenant yang membuat peran sendiri lewat UI
+(`direktur`, `kepala_proyek`, `site_manager`) **tak akan pernah lolos policy
+ini, apa pun izinnya**. Itu menjelaskan kenapa `direktur` — 228 izin, setara
+admin — tetap bisa buta terhadap `projects`.
+
+Ini bukan sesuatu yang bisa diperbaiki tanpa keputusan: menulis ulang lima
+policy `projects` mengubah siapa melihat apa di tabel paling inti.
+
+#### Pelajaran yang saya catat untuk diri sendiri
+
+Entri aslinya benar soal ANGKA (37 izin, 183 hilang, 16 peran kosong) tapi
+salah soal AKIBAT — karena saya menyimpulkan gejala dari `role_permissions`
+tanpa memeriksa `pg_policies`. Dua lapis, dan saya hanya mengukur satu.
