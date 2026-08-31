@@ -86,13 +86,41 @@ CREATE POLICY saas_invoices_baca ON saas_invoices FOR SELECT USING (true);
 -- Template RAB milik perusahaan. Tanpa pagar, template satu perusahaan terbaca
 -- oleh perusahaan lain — dan template RAB memuat struktur harga, hal yang
 -- paling tak boleh bocor ke pesaing.
-DROP POLICY IF EXISTS tenant_isolation ON template_rab;
-CREATE POLICY tenant_isolation ON template_rab AS RESTRICTIVE FOR ALL
-  USING (company_id IS NULL OR company_id = (SELECT auth_company_id()))
-  WITH CHECK (company_id IS NULL OR company_id = (SELECT auth_company_id()));
+/*
+  ⚠ DIBUNGKUS PEMERIKSAAN KEBERADAAN — DIPERBAIKI 2026-08-31.
 
-DROP POLICY IF EXISTS template_rab_baca ON template_rab;
-CREATE POLICY template_rab_baca ON template_rab FOR SELECT USING (true);
+      HARD FAIL — 518_pagar_enam_tabel_tanpa_policy.sql
+        relation "template_rab" does not exist
+
+  Diukur: dari keenam tabel yang migrasi ini pagari, LIMA dibuat oleh migrasi
+  (company_saas_meta, saas_invoices, subscriptions, tenant_feature_overrides,
+  tenant_usage_counters). `template_rab` TIDAK — tak satu pun migrasi di repo
+  ini membuatnya. Ia ada di basis dev karena dibuat di luar jalur migrasi.
+
+  Itu masalah tersendiri, dan bukan yang bisa diperbaiki di sini: membuat
+  tabelnya berarti menebak bentuknya, dan bentuk yang salah lebih buruk
+  daripada tabel yang tak ada. Yang bisa: memagarinya BILA ada, dan mencatat
+  ketiadaannya bila tidak — alih-alih mematikan seluruh rantai migrasi.
+
+  Konsekuensi di lingkungan baru: template RAB tak ada, jadi tak ada yang
+  bocor. Pagar ini menyala begitu tabelnya muncul.
+*/
+DO $pagar_template_rab$
+BEGIN
+  IF to_regclass('public.template_rab') IS NULL THEN
+    RAISE NOTICE '518: tabel template_rab tak ada di basis ini — pagar dilewati. '
+                 'Tak satu pun migrasi membuatnya; ia lahir di luar jalur migrasi.';
+    RETURN;
+  END IF;
+
+  EXECUTE 'DROP POLICY IF EXISTS tenant_isolation ON template_rab';
+  EXECUTE 'CREATE POLICY tenant_isolation ON template_rab AS RESTRICTIVE FOR ALL
+             USING (company_id IS NULL OR company_id = (SELECT auth_company_id()))
+             WITH CHECK (company_id IS NULL OR company_id = (SELECT auth_company_id()))';
+
+  EXECUTE 'DROP POLICY IF EXISTS template_rab_baca ON template_rab';
+  EXECUTE 'CREATE POLICY template_rab_baca ON template_rab FOR SELECT USING (true)';
+END $pagar_template_rab$;
 
 -- ── VERIFIKASI ──────────────────────────────────────────────────────────────
 DO $$
@@ -105,6 +133,21 @@ BEGIN
     'company_saas_meta','subscriptions','tenant_feature_overrides',
     'tenant_usage_counters','saas_invoices','template_rab'
   ] LOOP
+    /*
+      Tabel yang TAK ADA dilewati — 2026-08-31.
+
+      `template_rab` tak dibuat migrasi mana pun (lihat catatan di blok pagar
+      di atas). Tanpa pemeriksaan ini, verifikasi menuduh "tanpa policy
+      RESTRICTIVE" atas tabel yang memang belum ada, dan pesannya
+      ("data terbaca LINTAS company") membuat pembacanya mengira ada kebocoran.
+
+      Tak ada tabel berarti tak ada yang bocor.
+    */
+    IF to_regclass('public.' || v_tabel) IS NULL THEN
+      RAISE NOTICE '518: tabel % tak ada di basis ini — verifikasi pagar dilewati', v_tabel;
+      CONTINUE;
+    END IF;
+
     SELECT count(*) INTO v_restrictive FROM pg_policies
      WHERE schemaname='public' AND tablename=v_tabel AND permissive='RESTRICTIVE';
     SELECT count(*) INTO v_permissive FROM pg_policies
