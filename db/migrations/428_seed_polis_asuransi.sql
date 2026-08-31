@@ -143,6 +143,28 @@ SELECT v.pid::uuid, v.jenis, v.nomor, v.penerbit,
 DO $$
 DECLARE n INT; n_aktif INT; n_tanpa INT; n_tpl INT;
 BEGIN
+  /*
+    ⚠ GERBANG DIPINDAH KE ATAS 2026-08-31.
+
+    Gerbang yang dipasang lebih awal hari ini ada di cek "celah 4", jauh di
+    bawah — dan cek INI berjalan lebih dulu:
+
+        HARD FAIL — 428_seed_polis_asuransi.sql
+          428 gagal: polis hanya 0 baris, harus >= 9
+
+    Seed di atas membuat polis DARI proyek yang ada. Nol proyek → nol polis,
+    dan itu bukan kegagalan seed melainkan ketiadaan bahannya.
+
+    Pelajaran yang berulang hari ini (237, 239, 392): gerbang di satu tempat
+    tidak menolong bila blok lain di berkas yang sama mengandaikan hal yang
+    sama. Yang benar menaruhnya di TITIK PALING AWAL yang bergantung pada
+    data itu.
+  */
+  IF NOT EXISTS (SELECT 1 FROM projects WHERE is_deleted = false) THEN
+    RAISE NOTICE '428 verifikasi dilewati: nol proyek di basis ini, jadi nol polis. Bukan galat.';
+    RETURN;
+  END IF;
+
   SELECT count(*) INTO n FROM polis_asuransi;
   IF n < 9 THEN
     RAISE EXCEPTION '428 gagal: polis hanya % baris, harus >= 9', n;
