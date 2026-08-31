@@ -11,13 +11,15 @@
 //   bentangM m · bMm/hMm mm · fcMpa MPa · qKnM kN/m
 //   Keluaran: momen kNm · geser kN · aksial kN · lendutan mm.
 //
-// ⚠ `momenKnm.maks/min` dan `momenTumpuanKnm` dibaca dari deret 11 TITIK
-// SAMPEL milik `analisaRangka2D`, bukan dari puncak analitis. Untuk tumpuan
-// itu tak jadi soal — tumpuan SELALU jatuh di x = 0 dan x = L, keduanya titik
-// sampel. Untuk momen LAPANGAN, puncaknya bisa jatuh di antara dua sampel:
-// balok menerus dua bentang berpuncak di x = 0,375 L, dan jaring 0,1 L
-// terdekat hanya sampai 0,4 L (50,400 vs 50,625 kNm — meleset 0,44%).
-// Lihat catatan penyimpangan di test.
+// ⚠ `momenTumpuanKnm` dibaca dari deret 11 TITIK SAMPEL milik
+// `analisaRangka2D`, dan untuk tumpuan itu tak jadi soal — tumpuan SELALU
+// jatuh di x = 0 dan x = L, keduanya titik sampel.
+//
+// `momenKnm.maks/min` dan `lendutanMm.maks` TIDAK lagi terbatas pada jaring
+// itu: sejak 2026-09-01 keduanya menyertakan puncak analitis di antara dua
+// sampel. Peringatan lama di sini berbunyi "meleset 0,44%" dan itu sudah
+// TIDAK berlaku — balok menerus dua bentang kini memulangkan 50,625 kNm,
+// bukan 50,400. Deret `di[]` tetap 11 titik untuk menggambar diagram.
 
 import {
   analisaRangka2D,

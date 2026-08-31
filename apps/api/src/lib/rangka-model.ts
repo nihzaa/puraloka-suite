@@ -302,6 +302,9 @@ function fixedEndLokal(qKnM: number, lM: number): number[] {
  * Lendutan diperoleh dari integrasi ganda M/EI dengan syarat batas dari
  * perpindahan ujung yang sudah diketahui — bukan dari rumus tabel, supaya
  * berlaku untuk sembarang kombinasi tumpuan.
+ *
+ * `momenKnm.maks/min` TIDAK diambil dari 11 titik itu saja — lihat catatan
+ * puncak analitis di dalam fungsi.
  */
 function gayaDalam(
   nama: string,
@@ -315,12 +318,41 @@ function gayaDalam(
   const V1 = f[1]!
   const M1 = f[2]!
 
+  const mDi = (x: number) => -M1 + V1 * x - qKnM * x ** 2 / 2
+
   const momen: TitikNilai[] = []
   const geser: TitikNilai[] = []
   for (let i = 0; i < TITIK_SAMPEL; i++) {
     const x = lM * i / (TITIK_SAMPEL - 1)
     geser.push({ xM: x, nilai: V1 - qKnM * x })
-    momen.push({ xM: x, nilai: -M1 + V1 * x - qKnM * x ** 2 / 2 })
+    momen.push({ xM: x, nilai: mDi(x) })
+  }
+
+  /*
+    ⚠ PUNCAK MOMEN JARANG JATUH DI TITIK CUPLIKAN.
+
+    Deret 11 titik di atas ada untuk MENGGAMBAR diagram, dan tiap nilainya
+    eksak. Tapi maksimum atas deret itu bukan maksimum atas batang: pada
+    beban merata M(x) berderajat 2, dan puncaknya duduk di V(x) = 0, yaitu
+    x = V1/q — angka yang hampir tak pernah kelipatan 0,1L.
+
+    Terukur pada balok menerus dua bentang (w=20, L=6): puncak sesungguhnya
+    50,625 kNm di 0,375L, sementara cuplikan terdekat memberi 50,400 kNm.
+    Melesetnya cuma 0,44%, tapi ARAHNYA selalu ke bawah — momen yang
+    dilaporkan lebih kecil dari yang sesungguhnya bekerja, dan angka inilah
+    yang dipakai memilih pembesian. Kekurangan tulangan tak menimbulkan
+    galat apa pun; ia menunggu sampai beban penuh datang.
+
+    Karena itu maks/min dihitung dari cuplikan DITAMBAH puncak analitis,
+    sedangkan `di[]` tetap 11 titik supaya diagramnya tak berubah.
+
+    q = 0 (kolom, batang tanpa beban merata) → M(x) linier, puncaknya di
+    ujung, dan cuplikan sudah menangkapnya. Jangan membagi nol.
+  */
+  const kandidat = momen.map((p) => p.nilai)
+  if (qKnM !== 0) {
+    const xPuncak = V1 / qKnM
+    if (xPuncak > 0 && xPuncak < lM) kandidat.push(mDi(xPuncak))
   }
 
   // Aksial: NEGATIF = tekan. f[0] adalah gaya lokal-x di ujung awal, yang
@@ -332,8 +364,8 @@ function gayaDalam(
   return {
     nama,
     momenKnm: {
-      maks: Math.max(...momen.map((p) => p.nilai)),
-      min: Math.min(...momen.map((p) => p.nilai)),
+      maks: Math.max(...kandidat),
+      min: Math.min(...kandidat),
       di: momen,
     },
     geserKn: {
@@ -343,8 +375,8 @@ function gayaDalam(
     },
     aksialKn,
     lendutanMm: {
-      maks: Math.max(...lendutan.map((p) => Math.abs(p.nilai))),
-      di: lendutan,
+      maks: lendutan.maks,
+      di: lendutan.di,
     },
   }
 }
@@ -388,7 +420,7 @@ function hitungLendutan(
   V1: number,
   M1: number,
   qKnM: number,
-): TitikNilai[] {
+): { di: TitikNilai[]; maks: number } {
   const nTitik = momen.length
 
   /** EI dalam N·mm² — E [N/mm²] × I [mm⁴]. */
@@ -421,8 +453,50 @@ function hitungLendutan(
   const a = y0 - y[0]!
   const b = (yL - (y[nTitik - 1]! + a)) / (lM * 1000)
 
-  return momen.map((p, i) => ({
-    xM: p.xM,
-    nilai: y[i]! + a + b * (p.xM * 1000),
-  }))
+  /** y(x) lengkap, mm — x dalam meter. Bentuk tertutup, bukan interpolasi. */
+  const yDi = (x: number) => {
+    const suku = -M1 * x ** 2 / 2 + V1 * x ** 3 / 6 - qKnM * x ** 4 / 24
+    return suku * 1e12 / EI + a + b * (x * 1000)
+  }
+
+  const di = momen.map((p) => ({ xM: p.xM, nilai: yDi(p.xM) }))
+
+  /*
+    ⚠ PUNCAK LENDUTAN, seperti puncak momen, jarang jatuh di titik cuplikan.
+
+    Terukur pada balok menerus dua bentang (w=20, L=6): puncak sesungguhnya
+    0,224617 mm di 0,4215L, sementara maksimum cuplikan memberi 0,223949 mm —
+    0,30% ke arah LEBIH KECIL. Lendutan dipakai memeriksa batas layan (L/240,
+    L/360); melaporkannya lebih kecil membuat balok yang sesungguhnya melewati
+    batas lolos pemeriksaan, tanpa satu pun galat.
+
+    y(x) berderajat 4, jadi y'(x) berderajat 3 — akarnya tak punya bentuk
+    tertutup yang enak dan stabil. Yang dipakai di sini: y' dicuplik di jaring
+    yang SAMA, dan di tiap selang yang tandanya berganti akarnya dikurung
+    dengan bagi-dua. Tiga akar sekalipun tertangkap semuanya, karena tiap akar
+    sederhana pasti mengganti tanda. Sub-selang 0,1L jauh lebih rapat daripada
+    jarak antar-akar y' pada batang yang waras.
+
+    60 langkah bagi-dua memberi lebar selang ~1e-18·L — di bawah presisi
+    double, jadi ia berhenti karena kehabisan digit, bukan karena toleransi
+    yang ditebak.
+  */
+  const yAksen = (x: number) =>
+    (-M1 * x + V1 * x ** 2 / 2 - qKnM * x ** 3 / 6) * 1e12 / EI + b * 1000
+
+  let maks = Math.max(...di.map((p) => Math.abs(p.nilai)))
+  for (let i = 0; i < nTitik - 1; i++) {
+    let lo = di[i]!.xM
+    let hi = di[i + 1]!.xM
+    const fLo = yAksen(lo)
+    if (fLo === 0 || Math.sign(fLo) === Math.sign(yAksen(hi))) continue
+    for (let k = 0; k < 60; k++) {
+      const mid = (lo + hi) / 2
+      if (Math.sign(yAksen(mid)) === Math.sign(fLo)) lo = mid
+      else hi = mid
+    }
+    maks = Math.max(maks, Math.abs(yDi((lo + hi) / 2)))
+  }
+
+  return { di, maks }
 }

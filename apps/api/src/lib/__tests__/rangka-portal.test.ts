@@ -24,29 +24,20 @@ describe('analisaBalokMenerus — lapis 2', () => {
 
   it('dua bentang sama: M lapangan wL²/14,22 di x = 0,375L', () => {
     /*
-      ⚠ PENYIMPANGAN DARI PLAN — dan bukan karena solvernya salah.
+      Puncak analitis 50,625 kNm di x = 0,375 L, diverifikasi lewat persamaan
+      tiga momen: M tumpuan tengah = wL²/8 = 90 → R kiri = 3wL/8 = 45 →
+      puncak di x = R/w = 2,25 m = 0,375 L → M = R·x − w·x²/2 = 50,625.
 
-      Plan menuliskan `expect(b.momenKnm.maks).toBeCloseTo(0.070313*w*L**2, 1)`.
-      Angka fisikanya BENAR: puncak analitis 50,625 kNm di x = 0,375 L, sudah
-      diverifikasi ulang di sini lewat persamaan tiga momen (M tumpuan tengah
-      = wL²/8 = 90 → R kiri = 3wL/8 = 45 → puncak di x = R/w = 2,25 m = 0,375 L
-      → M = 50,625). Yang tak bisa dipenuhi adalah CARA MENGUKURNYA.
+      ⚠ Test ini dulu MENUNTUT 50,400 — nilai cuplikan 0,4 L — dan komentarnya
+      menjelaskan panjang lebar kenapa 50,625 "mustahil hijau": `momenKnm.maks`
+      saat itu maksimum atas jaring 11 titik saja, dan 0,375 L bukan titik
+      jaring. Test yang mengabadikan batasan implementasi seperti itu berhenti
+      menjaga fisikanya dan mulai menjaga cacatnya: 0,44% ke arah LEBIH KECIL,
+      pada angka yang dipakai memilih pembesian.
 
-      `analisaRangka2D` mencuplik gaya dalam di 11 TITIK, x = 0 · 0,1L · … · L,
-      dan `momenKnm.maks` adalah maksimum atas cuplikan itu — bukan puncak
-      analitis. x = 0,375 L BUKAN titik cuplikan; tetangganya 0,3 L dan 0,4 L.
-      Nilai terbaik yang bisa dipulangkan jaring itu adalah 50,400 kNm di
-      0,4 L, meleset 0,225 dari 50,625 — sementara `toBeCloseTo(…, 1)`
-      menuntut < 0,05. Assertion itu MUSTAHIL hijau tanpa mengubah `maks`
-      jadi puncak analitis (bukan wewenang Task 3) atau memperapat jaringnya.
-
-      Diverifikasi bahwa yang meleset memang HANYA jaringnya: momen solver
-      cocok rumus tertutup R·x − w·x²/2 di KESEBELAS titik dengan beda
-      0,00e+0 — nol mutlak, bukan sekadar dekat.
-
-      Jadi yang diuji di sini: (a) nilai di titik cuplikan terdekat sama
-      persis dengan teori, dan (b) puncaknya memang di sekitar 0,375 L —
-      assertion kedua ini dipakai APA ADANYA dari plan, dan ia hijau.
+      `analisaRangka2D` sekarang menyertakan puncak analitis x = V1/q. Jaring
+      `di[]` tetap 11 titik untuk menggambar diagram — karena itu `puncak.xM`
+      di bawah masih dicari dari jaring dan masih toleransi 1 angka.
     */
     const L = 6, w = 20
     const h = analisaBalokMenerus({
@@ -54,15 +45,14 @@ describe('analisaBalokMenerus — lapis 2', () => {
     })
     const b = h.batang[0]!
 
-    // Puncak jaring = 0,4 L. Teori di titik itu: 45·2,4 − 20·2,4²/2 = 50,4.
     const R = 3 * w * L / 8                    // reaksi tepi, dari wL²/8
-    const xCuplik = 0.4 * L
-    expect(b.momenKnm.maks).toBeCloseTo(R * xCuplik - w * xCuplik ** 2 / 2, 6)
+    const xPuncak = R / w                      // 2,25 m = 0,375 L
+    expect(b.momenKnm.maks).toBeCloseTo(R * xPuncak - w * xPuncak ** 2 / 2, 6)
+    expect(b.momenKnm.maks).toBeCloseTo(0.070313 * w * L ** 2, 1)
 
-    // Puncak analitis 50,625 terkurung rapat oleh dua cuplikan tetangganya.
-    expect(b.momenKnm.maks).toBeLessThan(0.070313 * w * L ** 2)
-    expect(b.momenKnm.maks).toBeGreaterThan(0.070313 * w * L ** 2 * 0.99)
-
+    // Jaring penggambar diagram tak ikut berubah — puncaknya masih dicuplik
+    // di 0,4 L, tetangga terdekat 0,375 L.
+    expect(b.momenKnm.di).toHaveLength(11)
     const puncak = b.momenKnm.di.reduce((p, c) => (c.nilai > p.nilai ? c : p))
     expect(puncak.xM / L).toBeCloseTo(0.375, 1)
   })
