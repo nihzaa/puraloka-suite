@@ -19,6 +19,7 @@
   ],
   "packageManager": "pnpm@11.8.0",
   "scripts": {
+    "eas-build-pre-install": "node ../../scripts/eas-lockfile-satu-dokumen.mjs",
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
