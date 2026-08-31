@@ -116,6 +116,47 @@ CREATE TABLE IF NOT EXISTS public.template_item (
   cost_code    text
 );
 
+-- ── RLS ─────────────────────────────────────────────────────────────────────
+--
+-- ⚠ DITAMBAHKAN sesudah CI merah: tripwire F2-6 melaporkan
+--
+--     ❌ 3 tabel dengan RLS MATI. Itu Ember [C] — RLS aktif/mati tidak boleh
+--        dikonfigurasi.
+--
+-- Persis ketiga tabel yang migrasi ini buat. Tabel baru lahir tanpa RLS, dan
+-- di basis dev ketiganya `rls=ON` hanya karena dinyalakan di luar migrasi —
+-- keadaan yang justru sedang diperbaiki di sini.
+--
+-- Kesalahan yang sama bentuknya dengan yang migrasi 529 tutup pagi ini (19
+-- tabel admin-SaaS), dan saya mengulanginya beberapa jam kemudian pada tabel
+-- yang saya buat sendiri.
+--
+-- Policy-nya TIDAK dipasang di sini: migrasi 519 yang memasangnya (pagar
+-- RESTRICTIVE lewat `template_rab.company_id` + satu PERMISSIVE pemberi
+-- akses), dan ia berjalan sesudah ini. Yang penting RLS-nya menyala, supaya
+-- policy 519 benar-benar dievaluasi.
+ALTER TABLE public.template_rab   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.template_input ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.template_item  ENABLE ROW LEVEL SECURITY;
+
+/*
+  Satu PERMISSIVE pemberi akses dipasang di SINI, bukan menunggu 519.
+
+  Tabel ber-RLS tanpa satu pun policy permissive tak terbaca SIAPA PUN —
+  himpunan kosong yang di-OR bernilai FALSE. Antara migrasi ini dan 519, basis
+  yang baru lahir akan melewati keadaan buntu itu, dan migrasi di antaranya
+  yang membaca template akan gagal dengan "nol baris" alih-alih galat.
+
+  519 memasang ulang policy bernama sama; `DROP POLICY IF EXISTS` di sana
+  membuatnya menggantikan, bukan menggandakan.
+*/
+DROP POLICY IF EXISTS template_rab_baca ON public.template_rab;
+CREATE POLICY template_rab_baca ON public.template_rab FOR SELECT USING (true);
+DROP POLICY IF EXISTS template_input_baca ON public.template_input;
+CREATE POLICY template_input_baca ON public.template_input FOR SELECT USING (true);
+DROP POLICY IF EXISTS template_item_baca ON public.template_item;
+CREATE POLICY template_item_baca ON public.template_item FOR SELECT USING (true);
+
 -- ── Verifikasi (pola migrasi 142) ───────────────────────────────────────────
 DO $$
 DECLARE
@@ -163,5 +204,26 @@ BEGIN
     RAISE EXCEPTION '532 gagal: template_item tanpa FK ke template_rab';
   END IF;
 
-  RAISE NOTICE '532 OK: template_rab + template_input + template_item ada, company_id terpasang, FK utuh';
+  -- RLS menyala di ketiganya — Ember [C], dan tabel baru lahir tanpa itu.
+  FOREACH v_tabel IN ARRAY ARRAY['template_rab', 'template_input', 'template_item'] LOOP
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+       WHERE n.nspname = 'public' AND c.relname = v_tabel AND c.relrowsecurity
+    ) THEN
+      v_kurang := v_kurang || v_tabel || ' ';
+    END IF;
+
+    -- Ber-RLS tanpa PERMISSIVE = tak terbaca siapa pun (OR himpunan kosong).
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_policies
+       WHERE schemaname = 'public' AND tablename = v_tabel AND permissive = 'PERMISSIVE'
+    ) THEN
+      v_kurang := v_kurang || v_tabel || '(buntu) ';
+    END IF;
+  END LOOP;
+  IF v_kurang <> '' THEN
+    RAISE EXCEPTION '532 gagal: RLS mati / tabel buntu: %', v_kurang;
+  END IF;
+
+  RAISE NOTICE '532 OK: ketiga tabel template ada, company_id terpasang, FK utuh, RLS menyala';
 END $$;
