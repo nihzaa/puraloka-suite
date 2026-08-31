@@ -5,6 +5,120 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-31 — gerbang modul: 21 kunci terdaftar, NOL pernah ditegakkan
+
+Founder: kerjakan gerbang modul, riset dan brainstorming dipersilakan.
+
+### Yang ditemukan sebelum menulis kode
+
+`bolehPakaiFitur()` (`batas-paket.ts:346`) punya **NOL pemanggil** di seluruh
+`apps/`. Ke-22 kunci `modul.*` terdaftar sejak migrasi 538, tak satu pun
+menegakkan apa pun. Akibat komersialnya langsung: **paket Kecil dan Enterprise
+membuka modul yang sama persis**, jadi tak ada alasan siapa pun naik paket.
+
+Kabar baiknya: kunci di katalog vendor dan katalog produk **sudah identik**,
+jadi tak perlu lapisan penerjemah — bagian yang paling rawan salah.
+
+### modul.mutu: dua hal yang terdaftar tiga kali
+
+Katalog menjual `modul.mutu`, `modul.uji_mutu`, `modul.k3_lingkungan` sebagai
+tiga barang. Diukur ke kode, itu dua:
+
+- `/mutu/insiden` dan `/k3/insiden` memanggil endpoint yang SAMA PERSIS
+  (`api/v1/k3/insiden`) — menutup satu sambil membuka yang lain menyisakan
+  jalan masuk UTUH;
+- `mutu-ikhtisar.ts` tak menyentuh satu pun tabel mutu; ketiga sumbernya
+  `dokumen_kepatuhan`, `izin_kerja`, `evaluasi_subkon`.
+
+Keputusan founder: gabung jadi dua. Vendor 016 memensiunkan (bukan menghapus —
+FK CASCADE akan membawa pilihan paket ikut hilang); produk 544 menghapus.
+
+### Arah kegagalan — riset menyelesaikan pertentangan literatur
+
+Literatur terbelah soal fail-open. Yang menyelesaikannya: **pilah menurut apa
+yang rusak kalau salah.** Gerbang izin/RLS gagal-TERTUTUP (keamanan; kebocoran
+tak bisa dibatalkan). Gerbang modul gagal-TERBUKA dari snapshot (komersial;
+gagal-tertutup memadamkan 2.022 perusahaan sekaligus).
+
+Tapi "gagal-terbuka" di sini **bukan** `catch → allow` — itu memberi "ya" yang
+tak pernah diverifikasi. Yang benar: pakai snapshot yang PERNAH benar, dan
+catat saat membuka darurat.
+
+Riset juga menghentikan rancangan awal saya: **jangan panggil DB vendor di
+jalur permintaan.** Itu menjadikan konsol titik kegagalan tunggal atas seluruh
+produk. Jadi konsol MENDORONG ke `entitlement_snapshot` di DB produk.
+
+### Yang dibangun
+
+- migrasi vendor 016 + produk 544 (`entitlement_snapshot`, RLS+FORCE+RESTRICTIVE)
+- `gerbang-modul.ts` — `requireModul`, 402 (bukan 403 yang tertukar dengan izin,
+  bukan 404 yang berbohong soal keberadaan fitur)
+- 42 rute di 10 modul digerbangi; 7 berkas BERBAGI sengaja tidak
+- `peta-modul-rute.ts` — ditulis TANGAN karena nama berkas tak memberi tahu
+  modul pemiliknya (`kepatuhan-k3.ts` dipakai dua modul; `mutu-ikhtisar.ts`
+  namanya mutu isinya kepatuhan)
+- `audit-modul-punya-gerbang.mjs` (ambang NOL, di CI) — merah empat arah
+- `dorong-entitlement.ts` di konsol, disambungkan ke layar paket
+
+### Tiga kesalahan saya
+
+1. **`request.currentUser.companyId`** — medan itu TAK ADA (yang benar
+   `request.companyId`). Gerbang akan pulang lebih awal pada SETIAP permintaan:
+   tak pernah menolak, nol galat, `tsc` diam karena medannya opsional. Gerbang
+   yang diam persis seperti gerbang yang bekerja. Ketahuan saat membaca
+   `auth.ts:189`, sebelum sempat dipasang ke mana-mana.
+
+2. **`billing.ts`/`langganan.ts` di peta** — keduanya berkas HANTU, saya tulis
+   dari ingatan (langganan diurus konsol vendor, bukan produk). Penjaga
+   sekarang menolak nama yang tak ada, supaya peta tak jadi daftar harapan.
+
+3. **`bacaBlok()` menuntut `as const`** — blok BERBAGI ditulis tanpa itu, jadi
+   terbaca KOSONG. Penjaga menuntut gerbang pada `inspeksi.ts` yang justru
+   sengaja dikecualikan. **Hijaunya tetap hijau**; yang berubah cuma satu angka
+   di ringkasan. Ditemukan karena angka itu dibaca, bukan karena ada yang merah.
+
+### Dan satu jebakan yang nyaris membuat saya salah lapor
+
+Uji HTTP memberi gudang **200** padahal seharusnya 402. Saya memperlakukannya
+sebagai kebocoran nyata dan memeriksa duplikat rute, urutan register, import —
+semuanya benar. Sebabnya: restart API **GAGAL dengan EADDRINUSE**, dan instance
+LAMA (tanpa gerbang gudang) masih memegang port.
+
+Bentuk yang sama persis dengan jebakan port 3001/3007 di CLAUDE.md §7: tiap
+lapisan menjawab benar untuk dirinya sendiri, jadi tak ada galat yang menunjuk
+penyebabnya. Sesudah proses lama benar-benar dimatikan: 402.
+
+### Diukur
+
+    paket "kecil" diberi 3 modul inti lewat konsol
+    dorongEntitlement()                 ok, 23 baris
+    snapshot di DB produk               3 terbuka · 18 tertutup · 2 kuota
+    HTTP nyata (:3099, cookie sesi):
+      gudang · akuntansi · sdm · pengadaan   402
+      proyek                                 200
+      "Modul ini tidak termasuk dalam paket Kontraktor Kecil."
+
+    jalankan-semua-penjaga    208 hijau · 0 MERAH · 4 dilewati · 0 tak ketemu
+    vitest gerbang-modul      7/7   (3 mutasi merah, lalu hijau)
+    vitest 5 berkas tergerbang 79/79
+    admin-saas vitest         539/67 berkas
+    tsc kedua repo            bersih, TANPA penyaringan
+
+### Yang BELUM
+
+`otomasi-umpan.ts` tak digerbang — ia dijaga `requireApiKey`, dan company
+aktifnya dari `request.apiKey.companyId` yang tak dibaca `requireModul`.
+Memasangnya menghasilkan gerbang DIAM. Butuh `requireModul` sadar jalur API
+key: pekerjaan tersendiri, bukan tambalan.
+
+Web belum tahu apa-apa soal paket — menu modul tertutup belum bergembok, dan
+riset menyebut menyembunyikannya salah (mengubah peluang upsell jadi alasan
+churn). Itu langkah berikutnya.
+
+Commit: produk `fe185eae`, `1d1f92d9`; vendor `79af9c7`, `edd0cb7`.
+
+---
+
 ## 2026-08-31 — perkakas penjaga menipu dirinya sendiri, tiga lapis
 
 Sesi paralel (worktree `feat/batas-paket`). Tak menyentuh peran/izin —
