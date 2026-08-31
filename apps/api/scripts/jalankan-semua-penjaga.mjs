@@ -67,7 +67,7 @@ for (const m of yml.matchAll(/node\s+(-r\s+\S+\s+)?((?:\.\.\/)?[\w./-]+\.mjs)([^
  * Penjaga yang TAK BISA dijalankan di luar CI — dan kenapa membedakannya
  * penting.
  *
- * Kelimanya menuntut lingkungan CI: rahasia yang hanya ada di runner, atau
+ * Ketiganya menuntut lingkungan CI: rahasia yang hanya ada di runner, atau
  * artefak yang dibuat langkah CI sebelumnya. Di laptop mereka SELALU merah,
  * apa pun keadaan kodenya.
  *
@@ -77,6 +77,17 @@ for (const m of yml.matchAll(/node\s+(-r\s+\S+\s+)?((?:\.\.\/)?[\w./-]+\.mjs)([^
  * SATU (audit-akhir-baris buta karena cwd), dan ia tenggelam di antara
  * kegagalan lingkungan.
  *
+ * ⚠ DUA entri pernah salah masuk sini. `coverage-ratchet.mjs` dan
+ * `audit-route-coverage-nol.mjs` didaftarkan karena keduanya merah di
+ * worktree — padahal sebabnya cuma `coverage/coverage-summary.json` belum
+ * dibuat di sana. Di checkout utama, yang punya artefak itu dari run test
+ * sebelumnya, keduanya LULUS. Mendaftarkannya berarti mematikan dua penjaga
+ * nyata atas dasar satu keadaan mesin.
+ *
+ * Yang menangkapnya `audit-daftar-lewat-jujur.mjs` — pada commit yang sama,
+ * pada kesalahan penulisnya sendiri. Kalau kedua penjaga itu tampak merah,
+ * jalankan `npx vitest run --coverage` lebih dulu; jangan daftarkan.
+ *
  * ⚠ BUKAN daftar pengecualian yang boleh tumbuh. Yang masuk sini harus
  * benar-benar mustahil dijalankan lokal — bukan sekadar merepotkan. Tiap
  * tambahan mengurangi apa yang diperiksa perintah ini.
@@ -84,8 +95,6 @@ for (const m of yml.matchAll(/node\s+(-r\s+\S+\s+)?((?:\.\.\/)?[\w./-]+\.mjs)([^
 const BUTUH_CI = new Map([
   ["scripts/ci-project-setup.mjs", "butuh CI_DIRECT_URL (rahasia CI)"],
   ["scripts/gabung-coverage.mjs", "butuh artefak coverage-shards dari langkah CI"],
-  ["scripts/coverage-ratchet.mjs", "butuh coverage-summary.json dari vitest --coverage"],
-  ["scripts/audit-route-coverage-nol.mjs", "butuh coverage-summary.json dari vitest --coverage"],
   ["scripts/schema-fingerprint.mjs", "butuh basis CI; di CI pun continue-on-error: true"],
 ])
 
