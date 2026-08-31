@@ -1997,6 +1997,27 @@ jobs:
       - name: Kontrak login mobile utuh
         run: node scripts/audit-auth-mobile-utuh.mjs
 
+      # Rantai hook build EAS wajib utuh. SEMBILAN build APK gagal sebelum
+      # berhasil, dan sebab terakhirnya tersembunyi di celah dua versi pnpm:
+      # server EAS memakai 9.15.5, mesin pengembang 11.8.0. `overrides` di
+      # repo ini tinggal di `pnpm-workspace.yaml` — fitur pnpm 10+ — dan pnpm 9
+      # TAK MEMBACANYA dari sana, lalu menolak dengan galat yang menuduh
+      # lockfile.
+      #
+      # Perbaikannya rantai tiga berkas + .easignore yang harus mengirimnya:
+      #   apps/mobile/package.json → eas-pre-install.mjs → scripts/eas-lockfile-*
+      #
+      # Menghapus salah satunya TAK menggagalkan tsc dan TAK menyentuh test —
+      # pnpm 11 lokal tak membutuhkan satu pun dari mereka. Yang gagal cuma
+      # build di server, dua puluh menit kemudian, dengan galat yang menunjuk
+      # ke tempat lain.
+      #
+      # Ikut dijaga: `packageManager` TIDAK boleh ada di apps/mobile — build
+      # keenam gagal karena EAS menempelkan prefiks tebakannya jadi
+      # `yarn@pnpm@11.8.0`.
+      - name: Rantai hook build EAS utuh
+        run: node scripts/audit-hook-eas-utuh.mjs
+
       # Daftar jenis elemen struktur ada di DUA tempat yang harus sama: CHECK
       # `struktur_elemen_jenis_check` di basis, dan konstanta JENIS di
       # `routes/v1/struktur.ts`. Kalau berbeda, kegagalannya berbeda arah dan
