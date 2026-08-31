@@ -33009,3 +33009,145 @@ seed OK: work_scope + weekly_wage_reports x3 · asset modal-mati + penyusutan
 
 `kontrak_client_id_fkey` tetap 6 — perbaikan seed `clients` masuk di commit
 yang sama, jadi ini yang perlu diperiksa berikutnya.
+
+## 2026-08-31 — Aplikasi mobile tak pernah bisa dibangun, dan commit yang menyerapnya
+
+**Catatan sejarah, ditulis karena commit `5f3c9eda` tak menyebutkannya.**
+
+Perubahan besar pada `apps/mobile/package.json` (11 paket, React 18→19,
+React Native 0.76→0.79, expo-router 4→5) dan `pnpm-lock.yaml` (2.247 baris)
+ikut ter-commit di bawah pesan berjudul *"sembilan keluhan CI ternyata SATU
+sebab — proyek tanpa sifat"*. Dua sesi bekerja di checkout yang sama, dan
+`git add` yang luas menyapu berkas yang sedang ter-stage sesi lain.
+
+Kodenya benar dan sudah ter-push; yang hilang cuma alasannya. Ini
+tempatnya.
+
+### Yang ditemukan
+
+`expo export` dijalankan untuk pertama kalinya di repo ini. **GAGAL:**
+
+```
+Android Bundling failed 4257ms (1059 modules)
+SyntaxError: react-native-screens/src/fabric/SearchBarNativeComponent.ts
+  Unknown prop type for "onSearchFocus": "undefined"
+```
+
+Aplikasi mobile **tak pernah bisa jadi APK**. Bukan karena kode — sebelas
+paket tak cocok dengan Expo 53 yang dipakai.
+
+Yang membuatnya bertahan: **semua alat ukur berhenti satu langkah sebelum
+bundling.** `tsc` hijau, 16 layar typecheck bersih, seluruh penjaga mobile
+hijau. Tak satu pun menjalankan Metro. TypeScript memeriksa tipe; ia tak
+tahu apa-apa soal transformasi Babel di dalam `node_modules`.
+
+Satu keluarga dengan `template_penerapan` (tenant-map yakin tabelnya ada,
+basis tidak) dan pgvector (dev selalu punya, target restore tidak): benar di
+satu lapis, patah di lapis yang sesungguhnya dipakai.
+
+Sesudah `npx expo install --fix`: **bundle berhasil, 3,05 MB.** Dan `tsc`
+tetap `exit=0` meski dua kenaikan mayor — 16 layar lolos tanpa satu
+perubahan pun, di luar dugaan.
+
+### Yang hampir terjadi
+
+Setelah `--fix`, bundling gagal lagi: `Cannot find module '@babel/traverse'`
+— bug upstream, `@expo/metro-config` memakainya tanpa mendeklarasikannya.
+
+Saya menyiapkan `publicHoistPattern: ['@babel/*']`, dan begitu setelannya
+terbaca pnpm menuntut **menghapus seluruh `node_modules`**
+(`ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY`) — persis perintah yang §8a.1
+larang saat sesi lain hidup.
+
+Berhenti dan bertanya. Sesi lain minta dipastikan nol proses; dihitung,
+ternyata **sebelas proses node hidup**, termasuk API port 3007 yang saya
+pakai menguji. Terlalu banyak untuk dimatikan buta, jadi asumsinya diperiksa
+ulang:
+
+```
+createRequire(metro-config).resolve('@babel/traverse')
+→ .pnpm/@babel+traverse@7.29.7_supports-color@5.5.0
+```
+
+**Sudah terjangkau.** `expo install --fix` menyelesaikannya sendiri; galat
+yang dikejar berasal dari percobaan sebelum `--fix` berlaku penuh. Setelan
+dibuang, bundling dibuktikan lagi tanpa hoisting — berhasil.
+
+Nyaris menghapus `node_modules` tiga workspace demi setelan yang tak pernah
+dibutuhkan. Yang menahan: pnpm menolak jalan tanpa TTY, dan permintaan sesi
+lain untuk memastikan nol proses. Dua pagar yang kebetulan sejalan.
+
+### Pelajaran — semuanya masuk `CLAUDE.md` §7a
+
+1. `tsc` hijau bukan bukti bisa dibangun — jalankan `expo export`
+2. Pasang paket mobile dengan `npx expo install`, **bukan** `pnpm add`
+   (`react-native-webview` dapat 14.0.1; Expo menuntut 13.13.5)
+3. `--output-dir` dirusak Git Bash seperti `--url` di skrip a11y
+4. **pnpm v11 mengabaikan `.npmrc` diam-diam** — setelan harus di
+   `pnpm-workspace.yaml`. `pnpm config get` memulangkan `undefined` dan
+   `install` menjawab "Already up to date" tanpa satu pun galat
+5. Setelan yang menuntut penghapusan `node_modules`: ukur dulu apakah
+   masalahnya masih ada
+
+Dijaga `audit-versi-expo-cocok.mjs` (ambang NOL). Versi pertamanya
+membandingkan versi sebagai string dan merah untuk `~19.0.14` vs `~19.0.10`
+— keadaan yang justru dihasilkan `expo install --fix` sendiri. Sekarang
+mayor+minor wajib sama, patch boleh lebih tinggi.
+
+### Commit `5f3c9eda` memuat dua pekerjaan, dan pesannya cuma menyebut satu
+
+**Saya yang salah, dan ini catatan perbaikannya.**
+
+Pesan commit itu berjudul *"sembilan keluhan CI ternyata SATU sebab — proyek
+tanpa sifat"*. Benar untuk `ci-project-setup.mjs`. Tapi yang ikut terbawa:
+
+```
+apps/mobile/package.json          11 paket dinaikkan ke Expo 53
+                                  react 18->19 · RN 0.76->0.79
+                                  expo-router 4->5 (MAYOR)
+pnpm-lock.yaml                    2.247 baris berubah
+audit-versi-expo-cocok.mjs        penjaga baru, ambang NOL
+.github/workflows/ci.yml (16)     langkah penjaga itu
+CLAUDE.md (48)                    bagian 7a, empat pelajaran alat
+```
+
+Semuanya milik sesi `puraloka-suite-e7` dan sudah ter-*stage* olehnya. Saya
+`git add` menyebut SATU berkas, tapi yang ter-stage lebih dulu ikut terbawa.
+
+**Kodenya benar dan tak ada yang hilang** — yang rusak jejaknya. Siapa pun
+yang bertanya *"kenapa React naik ke 19?"* atau *"kenapa lock berubah 2.247
+baris?"* akan membaca pesan tentang seed proyek dan tak menemukan jawabannya.
+
+Bentuk yang sama dengan yang dikejar seharian ini: **jejak yang ADA tapi
+menunjuk ke tempat yang salah** — lebih buruk daripada jejak yang hilang,
+karena ia menghentikan pencarian.
+
+#### Konteks yang seharusnya ada di pesan itu
+
+Aplikasi mobile **tak pernah bisa di-build**. `expo export` gagal; 11 paket
+tak cocok dengan Expo 53. Bertahan lama karena semua alat ukur berhenti satu
+langkah sebelum bundling — tsc hijau, 16 layar bersih, penjaga mobile hijau,
+dan **tak satu pun menjalankan Metro**.
+
+Sesudah `expo install --fix`: bundle **berhasil, 3,05 MB**, dan `tsc` tetap
+exit=0 meski dua kenaikan mayor.
+
+Ditemukan dan dikerjakan sesi `puraloka-suite-e7`.
+
+#### Riwayat TIDAK diubah — sengaja
+
+`5f3c9eda` sudah ter-push ke `main` DAN `deploy/vps-perdana`, dan sesi lain
+bisa sudah bekerja di atasnya. Menulis ulang riwayat bersama untuk merapikan
+pesan menukar satu cacat jejak dengan cacat yang lebih besar. Catatan ini
+yang jadi jembatannya.
+
+#### Aturan yang disepakati dua sesi
+
+**`git add` menyebut BERKAS. Tak pernah `.`, tak pernah `-A`.**
+
+Di checkout bersama, keduanya menyapu berkas yang sesi lain sedang stage.
+Sudah terjadi dua arah: `.uji539.mjs` saya ikut ter-commit di `f1f3d37e`
+milik e7 kemarin, dan hari ini lima berkas e7 ikut di commit saya.
+
+Bentuknya sama dengan tiga perintah terlarang di CLAUDE.md §8a.1 — **tak
+mengeluarkan galat**, dan kerusakannya baru terlihat kemudian.
