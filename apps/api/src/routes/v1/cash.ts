@@ -7,6 +7,7 @@ import { logAuditEvent } from '../../utils/audit.js'
 import { proyekBolehDibaca, proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { gerbangIdempotensi, catatIdempotensi, sudahDibalas } from '../../utils/idempotency.js'
 import { bacaNominal, bulatkanRupiah } from '../../lib/nominal.js'
+import { muatPenyimpanan } from '../../utils/kuota-penyimpanan.js'
 
 const ALLOWED_IMAGE_PDF = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 
@@ -466,6 +467,16 @@ export default async function cashRoutes(app: FastifyInstance) {
           // di sana.
           const filename =
             `${request.companyId}/receipts/${fields.project_id ?? 'tanpa-proyek'}/${Date.now()}.${ext}`
+      // Kuota diperiksa SEBELUM menulis — lihat `utils/kuota-penyimpanan.ts`.
+      {
+        const muat = await muatPenyimpanan(request.companyId!, buf.length)
+        if (!muat.boleh) {
+          return reply.status(402).send({ error: muat.alasan, kode: 'KUOTA_PENYIMPANAN' })
+        }
+        if (muat.daruratTerbuka) {
+          request.log.warn({ companyId: request.companyId }, 'Kuota penyimpanan tak terhitung — unggahan diloloskan')
+        }
+      }
           const { error: uploadErr } = await supabase.storage
             .from('expense-receipts')
             .upload(filename, buf, { contentType: detectedMime })

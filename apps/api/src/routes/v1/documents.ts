@@ -3,6 +3,7 @@ import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { validateMime } from '../../utils/mime.js'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
+import { muatPenyimpanan } from '../../utils/kuota-penyimpanan.js'
 import {
   nilaiRevisiDokumen, periksaRevisi, nomorRevisiBerikut,
 } from '../../lib/revisi-dokumen.js'
@@ -191,6 +192,24 @@ export default async function documentRoutes(app: FastifyInstance) {
       const ext = file_name.split('.').pop()?.toLowerCase() ?? 'bin'
       const safeName = file_name.replace(/[^a-zA-Z0-9._-]/g, '_')
       const storagePath = `${projectId}/${Date.now()}_${safeName}`
+
+      // ⚠ Kuota diperiksa SEBELUM menulis. Memeriksa sesudahnya berarti
+      // berkasnya sudah ada di penyimpanan saat ditolak, dan menghapusnya
+      // kembali adalah operasi kedua yang bisa gagal sendiri — meninggalkan
+      // berkas yatim yang tetap memakan kuota tapi tak tertaut ke apa pun.
+      const muat = await muatPenyimpanan(request.companyId!, buffer.length)
+      if (!muat.boleh) {
+        // 402, sama dengan gerbang modul: ini batas KOMERSIAL, bukan izin.
+        // Membedakannya dari 403 memungkinkan UI mengarahkan ke halaman
+        // langganan alih-alih menyuruh minta akses ke admin.
+        return reply.status(402).send({ error: muat.alasan, kode: 'KUOTA_PENYIMPANAN' })
+      }
+      if (muat.daruratTerbuka) {
+        request.log.warn(
+          { companyId: request.companyId },
+          'Kuota penyimpanan tak terhitung — unggahan diloloskan'
+        )
+      }
 
       const { error: storageError } = await supabase.storage
         .from(BUCKET)

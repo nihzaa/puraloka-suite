@@ -4,6 +4,7 @@ import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { terbitkanInvoiceTermin } from '../../lib/invoice-termin.js'
 import { computeAndPersistPenalty } from '../../utils/penalty.js'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
+import { muatPenyimpanan } from '../../utils/kuota-penyimpanan.js'
 
 /**
  * Endpoint pembayaran termin:
@@ -148,6 +149,17 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
         // Itu sebabnya pemindaian dipilih: daftar manual tertinggal, kode tidak.
         const path =
           `${request.companyId}/${projectId}/termin-${terminId}-${Date.now()}.${ext}`
+
+        // Kuota diperiksa SEBELUM menulis — lihat `utils/kuota-penyimpanan.ts`.
+        {
+          const muat = await muatPenyimpanan(request.companyId!, proofFile.data.length)
+          if (!muat.boleh) {
+            return reply.status(402).send({ error: muat.alasan, kode: 'KUOTA_PENYIMPANAN' })
+          }
+          if (muat.daruratTerbuka) {
+            request.log.warn({ companyId: request.companyId }, 'Kuota penyimpanan tak terhitung — unggahan diloloskan')
+          }
+        }
 
         const { data: uploadData, error: uploadErr } = await supabase.storage
           .from('payment-proofs')

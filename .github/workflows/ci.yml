@@ -1768,6 +1768,25 @@ jobs:
       #
       # Bukti merah: penegakan dilepas -> exit 1 · GET masuk METODE_TULIS ->
       # exit 1 · hook global dikembalikan -> exit 1 · dipulihkan -> exit 0.
+      # `kuota.penyimpanan_gb` terdaftar di katalog sejak migrasi 538 dan
+      # dijual di halaman paket — dengan NOL pembaca sampai 2026-09-01. Paket
+      # yang menjanjikan 5 GB tak membatasi apa pun.
+      #
+      # Sesudah dipasang, bahayanya titik unggah BARU yang lupa memeriksa:
+      # unggahan itu lolos tanpa dihitung, kuota tetap terlihat bekerja karena
+      # titik lain menolak, dan batas 5 GB diam-diam jadi entah berapa.
+      #
+      # Ikut memeriksa tiap BUCKET yang ditulis kode benar-benar DIHITUNG
+      # fungsi basisnya — migrasi 555 sempat mendaftarkan TIGA bucket
+      # sementara kode menulis ke ENAM.
+      #
+      # Bukti merah: kuota dilepas dari satu rute -> exit 1 · bucket dihapus
+      # dari fungsi -> exit 1 · kuota dijadikan KOMENTAR -> exit 1 ·
+      # dipulihkan -> exit 0.
+      - name: Tiap unggahan berkuota (ambang NOL)
+        run: node scripts/audit-unggah-berkuota.mjs
+        working-directory: apps/api
+
       - name: Baca-saja terpasang sesudah companyId terisi (ambang NOL)
         run: node scripts/audit-baca-saja-terpasang.mjs
         working-directory: apps/api

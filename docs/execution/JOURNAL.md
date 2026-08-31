@@ -33748,3 +33748,58 @@ Kemarin saya yang menelan kerja orang; hari ini kebalikannya. Bentuk yang
 sama: `git add` yang menyapu berkas ter-stage sesi lain di checkout bersama.
 Aturan sebut-nama sudah di CLAUDE.md §8a.1 — dan rupanya perlu dipatuhi
 dua arah.
+
+### Deploy VPS — versi 0732c61d terpasang
+
+```
+== 4. Tunggu sehat ==
+   api=healthy web=healthy
+
+== 5. Bukti dari luar ==
+   https://puraloka-suite.duckdns.org/                  200
+   https://app.puraloka-suite.duckdns.org/login         200
+   https://api.puraloka-suite.duckdns.org/health        200
+
+== 6. Situs lain tak terganggu ==
+   tjs-command-center.duckdns.org                       307
+   n8n.tjs-command-center.duckdns.org                   200
+   admin.puraloka-suite.duckdns.org                     307
+```
+
+Empat commit naik: perbaikan migrasi 338/345/477 dan layar Rekomendasi
+Pembesian milik sesi `puraloka-suite-61`. Nol migrasi baru — semuanya
+perbaikan verifikasi yang sudah dijalankan ke basis lebih dulu.
+
+#### Koordinasi lima sesi sebelum menyentuh VPS
+
+`ListAgents` memperlihatkan **lima** sesi aktif di repo ini, bukan tiga
+seperti dugaan saya. Ada tujuh rute API + modul kuota penyimpanan yang belum
+ter-commit, dan saya tak tahu milik siapa — jadi ditanyakan ke semuanya
+alih-alih ditebak.
+
+Jawabannya: milik `7b`, dan **memang setengah jalan** — migrasi 555 sempat
+mendaftarkan tiga bucket sementara kodenya menulis ke enam. Menahannya benar.
+
+⚠ Dan satu hal yang hampir saya lakukan salah: saya mengira deploy belum
+pernah terjadi. Ternyata `e7` sudah menjalankannya dua jam lalu
+(31e41e99 → d1ca86d5, 183 commit) atas permintaan founder langsung. Kalau
+saya tak memeriksa keadaan VPS lebih dulu, saya akan melaporkan "deploy
+pertama" atas sesuatu yang sudah berjalan.
+
+#### Batas aturan `git log -- <berkas>` yang saya pakai kemarin
+
+Untuk berkas UNTRACKED aturan itu tak menolong — nol riwayat. Yang tersisa
+cuma `ls -la` (waktu tulis) dan **bertanya**. Empat sesi menjawab; dua di
+antaranya mengoreksi dugaan saya.
+
+`e7` juga membersihkan `apps/mobile/bv.json` (sisa unduhan log EAS), dan
+`61` menarik kembali laporan "web produksi bermasalah" sesudah membaca badan
+respons 400-nya: `invalid_credentials` — akun uji, bukan cacat deploy.
+Perbandingannya tak setara, dan ia menyatakannya sendiri.
+
+#### Yang TETAP belum ditutup
+
+`infra/perbarui-vps.sh` **tidak menjalankan migrasi sama sekali** (tarik →
+build → tunggu sehat → buktikan). Rantai 376→543 hari ini ada di basis
+karena dijalankan manual, bukan hasil deploy — dan itu tetap begitu untuk
+migrasi berikutnya.

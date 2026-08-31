@@ -6,6 +6,7 @@ import { gerbangIdempotensi, catatIdempotensi, sudahDibalas } from '../../utils/
 import { bubbleUpProgress } from '../../lib/rab-aggregation.js'
 import { validateMime } from '../../utils/mime.js'
 import { barisGeotag } from '../../lib/geotag.js'
+import { muatPenyimpanan } from '../../utils/kuota-penyimpanan.js'
 
 const PHOTO_BUCKET = 'project-photos'
 const PHOTO_ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
@@ -110,6 +111,16 @@ export default async function progressRoutes(app: FastifyInstance) {
       const safe = (file_name ?? 'foto').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 60)
       const storagePath = `${projectId}/${Date.now()}_${safe}.${ext}`
 
+      // Kuota diperiksa SEBELUM menulis — lihat `utils/kuota-penyimpanan.ts`.
+      {
+        const muat = await muatPenyimpanan(request.companyId!, buffer.length)
+        if (!muat.boleh) {
+          return reply.status(402).send({ error: muat.alasan, kode: 'KUOTA_PENYIMPANAN' })
+        }
+        if (muat.daruratTerbuka) {
+          request.log.warn({ companyId: request.companyId }, 'Kuota penyimpanan tak terhitung — unggahan diloloskan')
+        }
+      }
       const { error: upErr } = await supabase.storage
         .from(PHOTO_BUCKET).upload(storagePath, buffer, { contentType: detectedType, upsert: false })
       if (upErr) {

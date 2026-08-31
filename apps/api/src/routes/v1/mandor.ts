@@ -10,6 +10,7 @@ import { hitungPotonganRetensi, validasiPencairanRetensi } from '../../lib/reten
 import { periksaPencairanRetensi } from '../../lib/serah-terima.js'
 import { periksaGerbangOpname, pctOpname } from '../../lib/gerbang-opname.js'
 import { ringkasBackCharge, hitungNetoLengkap } from '../../lib/back-charge.js'
+import { muatPenyimpanan } from '../../utils/kuota-penyimpanan.js'
 
 const KASBON_PHOTO_BUCKET = 'kasbon-photos'
 const KASBON_PHOTO_ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
@@ -75,6 +76,16 @@ export default async function mandorRoutes(app: FastifyInstance) {
       const storagePath =
         `${request.companyId}/worker-kasbons/${Date.now()}_${safe}.${ext}`
 
+      // Kuota diperiksa SEBELUM menulis — lihat `utils/kuota-penyimpanan.ts`.
+      {
+        const muat = await muatPenyimpanan(request.companyId!, buffer.length)
+        if (!muat.boleh) {
+          return reply.status(402).send({ error: muat.alasan, kode: 'KUOTA_PENYIMPANAN' })
+        }
+        if (muat.daruratTerbuka) {
+          request.log.warn({ companyId: request.companyId }, 'Kuota penyimpanan tak terhitung — unggahan diloloskan')
+        }
+      }
       const { error: upErr } = await supabase.storage
         .from(KASBON_PHOTO_BUCKET).upload(storagePath, buffer, { contentType: detectedType, upsert: false })
       if (upErr) {

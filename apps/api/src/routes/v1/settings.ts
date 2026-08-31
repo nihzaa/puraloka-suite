@@ -9,6 +9,7 @@ import { getGlobalPenaltyTerms } from '../../utils/penalty.js'
 import { PENALTY_BASES } from '../../lib/penalty.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { AMBANG_OTOMASI } from '../../lib/ambang-otomasi.js'
+import { muatPenyimpanan } from '../../utils/kuota-penyimpanan.js'
 
 const ALLOWED_IMAGES = ['image/jpeg', 'image/png', 'image/webp']
 
@@ -605,6 +606,16 @@ export default async function settingsRoutes(app: FastifyInstance) {
         // dokumennya sendiri.
         const filename = `${request.companyId}/logo/company-logo.${ext}`
 
+      // Kuota diperiksa SEBELUM menulis — lihat `utils/kuota-penyimpanan.ts`.
+      {
+        const muat = await muatPenyimpanan(request.companyId!, buf.length)
+        if (!muat.boleh) {
+          return reply.status(402).send({ error: muat.alasan, kode: 'KUOTA_PENYIMPANAN' })
+        }
+        if (muat.daruratTerbuka) {
+          request.log.warn({ companyId: request.companyId }, 'Kuota penyimpanan tak terhitung — unggahan diloloskan')
+        }
+      }
         const { error: uploadErr } = await supabase.storage
           .from('company-assets')
           .upload(filename, buf, { contentType: detectedMime, upsert: true })
