@@ -199,6 +199,14 @@ export default function AppLayout() {
       */}
       <Tabs.Screen name="ncr/lapor" options={{ href: null }} />
 
+      {/*
+        Ajukan izin kerja — satu-satunya layar lapangan yang menahan
+        pekerjaan alih-alih mencatatnya. Mandor hanya bisa MENGAJUKAN
+        (`k3:permit:manage`); yang memutuskan butuh `k3:permit:decide`, dan
+        basis memaksa pemutus <> pengaju lewat CHECK.
+      */}
+      <Tabs.Screen name="izin-kerja/ajukan" options={{ href: null }} />
+
       <Tabs.Screen name="web/[modul]" options={{ href: null }} />
     </Tabs>
   );
