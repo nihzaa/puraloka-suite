@@ -68,6 +68,45 @@ mengabaikan kolom status, dan kegagalan sungguhan nanti ikut terabaikan.
 - **R-022 penjadwal → R-022b**, ditulis ulang sebagai SELESAI. Diagnosa
   salahnya saya tinggalkan tertulis, bukan dihapus.
 
+### Lanjutan: beban notifikasi, dan EMPAT dugaan saya yang salah
+
+Sesudah 207 tugas bersih, saya periksa apakah otomasinya menghasilkan sesuatu:
+**4.556 notifikasi dalam 7 hari, 217 per orang per minggu, `is_read` NOL dari
+8.955 baris sejak 16 Agustus.**
+
+Empat hal terlihat seperti cacat besar. **Keempatnya bukan** — dan tiap
+bantahannya diukur, bukan ditebak:
+
+| Dugaan | Kenyataan |
+|---|---|
+| "0 dibaca → jalur menandai-terbaca putus" | Kolomnya diuji bisa ditulis (UPDATE lalu **dikembalikan**), rute `PATCH .../read` ada, web memanggilnya. Nol karena belum ada yang MEMBUKA daftarnya. |
+| "46 kembar hari ini" | Penjaganya lupa `company_id`. Ke-46-nya sah — satu orang, tiga PT. Diperbaiki `8b6ae790`. |
+| "29 dari 83 jenis prioritasnya tak konsisten" | Disengaja: `priority: h.mendesak ? 'high' : 'normal'`. |
+| "`stok_di_bawah_minimum` membanjir" | Peringatannya BENAR: 24 material ber-`min_stock > 0`, `gudang_stok` cuma 8 baris berisi. |
+
+Yang **sungguhan** menjelaskan bebannya: peristiwa proyek dikirim ke semua
+pemegang izin, bukan ke orang proyek itu.
+
+    punch_lewat_target = 36 entitas × 14 penerima × 1 hari = 504
+
+Ke-14-nya menerima KE-36 punch list, termasuk proyek yang bukan miliknya.
+Aturannya `target_type = 'permission'` (`punch:manage`). Mekanisme yang lebih
+sempit **sudah ada dan bekerja** — `project_mandors`, `project_pm` — tapi
+sebarannya 1.280 `permission` vs 14 `project_pm` vs 2 `project_mandors`.
+
+**Tidak saya ubah.** Aturan notifikasi adalah konfigurasi per-tenant lewat UI;
+mempersempitnya mengubah siapa yang dikabari — keputusan pemilik perusahaan,
+bukan teknis. Yang saya buat alat ukurnya (`lapor-beban-notifikasi.mjs`),
+supaya keputusan itu berdasar angka dan empat penyelidikan di atas tak diulang
+dari nol.
+
+**Dan skrip itu sendiri salah dengan cara yang persis sama** seperti yang
+dikritiknya: JOIN ke `notification_rule_targets` menggandakan tiap notifikasi
+per target, dan `absensi_berhenti` terlapor **6.630 padahal totalnya 255**.
+Yang menyelamatkan: laporannya mencetak totalnya sendiri beberapa baris di
+atas, jadi angka gandanya terlihat mustahil seketika. **Alat ukur yang
+menampilkan pembandingnya sendiri membuat kesalahannya sendiri terlihat.**
+
 ### Pelajaran
 
 Skrip itu **lahir persis untuk mencegah jawaban salah** tentang otomasi mana
