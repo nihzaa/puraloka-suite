@@ -109,6 +109,42 @@ describe('gerbang batas paket terpasang di rutenya', () => {
     }
   })
 
+  it('kuota yang BELUM punya penegak tercatat jujur', () => {
+    // Katalog 538 mendaftarkan tiga kuota; yang ditegakkan baru dua.
+    // `kuota.penyimpanan_gb` sengaja belum — unggahan tersebar di TUJUH
+    // tempat, dan gerbang per-tempat berarti tujuh kesempatan lupa.
+    //
+    // Test ini menjaga agar catatan itu tetap JUJUR ke dua arah:
+    //
+    //   · kalau penegaknya dipasang tapi catatannya lupa dihapus, orang
+    //     mengira kuota yang bekerja itu tak bekerja — dan tak menawarkannya
+    //   · kalau catatannya dihapus tanpa memasang penegaknya, kuota yang
+    //     tak menahan apa pun terlihat sudah bekerja, lalu dijanjikan ke
+    //     pelanggan
+    //
+    // Yang kedua lebih mahal, dan itulah yang sedang dijaga hari ini.
+    const modul = readFileSync(join(AKAR, 'src', 'utils', 'batas-paket.ts'), 'utf-8')
+    const adaCatatan = modul.includes('KUOTA YANG BELUM PUNYA PENEGAK')
+
+    const berpagar = new Set(WAJIB_BERPAGAR.map((r) => r.kunci))
+    const penyimpananDitegakkan = berpagar.has('kuota.penyimpanan_gb')
+
+    if (penyimpananDitegakkan) {
+      expect(
+        adaCatatan,
+        'kuota.penyimpanan_gb SUDAH ditegakkan — hapus catatan "KUOTA YANG ' +
+          'BELUM PUNYA PENEGAK" di batas-paket.ts, ia kini menyesatkan.'
+      ).toBe(false)
+    } else {
+      expect(
+        adaCatatan,
+        'kuota.penyimpanan_gb BELUM ditegakkan dan catatannya hilang. Kuota ' +
+          'yang tak menahan apa pun akan terlihat sudah bekerja, lalu ' +
+          'dijanjikan ke pelanggan.'
+      ).toBe(true)
+    }
+  })
+
   it('daftar rute berpagar tidak kosong', () => {
     // Penjaga yang daftarnya kosong selalu hijau, dan diamnya tak bisa
     // dibedakan dari lulus.

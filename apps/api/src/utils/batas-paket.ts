@@ -240,6 +240,35 @@ export async function bacaBatasPaket(companyId: string): Promise<BatasPaket> {
   }
 }
 
+/**
+ * ⚠ KUOTA YANG BELUM PUNYA PENEGAK — daftar ini sengaja ada di kode.
+ *
+ * `538_katalog_fitur_paket.sql` mendaftarkan tiga kuota. Yang benar-benar
+ * ditegakkan baru dua:
+ *
+ *   kuota.proyek_aktif    ✓ POST /api/v1/projects
+ *   kuota.pengguna        ✓ POST /api/v1/auth/register
+ *   kuota.penyimpanan_gb  ✗ BELUM — dan ini yang perlu diketahui pembaca
+ *
+ * Penyimpanan tak dipasangi gerbang karena unggahan tersebar di TUJUH tempat
+ * yang masing-masing memanggil Supabase Storage langsung:
+ *
+ *   cash.ts · documents.ts · finance.ts · mandor.ts · progress.ts ·
+ *   settings.ts · termin-payment.ts
+ *
+ * Memasang gerbang satu per satu berarti tujuh kesempatan lupa, dan yang
+ * terlupa TIDAK bergejala — batasnya hanya berhenti berlaku lewat jalur itu.
+ * Bentuk yang benar adalah SATU pembungkus unggah yang dipakai ketujuhnya,
+ * dan itu refaktor tersendiri, bukan tempelan.
+ *
+ * Sampai pembungkus itu ada, `kuota.penyimpanan_gb` boleh disimpan dan
+ * ditawarkan konsol vendor, tetapi TIDAK menahan apa pun. Menjanjikannya ke
+ * pelanggan sekarang berarti menjanjikan batas yang tak berlaku.
+ *
+ * Jangan menghapus catatan ini tanpa memasang penegaknya — catatan yang
+ * hilang membuat kuota ini terlihat sudah bekerja.
+ */
+
 export interface HasilPeriksa {
   boleh: boolean
   /** Kalimat yang bisa ditampilkan ke pengguna. NULL bila boleh. */
