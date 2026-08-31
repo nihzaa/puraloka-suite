@@ -20,6 +20,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { useData } from "@/lib/data-cache";
 import { FileText, RefreshCw, Plus, Award, Gavel, CheckCircle2, TriangleAlert, ArrowRight } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
@@ -224,12 +225,27 @@ function PutusanTerekam({
 }
 
 export default function RfqPage() {
-  const [proyek, setProyek] = useState<Proyek[]>([]);
-  const [daftar, setDaftar] = useState<Rfq[]>([]);
+  /*
+    Lapis cache bersama (F4-2) untuk dua bacaan ber-URL TETAP.
+
+    Dua fetch lain di halaman ini sengaja TIDAK ikut: `mr-layak` dan detail
+    RFQ bergantung pilihan pengguna, dan keduanya sudah punya alasan
+    tersendiri (lihat komentar di masing-masing effect).
+
+    `/api/v1/projects` dipakai banyak halaman lain — lewat `useData`
+    permintaannya di-dedup lintas navigasi.
+  */
+  const sProyek = useData<{ projects: Proyek[] }>("/api/v1/projects");
+  const sDaftar = useData<{ rfq: Rfq[] }>("/api/v1/rfq");
+  const proyek = useMemo(() => sProyek.data?.projects ?? [], [sProyek.data]);
+  const daftar = useMemo(() => sDaftar.data?.rfq ?? [], [sDaftar.data]);
   const [terpilih, setTerpilih] = useState<string>("");
   const [tabulasi, setTabulasi] = useState<Tabulasi | null>(null);
   const [rfqAktif, setRfqAktif] = useState<Rfq | null>(null);
-  const [memuat, setMemuat] = useState(true);
+  const memuat = sProyek.memuat;
+  // Galat MUAT terpisah dari galat aksi — uji-galat-muat-terpisah.mjs.
+  const galatMuat = sProyek.galat ? "Gagal memuat daftar proyek"
+    : sDaftar.galat ? "Gagal memuat daftar RFQ" : null;
   const [galat, setGalat] = useState<string | null>(null);
   const [muatUlangKe, setMuatUlangKe] = useState(0);
 
@@ -246,21 +262,20 @@ export default function RfqPage() {
   const [hasilPutusan, setHasilPutusan] = useState<HasilPutusan | null>(null);
   const [galatPutusan, setGalatPutusan] = useState<string | null>(null);
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then((r) => setProyek(r.data.projects ?? []))
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat daftar proyek"); })
-      .finally(() => setMemuat(false));
-    return () => ac.abort();
-  }, []);
+  /*
+    Effect pemuatan PROYEK dan DAFTAR RFQ dihapus — `useData` yang
+    mengambil keduanya, termasuk pembatalan saat komponen lepas.
+    Menyisakannya membuat permintaan GANDA tiap halaman dibuka.
+  */
 
+  /*
+    `muatUlangKe` DIPERTAHANKAN — ia juga memicu fetch detail di bawah.
+    Saat naik, daftar ikut disegarkan lewat cache.
+  */
   useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ rfq: Rfq[] }>("/api/v1/rfq", { signal: ac.signal })
-      .then((r) => setDaftar(r.data.rfq ?? []))
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat daftar RFQ"); });
-    return () => ac.abort();
+    if (muatUlangKe === 0) return;
+    void sDaftar.muatUlang();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [muatUlangKe]);
 
   // MR layak dimuat begitu proyek dipilih. Bukan di awal halaman: daftarnya
@@ -499,6 +514,17 @@ export default function RfqPage() {
         Tabulasinya adalah bukti pemilihan vendor — jawaban saat seseorang
         bertanya kenapa yang lebih mahal yang dipilih.
       </p>
+
+      {/*
+        Galat MUAT terpisah dari galat AKSI — uji-galat-muat-terpisah.mjs.
+        Daftar RFQ yang gagal dimuat tampil kosong dan terbaca "belum ada
+        permintaan penawaran", padahal mungkin ada yang menunggu putusan.
+      */}
+      {galatMuat && (
+        <p role="status" style={{ marginBottom: 12, fontSize: 12.5, color: "var(--danger)" }}>
+          {galatMuat}
+        </p>
+      )}
 
       {galat && (
         <div role="alert" style={{
