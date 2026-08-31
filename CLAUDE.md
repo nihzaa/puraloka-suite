@@ -553,6 +553,53 @@ pnpm menolak jalan tanpa TTY. Ukur lebih dulu:
 node -e "const {createRequire}=require('node:module');
   console.log(createRequire('<paket>/package.json').resolve('<dependensi>'))"
 ```
+
+⚠ **CR menipu perbandingan baris — LIMA KALI dalam satu hari (2026-09-01).**
+
+Tiap kali bentuknya identik: perbandingan PERSIS terhadap baris yang
+diam-diam membawa CR, dan hasilnya selalu **nol** — yang terbaca seperti
+*"tidak ada"*, bukan seperti *"tidak terdeteksi"*.
+
+```
+grep -c $'\r'             menghitung BARIS, bukan CR
+git show … | grep         pipe Git Bash menambah CR sendiri
+d.count(b'\r\n')          menghitung CRLF saat yang ada CR TELANJANG
+findIndex(l === 'x:')     tak cocok dengan 'x:\r'
+b === '---'               sama
+```
+
+Yang paling mahal: hook build melapor *"0 pemisah `---`"* sementara pnpm
+menolak dengan *"found more"* — keduanya benar, dan build gagal tiga kali
+sebelum kontradiksi itu terbaca.
+
+**Aturannya:** sebelum membandingkan baris dari berkas apa pun di repo ini,
+buang CR lebih dulu.
+
+```js
+const baris = isi.split('\n').map((b) => b.replace(/\r/g, ''))
+```
+
+Dan untuk menghitung CR yang berwenang — tanpa pipe, tanpa asumsi bentuk:
+
+```bash
+tr -cd '\r' < <berkas> | wc -c
+```
+
+⚠ **Uji dengan alat yang sama seperti yang dipakai KORBANNYA.**
+
+Build APK gagal SEBELAS kali, dan tujuh di antaranya karena saya menguji
+dengan pnpm 11 sementara server EAS memakai **pnpm 9.15.5** — terbaca di log
+build, fase `SPIN_UP_BUILDER`. Tiap kali saya menyimpulkan "seharusnya
+jalan".
+
+```bash
+# reproduksi dengan versi server, tanpa menunggu antrean 20 menit
+npx --yes pnpm@9.15.5 install --frozen-lockfile --lockfile-only
+```
+
+Keluarga yang sama sepanjang hari itu: `curl` 200 tapi browser 500 (CORS) ·
+`tsc` hijau tapi Metro gagal · `netstat` LISTENING tapi prosesnya mati.
+**Tiap lapisan menjawab benar untuk dirinya sendiri.**
 ## 8. Kejujuran (CHARTER §7 — tidak bisa ditawar)
 
 - Dilarang mengklaim test hijau tanpa menempelkan ringkasan run sungguhan.
