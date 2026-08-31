@@ -32868,3 +32868,58 @@ baris utama, "tak ketemu" sebagai catatan kaki. Dua sesi membaca laporan itu
 hari ini dan tak satu pun menoleh ke baris kaki.
 
 Sesudah diperbaiki, diverifikasi dari sisi ini: **200 hijau · 0 tak ketemu.**
+
+### Cadangan kita TIDAK pulih utuh — dan drill-nya yang menemukan
+
+Drill pemulihan merah:
+
+```
+rag_potongan: TABEL TIDAK ADA di target
+tabel   sumber=291 target=290
+RLS     sumber=291 target=290
+policy  sumber=816 target=814
+```
+
+Satu tabel hilang saat restore, dan bersamanya RLS + 2 policy-nya.
+
+Sebabnya diukur: `rag_potongan.embedding` bertipe `vector`, dan ekstensi
+pgvector terpasang di schema **`public`** — bukan `extensions`. `pg_dump`
+schema public mengeluarkan definisi KOLOMNYA tapi tidak `CREATE EXTENSION`-nya.
+Di target polos tipenya tak dikenal, tabelnya gagal dibuat, dan RLS + policy
+yang menempel ikut lenyap.
+
+Bentuk yang sama dengan cacat `extensions`/`auth` yang sudah tercatat di
+`uji-pemulihan.yml` (run 30830650218: 753 galat, 124 tabel jadi 98), jadi
+perbaikannya mengikuti pola di sana. Image target ikut diganti
+`pgvector/pgvector:pg17` — postgres 17 yang SAMA, karena `postgres:17` polos
+tak membawa ekstensinya.
+
+**Drill-nya bekerja persis sebagaimana mestinya.** Ia merah bukan karena
+rewel, melainkan karena pemulihannya memang cacat — dan cacat itu tak punya
+gejala apa pun di dev, tempat ekstensinya selalu ada.
+
+Ini anggota keempat keluarga yang sama hari ini:
+
+| Artefak | Benar di dev | Patah di basis baru |
+|---|---|---|
+| `template_rab` | berpagar | terbaca lintas tenant |
+| `template_penerapan` | ada | tak pernah dibuat |
+| dua sektor take-off | CHECK 11 sektor | CHECK 9, baris ditolak |
+| `rag_potongan` | ada | gagal restore, tabel hilang |
+
+### Cara menyunting YAML yang hampir merusak 3.624 baris
+
+Sesi `puraloka-suite-e7` tak sengaja mengubah SELURUH `ci.yml` dari LF ke
+CRLF lewat suntingan Python; `audit-akhir-baris` menangkapnya (3→4 merah).
+
+Peringatannya sampai tepat sebelum saya menyunting `uji-pemulihan.yml` dengan
+Python. Yang dilakukan: memeriksa suntingan ci.yml saya yang SUDAH terlanjur
+(bersih), lalu memakai `newline=''` di kedua arah untuk yang baru.
+
+```
+audit-akhir-baris   LF -> CRLF: 0
+diff                20 insertions, 1 deletion
+YAML                sah
+```
+
+Tanpa pesan itu saya akan menyunting dan meneruskan tanpa memeriksa.
