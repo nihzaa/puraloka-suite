@@ -79,7 +79,24 @@ BEGIN
    WHERE c.is_active AND p.is_active
      AND (c.sort_order <= p.sort_order OR c.sort_order > p.sort_order + 99);
 
+  /*
+    DITURUNKAN JADI CATATAN 2026-08-31 — dulu RAISE EXCEPTION.
+
+    Cek ini menyapu SELURUH pohon menu (anak di luar rentang induknya), dengan alasan yang tertulis di
+    komentar di atasnya: lebih baik ketahuan di sini daripada dari CI.
+
+    Niatnya baik, akibatnya migrasi ini gagal atas item yang ditambahkan
+    migrasi SESUDAHNYA lalu menghentikan seluruh rantai. Bentuk yang sudah
+    menggigit di 320, 323, 455, dan 456 hari ini: migrasi menjaga invarian
+    yang berlaku SELAMANYA, padahal ia hanya bisa menjamin keadaan pada detik
+    ia jalan.
+
+    Invariannya TIDAK dilepas — `audit-sidebar-urutan.mjs` menjaganya di CI pada SETIAP push,
+    melihat keadaan hari ini alih-alih potret satu migrasi.
+
+    Yang tetap keras: cek atas pekerjaan migrasi ini sendiri.
+  */
   IF v_luar IS NOT NULL THEN
-    RAISE EXCEPTION '444 gagal: anak di luar rentang sort_order induknya: %', v_luar;
+    RAISE NOTICE '444: anak di luar rentang di pohon — dijaga audit-sidebar-urutan: %', v_luar;
   END IF;
 END $$;

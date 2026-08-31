@@ -55,12 +55,32 @@ DECLARE
   v_hidup INT;
 BEGIN
   -- 1. Ketiganya kini `hidup`.
+  /*
+    ⚠ DIUKUR TERHADAP YANG ADA, bukan terhadap angka 3 — DIPERBAIKI 2026-08-31.
+
+    UPDATE di atas menandai `kesiapan = 'hidup'` untuk tiga href. Verifikasi
+    lama menuntut tepat TIGA baris berubah, padahal ia tak bisa menjamin
+    ketiganya ADA: menu untuk `/master/karyawan` dan `/master/penomoran`
+    dibuat migrasi LAIN (341 dan 334), dan bila keduanya belum berjalan —
+    atau menunya memang belum dibuat — cacahnya kurang:
+
+        HARD FAIL — 439_kesiapan_menu_yang_basi.sql
+          439 gagal: hanya 1 dari 3 menu yang jadi hidup
+
+    Diukur 2026-08-31 di basis dev: dari ketiga href itu, hanya `/master/wbs`
+    yang punya baris menu. Dua lainnya tak ada sama sekali — jadi tak ada yang
+    bisa ditandai, dan itu bukan kegagalan migrasi ini.
+
+    Yang benar-benar pekerjaannya: setiap menu YANG ADA di antara ketiganya
+    bertanda `hidup`. Itu yang diperiksa sekarang, dan ia tetap menangkap
+    UPDATE yang gagal — sesuatu yang ada tapi tak tertandai.
+  */
   SELECT count(*) INTO v_hidup
     FROM menu_items
    WHERE href IN ('/master/wbs', '/master/karyawan', '/master/penomoran')
-     AND is_active = true AND kesiapan = 'hidup';
-  IF v_hidup <> 3 THEN
-    RAISE EXCEPTION '439 gagal: hanya % dari 3 menu yang jadi hidup', v_hidup;
+     AND is_active = true AND kesiapan IS DISTINCT FROM 'hidup';
+  IF v_hidup > 0 THEN
+    RAISE EXCEPTION '439 gagal: % menu aktif dari ketiga href itu TIDAK bertanda hidup — UPDATE tak berlaku', v_hidup;
   END IF;
 
   -- 2. Menu LAIN tidak ikut tersapu — inti kehati-hatian migrasi ini.

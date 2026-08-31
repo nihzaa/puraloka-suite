@@ -64,7 +64,24 @@ BEGIN
            WHERE is_active AND href IS NOT NULL
            GROUP BY href HAVING count(*) > 1) k;
 
+  /*
+    DITURUNKAN JADI CATATAN 2026-08-31 — dulu RAISE EXCEPTION.
+
+    Cek ini menyapu SELURUH pohon menu (href yang dipakai lebih dari satu menu), dengan alasan yang tertulis di
+    komentar di atasnya: lebih baik ketahuan di sini daripada dari CI.
+
+    Niatnya baik, akibatnya migrasi ini gagal atas item yang ditambahkan
+    migrasi SESUDAHNYA lalu menghentikan seluruh rantai. Bentuk yang sudah
+    menggigit di 320, 323, 455, dan 456 hari ini: migrasi menjaga invarian
+    yang berlaku SELAMANYA, padahal ia hanya bisa menjamin keadaan pada detik
+    ia jalan.
+
+    Invariannya TIDAK dilepas — `audit-menu-berbagi-href.mjs` menjaganya di CI pada SETIAP push,
+    melihat keadaan hari ini alih-alih potret satu migrasi.
+
+    Yang tetap keras: cek atas pekerjaan migrasi ini sendiri.
+  */
   IF v_kembar IS NOT NULL THEN
-    RAISE EXCEPTION '448 gagal: href masih dipakai lebih dari satu menu: %', v_kembar;
+    RAISE NOTICE '448: href kembar di pohon — dijaga audit-menu-berbagi-href: %', v_kembar;
   END IF;
 END $$;

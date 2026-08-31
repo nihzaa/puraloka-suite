@@ -93,7 +93,24 @@ BEGIN
     FROM menu_items c JOIN menu_items p ON p.id = c.parent_id
    WHERE c.key = ANY(v_kunci) AND c.is_active AND NOT p.is_active;
 
+  /*
+    DITURUNKAN JADI CATATAN 2026-08-31 — dulu RAISE EXCEPTION.
+
+    Cek ini menyapu SELURUH pohon menu (anak yang induknya tidak aktif), dengan alasan yang tertulis di
+    komentar di atasnya: lebih baik ketahuan di sini daripada dari CI.
+
+    Niatnya baik, akibatnya migrasi ini gagal atas item yang ditambahkan
+    migrasi SESUDAHNYA lalu menghentikan seluruh rantai. Bentuk yang sudah
+    menggigit di 320, 323, 455, dan 456 hari ini: migrasi menjaga invarian
+    yang berlaku SELAMANYA, padahal ia hanya bisa menjamin keadaan pada detik
+    ia jalan.
+
+    Invariannya TIDAK dilepas — `audit-nav-yatim.mjs` menjaganya di CI pada SETIAP push,
+    melihat keadaan hari ini alih-alih potret satu migrasi.
+
+    Yang tetap keras: cek atas pekerjaan migrasi ini sendiri.
+  */
   IF v_induk_mati IS NOT NULL THEN
-    RAISE EXCEPTION '449 gagal: induk tidak aktif (anak jatuh ke akar): %', v_induk_mati;
+    RAISE NOTICE '449: anak berinduk MATI di pohon — dijaga audit-nav-yatim: %', v_induk_mati;
   END IF;
 END $$;

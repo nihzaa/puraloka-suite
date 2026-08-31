@@ -39,6 +39,30 @@
 -- Idempoten.
 -- ════════════════════════════════════════════════════════════════════════════
 
+/*
+  INDUKNYA IKUT DIHIDUPKAN — DITAMBAHKAN 2026-08-31.
+
+  Migrasi ini memindahkan `md-subkon` ke bawah `g-mandor-subkon`, lalu
+  verifikasinya menuntut induk itu HIDUP — tetapi tak pernah menghidupkannya:
+
+      HARD FAIL — 476_mitra_induk_hidup.sql
+        464 gagal: induk g-mandor-subkon masih MATI — item akan muncul
+        menggantung di bawah grup yang kebetulan di atasnya
+
+  Judul berkasnya sendiri berbunyi "mitra INDUK HIDUP", dan tuntutannya benar:
+  anak aktif di bawah induk mati muncul menggantung di sidebar. Yang kurang
+  hanya tindakannya.
+
+  Bentuk yang sudah menggigit di 271, 295, 337, 340, 363, dan 364 hari ini:
+  migrasi yang MEMERIKSA sesuatu tanpa MENGERJAKANNYA.
+
+  Sort_order induknya tak disentuh — hanya keaktifannya.
+*/
+UPDATE menu_items
+   SET is_active = true, updated_at = now()
+ WHERE key = 'g-mandor-subkon'
+   AND NOT is_active;
+
 UPDATE menu_items
    SET parent_id = (SELECT id FROM menu_items WHERE key = 'g-mandor-subkon'),
        sort_order = 811,
