@@ -61,6 +61,7 @@ const AKAR = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 const PKG_MOB = join(AKAR, 'apps', 'mobile', 'package.json')
 const HOOK = join(AKAR, 'apps', 'mobile', 'eas-pre-install.mjs')
 const SKRIP = join(AKAR, 'scripts', 'eas-lockfile-satu-dokumen.mjs')
+const PANGKAS = join(AKAR, 'scripts', 'eas-pangkas-web-publik.mjs')
 const EASIGNORE = join(AKAR, '.easignore')
 const WS = join(AKAR, 'pnpm-workspace.yaml')
 
@@ -71,6 +72,7 @@ for (const [nama, p, akibat] of [
   ['apps/mobile/package.json', PKG_MOB, 'tak ada yang memanggil hook'],
   ['apps/mobile/eas-pre-install.mjs', HOOK, 'hook memanggil berkas yang tak ada → "Cannot find module"'],
   ['scripts/eas-lockfile-satu-dokumen.mjs', SKRIP, 'lockfile tak dinormalkan → ERR_PNPM_BROKEN_LOCKFILE'],
+  ['scripts/eas-pangkas-web-publik.mjs', PANGKAS, 'web-publik tak dipangkas → dua pohon Expo → autolinking mengimpor expo.core yang tak ada'],
 ]) {
   if (!existsSync(p)) temuan.push({ berkas: nama, apa: 'TAK ADA', akibat })
 }
@@ -105,6 +107,25 @@ if (pkg.packageManager) {
   })
 }
 
+/*
+  Hook wajib memanggil KEDUA skrip, bukan cuma yang pertama.
+
+  Berkasnya ada di disk tak berarti apa-apa kalau tak dipanggil — dan
+  itu keadaan yang paling mudah terjadi: seseorang menambah skrip baru
+  lalu lupa menyambungkannya. Tak ada galat; yang hilang cuma
+  pemangkasan, dan build gagal dua puluh menit kemudian dengan galat
+  yang menuduh kelas Java.
+*/
+const isiHook = existsSync(HOOK) ? readFileSync(HOOK, 'utf8') : ''
+if (!/eas-pangkas-web-publik/.test(isiHook)) {
+  temuan.push({
+    berkas: 'apps/mobile/eas-pre-install.mjs',
+    apa: 'tak memanggil eas-pangkas-web-publik.mjs',
+    akibat: 'apps/web-publik tak dipangkas → dua pohon Expo paralel → '
+      + 'autolinking mengimpor `expo.core.ExpoModulesPackage` yang tak ada',
+  })
+}
+
 // ── 3. .easignore mengirim ketiganya
 if (!existsSync(EASIGNORE)) {
   temuan.push({
@@ -123,6 +144,7 @@ if (!existsSync(EASIGNORE)) {
 
   for (const j of [
     'scripts/eas-lockfile-satu-dokumen.mjs',
+    'scripts/eas-pangkas-web-publik.mjs',
     'apps/mobile/eas-pre-install.mjs',
     'pnpm-lock.yaml',
     'pnpm-workspace.yaml',
@@ -155,7 +177,7 @@ if (existsSync(WS)) {
 
 function laporkan() {
   console.log('══ Rantai hook build EAS utuh ═════════════════════════════════')
-  console.log(`  berkas rantai      : 3`)
+  console.log(`  berkas rantai      : 4`)
   console.log(`  pelanggaran        : ${temuan.length}`)
   if (temuan.length === 0) return
   console.log('')

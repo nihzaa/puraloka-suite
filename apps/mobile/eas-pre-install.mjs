@@ -62,3 +62,21 @@ if (!existsSync(skrip)) {
 
 console.log('[eas-pre-install] akar:', akar)
 execFileSync(process.execPath, [skrip], { stdio: 'inherit' })
+
+/*
+  Skrip KEDUA: memangkas apps/web-publik.
+
+  Urutannya mengikat — normalisasi dokumen HARUS lebih dulu. Skrip
+  pangkas memotong berdasarkan nomor baris di lockfile, dan lockfile
+  dua-dokumen punya penomoran yang berbeda.
+
+  Kalau skripnya tak ada, build tetap jalan: yang hilang cuma
+  pemangkasannya, dan itu ketahuan dari galat autolinking — bukan
+  dari kesenyapan.
+*/
+const pangkas = join(akar, 'scripts', 'eas-pangkas-web-publik.mjs')
+if (existsSync(pangkas)) {
+  execFileSync(process.execPath, [pangkas], { stdio: 'inherit' })
+} else {
+  console.log('[eas-pre-install] skrip pangkas tak ada di', pangkas, '— dilewati.')
+}

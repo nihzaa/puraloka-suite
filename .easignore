@@ -59,10 +59,34 @@ apps/web/components
 apps/web/lib
 apps/web/scripts
 apps/web/public
-apps/web-publik/app
-apps/web-publik/components
-apps/web-publik/public
-apps/web-publik/scripts
+# ── apps/web-publik DIBUANG UTUH, package.json sekalian ───────────────
+#
+# Pengecualian dari aturan di atas, dan alasannya bukan ukuran.
+#
+# `@react-three/fiber` di compro mendeklarasikan expo, expo-asset,
+# expo-file-system, expo-gl, dan react-native sebagai peer OPSIONAL.
+# Karena semuanya ada di workspace ini, pnpm memenuhinya — dan lahirlah
+# pohon Expo KEDUA yang terikat React 19.2.4 milik web, di sebelah pohon
+# mobile yang benar (19.0.0).
+#
+# Autolinking Android memungut salah satunya. Yang salah membawa tata
+# letak paket Java lama, dan build gagal dengan galat yang menuduh kelas
+# yang tak ada:
+#
+#     PackageList.java: cannot find symbol
+#     import expo.core.ExpoModulesPackage;
+#
+# Diukur di salinan: membuang web-publik → rn+react19.2.4 dari 32 jadi 0.
+#
+# Membuang package.json-nya SAJA tak cukup — pnpm menuntut tiap workspace
+# terdaftar punya berkasnya. Maka `scripts/eas-pangkas-web-publik.mjs`
+# ikut membuangnya dari `packages:` dan dari `importers:` lockfile.
+# Ketiganya harus sejalan; dua saja membuat pnpm menolak dengan galat
+# yang menuduh lockfile.
+#
+# Aman karena yang dirakit APK cuma apps/mobile. Compro tak diimpor, tak
+# punya kode native, dan tak menyumbang satu baris pun ke dalam APK.
+apps/web-publik
 packages/shared/src
 
 # ── Kerja sesi lain & artefak ──
