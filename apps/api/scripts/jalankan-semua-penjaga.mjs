@@ -31,7 +31,28 @@ const yml = readFileSync(join(AKAR, '.github/workflows/ci.yml'), 'utf8')
  * yang dilaporkan merah padahal hijau sama berbahayanya dengan sebaliknya:
  * yang membacanya akan memperbaiki hal yang tak rusak.
  */
-const KANDIDAT_CWD = ['.', 'apps/api', 'apps/web']
+const KANDIDAT_CWD = ['.', 'apps/api', 'apps/web', 'apps/web-publik']
+
+/*
+  `apps/web-publik` ditambahkan 2026-08-31. Tanpa itu, DUA penjaga sungguhan
+  dilaporkan "tak ketemu" dan tak pernah dijalankan:
+
+      scripts/kontras-situs.mjs   apps/web-publik/scripts/kontras-situs.mjs
+      scripts/audit-em-dash.mjs   apps/web-publik/scripts/audit-em-dash.mjs
+
+  Keduanya ADA di repo dan dijalankan CI dengan `working-directory:
+  apps/web-publik`. Berkas ini hanya mencari di tiga akar, jadi ia melapor
+  "199 hijau" atas 197 yang benar-benar dijalankan.
+
+  Bentuk cacatnya yang berbahaya: laporan ini dipakai untuk menyatakan
+  "semua penjaga hijau" sebelum push. Penjaga yang hilang dari hitungan tak
+  menjaga apa pun, dan ketiadaannya terbaca sebagai baris peringatan kecil
+  di kaki laporan — tempat yang paling mudah dilewati mata.
+
+  Ditaruh di AKHIR, sesudah akar: penjaga berjalur polos (`scripts/x.mjs`)
+  cocok di beberapa cwd sekaligus, dan yang pertama cocok yang menang.
+  Menaruhnya di depan akan mengubah cwd penjaga lain yang sudah benar.
+*/
 
 const perintah = new Set()
 for (const m of yml.matchAll(/node\s+(-r\s+\S+\s+)?((?:\.\.\/)?[\w./-]+\.mjs)([^\n]*)/g)) {
@@ -50,6 +71,14 @@ for (const p of [...perintah].map((x) => JSON.parse(x))) {
   for (const c of KANDIDAT_CWD) {
     if (existsSync(resolve(AKAR, c, p.skrip))) { dir = resolve(AKAR, c); break }
   }
+  /*
+    Skrip yang DIBUAT CI sendiri (heredoc ke /tmp) memang tak ada di repo —
+    melaporkannya sebagai "hilang" menaruh temuan palsu di tempat yang sama
+    dengan penjaga yang benar-benar hilang, dan itu melatih mata untuk
+    mengabaikan baris itu. `situs-tiruan.mjs` dibuat di langkah sebelumnya
+    lewat `cat > /tmp/… <<'EOF'`.
+  */
+  if (!dir && p.skrip.startsWith('/tmp/')) continue
   if (!dir) { hasil.hilang.push(p.skrip); continue }
 
   const args = []
