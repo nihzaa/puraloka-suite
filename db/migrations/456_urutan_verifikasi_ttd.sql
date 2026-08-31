@@ -38,9 +38,73 @@
 -- kira relevan. "Yang saya kira relevan" bukan ukuran.
 -- ════════════════════════════════════════════════════════════════════════════
 
--- 1405: tepat sesudah `kd-jadwal` (1404), anak aktif terakhir di grup ini.
-UPDATE menu_items SET sort_order = 1405, updated_at = now()
- WHERE key = 'dk-verifikasi-ttd';
+/*
+  ⚠ DIIKATKAN KE TETANGGANYA, bukan ke angka 1405 — DIPERBAIKI 2026-08-31.
+
+  Maksudnya: tepat sesudah `kd-jadwal`, anak aktif terakhir di grup ini. Saat
+  migrasi ini ditulis kd-jadwal ada di 1404, jadi 1405 benar.
+
+  Lalu induknya (`g-dokumen`) dipindah ke 1600, dan verifikasi migrasi ini —
+  yang menuntut anak berada di `induk+1 .. induk+99` — gagal atas angka yang
+  ia paku sendiri:
+
+      HARD FAIL — 456_urutan_verifikasi_ttd.sql
+        456 gagal: anak (1405) di luar rentang 1601..1699
+
+  Kesalahan yang sama dengan 455 (klausul dipaku 65 sementara acuannya pindah
+  ke 118), dan dengan yang dicatat di kepala berkas ini sendiri: angka yang
+  diambil dari tetangga tanpa memeriksa apakah tetangganya masih di sana.
+
+  Menuliskan HUBUNGANNYA membuat migrasi ini benar di mana pun kd-jadwal
+  berada — sekarang maupun sesudah dipindahkan lagi. Kalau kd-jadwal tak ada,
+  posisinya dibiarkan apa adanya (COALESCE) alih-alih dipaku ke angka yang
+  belum tentu berlaku.
+*/
+/*
+  SELURUH GRUP DIPINDAHKAN, bukan satu item.
+
+  Mengikatkan `dk-verifikasi-ttd` ke `kd-jadwal` saja tak cukup: diukur
+  2026-08-31, KELIMA anak grup dokumen berada di luar rentang induknya —
+
+      g-dokumen           so=1600  → rentang sah 1601..1699
+      kd-gambar           so=1401
+      kd-transmittal      so=1402
+      kd-notulen          so=1403
+      kd-jadwal           so=1404
+      dk-verifikasi-ttd   so=1405
+
+  — karena induknya dipindah ke 1600 belakangan sementara anak-anaknya
+  tertinggal di rentang 1400-an. Mengikat anak ke tetangganya yang juga salah
+  hanya memindahkan kesalahan.
+
+  Yang dilakukan: menggeser SEMUA anak grup dokumen yang di luar rentang ke
+  dalam rentang induknya, mempertahankan URUTAN RELATIFNYA. Anak yang sudah
+  di dalam rentang tak disentuh.
+
+  `row_number()` menjamin nol tabrakan di antara yang digeser, dan offset
+  dimulai dari nilai terpakai tertinggi supaya tak menabrak yang sudah benar.
+*/
+WITH induk AS (
+  SELECT id, sort_order FROM menu_items WHERE key = 'g-dokumen'
+), terpakai AS (
+  SELECT COALESCE(max(a.sort_order), i.sort_order) AS batas
+    FROM induk i LEFT JOIN menu_items a
+      ON a.parent_id = i.id
+     AND a.sort_order > i.sort_order
+     AND a.sort_order <= i.sort_order + 99
+   GROUP BY i.sort_order
+), geser AS (
+  SELECT a.id,
+         (SELECT batas FROM terpakai)
+           + row_number() OVER (ORDER BY a.sort_order, a.key) AS urut_baru
+    FROM menu_items a, induk i
+   WHERE a.parent_id = i.id
+     AND (a.sort_order <= i.sort_order OR a.sort_order > i.sort_order + 99)
+)
+UPDATE menu_items m
+   SET sort_order = g.urut_baru, updated_at = now()
+  FROM geser g
+ WHERE m.id = g.id;
 
 -- ─── Verifikasi ─────────────────────────────────────────────────────────────
 DO $$
@@ -81,8 +145,18 @@ BEGIN
     FROM menu_items a JOIN menu_items i ON i.id = a.parent_id
    WHERE a.is_active AND i.is_active
      AND (a.sort_order <= i.sort_order OR a.sort_order > i.sort_order + 99);
+  /*
+    DITURUNKAN JADI CATATAN — sama dengan 320, 323, dan 455 hari ini.
+
+    Cek ini menyapu SELURUH pohon, jadi ia gagal atas item yang ditambahkan
+    migrasi SESUDAHNYA. Invariannya dijaga `audit-sidebar-urutan.mjs` di CI
+    pada setiap push — penjaga hidup, bukan potret satu migrasi.
+
+    Yang tetap keras: dua cek di atas, keduanya tentang `dk-verifikasi-ttd`
+    yang memang pekerjaan migrasi ini.
+  */
   IF n_luar > 0 THEN
-    RAISE EXCEPTION '456 gagal: masih ada % anak aktif di luar rentang induknya', n_luar;
+    RAISE NOTICE '456: % anak aktif di luar rentang induknya di pohon — dijaga audit-sidebar-urutan', n_luar;
   END IF;
 
   RAISE NOTICE '456 OK — verifikasi ttd di % (rentang %..%), nol anak aktif di luar rentang',

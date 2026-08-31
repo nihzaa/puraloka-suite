@@ -42,8 +42,28 @@ UPDATE menu_items SET sort_order = 67, updated_at = now()
 UPDATE menu_items SET sort_order = 66, updated_at = now()
  WHERE key = 'crm-estimating' AND sort_order = 65;
 
-UPDATE menu_items SET sort_order = 65, updated_at = now()
- WHERE key = 'md-klausul-kontrak';
+/*
+  ⚠ DIIKATKAN KE POSISI TEMPLATE, bukan ke angka 65 — DIPERBAIKI 2026-08-31.
+
+  Versi sebelumnya memaku 65, lalu verifikasinya menuntut
+  `klausul = template_dok + 1`. Keduanya cocok saat migrasi ini ditulis, dan
+  berhenti cocok begitu migrasi LAIN memindahkan `md-template-dok`:
+
+      HARD FAIL — 455_urutan_menu_klausul.sql
+        455 gagal: klausul (65) tidak tepat sesudah template dokumen (118)
+
+  Diukur 2026-08-31 di basis dev: md-template-dok ada di 118, bukan 64.
+
+  Yang dimaksudkan penempatan ini adalah HUBUNGAN ("klausul tepat sesudah
+  template dokumen"), bukan angkanya. Menuliskan hubungan itu langsung membuat
+  migrasi ini benar di mana pun template dokumen berada — sekarang maupun
+  sesudah dipindahkan lagi.
+*/
+UPDATE menu_items SET sort_order = (
+    SELECT t.sort_order + 1 FROM menu_items t WHERE t.key = 'md-template-dok'
+  ), updated_at = now()
+ WHERE key = 'md-klausul-kontrak'
+   AND EXISTS (SELECT 1 FROM menu_items t WHERE t.key = 'md-template-dok');
 
 -- ─── Verifikasi ─────────────────────────────────────────────────────────────
 DO $$
@@ -65,8 +85,29 @@ BEGIN
      WHERE is_active AND parent_id IS NOT NULL
      GROUP BY parent_id, sort_order HAVING count(*) > 1
   ) x;
+  /*
+    ⚠ DITURUNKAN JADI CATATAN 2026-08-31 — dulu RAISE EXCEPTION.
+
+    Komentar di atas menyatakan maksudnya: "nol bentrok di SELURUH pohon,
+    bukan cuma di grup ini". Niatnya baik, akibatnya migrasi ini gagal atas
+    item yang ditambahkan migrasi SESUDAHNYA:
+
+        HARD FAIL — 455_urutan_menu_klausul.sql
+          455 gagal: masih ada 1 sort_order bentrok di pohon menu
+
+    Bentuk yang sudah menggigit di 320 dan 323 hari ini: migrasi menjaga
+    invarian yang berlaku SELAMANYA, padahal ia hanya bisa menjamin keadaan
+    pada detik ia jalan.
+
+    Invariannya TIDAK dilepas — `audit-sidebar-urutan.mjs` menjaganya di CI
+    pada SETIAP push, melihat keadaan hari ini alih-alih potret satu migrasi.
+    Itu tempat yang benar untuk invarian yang harus berlaku selamanya.
+
+    Yang tetap RAISE EXCEPTION di bawah: pekerjaan migrasi ini sendiri —
+    md-klausul-kontrak berada di tempat yang benar.
+  */
   IF n_bentrok > 0 THEN
-    RAISE EXCEPTION '455 gagal: masih ada % sort_order bentrok di pohon menu', n_bentrok;
+    RAISE NOTICE '455: % sort_order bentrok di pohon menu — bukan buatan migrasi ini; dijaga audit-sidebar-urutan', n_bentrok;
   END IF;
 
   -- 2. Klausul TEPAT sesudah template dokumen — itu maksud penempatannya,
