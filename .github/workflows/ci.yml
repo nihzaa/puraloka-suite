@@ -2272,6 +2272,28 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.CI_SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.CI_SUPABASE_SECRET_KEY }}
+          # KUNCI PUBLIK — tanpa ini 24 berkas test merah dengan HTTP 500.
+          #
+          # `utils/supabase.ts` memakainya untuk klien ber-token pengguna, dan
+          # menolak keras bila kosong:
+          #
+          #     "SUPABASE_PUBLISHABLE_KEY (atau SUPABASE_ANON_KEY) kosong. Tanpa
+          #      kunci publik, klien ber-token tak bisa dibuat, dan memakai
+          #      service_role sebagai gantinya akan MELEWATI RLS diam-diam."
+          #
+          # Penolakan itu BENAR — RLS yang dilewati diam-diam persis cacat yang
+          # hendak ditutup. Yang salah: CI tak pernah diberi kuncinya, jadi tiap
+          # rute yang menyentuh data pengguna membalas 500 dan puluhan test
+          # merah untuk satu sebab yang sama.
+          #
+          # Dibuktikan lokal 2026-08-31: `SUPABASE_PUBLISHABLE_KEY= npx vitest run
+          # mitra` memerahkan test yang hijau tanpa variabel itu dikosongkan,
+          # dengan pesan galat yang sama persis seperti di CI.
+          #
+          # Fallback ke placeholder DISENGAJA: bila secret belum dipasang, test
+          # tetap berjalan dan yang gagal hanya yang benar-benar butuh kunci
+          # sungguhan — bukan seluruh 24 berkas.
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.CI_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_ci_placeholder' }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           DATABASE_URL: ${{ secrets.CI_DATABASE_URL }}
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
