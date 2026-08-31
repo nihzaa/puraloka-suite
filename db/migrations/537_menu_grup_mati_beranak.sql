@@ -1,5 +1,20 @@
 -- ============================================================================
--- 535 — 100 menu AKTIF bergantung pada grup induk yang MATI
+-- 537 — 100 menu AKTIF bergantung pada grup induk yang MATI
+-- ============================================================================
+--
+-- ⚠ Semula bernomor 535, DIPINDAH ke 537.
+--
+-- Sesi lain menulis `535_rls_tiga_tabel_template.sql` bersamaan, dan dua
+-- berkas bernomor sama membuat salah satunya TAK PERNAH JALAN di lingkungan
+-- baru. `audit-replay-bersih.mjs` menangkapnya:
+--
+--     DILEWATI SENYAP  : 1
+--     ✘ 535_rls_tiga_tabel_template.sql
+--         nomor 535 sudah diklaim 535_menu_grup_mati_beranak.sql
+--
+-- Yang dilewati adalah migrasi RLS — Ember [C]. Nomor migrasi adalah sumber
+-- daya BERSAMA antar-worktree; memilihnya tanpa melihat berkas yang baru
+-- masuk adalah cara paling mudah membuat migrasi hantu.
 -- ============================================================================
 --
 -- ── Cacat yang ditutup
@@ -225,7 +240,7 @@ BEGIN
    WHERE a.is_active AND NOT g.is_active AND g.parent_id IS NULL;
 
   IF v_yatim <> 0 THEN
-    RAISE EXCEPTION '535 gagal: masih % anak aktif di bawah induk MATI', v_yatim;
+    RAISE EXCEPTION '537 gagal: masih % anak aktif di bawah induk MATI', v_yatim;
   END IF;
 
   -- 2. Tak boleh MEMBUAT grup berjudul kembar yang sama-sama hidup. Inilah
@@ -238,7 +253,7 @@ BEGIN
   ) x;
 
   IF v_kembar <> 0 THEN
-    RAISE EXCEPTION '535 gagal: % label grup HIDUP muncul lebih dari sekali', v_kembar;
+    RAISE EXCEPTION '537 gagal: % label grup HIDUP muncul lebih dari sekali', v_kembar;
   END IF;
 
   -- 3. Migrasi 530 baru saja menihilkan bentrok sort_order. Migrasi ini
@@ -252,7 +267,7 @@ BEGIN
   ) y;
 
   IF v_bentrok <> 0 THEN
-    RAISE EXCEPTION '535 gagal: % bentrok sort_order antar-saudara — 530 dibatalkan diam-diam', v_bentrok;
+    RAISE EXCEPTION '537 gagal: % bentrok sort_order antar-saudara — 530 dibatalkan diam-diam', v_bentrok;
   END IF;
 
   -- 4. Anak WAJIB berada di rentang induknya (gso+1 .. gso+99).
@@ -270,7 +285,7 @@ BEGIN
      AND (a.sort_order <= g.sort_order OR a.sort_order > g.sort_order + 99);
 
   IF v_rentang <> 0 THEN
-    RAISE EXCEPTION '535 gagal: % anak di luar rentang gso+1..gso+99', v_rentang;
+    RAISE EXCEPTION '537 gagal: % anak di luar rentang gso+1..gso+99', v_rentang;
   END IF;
 
   -- 5. Nol href yang dipakai lebih dari satu menu aktif. Dua tautan ke halaman
@@ -284,6 +299,6 @@ BEGIN
   ) z;
 
   IF v_href <> 0 THEN
-    RAISE EXCEPTION '535 gagal: % href dipakai lebih dari satu menu aktif', v_href;
+    RAISE EXCEPTION '537 gagal: % href dipakai lebih dari satu menu aktif', v_href;
   END IF;
 END $$;
