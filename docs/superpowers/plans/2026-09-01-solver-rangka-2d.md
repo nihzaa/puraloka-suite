@@ -343,7 +343,7 @@ export function selesaikan(A: number[][], b: number[]): number[] {
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `cd apps/api && npx vitest run src/lib/__tests__/rangka-matriks.test.ts`
-Expected: PASS — 7 test hijau
+Expected: PASS — 8 test hijau
 
 - [ ] **Step 5: Typecheck & lint**
 
@@ -526,14 +526,30 @@ Bangun `apps/api/src/lib/rangka-model.ts` dengan urutan berikut. Header berkas W
    - gaya: `qL/2` ke setiap ujung (arah Y lokal)
    - momen: `+qL²/12` di ujung awal, `−qL²/12` di ujung akhir
    Tambahkan `BebanTitik` apa adanya ke vektor beban.
-4. **Terapkan tumpuan** dengan MEMBUANG baris & kolom DOF yang tertahan (bukan mengalikan angka besar — itu menyembunyikan kesingularan):
+4. **Terapkan tumpuan** dengan MEMBUANG baris & kolom DOF yang tertahan.
+
+   ⚠ Jumlah DOF bebas boleh **NOL** — balok jepit-jepit tunggal persis begitu:
+   enam DOF, semuanya tertahan. Itu struktur SAH; perpindahannya nol dan gaya
+   dalamnya datang seluruhnya dari fixed-end forces. Jangan menolaknya sebagai
+   galat (percobaan pertama Task 2 melakukannya dan memerahkan kasus tangan
+   yang BENAR) — lewati langkah penyelesaian, lanjutkan dengan perpindahan nol (bukan mengalikan angka besar — itu menyembunyikan kesingularan):
    - `jepit` → u, v, θ tertahan · `sendi` → u, v · `rol-x` → v saja · `bebas` → nihil
 5. **Selesaikan** `selesaikan(Kbebas, Fbebas)` → perpindahan; kembalikan nol untuk DOF tertahan.
 6. **Gaya ujung batang:** `f = kLokal · T · d` , lalu **tambahkan kembali** fixed-end forces.
 7. **Gaya dalam sepanjang batang, 11 titik** (`x = 0, 0.1L, …, L`):
    - `V(x) = V_awal − q·x`
    - `M(x) = −M_awal + V_awal·x − q·x²/2` (tanda mengikuti konvensi header)
-   - lendutan: integrasi ganda `M/EI` dengan syarat batas dari perpindahan simpul
+   - lendutan: **integrasi EKSAK**, bukan trapesium.
+
+     ⚠ Ditemukan saat Task 2 dikerjakan: integrasi trapesium pada 11 titik
+     membuat KEDUA test lendutan tetap HIJAU — karena ujung-ujungnya dipaku
+     tepat oleh syarat batas — sementara titik di TENGAH meleset 1,6–22%
+     (jepit-jepit di x=0,6 m: −0,00653 vs −0,00840 mm). Diagram lendutan yang
+     dibaca pengguna akan salah di sepanjang bentang tanpa satu pun galat.
+
+     M(x) berderajat 2 pada beban merata, jadi bentuk tertutupnya ada — pakai
+     itu. Sesudah diperbaiki, lendutan cocok rumus tertutup di SELURUH 11
+     titik (diverifikasi ulang terpisah: beda 0,000% di kesebelasnya).
 8. **`catatan`** diisi tetap: elastis linier · sambungan kaku sempurna · tanpa P-Δ · tanpa torsi · tanpa penurunan tumpuan.
 
 - [ ] **Step 4: Run test to verify it passes**
