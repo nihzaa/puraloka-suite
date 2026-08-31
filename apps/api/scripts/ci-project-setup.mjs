@@ -670,6 +670,65 @@ await seed('work_scope + weekly_wage_reports x3 (bahan uji upah menyimpang)', as
   if (rows[0].n === 0) throw new Error('nol weekly_wage_reports submitted sesudah seed')
 })
 
+/*
+  Alat MODAL-MATI — alat kedua, plus satu baris penyusutan.
+
+      tak ada alat modal-mati — test tak menguji apa pun
+
+  Test `ai-tool-investasi-alat` menuntut DUA golongan sekaligus, dan menulis
+  alasannya: tanpa keduanya "test ini tak bisa membedakan kode yang benar dari
+  kode yang menyamakan keduanya".
+
+      modal-mati       biayaMemiliki > 0  DAN  hariPakai = 0
+      belum-tercatat   biayaMemiliki = 0
+
+  Seed `assets` yang sudah ada memberi golongan KEDUA (alat tanpa biaya apa
+  pun). Yang kurang golongan pertama — dan itu butuh alat TERPISAH: menaruh
+  penyusutan pada `CI-EXC-001` akan MEMINDAHKANNYA keluar dari golongan
+  belum-tercatat, memperbaiki satu tuntutan sambil merahkan tuntutan lain.
+
+  `biayaMemiliki` diukur dari kode, bukan ditebak: penyusutan + biaya
+  operasional (`ai-tool-investasi-alat.ts:217`). Satu baris penyusutan cukup,
+  dan `pemakaian_alat` sengaja DIBIARKAN KOSONG untuk alat ini — itulah yang
+  membuat `hariPakai = 0`.
+*/
+await seed('asset modal-mati + penyusutan (bahan uji investasi alat)', async () => {
+  await c.query(
+    `INSERT INTO assets (company_id, asset_code, name, category, purchase_price,
+                         residual_value, useful_life_months, created_by)
+     SELECT (SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1),
+            'CI-IDLE-001', 'CI seed alat menganggur', 'alat_berat', 500000000, 50000000, 96,
+            COALESCE((SELECT id FROM public.users WHERE email='ci-admin@puraloka.test' LIMIT 1),
+                     (SELECT id FROM public.users ORDER BY created_at LIMIT 1))
+      WHERE NOT EXISTS (SELECT 1 FROM assets WHERE asset_code='CI-IDLE-001')
+        AND EXISTS (SELECT 1 FROM companies WHERE parent_company_id IS NULL)`)
+
+  await c.query(
+    `INSERT INTO penyusutan_alat (asset_id, company_id, periode, nilai, akumulasi, created_by)
+     SELECT a.id, a.company_id, date_trunc('month', CURRENT_DATE)::date, 4687500, 4687500,
+            COALESCE((SELECT id FROM public.users WHERE email='ci-admin@puraloka.test' LIMIT 1),
+                     (SELECT id FROM public.users ORDER BY created_at LIMIT 1))
+       FROM assets a
+      WHERE a.asset_code = 'CI-IDLE-001'
+        AND NOT EXISTS (SELECT 1 FROM penyusutan_alat p WHERE p.asset_id = a.id)`)
+
+  /*
+    Kedua golongan diperiksa, bukan cuma yang baru. Seed yang memperbaiki satu
+    tuntutan sambil merahkan tuntutan saudaranya adalah cara kegagalan ini
+    berpindah, bukan hilang.
+  */
+  const { rows } = await c.query(
+    `SELECT count(*) FILTER (WHERE ada_biaya)::int mati,
+            count(*) FILTER (WHERE NOT ada_biaya)::int belum
+       FROM (SELECT a.id,
+                    EXISTS (SELECT 1 FROM penyusutan_alat p WHERE p.asset_id = a.id)
+                 OR EXISTS (SELECT 1 FROM biaya_operasional_alat b WHERE b.asset_id = a.id)
+                      AS ada_biaya
+               FROM assets a) x`)
+  if (rows[0].mati === 0) throw new Error('nol alat berbiaya — golongan modal-mati kosong')
+  if (rows[0].belum === 0) throw new Error('nol alat tanpa biaya — golongan belum-tercatat kosong')
+})
+
 // ── DIAGNOSTIK state (evidence, bukan tebakan) ─────────────────────────────
 const one = async (q) => { try { return JSON.stringify((await c.query(q)).rows) } catch (e) { return 'ERR ' + e.message.split('\n')[0] } }
 console.log('\n[DIAG] roles:', await one(`SELECT count(*)::int n FROM roles`))
