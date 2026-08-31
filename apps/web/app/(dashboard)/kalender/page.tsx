@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
+import { useData } from "@/lib/data-cache";
 import { KepalaHalaman } from "@/components/dasar";
-import { api } from "@/lib/api";
 import { GAYA_KARTU } from "@/components/ui-dasar";
 import {
   ChevronLeft, ChevronRight, Calendar,
@@ -71,21 +71,26 @@ export default function KalenderPage() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      try {
-        const { data } = await api.get<{ projects: Project[] }>("/api/v1/projects");
-        setProjects(data.projects ?? []);
-      } catch { /* non-fatal */ }
-      finally { setLoading(false); }
-    }
-    load();
-  }, []);
+  /*
+    Lapis cache bersama (F4-2). `/api/v1/projects` dipakai banyak halaman;
+    lewat `useData` permintaannya di-dedup, jadi membuka kalender sesudah
+    halaman lain tak menembak API lagi.
+  */
+  const sumber = useData<{ projects: Project[] }>("/api/v1/projects");
+  const projects = useMemo(() => sumber.data?.projects ?? [], [sumber.data]);
+  const loading = sumber.memuat;
+
+  /*
+    Galat DINYATAKAN, tak lagi ditelan.
+
+    Versi sebelumnya galatnya ditelan komentar "non-fatal" — kalender gagal
+    memuat proyek tampil KOSONG dan terbaca sebagai "tak ada jadwal bulan
+    ini". Itu kesimpulan yang keliru, dan justru berbahaya di kalender:
+    orang menyimpulkan tak ada tenggat, padahal datanya tak sampai.
+  */
+  const galatMuat = sumber.galat ? "Gagal memuat proyek — kalender mungkin tak lengkap." : null;
 
   // Build events from all projects
   const events = useMemo<CalEvent[]>(() => {
@@ -186,6 +191,19 @@ export default function KalenderPage() {
             jadi tanpa ini kalender tampak "tak punya acara bulan ini" alih-alih
             "belum selesai memuat". Itu lebih menyesatkan daripada halaman
             kosong: orang menyimpulkan datanya hilang, bukan menunggu. */}
+        {/*
+          GALAT MUAT dinyatakan, dengan alasan yang sama seperti penanda
+          "Memuat agenda…" di bawahnya: grid tanggal SELALU terlukis, jadi
+          kalender yang gagal memuat tampak "tak ada acara bulan ini".
+          Di kalender itu kesimpulan yang berbahaya — orang menyimpulkan tak
+          ada tenggat, padahal datanya tak sampai.
+        */}
+        {galatMuat && (
+          <p role="status" style={{ marginBottom: 10, fontSize: 12.5, color: "var(--danger)" }}>
+            {galatMuat}
+          </p>
+        )}
+
         <div style={{ display: "flex", gap: 8 }}>
         {loading ? (
           <div role="status" aria-live="polite" style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 20, background: "var(--surface-hover)", border: "1px solid var(--border)" }}>

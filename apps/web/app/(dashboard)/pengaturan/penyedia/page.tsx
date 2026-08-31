@@ -41,7 +41,8 @@
  * / bahaya / netral — karena itu STATUS, bukan penonjolan.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useData } from "@/lib/data-cache";
 import { useIzin } from "@/lib/use-izin";
 import { Plug, RefreshCw } from "lucide-react";
 import { api } from "@/lib/api";
@@ -154,64 +155,79 @@ const DRAF_KOSONG: Draf = {
 export default function PenyediaPage() {
   const bolehKelola = useIzin("settings:penyedia:manage");
 
-  const [daftar, setDaftar] = useState<Penyedia[]>([]);
-  const [katalog, setKatalog] = useState<KatalogAdaptor | null>(null);
-  const [memuat, setMemuat] = useState(true);
+  /*
+    Lapis cache bersama (F4-2) untuk DUA bacaan utama halaman ini.
+
+    `jejak` sengaja TIDAK ikut: ia bergantung pada hasil bacaan pertama
+    (penyedia mana yang paling perlu diperiksa), jadi URL-nya baru diketahui
+    sesudah data pertama tiba. Memaksakannya ke `useData` berarti menebak
+    URL sebelum datanya ada.
+  */
+  const sumberDaftar = useData<{ data: Penyedia[] }>("/api/v1/penyedia");
+  const sumberKatalog = useData<KatalogAdaptor>("/api/v1/penyedia/adaptor");
+
+  const daftar = useMemo(() => sumberDaftar.data?.data ?? [], [sumberDaftar.data]);
+  const katalog = sumberKatalog.data;
+  const memuat = sumberDaftar.memuat || sumberKatalog.memuat;
+
+  /*
+    Galat MUAT terpisah dari `toast` (galat AKSI) — dijaga
+    `uji-galat-muat-terpisah.mjs`, ambang NOL.
+
+    Sebelumnya keduanya memakai `setToast`: satu aksi gagal (mis. uji
+    koneksi) MENGHAPUS pesan "gagal memuat daftar", dan pengguna kehilangan
+    alasan halamannya kosong.
+  */
+  const galatMuat = sumberDaftar.galat || sumberKatalog.galat
+    ? "Gagal memuat daftar penyedia" : null;
   const [menguji, setMenguji] = useState<string | null>(null);
   const [draf, setDraf] = useState<Draf | null>(null);
   const [simpan, setSimpan] = useState(false);
   const [toast, setToast] = useState<{ tipe: "ok" | "err"; pesan: string } | null>(null);
   const [jejak, setJejak] = useState<JejakUji[]>([]);
 
+  /*
+    `muat` kini: segarkan dua bacaan lewat cache, lalu ambil jejak untuk
+    penyedia yang paling perlu diperiksa. Pengambilan PERTAMA dua bacaan itu
+    dikerjakan `useData`; menyisakannya di sini membuat permintaan ganda.
+  */
   const muat = useCallback(async () => {
-    try {
-      const [d, k] = await Promise.all([
-        api.get<{ data: Penyedia[] }>("/api/v1/penyedia"),
-        api.get<KatalogAdaptor>("/api/v1/penyedia/adaptor"),
-      ]);
-      const baris = d.data.data ?? [];
-      setDaftar(baris);
-      setKatalog(k.data);
+    await Promise.all([sumberDaftar.muatUlang(), sumberKatalog.muatUlang()]);
+  }, [sumberDaftar, sumberKatalog]);
 
-      /*
-       * Jejak yang ditampilkan: penyedia yang PALING perlu diperiksa.
-       *
-       * Bukan semuanya (rail jadi daftar panjang tanpa fokus), bukan yang
-       * pertama menurut abjad (tak ada hubungannya dengan yang bermasalah).
-       * Yang gagal lebih dulu; kalau semua sehat, yang terakhir diuji.
-       */
-      const fokus =
-        baris.find((b) => b.aktif && b.kesehatan === "gagal") ??
-        baris.find((b) => b.kesehatan_pada) ??
-        baris[0];
-      if (fokus) {
-        try {
-          const j = await api.get<{ data: JejakUji[] }>(`/api/v1/penyedia/${fokus.id}/log`);
-          setJejak(j.data.data ?? []);
-        } catch {
-          // Jejak yang gagal dimuat TIDAK menjatuhkan halaman: daftar
-          // penyedianya jauh lebih penting, dan rail kosong lebih baik
-          // daripada layar galat.
-          setJejak([]);
-        }
-      }
-    } catch {
-      setToast({ tipe: "err", pesan: "Gagal memuat daftar penyedia" });
-    } finally {
-      setMemuat(false);
-    }
-  }, []);
+  /*
+    Jejak diambil sesudah daftar tiba — URL-nya bergantung isi daftar.
 
-  // `queueMicrotask`, bukan panggilan langsung: `muat()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect
-  // memicu render kedua sebelum yang pertama selesai
-  // (react-hooks/set-state-in-effect). Menunda satu microtask
-  // memindahkannya keluar dari fase render tanpa jeda yang terlihat.
-  //
-  // Pola yang sama sudah dipakai 131 tempat di aplikasi ini.
+    Fokusnya: penyedia yang PALING perlu diperiksa. Bukan semuanya (rail jadi
+    daftar panjang tanpa fokus), bukan yang pertama menurut abjad (tak ada
+    hubungannya dengan yang bermasalah). Yang gagal lebih dulu; kalau semua
+    sehat, yang terakhir diuji.
+  */
   useEffect(() => {
-    queueMicrotask(() => { void muat(); });
-  }, [muat]);
+    const fokus =
+      daftar.find((b) => b.aktif && b.kesehatan === "gagal") ??
+      daftar.find((b) => b.kesehatan_pada) ??
+      daftar[0];
+    if (!fokus) return;
+    let batal = false;
+    void (async () => {
+      try {
+        const j = await api.get<{ data: JejakUji[] }>(`/api/v1/penyedia/${fokus.id}/log`);
+        if (!batal) setJejak(j.data.data ?? []);
+      } catch {
+        // Jejak yang gagal dimuat TIDAK menjatuhkan halaman: daftar
+        // penyedianya jauh lebih penting, dan rail kosong lebih baik
+        // daripada layar galat.
+        if (!batal) setJejak([]);
+      }
+    })();
+    return () => { batal = true; };
+  }, [daftar]);
+
+  /*
+    Effect pemuatan awal DIHAPUS — `useData` yang mengambil kedua bacaan.
+    Menyisakannya membuat permintaan GANDA tiap halaman dibuka.
+  */
 
   async function uji(p: Penyedia) {
     setMenguji(p.id);
@@ -569,6 +585,19 @@ export default function PenyediaPage() {
             </div>
           </div>
         </Panel>
+      )}
+
+      {/*
+        GALAT MUAT punya barisnya sendiri, TIDAK numpang toast.
+
+        Toast menghilang sendiri dan dipakai untuk hasil aksi; galat muat
+        harus BERTAHAN selama datanya memang tak ada, karena ia menjelaskan
+        kenapa daftarnya kosong. Dijaga uji-galat-muat-terpisah.mjs.
+      */}
+      {galatMuat && (
+        <p role="status" style={{ marginBottom: 12, fontSize: 12.5, color: "var(--danger)" }}>
+          {galatMuat}
+        </p>
       )}
 
       {toast && (
