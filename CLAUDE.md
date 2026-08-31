@@ -347,6 +347,7 @@ sebelum menyentuh kode terkait** — bukan sekadar daftar isi.
 | `audit-kontras-mobile.mjs` | warna teks mobile wajib >= 4.5:1 (WCAG AA) — DIHITUNG, bukan ditaksir. `#9CA3AF` terlihat wajar tapi 2.54:1, dan dipakai 15 tempat plus label tab yang hadir di SETIAP layar. Berlatar gelap dinilai terhadap navy, bukan dilewati (ambang NOL) |
 | `audit-versi-expo-cocok.mjs` | versi paket mobile wajib cocok Expo SDK — diukur 2026-08-31 saat `expo export` pertama kali dijalankan: bundling GAGAL, 11 paket tak cocok, aplikasi TAK PERNAH bisa jadi APK. `tsc` hijau selama itu karena typecheck tak menjalankan Metro. Mayor+minor wajib sama, patch boleh lebih tinggi (ambang NOL) |
 | `audit-modul-mobile-nyata.mjs` | tiap modul WebView mobile wajib menunjuk halaman web yang ADA — jalur tanpa `page.tsx` membuka 404 di dalam bingkai aplikasi, tanpa tombol kembali. Peta di `web/[modul].tsx`, halaman di `apps/web/app/(dashboard)/`: dua tempat, tak ada yang menghubungkan. Pada jalan pertamanya menemukan `/sdm` sudah buntu sejak dibuat (ambang NOL) |
+| `audit-antrean-punya-rute.mjs` | tiap kiriman antrean mobile wajib menunjuk rute API yang ADA — mandor mengisi laporan, layar berkata "tersimpan" (benar: tersimpan di HP), server menjawab 404, antrean menahannya, dan tak seorang pun tahu. Lahir dari temuan foto progres yang TAK PERNAH sampai (multipart vs JSON, `project_photos` nol dalam 30 hari). Yang dijaga JALURNYA, bukan bentuk muatannya (ambang NOL) |
 
 **Alur take-off → RAB — MANUAL, butuh API hidup:**
 

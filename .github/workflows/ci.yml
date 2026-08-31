@@ -1937,6 +1937,23 @@ jobs:
       - name: Modul mobile menunjuk halaman nyata
         run: node scripts/audit-modul-mobile-nyata.mjs
 
+      # Tiap kiriman antrean mobile wajib menunjuk rute API yang ADA. Gejalanya
+      # paling buruk dari semua kelas cacat di aplikasi ini, karena antrean
+      # dirancang untuk MENAHAN kegagalan: mandor mengisi laporan di lokasi,
+      # layar berkata "tersimpan" (dan itu benar — tersimpan di HP), server
+      # menjawab 404, antrean menahannya, dan mandor tak pernah membuka layar
+      # antrean karena tak ada alasan. Laporannya di HP selamanya.
+      #
+      # Lahir dari temuan 2026-09-01: foto progres TAK PERNAH sampai sekali pun
+      # — antrean mengirim multipart, rute membaca body.photos sebagai JSON.
+      # project_photos 36 baris, NOL dalam 30 hari.
+      #
+      # ⚠ Yang dijaga JALURNYA, bukan bentuk muatannya. Cacat foto itu hanya
+      # ketahuan dengan MEMANGGIL rutenya sungguhan; penjaga ini menandai
+      # kiriman ber-`fotoUri` sebagai peringatan, bukan kegagalan.
+      - name: Antrean mobile menunjuk rute nyata
+        run: node scripts/audit-antrean-punya-rute.mjs
+
       # Daftar jenis elemen struktur ada di DUA tempat yang harus sama: CHECK
       # `struktur_elemen_jenis_check` di basis, dan konstanta JENIS di
       # `routes/v1/struktur.ts`. Kalau berbeda, kegagalannya berbeda arah dan
