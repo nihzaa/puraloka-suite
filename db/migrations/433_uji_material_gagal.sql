@@ -97,16 +97,36 @@ DO $$
 DECLARE n_aktif INT; n_ang INT; n INT; nilai NUMERIC;
 BEGIN
   SELECT count(*) INTO n_aktif FROM companies WHERE is_active;
+  /*
+    `is_active` DITAMBAHKAN 2026-08-31 — sama dengan enam migrasi otomasi lain
+    hari ini. `n_ang` dipakai sebagai patokan jumlah jadwal, dan jadwalnya
+    hanya dihitung untuk company AKTIF; tanpa saringan yang sama di sini,
+    patokannya memuat company yang sudah dinonaktifkan.
+  */
   SELECT count(*) INTO n_ang FROM companies c
-   WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id);
+   WHERE c.is_active
+     AND EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id);
 
-  SELECT count(*) INTO n FROM notification_rules
-   WHERE event_type = 'uji_material_gagal' AND is_active;
+    /*
+    DISARING KE COMPANY AKTIF — 2026-08-31.
+
+    Cek cacahan membandingkan jumlah baris dengan `jumlah company aktif`,
+    tetapi menghitung baris milik SEMUA company — termasuk yang dinonaktifkan
+    sesudah barisnya dibuat. Begitu ada satu saja, migrasinya gagal atas
+    selisih yang wajar: "aturan ada 3 baris, harus 2".
+
+    Barisnya tak dihapus: ia tak dievaluasi siapa pun, dan menghapusnya
+    membuang konfigurasi yang berguna bila company-nya diaktifkan lagi.
+  */
+  SELECT count(*) INTO n FROM notification_rules r
+   JOIN companies c ON c.id = r.company_id AND c.is_active
+   WHERE r.event_type = 'uji_material_gagal' AND r.is_active;
   IF n <> n_aktif THEN
     RAISE EXCEPTION '433 gagal: aturan ada % baris, harus %', n, n_aktif;
   END IF;
 
   SELECT count(*) INTO n FROM notification_rules r
+    JOIN companies c ON c.id = r.company_id AND c.is_active
     JOIN notification_rule_targets t ON t.rule_id = r.id
    WHERE r.event_type = 'uji_material_gagal' AND t.permission_key = 'mutu:uji:manage';
   IF n <> n_aktif THEN
@@ -118,7 +138,10 @@ BEGIN
     RAISE EXCEPTION '433 gagal: izin mutu:uji:manage tidak ada di permissions';
   END IF;
 
-  SELECT count(*) INTO n FROM company_settings WHERE key = 'otomasi.uji_material.hari';
+  SELECT count(*) INTO n
+    FROM company_settings cs
+    JOIN companies c ON c.id = cs.company_id AND c.is_active
+   WHERE cs.key = 'otomasi.uji_material.hari';
   IF n <> n_aktif THEN
     RAISE EXCEPTION '433 gagal: setelan ada % baris, harus %', n, n_aktif;
   END IF;
@@ -149,8 +172,9 @@ BEGIN
     Menyeragamkannya ke mingguan "supaya konsisten" akan menghilangkan
     satu-satunya alasan otomasi ini ada.
   */
-  SELECT count(*) INTO n FROM jadwal_tugas
-   WHERE tugas = 'uji-material-gagal' AND aktif AND jenis = 'harian';
+  SELECT count(*) INTO n FROM jadwal_tugas jt
+   JOIN companies c ON c.id = jt.company_id AND c.is_active
+   WHERE jt.tugas = 'uji-material-gagal' AND aktif AND jenis = 'harian';
   IF n <> n_ang THEN
     RAISE EXCEPTION '433 gagal: jadwal HARIAN ada % baris, harus %', n, n_ang;
   END IF;
