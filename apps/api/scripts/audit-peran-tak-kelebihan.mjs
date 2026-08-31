@@ -67,6 +67,41 @@ const TERLARANG = [
   ['mandor', 'assets:view', 'register aset — tak dipakai mandor-portal'],
   ['mandor', 'gudang:susut:view', 'margin material — tak dipakai mandor-portal'],
   ['mandor', 'finance:view', 'dashboard keuangan — tak dipakai mandor-portal'],
+
+  /*
+    PM tak boleh MEMINDAHKAN atau MENYETUJUI uang — ditambahkan 2026-08-31.
+
+    Cacatnya nyata dan besar. Migrasi 050 memberi PM "semua izin kecuali
+    sepuluh", dan izin keuangan tak ada di sepuluh larangan itu — sebagian
+    karena BELUM LAHIR saat 050 ditulis. Akibatnya pemberian borongan itu
+    menyerap tiap izin keuangan baru secara diam-diam.
+
+    Diukur dengan memutar ulang pemberian 050 di transaksi yang dibatalkan:
+    EMPAT BELAS izin uang masuk ke pm, di 72 tenant. Ditutup migrasi 550.
+
+    Kenapa dijaga di sini, bukan cukup dengan migrasinya: 550 memperbaiki
+    yang SUDAH ada. Yang tak dijaga adalah izin keuangan BERIKUTNYA yang
+    belum lahir hari ini — dan bentuk pemberian "semua kecuali sepuluh"
+    akan menyerapnya lagi dengan cara yang sama persis.
+
+    R-017 memutuskan PM dapat 19 izin LAPANGAN (migrasi 545). Yang dilarang
+    di sini hanya yang menyentuh uang dan kewenangan.
+  */
+  ['pm', 'klaim:bayar', 'membayar klaim — memindahkan uang'],
+  ['pm', 'klaim:setujui', 'menyetujui klaim — kewenangan finansial'],
+  ['pm', 'finance:invoice:create', 'menerbitkan tagihan ke klien'],
+  ['pm', 'finance:invoice:pay', 'mencatat pembayaran masuk — memindahkan uang'],
+  ['pm', 'finance:termin:pay', 'membayar termin — memindahkan uang'],
+  ['pm', 'finance:penalty:waive', 'memutihkan denda — mengurangi tagihan'],
+  ['pm', 'mandor:kasbon:approve', 'menyetujui uang muka mandor'],
+  ['pm', 'mandor:wage:approve', 'menyetujui upah — memindahkan uang'],
+  ['pm', 'backcharge:setujui', 'memotong pembayaran subkontraktor'],
+  ['pm', 'change_order:approve', 'MENGUBAH NILAI KONTRAK, rutenya nol ambang nominal'],
+  ['pm', 'cash:expense:approve', 'menyetujui pengeluaran kas'],
+  ['pm', 'cash:transfer:confirm', 'mengonfirmasi transfer kas'],
+  ['pm', 'approval:chains:manage', 'mengubah SIAPA menyetujui apa'],
+  ['pm', 'settings:finance:manage', 'mengubah konfigurasi finansial (PPN, retensi)'],
+  ['pm', 'users:roles:manage', 'memberi peran — bisa memberi dirinya sendiri apa saja'],
 ]
 
 /* Izin yang sengaja TAK dipegang siapa pun. Bukan kelalaian — keputusan. */
