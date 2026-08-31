@@ -32692,3 +32692,106 @@ dibaca 8.893 · akan_dihapus 0 · mendesak_dilindungi 1.017
 Itu **skripnya yang salah alamat**: domain itu compro, dan ERP-nya di
 `app.puraloka-suite.duckdns.org` — yang menjawab **200**. Skripnya ditulis
 sebelum compro dipisah. Deploy-nya sendiri berhasil setiap kali.
+
+---
+
+## 2026-08-31 — CI merah 71 berkas: satu kebocoran lintas tenant, sisanya bahan uji yang tak pernah ada
+
+### Saya salah menghitung, dua kali
+
+Sesi ini dimulai dengan keyakinan "tinggal 9 test merah". Angka itu salah.
+Menghitung nama berkas dari SELURUH log, bukan dari baris `FAIL` saja,
+memulangkan 300+ berkas — dan menyaringnya dengan benar memulangkan **71**.
+
+Yang kedua lebih penting: saya melaporkan ke sesi lain bahwa peran yatim ada
+**dua**. Diukur ulang: **enam belas**.
+
+### Kebocoran lintas tenant — migrasi saya sendiri
+
+CI menemukan apa yang dev sembunyikan:
+
+```
+Policy permisif tanpa syarat di tabel ber-company_id TANPA policy
+restrictive yang mempersempitnya = data terbaca lintas company.
+  expected [ 'template_rab.template_rab_baca' ] to deeply equal []
+```
+
+Cacat **urutan**, dan ketiganya benar sendiri-sendiri:
+
+| | |
+|---|---|
+| 518 | memagari `template_rab` … tapi MELEWATINYA — tabelnya belum ada |
+| 532 | MEMBUAT `template_rab`; nomornya 532, lompatan 518 sudah lewat |
+| 535 | menyalakan RLS + `USING (true)` supaya tak buntu |
+
+Di basis baru: satu PERMISSIVE tanpa syarat, **nol RESTRICTIVE**. Permissive
+digabung OR, jadi `USING (true)` membuka seluruh isi — dan `template_rab`
+memuat struktur harga. 532 dan 535 keduanya migrasi saya.
+
+Dev aman hanya karena di sana tabelnya sudah ada lebih dulu, jadi 518 tidak
+melewatinya. Dibuktikan dengan membuang pagar itu di transaksi yang
+dibatalkan: dev langsung bocor dengan bentuk yang sama persis.
+
+Ditutup **migrasi 541**, dengan uji mutasi — verifikasinya terbukti merah
+saat pagarnya sengaja tak dipasang.
+
+### 364 tercatat sukses, tapi basis melanggar tuntutannya sendiri
+
+364 diakhiri `IF n_kosong > 0 THEN RAISE EXCEPTION`. Diukur terhadap dev:
+**`n_kosong = 16`**. Migrasi yang tercatat sukses meninggalkan basis dalam
+keadaan yang ia sendiri nyatakan gagal — CI hijau karena CI memutar rantai
+dari basis kosong.
+
+Bentuk yang sama dengan 047↔167. Masuk `RATIFIKASI.md`, tak saya perbaiki
+sendiri: 183 izin PM yang hilang memuat `klaim:bayar` dan
+`finance:invoice:pay`.
+
+### Dua puluh test yang "tak menguji apa pun"
+
+Kalimatnya ditulis test-nya sendiri — bukan cacat kode:
+
+```
+tenant uji tak punya kasbon approved — test ini tak menguji apa pun
+basis tak punya tukang aktif — test tak menguji apa pun
+tak ada laporan `submitted` sama sekali — test ini tak menguji apa pun
+```
+
+Diukur: berkas-berkas itu **hijau di dev** (tender-subkon-item + kontrak
+39/39; tiga otomasi 17/17). Dev punya data yang lahir dari pemakaian; CI
+membangun dari nol. Enam seed ditambahkan.
+
+Yang paling menipu di antaranya: seed `clients` tanpa `company_id`. Ia
+melapor **berhasil**, dan galatnya muncul berjam-jam kemudian menuduh tabel
+lain — `kontrak_client_id_fkey`.
+
+### Empat hal yang ketahuan hanya karena SQL-nya dijalankan, bukan dibaca
+
+1. Seed `workers` versi pertama menyisipkan **0 baris senyap** — CROSS JOIN
+   dengan sisi kiri kosong.
+2. `mandor_scopes` **tak ada**; namanya `work_scopes`.
+3. `progress_reports`, `laporan_harian`, `vendor_penilaian` tak ada sama
+   sekali — tiga nama yang saya kira tahu.
+4. `created_by` NOT NULL meledak karena `ci-admin@puraloka.test` tak ada di
+   dev; di CI ia ada, jadi cacat itu tak akan pernah merah di sana.
+
+### Satu test yang menguji batas LEBIH KETAT dari arsitekturnya
+
+```
+expected '{"siap":false,"error":"kredensial evo…' not to contain 'wa_api_key'
+```
+
+Badan yang dituduh justru pesan yang menolong: "Isi WA_BASE_URL dan
+WA_API_KEY di Pengaturan → Kredensial lebih dulu."
+
+`audit-kredensial-tak-bocor.mjs` menyatakan batasnya sendiri: *"Yang boleh
+keluar hanya nama kunci, 4 karakter terakhir, dan kapan diubah."* Test
+melarang NAMA; yang dijaga NILAI. Sekarang ia menguji nilai tersandi DAN
+nilai polosnya — lebih ketat pada yang benar.
+
+### Bukti
+
+- `wa-instance` + `ai-isolasi-tenant` → **21 lulus / 0 gagal**
+- empat berkas RLS/tenancy → **22 lulus / 0 gagal**
+- `audit-tabel-force-berpagar.mjs` → exit 0
+- migrasi 541: mutasi **merah** dengan pesan yang tepat, idempoten
+- tiap seed diuji di transaksi yang **dibatalkan**, nol perubahan bertahan
