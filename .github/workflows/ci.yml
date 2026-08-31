@@ -1978,6 +1978,25 @@ jobs:
       - name: Antrean mobile menunjuk rute nyata
         run: node scripts/audit-antrean-punya-rute.mjs
 
+      # Kontrak login mobile wajib utuh di KEDUA sisinya. Diukur 2026-09-01:
+      # aplikasi mobile TAK PERNAH bisa login sekali pun — login memulangkan
+      # `session: { expires_at }` saja karena token hanya dikirim lewat cookie
+      # HttpOnly, dan mobile tak memakai cookie. Ia menyimpan `undefined`, lalu
+      # setiap permintaan dijawab 401.
+      #
+      # Tak ada galat yang menyebutnya: layar login menampilkan pesan
+      # kredensial, jadi mandor mengira sandinya yang salah.
+      #
+      # Kontraknya hidup di DUA berkas yang tak saling tahu (auth.ts membaca
+      # `x-client`, mobile/lib/api.ts mengirimnya). Menghapus salah satunya
+      # tak menggagalkan tsc dan tak menyentuh satu test pun.
+      #
+      # Ikut dijaga: token diberikan HANYA saat header itu hadir. Memberikannya
+      # ke semua klien membuang perlindungan XSS yang jadi alasan cookie
+      # HttpOnly dipakai.
+      - name: Kontrak login mobile utuh
+        run: node scripts/audit-auth-mobile-utuh.mjs
+
       # Daftar jenis elemen struktur ada di DUA tempat yang harus sama: CHECK
       # `struktur_elemen_jenis_check` di basis, dan konstanta JENIS di
       # `routes/v1/struktur.ts`. Kalau berbeda, kegagalannya berbeda arah dan
