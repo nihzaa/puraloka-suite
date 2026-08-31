@@ -87,10 +87,28 @@ test.describe('Isolasi antar-role', () => {
   test('pm tak bisa membuka manajemen user', async ({ page }) => {
     await masuk(page, 'pm')
 
+    /*
+      Tujuan pengalihannya `/dashboard`, bukan `/pm-portal` — DIPERBARUI
+      2026-08-31.
+
+      Home PM diubah hari ini di commit d96d289f, dengan alasan yang ditulis
+      panjang di `middleware.ts`: larangan lama dipasang karena
+      `routes/v1/dashboard.ts` tak menyaring per-peran, dan sesudah datanya
+      sendiri berpagar (`finance:view` / `finance:view:all`) pagar di pintu
+      halaman itu tak lagi perlu.
+
+      Test ini dari 2026-08-02 dan tak ikut diperbarui, jadi ia gagal atas
+      perilaku yang SENGAJA diubah:
+
+          Expected: "/pm-portal"   Received: "/dashboard"
+
+      Yang diuji tetap sama dan tetap penting: PM TIDAK sampai di `/users`.
+      Yang berubah hanya ke mana ia dilempar.
+    */
     expect(
       await bukaKe(page, '/users'),
       'PM bisa membuka manajemen user — pembuatan akun dan penggantian role terbuka',
-    ).toBe('/pm-portal')
+    ).toBe('/dashboard')
   })
 
   test('pm ditolak dari /dashboard TANPA loop redirect', async ({ page }) => {
