@@ -4168,3 +4168,99 @@ SELECT aktif, coalesce(terakhir_status,'(belum)'), count(*)
 SELECT count(*) FROM jadwal_tugas jt JOIN companies co ON co.id = jt.company_id
  WHERE jt.aktif AND NOT co.is_active;
 ```
+
+---
+
+## R-020 — Migrasi 558 memblokir SELURUH replay CI (G-2)
+
+**Diminta 2026-09-01.** Butuh keputusan founder karena mengubah migrasi
+yang sudah tercatat di `supabase_migrations.schema_migrations` adalah
+**Gerbang Keras G-2** (CHARTER).
+
+### Apa yang terjadi
+
+Run CI pertama sesudah `ci.yml` diperbaiki (42 commit CI mati) gagal di
+KEENAM shard `API — test`, deterministik:
+
+```
+HARD FAIL — migrasi GAGAL di LUAR allowlist:
+  558_hidupkan_menu_halaman_yatim.sql
+  558 gagal: 18 href dipegang >1 menu aktif: /sdm/timesheet, /k3/rk3k,
+  /risiko/izin, /risiko/sengketa, /sdm/klaim-perjalanan, /risiko, …
+```
+
+Migrasi 558 GAGAL pada verifikasinya sendiri. Karena ia berhenti, migrasi
+559–563 tak pernah tercapai — dan justru 559 yang membersihkan sisa 558.
+
+### Sebabnya, terukur
+
+558 punya dua blok `UPDATE`:
+
+- **(1) menu anak** — `DISTINCT ON (href)` + `NOT EXISTS (href dipegang
+  menu aktif)`. Benar; ia memang hanya menyalakan href yang bebas.
+- **(2) induk** — menyalakan induk yang punya anak aktif, **tanpa
+  memeriksa href sama sekali**.
+
+Blok (2) itu yang menciptakan keadaan yang dilarang verifikasi 558.
+
+Dibuktikan di basis dev (yang 558-nya SUDAH jalan, jadi keadaannya lain):
+
+```
+induk (parent_id NULL) : 40 · punya href: 3 · ber-href & NONAKTIF: 2
+
+jika `dashboard` dinyalakan → bentrok dengan `beranda`
+  (keduanya href /dashboard)
+jika `asisten`   dinyalakan → tak ada bentrok
+```
+
+Di CI yang di-replay dari nol, keadaan awalnya berbeda dan bentroknya 18,
+bukan 1.
+
+### Kenapa ini tak pernah ketahuan
+
+558 lulus di dev dan produksi — di sana ia dijalankan atas basis yang
+sudah punya riwayat, dan induk-induk yang bermasalah kebetulan sudah
+aktif atau sudah ber-href NULL.
+
+Bentuk yang sama dengan cacat 047↔167 yang sudah tercatat di CLAUDE.md
+§5.5: **migrasi yang lulus di basis berdata, gagal di lingkungan bersih.**
+Yang membedakan kali ini: CI mati 42 commit, jadi tak ada yang
+memberitahu. 558 masuk 2026-09-01, dan replay pertamanya baru terjadi
+hari ini juga.
+
+### Pilihan
+
+**A. Perbaiki 558 di tempat** — tambahkan pemeriksaan href pada blok (2),
+sama seperti blok (1) sudah punya. Isi berkasnya berubah, dan itu G-2.
+Aman secara teknis: 558 idempoten (`NOT is_active` sebagai penyaring),
+dan basis yang sudah menjalankannya tak berubah apa pun.
+
+**B. Pensiunkan 558 jadi no-op + migrasi 564 pengganti** — pola yang
+sudah dipakai R-001 untuk 047. Lebih banyak berkas, tetapi riwayat
+migrasinya tak pernah "berubah isi", hanya "berhenti melakukan".
+
+**C. Masukkan 558 ke allowlist CI** — paling murah, dan paling buruk:
+ia menyembunyikan cacatnya alih-alih menutupnya, dan 559–563 tetap tak
+pernah di-replay. CI kembali hijau atas basis yang tak pernah dibangun.
+
+### Rekomendasi
+
+**A.** Cacatnya sempit dan letaknya jelas (satu blok `UPDATE` yang
+kehilangan satu syarat yang sudah ada di blok sebelahnya). B menambah dua
+berkas untuk hasil akhir yang sama; C bukan perbaikan.
+
+### Yang TIDAK saya lakukan
+
+Tak satu pun dari ketiganya. G-2 menuntut keputusan founder lebih dulu,
+dan mengubah migrasi yang sudah tercatat tanpa itu persis yang dilarang
+CHARTER.
+
+### Cara mengukur ulang
+
+```bash
+# Bentroknya di basis mana pun
+node -e "…"  # lihat scripts/db/_koneksi.mjs; kueri di badan entri ini
+
+# Run CI yang gagal
+gh run list --workflow ci.yml --branch main --limit 1
+```
