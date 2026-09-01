@@ -134,13 +134,46 @@ const labelBeda = []
 const hanyaDb = []
 
 for (const [key, db] of petaDb) {
-  const ts = petaTs.get(key)
-  if (!ts) { hanyaDb.push(key); continue }
   // Kelompok induk (`g-*`) SENGAJA tanpa href di DB: ia tombol buka-tutup,
   // bukan tautan. `peta-menu.ts` memberinya href sebagai "wakil isi kelompok"
   // — dipakai halaman lain, bukan sidebar. Menghitungnya sebagai drift akan
   // memenuhi laporan dengan 20 baris yang tak satu pun perlu diperbaiki.
+  //
+  // ⚠ Pengecualian ini DINAIKKAN ke atas `hanyaDb` (2026-09-01).
+  //
+  // Sebelumnya ia berada SESUDAH `if (!ts) { hanyaDb.push(key); continue }`,
+  // jadi tak pernah dievaluasi untuk grup yang belum ada di peta-menu.ts —
+  // `continue` sudah lebih dulu melompatinya. Akibatnya 20+ grup induk
+  // masuk daftar hutang meski pengecualiannya SUDAH ADA dan alasannya
+  // sudah tertulis persis di atas.
+  //
+  // Diukur: seluruh `g-*` di basis ber-href NULL (0 dari 37 punya href),
+  // jadi tak satu pun dari mereka pernah lolos pengecualian ini.
   if (key.startsWith('g-') && db.href === null) continue
+
+  const ts = petaTs.get(key)
+
+  /*
+    ⚠ Menu yang PUNYA href sendiri tak butuh peta-menu.ts.
+
+    `peta-menu.ts` hanya dibaca `/m/<key>` — jalur untuk menu yang BELUM
+    punya halaman sendiri. Menu ber-href dibuka langsung oleh sidebar dan
+    tak pernah melewati jalur itu.
+
+    Diukur 2026-09-01: 380 dari 383 daun di basis punya href. Menghitung
+    semuanya sebagai hutang membuat angka `hanyaDb` didominasi entri yang
+    tak satu pun bisa menampilkan "Menu tidak dikenal" — dan hutang yang
+    tak bisa dilunasi mengajari orang mengabaikan penjaganya.
+
+    Yang benar-benar berisiko: menu tanpa href yang tak ada di peta. Ada
+    TIGA, dan ketiganya nonaktif (tak muncul di sidebar, jadi tak bisa
+    diklik siapa pun).
+  */
+  if (!ts) {
+    if (db.href !== null && db.href !== `/m/${key}`) continue
+    hanyaDb.push(key)
+    continue
+  }
   // `/m/<key>` di DB berarti "belum punya halaman sendiri" — dan peta-menu.ts
   // menyatakan hal yang sama dengan TIDAK memberi href sama sekali. Keduanya
   // sepakat; bentuknya saja berbeda.

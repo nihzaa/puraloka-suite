@@ -3,7 +3,7 @@
   "_diukur": "2026-08-12 (lanjutan), sesudah migrasi 323. NAIK 119 -> 124: lima GRUP yang selama ini is_active=false dihidupkan kembali (g-qaqc, g-hse, g-hr, g-risiko, g-sistem) karena 18 item aktif menggantung di bawahnya — halamannya ada semua. Kelima grup DAN ke-18 anaknya SUDAH terdaftar di peta-menu.ts; yang bertambah hanya g-* yang kini aktif, dan grup memang tak pernah dihitung sebagai modul (lihat _hanyaDb). Kasus identik dengan kenaikan g-ai 119 -> 120 pada migrasi 253. Sebelumnya: 119 (R-012, migrasi 299/300).",
   "hrefBeda": 0,
   "labelBeda": 0,
-  "hanyaDb": 106,
+  "hanyaDb": 0,
   "_hrefBeda": "NOL, dan sekarang inilah yang benar-benar dijaga: kalau katalog dan sidebar menyebut tujuan berbeda untuk key yang sama, salah satunya membohongi pembacanya.",
   "_hanyaDb": "Seluruh entri sidebar. Kedua sumber SENGAJA berbeda perannya sesudah 232: peta-menu.ts katalog modul (sumber /peta-modul), menu_items link sidebar. Isinya entri sidebar & GRUP (g-*) — grup tak pernah masuk katalog modul karena ia wadah, bukan modul; 19 g-* lain sudah terhitung di sini sejak lama. 119 -> 120 hanya karena grup g-ai bertambah; ketiga SUB-menunya (penyedia, perilaku asisten, biaya, whatsapp) justru DIDAFTARKAN di katalog. Bukan cacat.",
   "_berbagiItem": "Tidak lagi di-ratchet. audit-menu-berbagi-href.mjs kini LARANGAN MUTLAK: nol href boleh dipakai lebih dari satu link."
