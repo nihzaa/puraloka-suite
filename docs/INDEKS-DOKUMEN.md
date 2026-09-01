@@ -133,8 +133,8 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [2026-08-22-admin-saas-fondasi](superpowers/plans/2026-08-22-admin-saas-fondasi.md) | antrean | ✓ | Admin SaaS — Fondasi Implementation Plan |
 | [2026-08-22-n8n-shared-multi-tenant](superpowers/plans/2026-08-22-n8n-shared-multi-tenant.md) | riwayat |  | n8n Shared Multi-Tenant Implementation Plan |
 | [2026-08-22-portal-admin-direktur-lengkap](superpowers/plans/2026-08-22-portal-admin-direktur-lengkap.md) | riwayat |  | Portal Admin/Direktur Lengkap Implementation Plan |
-| [2026-09-01-solver-rangka-2d](superpowers/plans/2026-09-01-solver-rangka-2d.md) | antrean |  | Solver Rangka 2D — Implementation Plan |
-| [2026-09-01-solver-rangka-dipakai](superpowers/plans/2026-09-01-solver-rangka-dipakai.md) | acuan |  | Solver Rangka Dipakai — Implementation Plan |
+| [2026-09-01-solver-rangka-2d](superpowers/plans/2026-09-01-solver-rangka-2d.md) | antrean | ✓ | Solver Rangka 2D — Implementation Plan |
+| [2026-09-01-solver-rangka-dipakai](superpowers/plans/2026-09-01-solver-rangka-dipakai.md) | acuan | ✓ | Solver Rangka Dipakai — Implementation Plan |
 
 ### `docs/superpowers/specs`
 
