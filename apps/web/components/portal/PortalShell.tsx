@@ -366,6 +366,27 @@ export default function PortalShell({
       */}
       <main
         className="portal-isi"
+        /*
+          `jsx-a11y/no-noninteractive-tabindex` DIMATIKAN di sini, dan itu
+          keputusan sadar — bukan menyenangkan linter.
+
+          Aturan itu benar sebagai aturan umum: elemen tak-interaktif yang
+          bisa di-Tab menambah perhentian tanpa guna. Tetapi WILAYAH
+          BERGULIR adalah pengecualian yang diakui WCAG 2.1.1 — kalau ia
+          tak bisa difokus, isinya tak bisa digulir dengan panah atau Page
+          Down sama sekali.
+
+          Itu bukan hipotesis: axe-core MENEMUKANNYA di
+          /pm-portal/keuangan/dashboard (`scrollable-region-focusable`,
+          serious) — media query >=1024px memberi `.portal-isi`
+          `overflow-y: auto`.
+
+          Jadi dua aturan a11y bertabrakan, dan yang menang adalah yang
+          diuji terhadap halaman sungguhan. Preseden repo:
+          `components/dashboard-grid.tsx:458` memakai pengecualian yang
+          sama untuk alasan yang sama.
+        */
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
         tabIndex={0}
         aria-label="Isi halaman"
         style={{ flex: 1, padding: "20px 16px", paddingBottom: 96 }}

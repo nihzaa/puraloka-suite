@@ -131,19 +131,23 @@ export default function MandorScopePage() {
     : null;
 
   /*
-    Lingkup aktif dibuka otomatis — sekali per kumpulan data, bukan tiap
-    render. Dipisah dari pengambilan datanya supaya `setExpanded` tak
-    menimpa lipatan yang sudah diubah pengguna saat cache menyegarkan
+    Lingkup aktif terbuka otomatis — DIHITUNG saat render, bukan disetel
+    lewat `useEffect`.
+
+    Versi pertama memakai `useEffect` + `setExpanded(init)` dan melanggar
+    `react-hooks/set-state-in-effect` (ratchet 39 → 40, ketahuan di run CI
+    pertama sesudah ci.yml diperbaiki). Aturan itu benar: menyetel state
+    dari efek menyebabkan render kedua yang tak perlu, dan di sini ia juga
+    MENIMPA lipatan yang baru diubah pengguna tiap kali cache menyegarkan
     diri di latar.
+
+    Pola turunan menghindari keduanya: `expanded` hanya menyimpan yang
+    BENAR-BENAR diubah pengguna, dan sisanya jatuh ke bawaan "terbuka
+    kalau aktif". Tak ada render kedua, dan tak ada yang menimpa pilihan
+    orang.
   */
-  const kunciScopes = scopes.map((s) => s.id).join(",");
-  useEffect(() => {
-    if (scopes.length === 0) return;
-    const init: Record<string, boolean> = {};
-    scopes.forEach((s) => { if (s.status === "active") init[s.id] = true; });
-    setExpanded(init);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kunciScopes]);
+  const terbuka = (s: LingkupTampil) =>
+    expanded[s.id] ?? s.status === "active";
 
   // Buat tampilan per proyek dengan grouping
   const byProject: Record<string, { projectName: string; scopes: LingkupTampil[] }> = {};
@@ -224,7 +228,7 @@ export default function MandorScopePage() {
                       const financialPct = scope.financial_pct ?? 0;
                       const isBorongan = scope.payment_system === "borongan";
                       const isProgressPct = scope.payment_system === "progress_pct";
-                      const isExpanded = expanded[scope.id] ?? false;
+                      const isExpanded = terbuka(scope);
 
                       return (
                         <div

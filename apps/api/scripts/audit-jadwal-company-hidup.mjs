@@ -31,7 +31,30 @@
  * company memang tak mengurus jadwalnya. Penjaga membuat kelalaian itu
  * terlihat.
  */
-import { buatClient } from '../../../scripts/db/_koneksi.mjs'
+import { buatClient, adaKoneksi } from '../../../scripts/db/_koneksi.mjs'
+
+/*
+  ⚠ `adaKoneksi()` DULU — `buatClient()` melakukan `process.exit(2)` saat
+  DSN tak ada, dan `process.exit` TIDAK bisa ditangkap `try/catch` di
+  sekelilingnya.
+
+  Diukur 2026-09-01, run CI pertama sesudah ci.yml diperbaiki: penjaga ini
+  MEMERAHKAN ENAM shard job `API — test` dengan
+
+      FATAL: DIRECT_URL/DATABASE_URL tidak ditemukan
+
+  padahal nol cacat data — job itu memang tak diberi kredensial basis.
+  Pesan FATAL-nya sendiri sudah menyebutkan perbaikan ini, dan penjaga
+  lain di repo ini (`audit-peta-menu-vs-db.mjs`) sudah memakainya.
+
+  DILEWATI, bukan LULUS. Penjaga yang diam-diam melewatkan diri lebih
+  berbahaya daripada penjaga yang absen: CI-nya tetap hijau, dan tak ada
+  yang tahu pemeriksaannya tak pernah berjalan.
+*/
+if (!adaKoneksi()) {
+  console.log('  ⏭  DILEWATI (tak ada DIRECT_URL/DATABASE_URL) — bukan LULUS.')
+  process.exit(0)
+}
 
 const c = buatClient()
 await c.connect()
