@@ -293,8 +293,21 @@ function fixedEndLokal(qKnM: number, lM: number): number[] {
 /**
  * Gaya dalam di 11 titik sepanjang batang, dari gaya ujung lokal `f`.
  *
- * `f` = [N1, V1, M1, N2, V2, M2] adalah gaya yang DIBERIKAN batang kepada
- * simpul-simpulnya, di sumbu lokal. Dari sana:
+ * `f` = [N1, V1, M1, N2, V2, M2] di sumbu lokal — gaya yang diberikan
+ * SIMPUL KEPADA BATANG (bukan sebaliknya).
+ *
+ * ⚠ Arahnya DIUKUR, bukan diasumsikan, dan komentar versi pertama di sini
+ * menyatakannya TERBALIK ("gaya yang DIBERIKAN batang kepada simpul").
+ * Buktinya: kantilever jepit-kiri, q=20 kN/m, L=6 m memberi `f[1] = +120 kN`
+ * = +qL. Tumpuan jepit mendorong balok ke ATAS sebesar qL, jadi tanda positif
+ * itu hanya konsisten bila `f` berarti simpul→batang.
+ *
+ * Matematikanya SELALU benar; yang salah dokumentasinya. Tapi salahnya mahal:
+ * siapa pun yang menurunkan REAKSI TUMPUAN dari `f` mengikuti komentar lama
+ * akan mendapat tandanya terbalik — dan ΣF-nya meleset persis 2×R, bukan nol.
+ * Itu benar-benar terjadi saat test invarian ditulis.
+ *
+ * Dari sana:
  *
  *   V(x) = f[1] − q·x
  *   M(x) = −f[2] + f[1]·x − q·x²/2      (serat bawah tertarik = positif)
