@@ -248,32 +248,68 @@ const DINAMIS_TERLEWAT = URL_TUNGGAL ? [] : (() => {
 })()
 
 const peramban = await chromium.launch()
-const konteks = await peramban.newContext({
-  viewport: { width: 1600, height: 1000 },
-  colorScheme: GELAP ? 'dark' : 'light',
-})
-await konteks.addInitScript((g) => localStorage.setItem('theme', g ? 'dark' : 'light'), GELAP)
-const hal = await konteks.newPage()
 
-if (EMAIL && SANDI) {
-  await hal.goto(`${BASIS}/login`, { waitUntil: 'networkidle' })
-  await hal.waitForSelector('#login-email', { timeout: 15_000 })
-  await hal.fill('#login-email', EMAIL)
-  await hal.fill('#login-password', SANDI)
-  await hal.click('button[type="submit"]')
-  await hal.waitForURL((u) => !u.pathname.includes('/login'), { timeout: 25_000 }).catch(() => {})
-  if (hal.url().includes('/login')) {
-    console.error('❌ Login gagal — audit akan memindai layar masuk, bukan halamannya.')
-    await peramban.close()
-    process.exit(2)
+/*
+  Konteks + login dijadikan FUNGSI supaya bisa dibuat ulang.
+
+  `Page crashed` mematikan konteksnya juga; tanpa membuka yang baru, sisa
+  halaman gagal beruntun dengan galat yang menuduh halaman-halaman yang
+  sebenarnya baik-baik saja.
+*/
+async function buatKonteks() {
+  const k = await peramban.newContext({
+    viewport: { width: 1600, height: 1000 },
+    colorScheme: GELAP ? 'dark' : 'light',
+  })
+  await k.addInitScript((g) => localStorage.setItem('theme', g ? 'dark' : 'light'), GELAP)
+  const h = await k.newPage()
+
+  if (EMAIL && SANDI) {
+    await h.goto(`${BASIS}/login`, { waitUntil: 'networkidle' })
+    await h.waitForSelector('#login-email', { timeout: 15_000 })
+    await h.fill('#login-email', EMAIL)
+    await h.fill('#login-password', SANDI)
+    await h.click('button[type="submit"]')
+    await h.waitForURL((u) => !u.pathname.includes('/login'), { timeout: 25_000 }).catch(() => {})
+    if (h.url().includes('/login')) return { k, h, gagalLogin: true }
   }
-} else {
+  return { k, h, gagalLogin: false }
+}
+
+let { k: konteks, h: hal, gagalLogin } = await buatKonteks()
+
+if (gagalLogin) {
+  console.error('❌ Login gagal — audit akan memindai layar masuk, bukan halamannya.')
+  await peramban.close()
+  process.exit(2)
+}
+if (!EMAIL || !SANDI) {
   console.log('⚠️  LAYAR_EMAIL/LAYAR_SANDI tak diisi — hanya halaman publik yang terukur.\n')
 }
 
 const semua = []
 
+/*
+  ⚠ Satu halaman yang CRASH tak boleh mematikan seluruh audit.
+
+  Diukur 2026-09-01, audit pertama portal PM (78 halaman): prosesnya mati
+  dengan `page.waitForTimeout: Page crashed` — dan TANPA menyebut halaman
+  mana. Loop ini tak mencetak kemajuan, jadi yang terlihat cuma jejak
+  tumpukan yang menunjuk baris 278 skrip ini sendiri.
+
+  Kegagalan yang tak menyebut lokasinya memaksa orang berikutnya
+  menjalankan ulang seluruh audit sambil menebak. Dan lebih buruk: 77
+  halaman lain jadi TAK TERUKUR gara-gara satu yang rusak, sementara
+  laporannya tak pernah sampai tercetak.
+
+  Sekarang crash dicatat sebagai temuan halaman itu sendiri, halaman
+  berikutnya tetap dipindai, dan konteks browser dibuka ulang — konteks
+  yang sudah crash tak bisa dipakai lagi.
+*/
+let dipindaiSejauhIni = 0
+
 for (const url of HALAMAN) {
+  try {
   await hal.goto(`${BASIS}${url}`, { waitUntil: 'networkidle', timeout: 30_000 }).catch(() => {})
   await hal.waitForTimeout(1200)
 
@@ -304,6 +340,34 @@ for (const url of HALAMAN) {
     }
   })
   semua.push({ url, ...hasil })
+  dipindaiSejauhIni++
+  } catch (e) {
+    /*
+      Halaman ini rusak — dicatat NAMANYA, lalu lanjut.
+
+      `Page crashed` mematikan konteks browsernya juga, jadi halaman
+      berikutnya butuh konteks baru. Tanpa membuka ulang, sisa audit
+      gagal beruntun dengan galat yang menuduh halaman-halaman yang
+      sebenarnya baik-baik saja.
+    */
+    const pesan = String(e?.message ?? e).split(String.fromCharCode(10))[0].slice(0, 120)
+    console.error(`  ✗ ${url} — RUSAK: ${pesan}`)
+    semua.push({ url, rusak: pesan, lolos: 0, langgar: [] })
+
+    try { await konteks.close() } catch { /* sudah mati */ }
+    const baru = await buatKonteks()
+    konteks = baru.k
+    hal = baru.h
+    if (baru.gagalLogin) {
+      console.error('  ✗ login gagal saat memulihkan konteks — audit dihentikan.')
+      break
+    }
+  }
+}
+
+if (dipindaiSejauhIni === 0) {
+  console.error('\n❌ NOL halaman berhasil dipindai — ini BUKAN kelulusan.')
+  process.exit(2)
 }
 
 await peramban.close()
@@ -311,11 +375,23 @@ await peramban.close()
 // ── Laporan ────────────────────────────────────────────────────────────
 const mode = GELAP ? 'gelap' : 'terang'
 const dialihkan = semua.filter((s) => s.dialihkan)
-const dipindai = semua.filter((s) => !s.dialihkan)
+/*
+  Halaman RUSAK dikeluarkan dari `dipindai`.
+
+  Kalau ikut dihitung, ia menyumbang nol pelanggaran — dan angka "N halaman,
+  0 pelanggaran" jadi lebih besar dari yang sebenarnya terukur. Halaman yang
+  crash bukan halaman yang lolos; ia halaman yang TAK TERUKUR.
+*/
+const rusak = semua.filter((s) => s.rusak)
+const dipindai = semua.filter((s) => !s.dialihkan && !s.rusak)
 const total = dipindai.reduce((n, s) => n + s.langgar.reduce((m, v) => m + v.jumlah, 0), 0)
 
 console.log(`\n══ AUDIT A11Y RUNTIME (axe-core · WCAG 2.1 AA · mode ${mode}) ══\n`)
 console.log(`  halaman dipindai : ${dipindai.length}`)
+if (rusak.length) {
+  console.log(`  RUSAK            : ${rusak.length} — tak terukur, bukan lolos`)
+  for (const r of rusak) console.log(`     · ${r.url} — ${r.rusak}`)
+}
 if (dialihkan.length) {
   console.log(`  dialihkan        : ${dialihkan.length} (bukan halaman ini)`)
   /*

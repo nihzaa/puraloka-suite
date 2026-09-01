@@ -196,7 +196,7 @@ export default function JadwalProyekPage() {
                 </span>
               </div>
               <span style={{ fontSize: 14, fontWeight: 800, color: "var(--navy)" }}>
-                {fmtTanggal(data.cpm.selesaiProyek)}
+                {fmtTanggal(data.cpm?.selesaiProyek ?? null)}
               </span>
             </div>
             <div style={{ display: "flex", gap: "var(--gap-bagian)", flexWrap: "wrap" }}>
@@ -292,9 +292,25 @@ export default function JadwalProyekPage() {
             );
           })}
 
-          {(data.cpm.tanpaDurasi?.length ?? 0) > 0 && (
+          {/*
+            Pagar `?.` dipasang di `cpm` juga, bukan hanya di `tanpaDurasi`.
+
+            Blok ini dijaga `data &&` di atasnya — yang menjamin `data` ada,
+            TIDAK `data.cpm`. Kalau server memulangkan objek tanpa `cpm`
+            (proyek tanpa jadwal, balasan galat berbentuk objek, versi rute
+            yang berbeda), `data.cpm.tanpaDurasi` melempar dan seluruh
+            halaman mati — bukan menampilkan pesan, melainkan layar putih.
+
+            Tipe `RespJadwalCpm` menjanjikan `cpm` selalu ada, tetapi tipe
+            TypeScript tak menjamin apa yang sungguh dikirim server. Ia
+            dihapus saat kompilasi.
+
+            Dua baris lain di berkas ini (106, 118) sudah memakai
+            `data?.cpm?.` — yang tak konsisten justru yang di sini.
+          */}
+          {(data.cpm?.tanpaDurasi?.length ?? 0) > 0 && (
             <div style={{ fontSize: 11, color: "var(--text-muted)", textAlign: "center", padding: "0 8px" }}>
-              {data.cpm.tanpaDurasi.length} pekerjaan belum punya durasi/tanggal target — tak ikut dihitung di atas.
+              {data.cpm?.tanpaDurasi?.length ?? 0} pekerjaan belum punya durasi/tanggal target — tak ikut dihitung di atas.
             </div>
           )}
         </>
