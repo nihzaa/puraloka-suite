@@ -28,6 +28,7 @@ import {
   type HasilBatang,
   type Simpul,
 } from './rangka-model.js'
+import type { GayaTingkat } from './struktur-beban-lateral.js'
 
 export interface InputBalokMenerus {
   /** Panjang tiap bentang, m, urut dari kiri. Minimal satu, semuanya > 0. */
@@ -311,4 +312,34 @@ export function analisaPortal(input: InputPortal): HasilPortal {
     batang: h.batang,
     catatan: [...h.catatan, CATATAN_PORTAL],
   }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// LAPIS 4 — BEBAN LATERAL (gempa)
+// ══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Memetakan hasil `analisaGempaStatik` ke masukan `gayaLateralKn` milik
+ * `analisaPortal`.
+ *
+ * ⚠ TAK ADA PERHITUNGAN DI SINI, DAN ITU SENGAJA.
+ *
+ * `analisaGempaStatik` di `struktur-beban-lateral.ts` SUDAH menghitung
+ * distribusi gaya per tingkat lengkap dengan seluruh jalurnya (berat total →
+ * perioda → Cs → geser dasar V → distribusi Cvx menurut SNI 1726:2019 §7.8.3).
+ * Menghitungnya ulang di sini akan membuat DUA SUMBER KEBENARAN untuk angka
+ * yang sama: keduanya benar hari ini, lalu salah satunya diperbaiki dan yang
+ * lain tidak, dan sejak itu layar memperlihatkan satu angka sementara solver
+ * memakai angka lain — tanpa satu pun galat, karena dua rumus yang menyimpang
+ * tidak melempar apa pun.
+ *
+ * Ini pola cacat yang sama yang dijaga `audit-takeoff-kembar-sepakat.mjs` untuk
+ * rumus take-off. Bedanya, di sini penyimpangan itu dicegah di akarnya: fungsi
+ * ini hanya MENYALIN, jadi tak ada rumus kedua yang bisa menyimpang.
+ *
+ * @param tingkat keluaran `analisaGempaStatik(...).gaya`, urut lantai 1 ke atas
+ * @returns `gayaKn` tiap tingkat, kN — siap dipakai `InputPortal.gayaLateralKn`
+ */
+export function gayaLateralDariGempa(tingkat: GayaTingkat[]): number[] {
+  return tingkat.map((t) => t.gayaKn)
 }

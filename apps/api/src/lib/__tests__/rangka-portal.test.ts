@@ -1,6 +1,10 @@
 // apps/api/src/lib/__tests__/rangka-portal.test.ts
 import { describe, it, expect } from 'vitest'
-import { analisaBalokMenerus, analisaPortal } from '../rangka-portal.js'
+import {
+  analisaBalokMenerus,
+  analisaPortal,
+  gayaLateralDariGempa,
+} from '../rangka-portal.js'
 
 describe('analisaBalokMenerus — lapis 2', () => {
   /*
@@ -184,5 +188,59 @@ describe('analisaPortal — lapis 3 (gravitasi)', () => {
     const satu = analisaPortal(dasar)
     const dua = analisaPortal({ ...dasar, jumlahLantai: 2 })
     expect(dua.batang.length).toBeGreaterThan(satu.batang.length)
+  })
+})
+
+describe('beban lateral — lapis 4', () => {
+  const dasar = {
+    bentangM: 6, tinggiM: 4, jumlahLantai: 1,
+    balok: { bMm: 300, hMm: 500 },
+    kolom: { bMm: 400, hMm: 400 },
+    fcMpa: 25, qKnM: 0,   // gravitasi dimatikan supaya lateral terisolasi
+  }
+
+  it('beban titik P di atap: M kaki tiap kolom = P·h/4', () => {
+    /*
+      Portal simetris berkaki jepit, balok DIBUAT SANGAT KAKU supaya
+      simpul atas tak berotasi. Tiap kolom memikul P/2, dan kolom
+      jepit-jepit dengan perpindahan ujung memberi M = (P/2)·(h/2) = P·h/4.
+
+      DIVERIFIKASI numerik 2026-09-01: 0,25 P·h.
+
+      Balok kaku itu SYARAT, bukan kebetulan — tanpanya simpul berotasi
+      dan momennya bukan lagi Ph/4. Karena itu penampang baloknya dibuat
+      2000x2000 di sini, dan test ini akan merah kalau syarat itu hilang.
+    */
+    const P = 40, h = dasar.tinggiM
+    const hasil = analisaPortal({
+      ...dasar, balok: { bMm: 2000, hMm: 2000 }, gayaLateralKn: [P],
+    })
+    const kolom = hasil.batang.filter((b) => b.nama.startsWith('K'))
+    expect(kolom).toHaveLength(2)
+
+    for (const k of kolom) {
+      const mMaks = Math.max(Math.abs(k.momenKnm.maks), Math.abs(k.momenKnm.min))
+      expect(mMaks).toBeCloseTo(P * h / 4, 0)
+    }
+  })
+
+  it('gaya lateral nol menghasilkan momen kolom nol', () => {
+    const hasil = analisaPortal({ ...dasar, gayaLateralKn: [0] })
+    for (const k of hasil.batang.filter((b) => b.nama.startsWith('K'))) {
+      expect(Math.abs(k.momenKnm.maks)).toBeLessThan(1e-6)
+    }
+  })
+
+  it('gayaLateralDariGempa memakai gayaKn apa adanya — tak menghitung ulang', () => {
+    /*
+      Nol rumus gempa baru di modul ini. `analisaGempaStatik` sudah
+      menghitungnya; menghitung ulang akan membuat dua sumber kebenaran
+      yang bisa menyimpang tanpa satu pun galat.
+    */
+    const tingkat = [
+      { nama: 'L1', tinggiM: 4, beratKn: 500, gayaKn: 12.5, geserKn: 30, porsi: 0.4 },
+      { nama: 'L2', tinggiM: 8, beratKn: 500, gayaKn: 17.5, geserKn: 17.5, porsi: 0.6 },
+    ]
+    expect(gayaLateralDariGempa(tingkat)).toEqual([12.5, 17.5])
   })
 })
