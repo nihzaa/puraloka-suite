@@ -24,6 +24,7 @@
 import {
   analisaRangka2D,
   type BatangModel,
+  type BebanTitik,
   type HasilBatang,
   type Simpul,
 } from './rangka-model.js'
@@ -153,5 +154,161 @@ export function analisaBalokMenerus(input: InputBalokMenerus): HasilBalokMenerus
     batang: h.batang,
     momenTumpuanKnm,
     catatan: [...h.catatan, CATATAN_BALOK_MENERUS],
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// LAPIS 3 — PORTAL (rangka bergoyang, kolom + balok menyatu kaku)
+// ══════════════════════════════════════════════════════════════════════════════
+
+export interface InputPortal {
+  /** Bentang antar-kolom, m (satu bentang, dua kolom). */
+  bentangM: number
+  /** Tinggi tiap lantai, m — sama untuk semua lantai. */
+  tinggiM: number
+  /** Banyaknya lantai di atas dasar. Minimal 1. */
+  jumlahLantai: number
+  /** Penampang balok, mm. */
+  balok: { bMm: number; hMm: number }
+  /** Penampang kolom, mm. */
+  kolom: { bMm: number; hMm: number }
+  /** Mutu beton f'c, MPa — dipakai untuk balok DAN kolom. */
+  fcMpa: number
+  /** Beban merata terfaktor di tiap balok, kN/m, POSITIF = ke bawah. */
+  qKnM: number
+  /**
+   * Gaya lateral per lantai, kN, urut dari lantai 1 ke atas. Indeks `t`
+   * berarti gaya yang bekerja di lantai `t+1` (elevasi `(t+1)·tinggiM`).
+   *
+   * Sengaja diterima APA ADANYA — `analisaGempaStatik` sudah menghitungnya,
+   * dan menghitung ulang di sini akan membuat dua sumber kebenaran yang bisa
+   * menyimpang tanpa satu pun galat. Dipakai penuh di lapis 4.
+   */
+  gayaLateralKn?: number[]
+}
+
+export interface HasilPortal {
+  batang: HasilBatang[]
+  catatan: string[]
+}
+
+const CATATAN_PORTAL =
+  'Portal 2D satu bidang; kekakuan arah tegak lurus tak ditinjau.'
+
+/**
+ * Portal bertingkat satu bentang — lapis 3.
+ *
+ * Merakit kolom dan balok jadi rangka kaku, lalu menyerahkan perhitungannya
+ * ke `analisaRangka2D`. Yang membedakannya dari `analisaBalokMenerus`: balok
+ * di sini TIDAK bertumpu bebas — ia menyatu kaku dengan kolom, sehingga
+ * sebagian momennya berpindah ke kolom. Karena itu momen tumpuan baloknya
+ * jatuh di antara wL²/12 (kolom sangat kaku) dan wL²/8 (kolom sangat lunak);
+ * tak ada rumus tertutup yang lebih sederhana dari itu.
+ *
+ * Penamaan batang DIPAKAI PEMANGGIL untuk memilah: kolom berawalan `K`,
+ * balok berawalan `B`. Jangan mengubahnya tanpa mengubah pemanggilnya.
+ *
+ * @throws bila geometri, penampang, atau mutu tak masuk akal.
+ */
+export function analisaPortal(input: InputPortal): HasilPortal {
+  // ── 1. Validasi.
+  const { bentangM, tinggiM, jumlahLantai, balok, kolom, fcMpa, qKnM } = input
+  positif('bentang', bentangM)
+  positif('tinggi lantai', tinggiM)
+  if (!Number.isInteger(jumlahLantai) || jumlahLantai < 1) {
+    throw new Error(
+      `Portal butuh minimal 1 lantai, bilangan bulat (diterima: ${jumlahLantai})`,
+    )
+  }
+  positif('b (lebar balok)', balok.bMm)
+  positif('h (tinggi balok)', balok.hMm)
+  positif('b (lebar kolom)', kolom.bMm)
+  positif('h (tinggi kolom)', kolom.hMm)
+  positif("f'c (mutu beton)", fcMpa)
+  /*
+    ⚠ `qKnM` boleh NOL — dan itu bukan kelalaian. Lapis 4 memeriksa beban
+    lateral secara TERISOLASI dengan mematikan gravitasi; menolak nol di sini
+    akan membuat kasus itu mustahil diuji. Yang ditolak hanya bukan-angka.
+  */
+  if (!Number.isFinite(qKnM)) {
+    throw new Error(`q (beban merata) harus angka (diterima: ${qKnM})`)
+  }
+
+  // ── 2. Bahan & penampang. E sama untuk balok dan kolom (satu mutu beton).
+  const eMpa = modulusBeton(fcMpa)
+  const balokI = balok.bMm * balok.hMm ** 3 / 12
+  const balokA = balok.bMm * balok.hMm
+  const kolomI = kolom.bMm * kolom.hMm ** 3 / 12
+  const kolomA = kolom.bMm * kolom.hMm
+
+  /*
+    ── 3. Simpul: dua per lantai (kiri x=0, kanan x=bentang), lantai 0 = dasar.
+    Indeks simpul lantai t: kiri = 2t, kanan = 2t+1. Rumus indeks ini dipakai
+    di tiga tempat di bawah; menyimpannya sebagai fungsi kecil lebih murah
+    daripada menuliskan `2*t` berulang dan salah di salah satunya.
+  */
+  const kiri = (t: number) => 2 * t
+  const kanan = (t: number) => 2 * t + 1
+
+  const simpul: Simpul[] = []
+  for (let t = 0; t <= jumlahLantai; t++) {
+    // Hanya kaki portal yang dijepit; simpul lantai atas bebas bergerak —
+    // itulah yang membuat portal BERGOYANG di bawah beban lateral.
+    const tumpuan: Simpul['tumpuan'] = t === 0 ? 'jepit' : 'bebas'
+    simpul.push({ nama: `S${t}Ki`, xM: 0, yM: t * tinggiM, tumpuan })
+    simpul.push({ nama: `S${t}Ka`, xM: bentangM, yM: t * tinggiM, tumpuan })
+  }
+
+  // ── 4-5. Batang: dua kolom per lantai, satu balok per lantai di atas dasar.
+  const batang: BatangModel[] = []
+  for (let t = 0; t < jumlahLantai; t++) {
+    // Kolom TANPA `qKnM` — beban merata gravitasi bekerja pada balok, bukan
+    // pada kolom. Memberinya ke kolom membuat kolom terlentur oleh beban yang
+    // tak ada, dan aksial kolomnya jadi salah.
+    batang.push({
+      nama: `K${t + 1}Ki`, dari: kiri(t), ke: kiri(t + 1),
+      eMpa, aMm2: kolomA, iMm4: kolomI,
+    })
+    batang.push({
+      nama: `K${t + 1}Ka`, dari: kanan(t), ke: kanan(t + 1),
+      eMpa, aMm2: kolomA, iMm4: kolomI,
+    })
+    // Balok hanya di lantai t+1 (≥ 1) — tak ada balok di elevasi dasar.
+    batang.push({
+      nama: `B${t + 1}`, dari: kiri(t + 1), ke: kanan(t + 1),
+      eMpa, aMm2: balokA, iMm4: balokI, qKnM,
+    })
+  }
+
+  /*
+    ── 6. Gaya lateral: dipasang di simpul KIRI lantai t+1, arah +X.
+
+    Simpul kiri saja, bukan dibagi dua — balok yang menyatu kaku menyalurkan
+    gaya itu ke kolom kanan lewat kekakuan aksialnya sendiri, jadi hasil
+    goyangannya sama. Menaruhnya di satu simpul membuat masukannya persis
+    sama bentuknya dengan keluaran `analisaGempaStatik` (satu angka per
+    lantai), tanpa pembagian yang bisa salah di tengah jalan.
+  */
+  const bebanTitik: BebanTitik[] = []
+  const lateral = input.gayaLateralKn ?? []
+  lateral.forEach((fxKn, t) => {
+    if (!Number.isFinite(fxKn)) {
+      throw new Error(`gayaLateralKn[${t}] harus angka (diterima: ${fxKn})`)
+    }
+    if (t >= jumlahLantai) {
+      throw new Error(
+        `gayaLateralKn punya ${lateral.length} nilai untuk ${jumlahLantai} `
+        + 'lantai — gaya di lantai yang tak ada tak akan pernah bekerja, dan '
+        + 'diamnya bukan galat.',
+      )
+    }
+    if (fxKn !== 0) bebanTitik.push({ simpul: kiri(t + 1), fxKn })
+  })
+
+  // ── 7. Serahkan ke lapis bawah; teruskan catatannya + batas khusus portal.
+  const h = analisaRangka2D(simpul, batang, bebanTitik)
+  return {
+    batang: h.batang,
+    catatan: [...h.catatan, CATATAN_PORTAL],
   }
 }
