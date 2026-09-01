@@ -1339,3 +1339,45 @@ describe('invarian lapis 2-3 lewat API publiknya', () => {
     expect(gagal).toHaveLength(0)
   })
 })
+
+describe('BATANG MIRING berbeban merata — jalur yang tak tersentuh acakan', () => {
+  /*
+    ⚠ Lubang yang DIAKUI penulis berkas ini sendiri: seluruh 540 kombinasi acak
+    memakai batang MENDATAR atau TEGAK saja. Pada batang mendatar cos=1, sin=0,
+    sehingga T dan Tᵀ memberi angka yang sama — penukaran keduanya di
+    `panenReaksi` tak akan terlihat.
+
+    Batang MIRING adalah satu-satunya yang memaksa transformasi bekerja penuh:
+    beban merata searah −y LOKAL menghasilkan resultan GLOBAL (qL·sin, −qL·cos),
+    dua komponen yang keduanya bukan nol.
+
+    Segitiga 3-4-5 dipilih supaya sin=0,6 dan cos=0,8 — pecahan yang tepat,
+    jadi selisih sekecil apa pun bukan galat pembulatan.
+  */
+  const E = 200_000, A = 150_000, I = 300 * 500 ** 3 / 12, q = 20
+
+  it.each([
+    ['3-4-5 (sin 0,6 · cos 0,8)', 4, 3],
+    ['45° (sin = cos)', 5, 5],
+    ['tegak (cos = 0)', 0, 4],
+    ['mendatar (sin = 0) — pembanding', 6, 0],
+  ])('%s: ΣR + Σbeban = 0', (_nama, dx, dy) => {
+    const L = Math.hypot(dx, dy)
+    const h = analisaRangka2D(
+      [{ nama: 'A', xM: 0, yM: 0, tumpuan: 'jepit' },
+        { nama: 'B', xM: dx, yM: dy, tumpuan: 'jepit' }],
+      [{ nama: 'AB', dari: 0, ke: 1, eMpa: E, aMm2: A, iMm4: I, qKnM: q }],
+      [])
+
+    const R = h.reaksi.reduce((a, r) => ({ fx: a.fx + r.fxKn, fy: a.fy + r.fyKn }),
+      { fx: 0, fy: 0 })
+    const cos = dx / L, sin = dy / L
+    /* Resultan beban merata lokal, dibawa ke sumbu global. */
+    const bebanX = q * L * sin
+    const bebanY = -q * L * cos
+
+    const skala = q * L
+    expect(Math.abs(R.fx + bebanX) / skala).toBeLessThan(1e-9)
+    expect(Math.abs(R.fy + bebanY) / skala).toBeLessThan(1e-9)
+  })
+})
