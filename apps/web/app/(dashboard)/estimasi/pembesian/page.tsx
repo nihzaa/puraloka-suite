@@ -925,39 +925,6 @@ export default function PembesianPage() {
               di satu layar dan "1250.50" di layar sebelahnya.
             */
             const num = (n: number) => formatAngka(n, 2);
-            /*
-              Sel angka: rata KANAN + `tabular-nums` supaya digit sejajar ke
-              bawah. Tanpa `tabular-nums`, glif "1" lebih sempit dari "8" dan
-              kolom angkanya terlihat bergoyang — pada tabel yang SELURUH
-              gunanya membandingkan angka, itu merusak gunanya.
-
-              `whiteSpace: nowrap` supaya "−60,00" tak pernah patah jadi dua
-              baris di layar sempit; tabelnya sudah punya `overflowX`.
-            */
-            const selAngka = {
-              padding: "var(--pad-baris)",
-              textAlign: "right" as const,
-              fontVariantNumeric: "tabular-nums" as const,
-              fontFamily: "var(--font-display)",
-              borderBottom: `1px solid ${C.border}`,
-              whiteSpace: "nowrap" as const,
-            };
-            const kepalaAngka = {
-              padding: "var(--pad-baris)",
-              textAlign: "right" as const,
-              fontSize: "var(--teks-label)",
-              fontWeight: 700,
-              color: C.muted,
-              borderBottom: `1px solid ${C.border}`,
-              whiteSpace: "nowrap" as const,
-            };
-            const selJumlah = {
-              ...selAngka,
-              fontWeight: 700,
-              color: C.navy,
-              borderBottom: "none",
-              borderTop: `2px solid ${C.border}`,
-            };
 
             return (
               <Kartu>
