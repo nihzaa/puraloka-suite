@@ -51,6 +51,14 @@ import { analisaKolomLengkap, analisaKolomBulatLengkap } from '../../lib/struktu
 import {
   sarankanBalok, sarankanKolom, sarankanBalokDariBeban,
 } from '../../lib/struktur-saran.js'
+/*
+  Solver rangka 2D. `sarankanDariRangka` memanggil solver SEKALI lalu
+  mengusulkan pembesian tiap batangnya; `gambarDiagramRangka` menggambar
+  M/V/lendutan dari deret titik solver itu sendiri — bukan dari rumus, supaya
+  yang tampil di layar benar-benar hasil hitungan yang memilih tulangannya.
+*/
+import { sarankanDariRangka } from '../../lib/rangka-ke-saran.js'
+import { gambarDiagramRangka } from '../../lib/rangka-gambar.js'
 import { jelaskan, ringkasanAwam, tingkatBahaya, apakahBiner } from '../../lib/struktur-awam.js'
 import {
   usulanDariElemen, gabungUsulan, assemblyCocok,
@@ -1740,6 +1748,73 @@ export default async function strukturRoutes(app: FastifyInstance) {
           })
 
         return reply.send({ jenis: b.jenis, ...hasil })
+      } catch (e) {
+        // 400, bukan 500 — yang salah masukannya, dan pesannya menyebut medannya.
+        return reply.status(400).send({ error: (e as Error).message })
+      }
+    })
+
+  /*
+    Analisa rangka 2D — tingkat ketelitian KETIGA untuk pertanyaan yang sama
+    ("besinya berapa?"):
+
+      angka langsung  ->  koefisien pendekatan  ->  analisa rangka
+
+    Bedanya dengan `saran-pembesian`: di sana Mu/Vu diketik pemakai atau
+    ditaksir dari koefisien pendekatan satu-elemen; di sini SELURUH portal
+    diselesaikan sekaligus (kekakuan relatif kolom-balok ikut bekerja), lalu
+    tiap batang mendapat usulan pembesiannya sendiri dari gaya batang itu.
+
+    Izinnya SENGAJA sama dengan `saran-pembesian` — `cecep:struktur:view`.
+    Kunci baru yang belum ada di tabel `permissions` menolak SEMUA orang
+    tanpa satu pun galat yang menyebut sebabnya.
+  */
+  app.post<{
+    Body: {
+      portal?: {
+        bentangM?: number; tinggiM?: number; jumlahLantai?: number
+        balok?: { bMm?: number; hMm?: number }
+        kolom?: { bMm?: number; hMm?: number }
+        fcMpa?: number; qKnM?: number; gayaLateralKn?: number[]
+      }
+      selimutMm?: number
+      mutu?: { fcMpa?: number; fyMpa?: number; fyvMpa?: number }
+      gambar?: boolean
+    }
+  }>(
+    '/api/v1/struktur/analisa-rangka',
+    { preHandler: [authenticate, requirePermission('cecep:struktur:view')] },
+    async (request, reply) => {
+      const b = request.body ?? {}
+      try {
+        const hasil = sarankanDariRangka({
+          portal: b.portal as never,
+          selimutMm: Number(b.selimutMm),
+          mutu: {
+            fcMpa: Number(b.mutu?.fcMpa),
+            fyMpa: Number(b.mutu?.fyMpa),
+            ...(b.mutu?.fyvMpa == null ? {} : { fyvMpa: Number(b.mutu.fyvMpa) }),
+          },
+        })
+
+        /*
+          Gambar OPSIONAL. Tiga panel × jumlah batang bisa puluhan KB, dan
+          pemanggil yang cuma butuh angkanya (mis. mengisi RAB) tak perlu
+          menanggungnya. Pola yang sama dengan rute `beban-balok`.
+        */
+        const gambar = b.gambar === false ? undefined : Object.fromEntries(
+          hasil.rangka.batang.map((batang) => [
+            batang.nama,
+            gambarDiagramRangka(
+              batang,
+              batang.nama.startsWith('K')
+                ? Number(b.portal?.tinggiM)
+                : Number(b.portal?.bentangM),
+            ),
+          ]),
+        )
+
+        return reply.send({ ...hasil, gambar })
       } catch (e) {
         // 400, bukan 500 — yang salah masukannya, dan pesannya menyebut medannya.
         return reply.status(400).send({ error: (e as Error).message })
