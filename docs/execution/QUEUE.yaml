@@ -3620,7 +3620,7 @@ items:
       - "jalankan-a11y-lengkap.mjs --gelap dijalankan MINIMAL sekali untuk admin-portal — belum pernah sama sekali sejak portal ini dimulai"
     cara_verifikasi: "LAYAR_EMAIL=… LAYAR_SANDI=… node apps/web/scripts/jalankan-a11y-lengkap.mjs (lalu --gelap) — filter hasil JSON untuk url yang mengandung admin-portal, laporkan JUMLAH halaman admin-portal yang benar-benar ter-scan (bukan cuma total keseluruhan)"
     bobot: S
-    status: menunggu
+    status: done
     catatan_kemajuan: >-
       Ditemukan Task 5 (2026-08-22, verifikasi akhir Tahap 1 Portal
       Admin/Direktur Lengkap). Run a11y mode terang PERTAMA (159 halaman)
@@ -3641,6 +3641,19 @@ items:
       Task 30 Portal PM), tapi merekomendasikan item QUEUE ini dibuat
       supaya konfirmasi runtime tak hilang begitu JOURNAL/plan bertambah
       panjang.
+      SELESAI 2026-09-01. Kedua kriteria diukur, bukan diasumsikan.
+
+      TERANG  /admin-portal  28 halaman  0 pelanggaran
+      GELAP   /admin-portal  28 halaman  0 pelanggaran
+
+      Mode gelap ini yang pertama kali dijalankan sejak portal dimulai —
+      kriteria kedua item ini. aria-hidden-focus tak muncul di keduanya,
+      jadi fix accessibilityLayer={false} terkonfirmasi runtime.
+
+      Sekalian ketiga portal lain, kedua mode:
+        pm-portal 66 · mandor-portal 19 · portal(klien) 3 — semua 0.
+      Total 116 halaman x 2 mode = 232 pemindaian, nol pelanggaran.
+
   - id: TRG-PROTECT-BUILTIN-ROLES-TENANT-SCOPE
     fase: 3
     judul: "trg_protect_builtin_roles (migrasi 050) menolak DELETE atas role is_builtin=true TANPA memandang company_id — tenant asli tak bisa hapus role hasil salinan"
@@ -3650,7 +3663,7 @@ items:
       - "tenant admin bisa DELETE role miliknya sendiri yang is_builtin=true (hasil salinan provisioning), role TEMPLATE global tetap terlindungi seperti semula"
     cara_verifikasi: "sebagai admin tenant, coba hapus salah satu role bawaan hasil provisioning (mis. 'mandor') — harus berhasil; coba hapus role TEMPLATE (company_id NULL) — harus tetap ditolak"
     bobot: S
-    status: menunggu
+    status: done
     catatan_kemajuan: >-
       Ditemukan 2026-08-22 saat implementasi Admin SaaS Task A7
       (db/migrations/506_admin_saas_fn_instantiate_roles.sql — fungsi
@@ -3698,3 +3711,17 @@ items:
       dengan item ini: begitu trigger diperbaiki (scope company_id),
       DELETE role tenant akan berhasil dan kebocoran baris uji ini pun
       otomatis berhenti tanpa perlu sentuhan terpisah ke test-nya.
+      SELESAI (terverifikasi 2026-09-01, perbaikannya sendiri sudah ada
+      lebih dulu — statusnya saja yang tertinggal).
+
+      Fungsi di basis kini memeriksa company_id:
+        IF OLD.is_builtin = true AND OLD.company_id IS NULL THEN RAISE
+
+      Dibuktikan PERILAKUNYA, bukan dari membaca prosrc — fungsi yang
+      benar bisa terpasang pada trigger yang salah waktunya, atau tak
+      terpasang sama sekali:
+
+        template global (company_id NULL) : DELETE DITOLAK  ✓
+        salinan tenant (company_id ada)   : DELETE BOLEH    ✓
+
+      Diuji di dalam transaksi yang di-ROLLBACK — nol jejak di basis.

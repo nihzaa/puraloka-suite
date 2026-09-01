@@ -12,7 +12,8 @@
 // jalur yang sudah bekerja untuk lingkungan yang belum punya `my-scopes`.
 // ============================================================================
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useData } from "@/lib/data-cache";
 import { api } from "@/lib/api";
 import { type Penugasan, type LingkupKerja, type GalatApi, pesanGalat } from "../_bersama/tipe";
 import { ChevronDown, ChevronUp, Layers, TrendingUp } from "lucide-react";
@@ -77,39 +78,72 @@ interface LingkupTampil extends LingkupKerja {
 }
 
 export default function MandorScopePage() {
-  const [scopes, setScopes] = useState<LingkupTampil[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [galatMuat, setGalatMuat] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
+  /*
+    ── Pindah ke `useData` (F4-2), fallback DIPERTAHANKAN ────────────────
+
+    Halaman ini salah satu dari tiga di portal yang masih memakai
+    `useEffect` + `api.get` langsung — tanpa lapis cache, jadi tiap
+    kunjungan memuat ulang dari nol meski datanya baru saja diambil.
+
+    Fallback berantai (`my-scopes` gagal → `assignments`) tak bisa
+    dipetakan lurus ke satu `useData`, jadi dipakai DUA: yang kedua
+    URL-nya `null` — dan karena itu tak pernah dipanggil — sampai yang
+    pertama benar-benar gagal.
+
+    ⚠ Fallback-nya TIDAK dibuang meski `/mandor/my-scopes` terbukti hidup
+    (diukur 2026-09-01: 200). Membuangnya keputusan terpisah dari
+    memindahkan ke cache, dan menggabung dua perubahan membuat yang mana
+    pun sulit dilacak kalau ada yang patah.
+  */
+  const {
+    data: dataScopes,
+    memuat: memuatScopes,
+    galat: galatScopes,
+  } = useData<{ scopes: LingkupTampil[] }>("/api/v1/mandor/my-scopes");
+
+  const {
+    data: dataAsg,
+    memuat: memuatAsg,
+    galat: galatAsg,
+  } = useData<{ assignments: Penugasan[] }>(galatScopes ? "/api/v1/mandor/assignments" : null);
+
+  const scopes: LingkupTampil[] = useMemo(() => {
+    if (!galatScopes) return dataScopes?.scopes ?? [];
+    return (dataAsg?.assignments ?? []).flatMap((a) =>
+      (a.work_scopes ?? []).map((s) => ({
+        ...s, project: a.project, contract_value: s.borongan_value ?? 0,
+        total_kasbon: 0, total_progress_paid: 0, financial_pct: 0, settlement: null,
+      })));
+  }, [galatScopes, dataScopes, dataAsg]);
+
+  const loading = memuatScopes || (galatScopes ? memuatAsg : false);
+
+  /*
+    Galat hanya dilaporkan kalau KEDUANYA gagal. Selama fallback masih
+    berjalan atau berhasil, halaman ini tak punya kabar buruk untuk
+    disampaikan — dan memunculkan pesan galat di atas data yang berhasil
+    dimuat justru menyesatkan.
+  */
+  const galatMuat = galatScopes && galatAsg
+    ? pesanGalat(galatAsg as GalatApi, "Coba muat ulang halaman ini.")
+    : null;
+
+  /*
+    Lingkup aktif dibuka otomatis — sekali per kumpulan data, bukan tiap
+    render. Dipisah dari pengambilan datanya supaya `setExpanded` tak
+    menimpa lipatan yang sudah diubah pengguna saat cache menyegarkan
+    diri di latar.
+  */
+  const kunciScopes = scopes.map((s) => s.id).join(",");
   useEffect(() => {
-    // Coba endpoint my-scopes dulu, fallback ke assignments jika belum ada.
-    // DIPERTAHANKAN dari versi lama — lihat catatan header berkas.
-    api.get<{ scopes: LingkupTampil[] }>("/api/v1/mandor/my-scopes").then((res) => {
-      const list = res.data?.scopes ?? [];
-      setScopes(list);
-      const init: Record<string, boolean> = {};
-      list.forEach((s) => { if (s.status === "active") init[s.id] = true; });
-      setExpanded(init);
-      setGalatMuat(null);
-    }).catch(() => {
-      api.get<{ assignments: Penugasan[] }>("/api/v1/mandor/assignments").then((r) => {
-        const asgns = r.data?.assignments ?? [];
-        const allScopes: LingkupTampil[] = asgns.flatMap((a) =>
-          (a.work_scopes ?? []).map((s) => ({
-            ...s, project: a.project, contract_value: s.borongan_value ?? 0,
-            total_kasbon: 0, total_progress_paid: 0, financial_pct: 0, settlement: null,
-          })));
-        setScopes(allScopes);
-        const init: Record<string, boolean> = {};
-        allScopes.forEach((s) => { if (s.status === "active") init[s.id] = true; });
-        setExpanded(init);
-        setGalatMuat(null);
-      }).catch((e) => {
-        setGalatMuat(pesanGalat(e as GalatApi, "Coba muat ulang halaman ini."));
-      });
-    }).finally(() => setLoading(false));
-  }, []);
+    if (scopes.length === 0) return;
+    const init: Record<string, boolean> = {};
+    scopes.forEach((s) => { if (s.status === "active") init[s.id] = true; });
+    setExpanded(init);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kunciScopes]);
 
   // Buat tampilan per proyek dengan grouping
   const byProject: Record<string, { projectName: string; scopes: LingkupTampil[] }> = {};
