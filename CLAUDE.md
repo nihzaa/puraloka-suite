@@ -555,6 +555,34 @@ di skrip a11y: MSYS mengubah path absolut jadi path Windows, dan
 `$TMPDIR/bundle` berakhir sebagai `C:\Program Files\Git\bundle`. Pakai
 `MSYS_NO_PATHCONV=1` dan path relatif.
 
+⚠ **`git show <ref>:<berkas>` DIRUSAK Git Bash — dan diamnya menipu.**
+
+Keluarga yang sama dengan `--url` dan `--output-dir` di atas, tetapi
+gejalanya lebih halus. MSYS mengubah `:` jadi `;` DAN `/` jadi `\`:
+
+```
+git show origin/main:.github/workflows/ci.yml
+→ fatal: Not a valid object name origin\main;.github\workflows\ci.yml
+```
+
+Yang berbahaya: galat itu ke **stderr**, jadi `git show … > berkas.yml`
+menghasilkan berkas **KOSONG** dengan exit code yang mudah terabaikan.
+Alat berikutnya lalu menjawab sesuatu yang terdengar seperti temuan —
+js-yaml membalas *"expected a document, but the input is empty"* — dan
+itu terbaca sebagai **"berkasnya rusak"**, bukan **"perintahnya gagal"**.
+
+Diukur 2026-09-01: saya sempat menyimpulkan `origin/main` sudah sah
+padahal ia masih memuat `ci.yml` yang rusak. Kesimpulan yang menenangkan,
+dari perintah yang tak pernah berjalan.
+
+```bash
+MSYS_NO_PATHCONV=1 git show "origin/main:.github/workflows/ci.yml"
+```
+
+Aturannya sama seperti jebakan CR dan pemantau EAS: **nol keluaran bukan
+bukti ketiadaan.** Periksa exit code, atau bandingkan `wc -l` dengan
+harapan yang masuk akal.
+
 ⚠ **pnpm v11 MENGABAIKAN `.npmrc` — diam-diam.** Setelan seperti
 `public-hoist-pattern` harus di `pnpm-workspace.yaml` (tempat `allowBuilds`,
 `verifyDepsBeforeRun`, dan `overrides` sudah berada). Ditulis di `.npmrc`,
