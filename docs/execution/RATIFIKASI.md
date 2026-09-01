@@ -4249,6 +4249,56 @@ pernah di-replay. CI kembali hijau atas basis yang tak pernah dibangun.
 kehilangan satu syarat yang sudah ada di blok sebelahnya). B menambah dua
 berkas untuk hasil akhir yang sama; C bukan perbaikan.
 
+#### Satu angka yang menutup keraguannya
+
+Ditambahkan 2026-09-02, diukur dua sesi secara terpisah ke basis yang sama:
+
+```sql
+SELECT count(*) FROM menu_items g
+ WHERE g.parent_id IS NULL AND NOT g.is_active
+   AND EXISTS (SELECT 1 FROM menu_items a
+                WHERE a.parent_id = g.id AND a.is_active);
+-- → 0
+```
+
+**Nol baris** yang akan disentuh blok (2) di basis ini. Artinya opsi A
+tak mengubah satu baris data pun — ia hanya memperbaiki perilaku migrasi
+saat di-*replay dari nol* (lingkungan CI, dan tenant baru nanti).
+
+Itu penting karena "mengubah migrasi yang sudah tercatat" terdengar jauh
+lebih menakutkan daripada dampaknya di sini. Yang berubah adalah
+**berkasnya**, bukan **datanya**.
+
+Yang founder perlukan cuma satu kalimat izin — G-2 adalah aturan yang
+founder tetapkan sendiri, dan yang menahan kami bukan kesulitan teknisnya.
+
+#### Patch persis yang diusulkan (opsi A)
+
+Satu syarat ditambahkan ke blok (2) — syarat yang sudah ada di blok (1):
+
+```diff
+  -- ── (2) Induk: hidupkan yang kini punya anak aktif ─────────────────────
+  UPDATE menu_items g
+     SET is_active = TRUE, updated_at = now()
+   WHERE g.parent_id IS NULL
+     AND NOT g.is_active
+     AND EXISTS (
+       SELECT 1 FROM menu_items a
+        WHERE a.parent_id = g.id AND a.is_active)
++    -- href induk tak boleh menabrak menu aktif lain. Blok (1) sudah
++    -- memeriksanya; blok ini tertinggal, dan itulah yang membuat
++    -- verifikasi migrasi ini gagal atas perbuatannya sendiri.
++    AND (g.href IS NULL OR NOT EXISTS (
++      SELECT 1 FROM menu_items x
++       WHERE x.is_active AND x.href = g.href AND x.id <> g.id));
+```
+
+`g.href IS NULL OR …` — induk tanpa href memang tak bisa menabrak apa pun,
+dan mayoritas grup memang begitu (diukur: 37 dari 40 induk ber-href NULL).
+Tanpa cabang itu, `NOT EXISTS` atas `NULL = NULL` akan menolak semuanya.
+
+Diff-nya tiga baris kode. Itu seluruh perubahannya.
+
 ### Yang TIDAK saya lakukan
 
 Tak satu pun dari ketiganya. G-2 menuntut keputusan founder lebih dulu,
