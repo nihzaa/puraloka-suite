@@ -73,6 +73,15 @@ const HALAMAN = [
   ['admin-keuangan', '/admin-portal/keuangan/kas', EMAIL],
   ['pm-portal', '/pm-portal', process.env.LAYAR_EMAIL_PM ?? 'uji.pm.portal@puraloka.test'],
   ['mandor-portal', '/mandor-portal', process.env.LAYAR_EMAIL_MANDOR ?? 'uji.mandor.portal@puraloka.test'],
+  /*
+    Portal KLIEN — satu-satunya yang dilihat orang di luar perusahaan.
+
+    Cacat di sini bukan cuma soal kerja jadi lambat: ia dilihat pelanggan
+    yang sedang menilai apakah kontraktornya rapi. Dan justru portal ini
+    yang paling lama tak pernah terpotret — sandinya tak diketahui siapa
+    pun sampai 2026-09-01.
+  */
+  ['portal-klien', '/portal', process.env.LAYAR_EMAIL_KLIEN ?? 'uji.klien.portal@puraloka.test'],
 ]
 
 /* Dua lebar yang mewakili sisi berlawanan dari breakpoint 1024px. */
