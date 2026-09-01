@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 302 dokumen** — antrean 16 · acuan 217 · riwayat 69.
+**Total 304 dokumen** — antrean 17 · acuan 218 · riwayat 69.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -133,6 +133,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [2026-08-22-admin-saas-fondasi](superpowers/plans/2026-08-22-admin-saas-fondasi.md) | antrean | ✓ | Admin SaaS — Fondasi Implementation Plan |
 | [2026-08-22-n8n-shared-multi-tenant](superpowers/plans/2026-08-22-n8n-shared-multi-tenant.md) | riwayat |  | n8n Shared Multi-Tenant Implementation Plan |
 | [2026-08-22-portal-admin-direktur-lengkap](superpowers/plans/2026-08-22-portal-admin-direktur-lengkap.md) | riwayat |  | Portal Admin/Direktur Lengkap Implementation Plan |
+| [2026-09-01-solver-rangka-2d](superpowers/plans/2026-09-01-solver-rangka-2d.md) | antrean |  | Solver Rangka 2D — Implementation Plan |
 
 ### `docs/superpowers/specs`
 
@@ -148,6 +149,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [2026-08-22-admin-saas-platform-design](superpowers/specs/2026-08-22-admin-saas-platform-design.md) | acuan | ✓ | Spec: Admin SaaS Platform (back-office vendor console) |
 | [2026-08-22-n8n-shared-multi-tenant-design](superpowers/specs/2026-08-22-n8n-shared-multi-tenant-design.md) | acuan |  | Spec: n8n Shared Multi-Tenant |
 | [2026-08-22-portal-admin-direktur-design](superpowers/specs/2026-08-22-portal-admin-direktur-design.md) | acuan |  | Portal Admin/Direktur Lengkap — Design Spec |
+| [2026-09-01-solver-rangka-2d-design](superpowers/specs/2026-09-01-solver-rangka-2d-design.md) | acuan |  | Solver Rangka 2D — Design Spec |
 
 ### `docs/superpowers/specs/2026-07-18-enterprise-architecture`
 

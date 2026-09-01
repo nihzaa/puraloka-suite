@@ -5,6 +5,80 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-01 (lanjutan) — solver rangka 2D lapis 1-5, dan EMPAT cacat di plan saya sendiri
+
+Bagian 2 dari pekerjaan yang dipicu iklan PortalRC. Lima lapis solver selesai
+dan terbukti; rute + layar + diagram SENGAJA belum dikerjakan.
+
+### Yang dibangun
+
+    rangka-matriks.ts   matriks 6x6, transformasi, penyelesai Gauss   f1726d1e
+    rangka-model.ts     gaya dalam + lendutan, deteksi struktur labil ba52a152
+    rangka-portal.ts    balok menerus (lapis 2)                       6377f82d
+                        portal gravitasi (lapis 3)                    b07e410a
+                        beban lateral (lapis 4)                       b9d6c29b
+    rangka-truss.ts     rangka batang (lapis 5)                       cea6ecdf
+    (perbaikan puncak momen & lendutan analitis)                      e8a59e25
+
+34 test hijau, `tsc --noEmit` exit 0 TANPA filter, 214 penjaga CI hijau
+(0 "tak ketemu"). Tiga merah tersisa nol menyebut kerja ini.
+
+### EMPAT cacat di plan, semuanya ditemukan subagent, semuanya LOLOS TEST
+
+Ini bagian yang paling layak dicatat, karena keempatnya berbentuk sama:
+**test yang hijau atas hal yang salah.**
+
+1. **Rumus EA/L meleset 1000x.** Lolos karena test saya memakai
+   E=A=I=L=1 — pada angka satu, faktor 1000 tak terlihat sama sekali.
+   Ditemukan saat self-review, sebelum kode ditulis.
+
+2. **Integrasi trapesium untuk lendutan.** KEDUA test lendutan HIJAU
+   karena ujung batang dipaku syarat batas, sementara titik tengah
+   meleset 1,6-22% (jepit-jepit di x=0,6 m: -0,00653 vs -0,00840 mm).
+   Diagram yang dibaca pengguna salah di sepanjang bentang, nol galat.
+
+3. **Puncak momen terlewat jaring cuplikan.** Solver eksak di 11 titik
+   (beda ~1e-14), tapi puncak di x=0,375L jatuh DI ANTARA dua titik:
+   50,400 vs 50,625 kNm — meleset 0,4448%, dan SELALU ke bawah. Untuk
+   angka yang memilih tulangan, meleset ke bawah = tulangan kurang.
+   Lendutan punya bias sama 0,2977%, dan itu meluluskan balok yang
+   sesungguhnya tak lulus L/240.
+
+4. **Batas portal SALAH SECARA FISIKA.** Plan menulis M tumpuan terkurung
+   "antara wL2/12 dan wL2/8". Arahnya terbalik: wL2/8 adalah momen
+   LAPANGAN balok sederhana, dan balok sederhana bermomen tumpuan NOL.
+   Yang benar 0 < M < wL2/12. Batas lama menuntut > 51 kNm untuk kolom
+   400x400 — penampang LAZIM — jadi test plan merah pada geometrinya
+   sendiri (41,93).
+
+   Diganti yang lebih tajam: **M tumpuan + M lapangan = wL2/8 PERSIS**,
+   kekakuan kolom berapa pun. Terukur 90,000 di kelima kekakuan
+   (50^2 sampai 2000^2).
+
+Saya verifikasi ulang keempatnya sendiri, tidak percaya laporan subagent
+begitu saja — dan keempat klaimnya benar.
+
+### Satu mutasi yang tetap HIJAU, dan itu memang benar
+
+Inersia x1,5 pada balok menerus tak memerahkan test apa pun. Subagent
+melaporkannya alih-alih "memperbaiki" test: distribusi momen balok
+menerus berkekakuan SERAGAM memang tak bergantung EI (EI hilang dari
+persamaan tiga momen bila sama di semua bentang). Test yang merah untuk
+mutasi itu justru akan salah secara fisika.
+
+### Yang BELUM dikerjakan — jangan dibaca sebagai selesai
+
+- **Rute, layar, dan diagram SVG.** Sengaja ditunda: menyambungkan solver
+  ke layar sebelum angkanya terbukti berarti menampilkan angka yang belum
+  tentu benar kepada orang yang memakainya memilih tulangan.
+- **Menyambung `analisaTruss` ke `analisaRangka`** di struktur-baja-rangka.ts
+  (yang `gayaKn`-nya masih input).
+- **Kombinasi 1,4D dan 1,2D+1,6L** belum dirakit di lapis portal — beban
+  masuk sebagai satu nilai `qKnM` terfaktor.
+- Solver belum dipakai siapa pun. Ia benar, dan ia belum berguna.
+
+---
+
 ## 2026-09-01 — otomasi: saya mengukur tabel yang salah, lalu meminta founder memutuskan hal yang tak ada
 
 ### Saya salah
