@@ -207,8 +207,39 @@ cukup — harus `docker compose up -d --build web`.
 ## 8. Memperbarui nanti
 
 ```bash
-cd /srv/puraloka-suite && git pull && docker compose up -d --build
+ssh root@187.52.124.41 "/srv/puraloka-suite/infra/perbarui-vps.sh"
 ```
+
+### ⚠ VPS men-deploy `main`. Bukan cabang lain. Sebutkan ini, jangan diasumsikan.
+
+Dokumen ini semula menulis `git pull` tanpa menyebut cabang sama sekali, dan
+celah itu menggigit 2026-09-01: 52 commit menumpuk di `deploy/vps-perdana`
+sementara VPS melacak `main`. Deploy dijalankan, **seluruh langkahnya hijau** —
+`api=healthy`, `web=healthy`, ketiga URL 200 — dan versi terpasang **tidak
+berubah sama sekali**.
+
+Skripnya jujur: ia menarik cabang yang benar menurut setelannya. Yang salah
+adalah asumsi bahwa "cabang tempat saya bekerja" = "cabang yang di-deploy".
+
+Gejalanya paling berbahaya justru karena TAK ADA gejala: nol galat, nol
+container tak sehat, nol URL merah. Satu-satunya yang menunjukkannya adalah
+baris terakhir skrip (`Versi terpasang: <hash>`) — dan hash yang tak berubah
+mudah terbaca sebagai "memang tak ada perubahan".
+
+**Sebelum menyimpulkan deploy berhasil, BANDINGKAN hash-nya:**
+
+```bash
+git rev-parse --short origin/main                                   # yang seharusnya
+ssh root@187.52.124.41 "cd /srv/puraloka-suite && git rev-parse --short HEAD"
+```
+
+Kalau kerjamu ada di cabang lain, naikkan dulu ke `main` (fast-forward bila
+tak ada divergensi — ukur: `git rev-list --count origin/<cabang>..origin/main`
+harus 0), baru deploy.
+
+**Dan "container healthy" TIDAK membuktikan kode barunya termuat.** Uji
+PERILAKU yang hanya ada di versi baru — mis. rute yang baru ditambahkan harus
+membalas 200/401, bukan 404.
 
 Ganti domain (saat nama fix): ubah `DOMAIN_WEB`/`DOMAIN_API`/`API_URL_PUBLIK`
 di `.env.deploy`, lalu `docker compose up -d --build`. Tak ada alamat yang
