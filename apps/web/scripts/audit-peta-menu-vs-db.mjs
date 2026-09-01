@@ -116,8 +116,18 @@ try {
   }
   const db = koneksi.buatClient('DIRECT_URL')
   await db.connect()
+  /*
+    `punya_anak` ikut diambil — dipakai mengukur premis pelonggaran
+    `hanyaDb` di bawah.
+
+    Struktur, BUKAN nama: dua daun bernama `g-kas-bank` dan `g-piutang`
+    tak punya anak sama sekali. Menyaring grup lewat awalan `g-` akan
+    melewatkan keduanya diam-diam, dan diamnya terbaca seperti "tak ada".
+  */
   const r = await db.query(
-    `SELECT key, label, href FROM menu_items WHERE is_active ORDER BY key`)
+    `SELECT m.key, m.label, m.href,
+            EXISTS (SELECT 1 FROM menu_items ch WHERE ch.parent_id = m.id) AS punya_anak
+       FROM menu_items m WHERE m.is_active ORDER BY m.key`)
   await db.end()
   baris = r.rows
 } catch (e) {
@@ -126,7 +136,7 @@ try {
   process.exit(0)
 }
 
-const petaDb = new Map(baris.map((r) => [r.key, { href: r.href, label: r.label }]))
+const petaDb = new Map(baris.map((r) => [r.key, { href: r.href, label: r.label, punyaAnak: r.punya_anak === true }]))
 
 // ── Bandingkan ──────────────────────────────────────────────────────────────
 const hrefBeda = []
@@ -149,7 +159,20 @@ for (const [key, db] of petaDb) {
   //
   // Diukur: seluruh `g-*` di basis ber-href NULL (0 dari 37 punya href),
   // jadi tak satu pun dari mereka pernah lolos pengecualian ini.
-  if (key.startsWith('g-') && db.href === null) continue
+  //
+  // ⚠ Disaring lewat STRUKTUR (`punyaAnak`), bukan nama — dan itu bukan
+  // kehati-hatian teoretis.
+  //
+  // Versi sebelumnya memakai `key.startsWith('g-')` saja, dan uji mutasi
+  // membuktikan DUA menu lolos: `g-kas-bank` dan `g-piutang`. Keduanya
+  // bernama seperti grup tetapi TAK punya anak sama sekali — jadi mereka
+  // daun, dan daun tanpa href yang hilang dari peta akan menampilkan
+  // "Menu tidak dikenal" saat diklik.
+  //
+  // Yang menyelamatkan hanya karena keduanya kebetulan nonaktif hari ini.
+  // Nama bukan struktur; menyaring dengan nama berarti bergantung pada
+  // konvensi penamaan yang tak dijaga siapa pun.
+  if (key.startsWith('g-') && db.href === null && db.punyaAnak) continue
 
   const ts = petaTs.get(key)
 
@@ -165,9 +188,22 @@ for (const [key, db] of petaDb) {
     tak satu pun bisa menampilkan "Menu tidak dikenal" — dan hutang yang
     tak bisa dilunasi mengajari orang mengabaikan penjaganya.
 
-    Yang benar-benar berisiko: menu tanpa href yang tak ada di peta. Ada
-    TIGA, dan ketiganya nonaktif (tak muncul di sidebar, jadi tak bisa
-    diklik siapa pun).
+    ⚠ Yang menentukan sahnya pelonggaran ini BUKAN angka 380/383,
+    melainkan satu angka yang bisa berubah kapan saja:
+
+        daun TANPA href DAN AKTIF = 0
+
+    Selama nol, tak ada menu yang bisa diklik lalu menampilkan "Menu tidak
+    dikenal", dan pelonggaran ini tak menyembunyikan apa pun. Begitu ada
+    satu saja yang dihidupkan, penjaga ini WAJIB merahkannya — dan itu
+    yang diuji mutasi arah ketiga (menghidupkan menu nonaktif tanpa href;
+    terbukti MERAH, lalu dipulihkan).
+
+    Tiga daun tanpa href saat ini — `yt-sdm-klaim`, `g-kas-bank`,
+    `g-piutang` — semuanya NONAKTIF. Dua yang berawalan `g-` menyesatkan:
+    namanya seperti grup, tetapi keduanya tak punya anak, jadi mereka daun
+    dan TIDAK dilewati pengecualian `g-*` di atas. Menyaring berdasarkan
+    nama alih-alih struktur akan melewatkan keduanya diam-diam.
   */
   if (!ts) {
     if (db.href !== null && db.href !== `/m/${key}`) continue
@@ -204,6 +240,34 @@ console.log(`  entri aktif di DB     : ${petaDb.size}`)
 console.log(`  href berbeda          : ${hrefBeda.length}`)
 console.log(`  label berbeda         : ${labelBeda.length}`)
 console.log(`  ada di DB, tidak di TS: ${hanyaDb.length}`)
+
+/*
+  ── PREMIS pelonggaran `hanyaDb`, DIUKUR tiap jalan ──────────────────────
+
+  Menu ber-href dilewati dari `hanyaDb` karena ia tak pernah melewati
+  `/m/<key>`. Itu sah HANYA selama tak ada menu AKTIF tanpa href yang
+  hilang dari peta — begitu ada satu, ia bisa diklik dan menampilkan
+  "Menu tidak dikenal".
+
+  Premis yang cuma ditulis di komentar akan tetap terbaca benar lama
+  sesudah ia berhenti benar. Diukur di sini supaya keruntuhannya terlihat
+  di keluaran, bukan ditemukan orang lain di layar.
+
+  ⚠ Disaring lewat STRUKTUR (`punyaAnak`), bukan nama. Dua daun bernama
+  `g-kas-bank` dan `g-piutang` tak punya anak sama sekali; menyaring
+  berdasarkan awalan `g-` akan melewatkan keduanya diam-diam.
+*/
+const tanpaHrefAktif = [...petaDb.entries()].filter(
+  ([key, db]) => (db.href === null || db.href === `/m/${key}`) && !db.punyaAnak
+)
+console.log(`  menu AKTIF tanpa href : ${tanpaHrefAktif.length}  (premis pelonggaran hanyaDb)`)
+if (tanpaHrefAktif.length > 0) {
+  const hilang = tanpaHrefAktif.filter(([key]) => !petaTs.has(key)).map(([key]) => key)
+  if (hilang.length > 0) {
+    console.log(`     ⚠ ${hilang.length} di antaranya TAK ADA di peta-menu.ts: ${hilang.join(', ')}`)
+    console.log('       Menu ini BISA diklik dan akan menampilkan "Menu tidak dikenal".')
+  }
+}
 
 if (hrefBeda.length) {
   console.log('\n— href berbeda (sidebar memakai kolom DB):')
