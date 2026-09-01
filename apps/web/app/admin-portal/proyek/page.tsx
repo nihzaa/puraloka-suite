@@ -118,7 +118,7 @@ export default function AdminProyekPage() {
                       <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Serapan Anggaran</span>
                       <span style={{ fontSize: 12, fontWeight: 700, color: "var(--navy)", fontVariantNumeric: "tabular-nums" }}>{progres}%</span>
                     </div>
-                    <div style={{ height: 6, background: "var(--surface-subtle)", borderRadius: 999, overflow: "hidden" }}>
+                    <div style={{ height: 6, background: "var(--jalur-progres)", borderRadius: 999, overflow: "hidden" }}>
                       <div style={{
                         height: "100%", borderRadius: 999, width: `${progres}%`,
                         background: terlambat ? "var(--danger)" : "var(--grad-aksen)",

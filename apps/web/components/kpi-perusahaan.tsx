@@ -236,7 +236,7 @@ export function KpiPerusahaan() {
               borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : "none",
             }}>
               <div style={{ color: nilai > 0 && gawat ? "var(--danger)" : C.mid }}>{label}</div>
-              <div style={{ height: 6, background: "var(--surface-subtle)", borderRadius: 999, overflow: "hidden" }}>
+              <div style={{ height: 6, background: "var(--jalur-progres)", borderRadius: 999, overflow: "hidden" }}>
                 <div style={{
                   width: `${pct}%`, height: "100%",
                   background: gawat ? "var(--danger)" : C.navy,

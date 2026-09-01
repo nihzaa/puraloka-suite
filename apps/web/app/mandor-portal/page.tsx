@@ -203,7 +203,7 @@ export default function MandorBerandaPage() {
                     {pct}%
                   </span>
                 </div>
-                <div style={{ height: 6, background: "var(--surface-subtle)", borderRadius: 6, overflow: "hidden" }}>
+                <div style={{ height: 6, background: "var(--jalur-progres)", borderRadius: 6, overflow: "hidden" }}>
                   <div
                     style={{
                       height: "100%", borderRadius: 6, width: `${Math.min(100, Math.max(0, pct))}%`,

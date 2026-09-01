@@ -3031,6 +3031,28 @@ jobs:
       - name: "Lainnya" di dasar sidebar portal
         run: node scripts/uji-lainnya-di-dasar-sidebar.mjs
 
+      # Jalur bar progres wajib TERLIHAT di atas kartunya. Sepuluh bar di
+      # portal memakai --surface-subtle (#F9FAFB) di atas --surface
+      # (#FFFFFF) — kontras 1,05:1. Bar 0% berarti isian selebar nol, jadi
+      # yang tersisa cuma jalur yang tak tergambar, dan barisnya tampak
+      # seperti elemen yang GAGAL DIRENDER.
+      #
+      # Diukur 2026-09-01 dengan memotret /pm-portal @1440px: tiga proyek,
+      # ketiganya 0%, ketiganya berlubang.
+      #
+      # tsc hijau, uji-token-css-ada hijau (tokennya memang terdefinisi),
+      # potret-portal-adaptif hijau. Tak satu pun punya pendapat soal
+      # apakah dua warna bisa dibedakan mata.
+      #
+      # Kontras DIHITUNG dari hex di globals.css, untuk KEDUA mode — jalur
+      # yang terlihat di terang bisa lenyap di gelap.
+      #
+      # Cakupan PORTAL saja; dashboard belum diperiksa dengan mata.
+      # Ambang 1,2:1 (bukan WCAG 3:1 — ini latar, bukan teks, dan angka
+      # persennya tertulis di sebelahnya).
+      - name: Jalur bar progres terlihat
+        run: node scripts/uji-jalur-progres-terlihat.mjs
+
       # Ubin ikon judul hanya boleh digambar DUA komponen bersama, dan
       # keduanya harus sebentuk. Founder 2026-08-14 menyebut tiga gejala yang
       # tampak terpisah — "ada yg double icon", "grup pengadaan/akuntansi/

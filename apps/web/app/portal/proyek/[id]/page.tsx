@@ -262,7 +262,7 @@ function GanttTab({ projectId }: { projectId: string }) {
                   {t.no_urut} {t.uraian}
                 </span>
               </div>
-              <div style={{ flex: 1, position: "relative", height: 20, background: "var(--surface-subtle)", borderRadius: 6, overflow: "hidden" }}>
+              <div style={{ flex: 1, position: "relative", height: 20, background: "var(--jalur-progres)", borderRadius: 6, overflow: "hidden" }}>
                 <div style={{ position: "absolute", left: `${todayPct}%`, top: 0, bottom: 0, width: 1, background: "var(--danger)", zIndex: 2 }} />
                 <div style={{
                   position: "absolute", left: `${left}%`, width: `${width}%`,
@@ -603,7 +603,7 @@ export default function PortalProyekDetailPage() {
             </div>
             <span style={{ fontSize: 15, fontWeight: 700, color: "var(--navy)", fontVariantNumeric: "tabular-nums" }}>{project.progress_pct ?? 0}%</span>
           </div>
-          <div style={{ height: 8, background: "var(--surface-subtle)", borderRadius: 999, overflow: "hidden" }}>
+          <div style={{ height: 8, background: "var(--jalur-progres)", borderRadius: 999, overflow: "hidden" }}>
             <div style={{ height: "100%", borderRadius: 999, width: `${project.progress_pct ?? 0}%`, background: "var(--grad-aksen)", transition: "width 0.5s ease" }} />
           </div>
         </div>

@@ -190,7 +190,7 @@ export default function KasbonTukangPage() {
               </div>
               {Number(k.amount_settled ?? 0) > 0 && !k.is_settled && (
                 <div>
-                  <div style={{ height: 4, background: "var(--surface-subtle)", borderRadius: 6, overflow: "hidden" }}>
+                  <div style={{ height: 4, background: "var(--jalur-progres)", borderRadius: 6, overflow: "hidden" }}>
                     <div
                       style={{
                         height: "100%", borderRadius: 6, background: "var(--success)",

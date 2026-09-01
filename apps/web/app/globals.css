@@ -41,6 +41,29 @@
   --border:           #E5E7EB;
   --border-strong:    #D1D5DB;
 
+  /*
+    Jalur bar progres — wadah yang HARUS terlihat saat isiannya nol.
+
+    Sepuluh bar progres di portal memakai --surface-subtle sebagai
+    jalurnya. Di atas kartu putih itu kontrasnya 1,05:1 — praktis tak
+    terlihat, jadi baris proyek 0% tampil sebagai RUANG KOSONG di bawah
+    teksnya. Terbaca seperti elemen yang gagal dirender, bukan seperti
+    progres nol.
+
+    Diukur 2026-09-01 dengan MEMOTRET /pm-portal @1440px: tiga proyek,
+    ketiganya 0%, ketiganya berlubang.
+
+    Kontras DIHITUNG, bukan ditaksir:
+      #DDE1E7 di atas #FFFFFF  1,31:1
+      #333749 di atas #1A1D27  1,43:1
+
+    Sengaja tidak lebih kuat: jalur yang terlalu gelap bersaing dengan
+    isiannya, dan yang harus menonjol adalah progresnya. Ambang WCAG 3:1
+    tak berlaku di sini — jalur kosong adalah latar, dan angka persennya
+    tertulis di sebelahnya.
+  */
+  --jalur-progres:    #DDE1E7;
+
   --text-primary:     #111827;
   /* #6B7280 sampai 2026-07-31 — lulus di putih (4,83) tapi GAGAL di latar
    * yang sedikit lebih gelap: 4,39 di --surface-hover, 4,30 di --navy-light.
@@ -615,6 +638,7 @@
   --surface-hover:    #252840;
   --border:           #2A2D3E;
   --border-strong:    #363A52;
+  --jalur-progres:    #333749;
 
   --text-primary:     #F1F3F9;
   --text-secondary:   #9098B8;

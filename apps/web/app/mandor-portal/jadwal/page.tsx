@@ -271,7 +271,7 @@ export default function JadwalProyekPage() {
                     sudah dilalui hari ini, BUKAN progres fisik (yang dicatat lewat
                     modul Progress terpisah). Dilabeli eksplisit di teks di bawah
                     supaya tak tertukar dengan progres fisik lapangan. */}
-                <div style={{ height: 8, background: "var(--surface-subtle)", borderRadius: 6, overflow: "hidden" }}>
+                <div style={{ height: 8, background: "var(--jalur-progres)", borderRadius: 6, overflow: "hidden" }}>
                   <div
                     style={{
                       height: "100%", borderRadius: 6, width: `${progresWaktu}%`,
