@@ -92,7 +92,8 @@ interface HasilSaran {
 type Jenis = "balok" | "kolom";
 
 /**
- * Dua cara memberi beban, dan keduanya sah.
+ * Tiga cara memberi beban, dan ketiganya sah — satu tangga ketelitian untuk
+ * satu pertanyaan yang sama ("besinya berapa?").
  *
  * `angka` — pemakai sudah punya Mu/Vu (dari ETABS, dari hitungan tangan).
  * Membuang mode ini akan menutup pintu bagi pengguna yang paling teliti.
@@ -100,8 +101,71 @@ type Jenis = "balok" | "kolom";
  * `beban` — Mu/Vu dihitung dari bentang + fungsi ruang + lapis mati. Ini yang
  * menjawab pertanyaan lapangan yang sebenarnya: "balok 25/40 bentang 4 m
  * besinya berapa?" — orang yang bertanya begitu justru TIDAK punya momennya.
+ *
+ * `rangka` — Mu/Vu/Pu datang dari solver kekakuan langsung atas SATU PORTAL
+ * UTUH. Bedanya dengan `beban` bukan sekadar ketelitian: yang diusulkan bukan
+ * satu balok melainkan SELURUH batang portal (kolom dan balok sekaligus),
+ * karena solver memang menyelesaikan semuanya dalam satu langkah.
  */
-type Mode = "angka" | "beban";
+type Mode = "angka" | "beban" | "rangka";
+
+// ── Bentuk jawaban rute analisa-rangka ───────────────────────────────────────
+
+interface SaranBatang {
+  nama: string;
+  jenis: Jenis;
+  muKnm: number;
+  vuKn: number;
+  puKn: number;
+  saran: {
+    berhasil: boolean;
+    terpilih?: Usulan;
+    alternatif: Usulan[];
+    usulTinggiMm?: number;
+    kandidatDicoba: number;
+    catatan: string[];
+  };
+}
+
+interface HasilRangka {
+  batang: SaranBatang[];
+  /*
+    `gambar` HILANG dari JSON saat rute dipanggil dengan `gambar: false` —
+    kuncinya tak ada sama sekali, bukan bernilai null. Karena itu pembacanya
+    WAJIB `if (hasil.gambar)`, bukan `!== null`: yang kedua lolos untuk
+    `undefined` lalu meledak saat diindeks.
+  */
+  gambar?: Record<string, string>;
+  catatan: string[];
+}
+
+/** Nilai awal mode rangka — portal satu lantai 6 m, dimensi lazim rumah dua lantai. */
+const AWAL_RANGKA = {
+  bentangM: "6", tinggiM: "3.5", jumlahLantai: "1",
+  balokB: "300", balokH: "500", kolomB: "400", kolomH: "400",
+  qKnM: "20",
+};
+
+const MEDAN_RANGKA: Array<{ k: string; l: string; s: string; ket?: string }> = [
+  { k: "bentangM", l: "Bentang antar-kolom", s: "m" },
+  { k: "tinggiM", l: "Tinggi tiap lantai", s: "m" },
+  { k: "jumlahLantai", l: "Jumlah lantai", s: "lantai" },
+  { k: "balokB", l: "Balok — lebar b", s: "mm" },
+  { k: "balokH", l: "Balok — tinggi h", s: "mm" },
+  { k: "kolomB", l: "Kolom — sisi b", s: "mm" },
+  { k: "kolomH", l: "Kolom — sisi h", s: "mm" },
+  /*
+    Label sengaja PENDEK — "Beban merata terfaktor qu" membungkus jadi dua
+    baris di kisi ini, dan medan yang labelnya dua baris turun sendirian
+    sementara tetangganya tetap di atas: barisnya jadi terlihat rusak. Kata
+    "terfaktor" pindah ke keterangan, tempat yang justru lebih terbaca karena
+    di sana ia bisa menyebut kombinasinya sekalian.
+  */
+  {
+    k: "qKnM", l: "Beban merata qu", s: "kN/m",
+    ket: "Sudah terfaktor — mis. 1,2D + 1,6L",
+  },
+];
 
 interface Katalog {
   fungsiRuang: Array<{ kunci: string; nama: string; bebanHidupKnM2: number; kelompok: string }>;
@@ -162,8 +226,10 @@ export default function PembesianPage() {
   const [mode, setMode] = useState<Mode>("angka");
   const [fb, setFb] = useState<Record<string, string>>(AWAL_BEBAN);
   const [lapis, setLapis] = useState<string[]>(["keramik-spesi"]);
+  const [fr, setFr] = useState<Record<string, string>>(AWAL_RANGKA);
   const [f, setF] = useState<Record<string, string>>(AWAL_BALOK);
   const [hasil, setHasil] = useState<HasilSaran | null>(null);
+  const [hasilRangka, setHasilRangka] = useState<HasilRangka | null>(null);
   const [memuat, setMemuat] = useState(false);
 
   /*
@@ -191,6 +257,28 @@ export default function PembesianPage() {
     // membiarkan keadaan itu terbentuk.
     if (j === "kolom") setMode("angka");
     setHasil(null);
+    setHasilRangka(null);
+    setGalatAksi(null);
+  }, []);
+
+  /**
+   * Ganti mode, dan bereskan keadaan yang tak boleh ikut terbawa.
+   *
+   * Mode `rangka` mengusulkan KOLOM DAN BALOK sekaligus — saklar jenis tak
+   * punya arti di sana, jadi ia disembunyikan. Tapi menyembunyikannya saja
+   * tak cukup: jenis yang tertinggal di `kolom` akan kembali muncul begitu
+   * pemakai pindah ke mode lain, dan medan masukannya ikut berganti tanpa ia
+   * meminta. Karena itu jenis dipaksa ke `balok` — sekalian menyamakan medan
+   * dimensi yang tampil dengan yang benar-benar dipakai.
+   */
+  const gantiMode = useCallback((m: Mode) => {
+    setMode(m);
+    if (m === "rangka" ) {
+      setJenis("balok");
+      setF(AWAL_BALOK);
+    }
+    setHasil(null);
+    setHasilRangka(null);
     setGalatAksi(null);
   }, []);
 
@@ -198,11 +286,45 @@ export default function PembesianPage() {
     setF((s) => ({ ...s, [k]: v }));
   }, []);
 
+  const ubahRangka = useCallback((k: string, v: string) => {
+    setFr((s) => ({ ...s, [k]: v }));
+  }, []);
+
   const hitung = useCallback(async () => {
     setMemuat(true);
     setGalatAksi(null);
     try {
       const mutu = { fcMpa: +f.fcMpa, fyMpa: +f.fyMpa, fyvMpa: +f.fyvMpa };
+
+      /*
+        Mode rangka memanggil rute LAIN, dan bentuk jawabannya juga lain
+        (banyak batang, bukan satu elemen). Karena itu ia berhenti di sini
+        alih-alih ikut merakit `badan` di bawah — memaksa dua bentuk jawaban
+        yang berbeda lewat satu state akan membuat sisa hasil mode sebelumnya
+        tampil di bawah judul mode yang baru.
+      */
+      if (mode === "rangka") {
+        const { data } = await api.post<HasilRangka>(
+          "/api/v1/struktur/analisa-rangka",
+          {
+            portal: {
+              bentangM: +fr.bentangM,
+              tinggiM: +fr.tinggiM,
+              jumlahLantai: +fr.jumlahLantai,
+              balok: { bMm: +fr.balokB, hMm: +fr.balokH },
+              kolom: { bMm: +fr.kolomB, hMm: +fr.kolomH },
+              fcMpa: +f.fcMpa,
+              qKnM: +fr.qKnM,
+            },
+            selimutMm: +f.selimutMm,
+            mutu,
+          },
+        );
+        setHasil(null);
+        setHasilRangka(data);
+        return;
+      }
+
       const badan = jenis === "balok" && mode === "beban"
         ? {
           jenis, bMm: +f.bMm, hMm: +f.hMm, panjangM: +fb.bentangM,
@@ -234,6 +356,7 @@ export default function PembesianPage() {
       const { data } = await api.post<HasilSaran>(
         "/api/v1/struktur/saran-pembesian", badan,
       );
+      setHasilRangka(null);
       setHasil(data);
     } catch (e) {
       const pesan = (e as { response?: { data?: { error?: string } } })
@@ -242,9 +365,13 @@ export default function PembesianPage() {
     } finally {
       setMemuat(false);
     }
-  }, [jenis, f, mode, fb, lapis]);
+  }, [jenis, f, mode, fb, fr, lapis]);
 
-  const medan = useMemo(() => jenis === "balok"
+  const medan = useMemo(() => mode === "rangka"
+    /* Dimensi balok DAN kolom pindah ke kartu portal — mengulanginya di sini
+       membuat dua tempat mengaku sebagai sumber penampang yang sama. */
+    ? [{ k: "selimutMm", l: "Selimut beton", s: "mm" }]
+    : jenis === "balok"
     ? (mode === "beban"
       /* Mu/Vu dan bentang pindah ke kartu beban — mengulanginya di sini
          membuat dua tempat mengaku sebagai sumber angka yang sama. */
@@ -274,7 +401,15 @@ export default function PembesianPage() {
 
   return (
     <>
-      {/* ── Pilihan jenis elemen */}
+      {/*
+        ── Pilihan jenis elemen — TERSEMBUNYI di mode rangka.
+
+        Solver mengusulkan kolom DAN balok dalam satu langkah, jadi "pilih
+        balok atau kolom" bukan pertanyaan yang punya jawaban di sana.
+        Membiarkannya tampil membuat pemakai mengira usulannya cuma untuk satu
+        jenis — padahal kartu hasilnya memuat keduanya.
+      */}
+      {mode !== "rangka" && (
       <Kartu>
         <JudulKartu>Jenis elemen</JudulKartu>
         <div role="group" aria-label="Jenis elemen" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -299,6 +434,7 @@ export default function PembesianPage() {
           ))}
         </div>
       </Kartu>
+      )}
 
       {/* ── Saklar mode (balok saja) */}
       {jenis === "balok" && (
@@ -309,9 +445,10 @@ export default function PembesianPage() {
             {([
               ["angka", "Saya punya Mu & Vu"],
               ["beban", "Hitungkan dari beban"],
+              ["rangka", "Analisa rangka"],
             ] as Array<[Mode, string]>).map(([m, label]) => (
               <button key={m} type="button"
-                onClick={() => { setMode(m); setHasil(null); setGalatAksi(null); }}
+                onClick={() => gantiMode(m)}
                 aria-pressed={mode === m}
                 style={{
                   padding: "var(--pad-tombol)", borderRadius: "var(--rad-sedang)",
@@ -326,7 +463,9 @@ export default function PembesianPage() {
             ))}
           </div>
           <p style={{ margin: "8px 0 0", color: C.muted, fontSize: "var(--teks-label)", lineHeight: 1.6 }}>
-            {mode === "beban"
+            {mode === "rangka"
+              ? "Portal utuh diselesaikan dengan metode kekakuan langsung — kolom dan balok dapat usulannya masing-masing, berikut diagram momen, geser, dan lendutan tiap batang."
+              : mode === "beban"
               ? "Momen dan geser dihitung dari beban memakai koefisien perkiraan SNI — ditampilkan lebih dulu sebelum jadi usulan."
               : "Untuk yang momennya sudah dihitung sendiri atau datang dari software analisa."}
           </p>
@@ -398,6 +537,41 @@ export default function PembesianPage() {
             }
           />
         </div>
+
+        {/* ── Portal (mode "analisa rangka") */}
+        {mode === "rangka" && (
+          <div style={{ marginTop: "var(--gap-bagian)", paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+            <p style={{
+              margin: "0 0 10px", fontSize: "var(--teks-label)", fontWeight: 700,
+              letterSpacing: ".05em", textTransform: "uppercase", color: C.muted,
+            }}>
+              Portal yang dianalisa
+            </p>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: "var(--gap-grid)",
+            }}>
+              {MEDAN_RANGKA.map(({ k, l, s, ket }) => (
+                <Medan
+                  key={k}
+                  id={`r-${k}`}
+                  label={`${l} (${s})`}
+                  wajib
+                  {...(ket ? { keterangan: ket } : {})}
+                  anak={
+                    <input
+                      id={`r-${k}`} type="number" inputMode="decimal"
+                      style={gayaInput}
+                      value={fr[k] ?? ""}
+                      onChange={(e) => ubahRangka(k, e.target.value)}
+                    />
+                  }
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── Beban (mode "dari beban") */}
         {jenis === "balok" && mode === "beban" && (
@@ -493,6 +667,151 @@ export default function PembesianPage() {
       </Kartu>
 
       {memuat && <Rangka />}
+
+      {/* ── Hasil mode rangka: satu kartu per batang portal */}
+      {hasilRangka && !memuat && (
+        <>
+          <Kartu>
+            <JudulKartu>Hasil analisa rangka</JudulKartu>
+            <p style={{
+              margin: "0 0 var(--gap-bagian)", color: C.muted,
+              fontSize: "var(--teks-label)", lineHeight: 1.6,
+            }}>
+              {hasilRangka.batang.length} batang diselesaikan sekaligus — momen,
+              geser, dan aksial tiap batang datang dari solver, bukan dari
+              koefisien perkiraan.
+            </p>
+
+            <div style={{ display: "grid", gap: "var(--gap-bagian)" }}>
+              {hasilRangka.batang.map((b) => {
+                const u = b.saran.terpilih;
+                const svg = hasilRangka.gambar?.[b.nama];
+                return (
+                  <section
+                    key={b.nama}
+                    aria-label={`Batang ${b.nama}`}
+                    style={{
+                      border: `1px solid ${C.border}`,
+                      borderRadius: "var(--rad-sedang)",
+                      padding: "var(--pad-kartu)",
+                    }}
+                  >
+                    <div style={{
+                      display: "flex", alignItems: "baseline", gap: 10,
+                      flexWrap: "wrap", marginBottom: 10,
+                    }}>
+                      <span style={{
+                        fontFamily: "var(--font-display)",
+                        fontSize: "var(--t-sedang)", fontWeight: 700,
+                        color: C.navy, letterSpacing: "-.01em",
+                      }}>
+                        {b.nama}
+                      </span>
+                      <Lencana nada="netral">{b.jenis}</Lencana>
+                    </div>
+
+                    {/* Gaya dalam dari solver — ditampilkan SEBELUM usulannya,
+                        alasan yang sama dengan kartu "Beban yang dipakai". */}
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+                      <Lencana nada="info">Mu {b.muKnm.toFixed(1)} kNm</Lencana>
+                      <Lencana nada="info">Vu {b.vuKn.toFixed(1)} kN</Lencana>
+                      {b.jenis === "kolom" && (
+                        <Lencana nada="info">Pu {b.puKn.toFixed(1)} kN</Lencana>
+                      )}
+                    </div>
+
+                    {b.saran.berhasil && u ? (
+                      <div style={{
+                        display: "flex", alignItems: "baseline", gap: 12,
+                        flexWrap: "wrap", marginBottom: 10,
+                      }}>
+                        <span style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: "var(--teks-kpi)", fontWeight: 700,
+                          color: C.navy, letterSpacing: "-.02em",
+                        }}>
+                          {tulisUsulan(u, b.jenis)}
+                        </span>
+                        <span style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: "var(--teks-kpi)", fontWeight: 700, color: C.mid,
+                        }}>
+                          sengkang {tulisSengkang(u)}
+                        </span>
+                      </div>
+                    ) : (
+                      /* Kegagalan sebagai JAWABAN, bukan galat sistem — pola
+                         yang sama dengan mode lain (lihat header berkas). */
+                      <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 10 }}>
+                        <TriangleAlert size={18} aria-hidden="true"
+                          style={{ color: C.yellow, flexShrink: 0, marginTop: 2 }} />
+                        <p style={{ margin: 0, color: C.mid, lineHeight: 1.7 }}>
+                          Tak ada kombinasi tulangan yang memenuhi syarat untuk
+                          penampang ini — dari {b.saran.kandidatDicoba} kombinasi
+                          yang diuji.
+                          {b.saran.usulTinggiMm
+                            ? ` Coba tinggi ${b.saran.usulTinggiMm} mm.`
+                            : ""}
+                        </p>
+                      </div>
+                    )}
+
+                    {b.saran.berhasil && u && (
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+                        <Lencana nada="netral">{u.besiKg!.toFixed(1)} kg besi</Lencana>
+                        <Lencana nada={u.rasioKritis! <= BATAS_NYAMAN ? "sukses" : "peringatan"}>
+                          {(u.rasioKritis! * 100).toFixed(0)}% kapasitas · {u.pemeriksaanKritis}
+                        </Lencana>
+                      </div>
+                    )}
+
+                    {/*
+                      Latar PUTIH dipaku lewat `--kertas-gambar`, bukan
+                      mengikuti tema: diagramnya bergaris gelap di atas kertas,
+                      dan di mode gelap garisnya nyaris hilang. Pola yang sama
+                      dengan gambar kerja di halaman Analisa Struktur.
+
+                      ⚠ Diperiksa dengan `if (svg)`, bukan `!== null`: rute
+                      MENGHILANGKAN kunci `gambar` saat dipanggil dengan
+                      `gambar: false`.
+
+                      ⚠ `maxWidth` 540 — dan itu terlihat dari potret, bukan
+                      ditebak. Gambarnya lebar alami 520 px, sementara kartunya
+                      lebih dari 1.500 px di layar lebar: tanpa batas ini,
+                      kertas putihnya terbentang selebar kartu dengan diagram
+                      menclok di sudut kiri, dan separuh kanannya kosong
+                      melompong — terbaca seperti gambar yang gagal dimuat.
+                      Membesarkan SVG-nya sampai selebar kartu bukan jawabannya:
+                      ini gambar TEKNIK, garis dan angkanya punya ukuran yang
+                      dimaksudkan.
+                    */}
+                    {svg && (
+                      <div
+                        style={{
+                          background: "var(--kertas-gambar)",
+                          border: `1px solid ${C.border}`,
+                          borderRadius: "var(--radius-dense)",
+                          padding: 10, overflowX: "auto",
+                          maxWidth: 540,
+                        }}
+                        dangerouslySetInnerHTML={{ __html: svg }}
+                      />
+                    )}
+                  </section>
+                );
+              })}
+            </div>
+          </Kartu>
+
+          {/* Catatan & batas — kartu TERPISAH, sama seperti mode lain. */}
+          <Kartu>
+            <JudulKartu>Catatan &amp; batas</JudulKartu>
+            <ul style={{ margin: 0, paddingLeft: 18, color: C.mid, lineHeight: 1.8 }}>
+              {hasilRangka.catatan.map((c, i) => <li key={i}>{c}</li>)}
+            </ul>
+          </Kartu>
+        </>
+      )}
 
       {/* ── Hasil */}
       {hasil && !memuat && (
