@@ -4268,6 +4268,24 @@ di antaranya INDUK (parent_id NULL)     :  0
 **Nol.** Seluruhnya menu *anak* — jadi bentroknya tak mungkin lahir dari
 blok (2), yang hanya menyentuh induk.
 
+> **⚠ Angka itu benar HANYA untuk cakupannya, dan saya menulisnya tanpa
+> menyebut cakupan.** Ia menghitung 12 href yang terekam log CI, bukan
+> seluruh tabel. Diukur berdampingan:
+>
+> ```
+> INDUK di antara 12 href log CI       : 0
+> INDUK ber-href-ganda di SELURUH tabel : 2   ← beranda + dashboard, /dashboard
+> ```
+>
+> Sesi lain menemukannya dan mengoreksi saya. Kesimpulannya tak berubah —
+> `yt-*` tetap penyebabnya, dan `beranda`/`dashboard` tak memicu pagar 1
+> karena hanya satu yang aktif. Tetapi kalimat "nol induk" tanpa cakupan
+> terbaca sebagai klaim tentang seluruh tabel, dan itu ranjau bagi siapa
+> pun yang nanti menulis perbaikan yang menyentuh induk: menyalakan
+> `dashboard` akan memicu pagar 1 dari arah yang sama sekali lain.
+>
+> Angka tanpa cakupannya adalah setengah angka.
+
 #### Penyebab sesungguhnya
 
 Tiap href bentrok dipegang **dua** menu — satu bernama, satu `yt-*`:
@@ -4302,6 +4320,32 @@ SELECT href FROM menu_items
 Jadi ia gagal atas cemaran yang **sudah ada sebelum ia berjalan**. Pagar
 itu bekerja sebagaimana mestinya — ia hanya menunjuk migrasi yang salah,
 karena yang bersalah tak punya pagar sama sekali.
+
+#### Apakah `yt-*` sengaja dibiarkan aktif berdampingan?
+
+**Tidak — murni kelalaian pagar.** Dibaca dari struktur 531 sendiri
+(sesi lain, 2026-09-02), dan bukti-buktinya saling menguatkan:
+
+- 531 punya **tiga** pagar verifikasi: kunci izin hantu · `sort_order`
+  bentrok · anak di luar rentang induk. **href bukan salah satunya.**
+- Penyaring duplikatnya memakai `key`, bukan `href`:
+
+  ```sql
+  WHERE NOT EXISTS (SELECT 1 FROM menu_items m WHERE m.key = t.kunci)
+  ```
+
+  Jadi ia menjaga terhadap **kunci** yang sudah ada, dan tak memikirkan
+  **halaman** yang sudah ada.
+- Nol komentar di seluruh berkas yang menyebut href sebagai
+  pertimbangan — padahal berkas itu komentarnya panjang dan tiap
+  pagarnya punya alasan tertulis.
+
+Yang terakhir itu buktinya: penulis 531 **menulis pagar saat ia sadar
+ada risiko**. Ketiadaan pagar href berarti pertanyaannya tak pernah
+muncul — bukan dijawab lalu ditolak.
+
+Artinya perbaikan boleh mematikan `yt-*` yang href-nya sudah dipegang
+tanpa khawatir membatalkan keputusan desain seseorang.
 
 #### Apa artinya untuk keputusan
 
