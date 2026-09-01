@@ -202,9 +202,19 @@ const CATATAN_PORTAL =
  * Merakit kolom dan balok jadi rangka kaku, lalu menyerahkan perhitungannya
  * ke `analisaRangka2D`. Yang membedakannya dari `analisaBalokMenerus`: balok
  * di sini TIDAK bertumpu bebas — ia menyatu kaku dengan kolom, sehingga
- * sebagian momennya berpindah ke kolom. Karena itu momen tumpuan baloknya
- * jatuh di antara wL²/12 (kolom sangat kaku) dan wL²/8 (kolom sangat lunak);
- * tak ada rumus tertutup yang lebih sederhana dari itu.
+ * sebagian momennya berpindah ke kolom.
+ *
+ * ⚠ Momen tumpuan baloknya jatuh di antara 0 (kolom sangat lunak → balok
+ * mendekati SEDERHANA, yang momen tumpuannya NOL) dan wL²/12 (kolom sangat
+ * kaku → mendekati JEPIT-JEPIT). Diukur: kolom 50²→0,03 · 400²→41,93 ·
+ * 2000²→59,88 kNm pada balok 300×500, L=6, w=20.
+ *
+ * Komentar versi pertama di sini menulis batasnya "antara wL²/12 dan wL²/8"
+ * dan itu SALAH ARAH: wL²/8 adalah momen LAPANGAN balok sederhana, bukan
+ * momen tumpuannya. Yang dipakai test justru identitas yang lebih tajam dan
+ * tak bergantung kekakuan sama sekali:
+ *
+ *     M tumpuan + M lapangan = wL²/8   PERSIS, kekakuan kolom berapa pun
  *
  * Penamaan batang DIPAKAI PEMANGGIL untuk memilah: kolom berawalan `K`,
  * balok berawalan `B`. Jangan mengubahnya tanpa mengubah pemanggilnya.
