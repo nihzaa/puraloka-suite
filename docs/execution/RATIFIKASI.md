@@ -4347,6 +4347,65 @@ muncul — bukan dijawab lalu ditolak.
 Artinya perbaikan boleh mematikan `yt-*` yang href-nya sudah dipegang
 tanpa khawatir membatalkan keputusan desain seseorang.
 
+#### Polanya SUDAH ADA — migrasi 338 menyelesaikan kasus identik
+
+Ditemukan 2026-09-02 setelah sesi lain bertanya: *"8 dari 29 `yt-*` aktif
+— yang 21 lainnya dimatikan siapa, dan kenapa?"*
+
+Jawabannya ada di `338_menu_klaim_perjalanan.sql`, yang komentarnya
+menuliskan persis masalah kita:
+
+> Migrasi 531 membuat `yt-sdm-klaim` yang menunjuk href YANG SAMA. Ia
+> lahir jauh sesudah migrasi ini, dan saat rantai diputar dari nol
+> keduanya bertemu. […] Yang dilepas href-nya: `yt-sdm-klaim`. Alasannya
+> bisa diukur — ia menu YATIM otomatis (awalan `yt-`) yang dibuat massal
+> untuk menutup halaman tanpa tautan, sementara `hr-reimburse` menu
+> bernama yang sudah lama ada. **Yang bernama menang atas yang otomatis.**
+
+Perbaikannya dua baris:
+
+```sql
+UPDATE menu_items
+   SET href = NULL, is_active = FALSE
+ WHERE key = 'yt-sdm-klaim'
+   AND href = '/sdm/klaim-perjalanan';   -- idempoten: hanya yang masih memegang
+```
+
+#### Cakupan yang tersisa
+
+Diukur di basis dev (bukan di seluruh riwayat, bukan di CI):
+
+```
+href dipegang menu bernama DAN yt-*        : 20
+yt-* yang perlu dilepas href-nya           : 20
+yt-* yang SUDAH dilepas (338)              :  1
+```
+
+Dua puluh pasangan, semuanya berpola sama — satu bernama **aktif**, satu
+`yt-*`:
+
+```
+/risiko                rk-register(A)  · yt-risiko
+/sdm/timesheet         hr-absensi(A)   · yt-sdm-timesheet
+/mutu/uji-material     qc-uji(A)       · yt-mutu-uji
+…17 lainnya
+```
+
+#### Kenapa ini mengubah bentuk perbaikannya
+
+Aturannya tak perlu ditemukan — ia sudah ditetapkan dan sudah berjalan.
+Menulis pola sendiri berisiko berbeda dari yang sudah ada, dan dua aturan
+untuk satu masalah membuat orang berikutnya menebak mana yang berlaku.
+
+Yang tersisa cuma memperluas pola 338 ke 20 pasangan lainnya, lewat
+**migrasi maju** — tak menyentuh berkas migrasi tercatat mana pun, jadi
+kemungkinan besar **bukan G-2**.
+
+⚠ Yang tetap perlu kehati-hatian: ia MEMATIKAN baris yang sekarang aktif
+di basis dev, dan itu mengubah apa yang orang lihat di sidebar. Diukur:
+kedua puluh `yt-*` itu **nonaktif** di dev — jadi dampaknya nol di sini,
+dan yang berubah hanya perilaku saat replay dari nol.
+
 #### Apa artinya untuk keputusan
 
 Patch tiga baris di bawah **TIDAK akan menyelesaikannya**. Menyentuh
