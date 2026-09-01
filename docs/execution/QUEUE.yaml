@@ -2888,9 +2888,13 @@ items:
       Yang perlu diputuskan: apakah analisaProyek ikut menghitung kasbons?
       Itu mengubah angka di layar Portofolio Biaya juga, jadi keputusan bisnis
       bukan teknis.
-      Temuan sampingan: cost-control.ts:120 memakai Promise.all atas tiga
+      Temuan sampingan: cost-control.ts memakai Promise.all atas tiga
       query TANPA memeriksa error satu pun — endpoint portofolio bisa gagal
-      senyap. Layak diperbaiki terlepas dari keputusan di atas.
+      senyap. SUDAH DIPERBAIKI (diverifikasi 2026-09-01): ketiga hasil kini
+      diperiksa dan dilempar 500, dengan alasan tertulis panjang di kode —
+      laporan biaya yang mati ketahuan, laporan biaya yang bohong dipakai
+      mengambil keputusan. audit-kegagalan-senyap hijau (185/185).
+      Yang TERSISA di item ini murni keputusan founder soal kasbons.
 
   - id: ASISTEN-13
     fase: null

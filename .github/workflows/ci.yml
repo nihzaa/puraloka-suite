@@ -2100,6 +2100,29 @@ jobs:
       # menyebut 4 pasangan → dipulihkan → exit 0.
       - name: Harga bahan masuk akal untuk satuannya
         run: node scripts/audit-harga-satuan-waras.mjs
+
+      # Nilai kontrak wajib masuk akal TERHADAP BELANJANYA SENDIRI.
+      # Ditemukan 2026-09-01: sebuah proyek renovasi dapur & kamar mandi
+      # tercatat Rp 900.525.000.000 — sembilan ratus miliar. Belanja
+      # nyatanya Rp 150 juta, dan dengan nilai kontrak tiga nol lebih
+      # sedikit serapannya jadi 16,7%, angka yang wajar.
+      #
+      # Kolomnya numeric, jadi nilainya sah secara tipe. Yang rusak cuma
+      # ARTINYA — dan rusaknya ke arah paling sulit dilihat: serapan
+      # terhitung 0,0%, yang terbaca seperti belum mulai belanja, bukan
+      # seperti nilai kontraknya salah. Papan Portofolio Biaya
+      # menampilkannya dengan tenang.
+      #
+      # BUKAN ambang mutlak: kontraktor yang memang menggarap proyek besar
+      # akan salah dituduh, dan repo ini menuju SaaS multi-tenant. Yang
+      # diperiksa RASIO belanja terhadap kontrak, dan proyek yang BELUM
+      # belanja apa pun sengaja dilewati.
+      #
+      # Ratchet (bukan ambang NOL): datanya milik pengguna dan mengubahnya
+      # butuh konfirmasi. Bukti merah dua arah — janggal baru MERAH,
+      # kontrak besar tanpa belanja tetap HIJAU.
+      - name: Nilai kontrak waras terhadap belanjanya
+        run: node scripts/audit-nilai-kontrak-waras.mjs
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
