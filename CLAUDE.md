@@ -787,6 +787,29 @@ Yang terakhir punya aturannya sendiri: **selisih yang tak bisa dijelaskan
 adalah temuan yang belum dibuka.** Menutupnya dengan cerita lebih mahal
 daripada membiarkannya terbuka.
 
+**Dan sepupunya: ANGKA TANPA CAKUPAN adalah setengah angka.**
+
+Diukur 2026-09-02, dua sesi menghitung hal yang sama dan mendapat jawaban
+berbeda — keduanya BENAR:
+
+```
+INDUK di antara 12 href dari log CI    : 0
+INDUK ber-href-ganda di SELURUH tabel  : 2
+```
+
+Yang salah bukan pengukurannya, melainkan kalimat yang menyertainya:
+"nol induk" ditulis tanpa menyebut bahwa cakupannya cuma 12 baris dari
+log — dan pembacanya wajar menyimpulkan itu berlaku untuk seluruh tabel.
+
+Ini kelas yang sama dengan `-First 10` dan `git show` yang gagal senyap,
+tetapi lebih halus: di sana alatnya memulangkan hasil yang salah; di sini
+alatnya benar, KALIMATNYA yang kehilangan syarat.
+
+Aturannya: setiap angka yang masuk dokumen atau pesan wajib membawa
+cakupannya — "dari N baris log CI", "di seluruh tabel", "di apps/web
+saja". Kalau cakupannya tak muat dalam kalimat, angkanya belum siap
+ditulis.
+
 ### 8a.3 UI/UX — pedoman WAJIB dibaca sebelum menulis kode visual
 
 Untuk pekerjaan apa pun yang menyentuh tampilan (komponen, halaman,
