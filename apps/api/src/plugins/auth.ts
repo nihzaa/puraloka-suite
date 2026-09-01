@@ -131,12 +131,54 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
   // mengetik embed sebagai array — ambil elemen pertama (relasi many-to-one).
   const { data: user, error: userError } = await supabase
     .from('users')
-    .select('id, auth_id, name, email, phone, role_id, roles:role_id ( name )')
+    .select('id, auth_id, name, email, phone, role_id, is_active, roles:role_id ( name )')
     .eq('auth_id', authData.user.id)
     .single()
 
   if (userError || !user) {
     return reply.status(403).send({ error: 'User tidak terdaftar di sistem' })
+  }
+
+  /*
+    Akun NONAKTIF ditolak di sini — dan sebelum perbaikan ini, TIDAK.
+
+    ══════════════════════════════════════════════════════════════════════
+    Diukur 2026-09-01, lewat rute sungguhan, bukan dari membaca kode:
+
+        AKTIF     login=200  GET /projects = 200
+        NONAKTIF  login=200  GET /projects = 200   ← sama persis
+        (juga dicoba company_members.is_active=false → tetap 200)
+
+    Menonaktifkan pengguna TIDAK menghentikan siapa pun masuk, dan tidak
+    menghentikannya membaca data proyek.
+
+    ── Kenapa cacat ini bertahan tanpa gejala
+
+    Fiturnya lengkap di tiap lapisan KECUALI yang menegakkannya:
+
+        PATCH /users/:id/toggle-active   ada, ber-audit, berpagar tenant
+        users.is_active                  ada, terbaca di daftar pengguna
+        UI                               menampilkan status aktif/nonaktif
+
+    Semua benar untuk dirinya sendiri. Yang tak ada cuma pemeriksaannya
+    saat permintaan masuk — dan ketiadaan itu tak memunculkan galat, tak
+    menggagalkan test, dan tak terlihat di layar mana pun. Admin menekan
+    "nonaktifkan", layar berkata nonaktif, orangnya tetap bisa masuk.
+
+    Bentuk yang sama dengan temuan lain di repo ini: benar di lapisan yang
+    diperiksa, patah di lapisan yang sesungguhnya dipakai.
+
+    ⚠ `company_members.is_active` (disaring di `resolveCompanyId`) adalah
+    kolom BERBEDA. Ia menyaring KEANGGOTAAN, bukan akun — dan pengujian
+    membuktikan mematikannya pun tak menutup akses. Jangan menganggap
+    salah satunya mencakup yang lain.
+
+    403, bukan 401: kredensialnya sah, aksesnya yang dicabut. 401 akan
+    membuat klien mencoba menyegarkan token — dan berhasil, lalu ditolak
+    lagi, berulang tanpa pesan yang benar.
+  */
+  if (user.is_active === false) {
+    return reply.status(403).send({ error: 'Akun Anda dinonaktifkan. Hubungi admin perusahaan.' })
   }
 
   const embed = user.roles as { name: string } | { name: string }[] | null | undefined

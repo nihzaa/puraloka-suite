@@ -1714,6 +1714,27 @@ jobs:
       # Bukti merah: satu `is_default` dicabut → exit 1 → dipulihkan → exit 0.
       - name: Pengguna aktif punya keanggotaan default
         run: node scripts/audit-keanggotaan-punya-default.mjs
+
+      # Akun NONAKTIF wajib benar-benar tertutup. Diukur 2026-09-01 lewat
+      # rute sungguhan, SEBELUM diperbaiki:
+      #
+      #     AKTIF     login=200  GET /projects = 200
+      #     NONAKTIF  login=200  GET /projects = 200   ← sama persis
+      #
+      # Fiturnya lengkap di tiap lapisan kecuali yang menegakkannya: rute
+      # toggle ada dan berpagar tenant, kolomnya ada, UI menampilkannya.
+      # Yang tak ada cuma pemeriksaannya saat permintaan masuk — dan
+      # ketiadaan itu tak memunculkan galat, tak menggagalkan test, tak
+      # terlihat di layar. Admin menekan nonaktifkan, layar berkata
+      # nonaktif, orangnya tetap masuk.
+      #
+      # DUA pintu: routes/v1/auth.ts (menerbitkan token) dan
+      # plugins/auth.ts (memvalidasi tiap permintaan). Satu saja tak cukup
+      # — menutup rute saja membiarkan token yang sudah terbit tetap sah.
+      #
+      # Ambang NOL. Bukti merah: empat arah.
+      - name: Akun nonaktif benar-benar tertutup
+        run: node scripts/audit-nonaktif-benar-tertutup.mjs
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 

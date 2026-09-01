@@ -58,12 +58,28 @@ export default async function authRoutes(app: FastifyInstance) {
     // Ambil data user dari tabel users. FASE 3 CONTRACT: role via FK (enum di-drop).
     const { data: userRow, error: userError } = await supabase
       .from('users')
-      .select('id, auth_id, name, email, phone, role_id, roles:role_id ( name ), avatar_url')
+      .select('id, auth_id, name, email, phone, role_id, is_active, roles:role_id ( name ), avatar_url')
       .eq('auth_id', data.user.id)
       .single()
 
     if (userError || !userRow) {
       return reply.status(403).send({ error: 'Akun belum terdaftar di sistem Puraloka Suite' })
+    }
+
+    /*
+      Akun nonaktif ditolak di PINTU MASUK juga, bukan hanya di
+      `plugins/auth.ts`.
+
+      Rute ini tak lewat plugin itu — ia yang MENERBITKAN tokennya. Menutup
+      satu sisi saja menghasilkan keadaan yang membingungkan: login berhasil,
+      token diberikan, lalu setiap permintaan berikutnya 403. Pengguna
+      melihat aplikasi yang "masuk lalu rusak", bukan pesan yang benar.
+
+      Diukur 2026-09-01 sebelum perbaikan: akun nonaktif login=200 dan
+      GET /projects=200. Keduanya lolos.
+    */
+    if ((userRow as { is_active?: boolean }).is_active === false) {
+      return reply.status(403).send({ error: 'Akun Anda dinonaktifkan. Hubungi admin perusahaan.' })
     }
     const user = flattenUserRole(userRow)
 
