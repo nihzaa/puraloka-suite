@@ -84,8 +84,48 @@ export interface HasilBatang {
   lendutanMm: { maks: number; di: TitikNilai[] }
 }
 
+/**
+ * Reaksi di satu simpul BERTUMPU, sumbu GLOBAL.
+ *
+ * Ini gaya yang TUMPUAN berikan kepada STRUKTUR — bukan sebaliknya. Akibatnya:
+ *
+ *     Σ reaksi + Σ beban luar = 0     →     Σ reaksi = −Σ beban
+ *
+ * Untuk beban gravitasi (bertanda negatif di Y global) reaksi tegaknya karena
+ * itu keluar POSITIF: balok sederhana q = 20 kN/m, L = 6 m memberi +60 kN di
+ * tiap tumpuan, Σ = +120 kN = qL.
+ */
+export interface ReaksiTumpuan {
+  /** Indeks simpul di array `simpul` masukan. */
+  simpul: number
+  nama: string
+  fxKn: number
+  fyKn: number
+  mKnm: number
+}
+
+/** Gaya ujung sebuah batang di sumbu LOKAL, apa adanya dari penyelesai. */
+export interface GayaUjungBatang {
+  nama: string
+  /**
+   * [N1, V1, M1, N2, V2, M2] — gaya yang SIMPUL berikan kepada BATANG.
+   * MENTAH: tidak diolah, tandanya tidak dibalik. Lihat `gayaDalam`.
+   */
+  f: [number, number, number, number, number, number]
+}
+
 export interface HasilRangka {
   batang: HasilBatang[]
+  /**
+   * Reaksi di tiap simpul BERTUMPU, sumbu global. Simpul bebas tak masuk,
+   * dan urutannya mengikuti urutan simpul di masukan.
+   */
+  reaksi: ReaksiTumpuan[]
+  /**
+   * Gaya ujung batang di sumbu LOKAL, apa adanya dari penyelesai — enam angka
+   * per batang, urutannya sama dengan array `batang` masukan.
+   */
+  gayaUjung: GayaUjungBatang[]
   catatan: string[]
 }
 
@@ -234,6 +274,15 @@ export function analisaRangka2D(
   bebasDof.forEach((dof, i) => { d[dof] = db[i]! })
 
   // ── 6-7. Gaya ujung batang & gaya dalam sepanjang batang.
+  //
+  // `fSemua` disimpan supaya langkah 8 bisa memanen reaksi tumpuan darinya.
+  // Sebelumnya `f` hidup dan mati di dalam `map` ini, dan siapa pun yang butuh
+  // reaksi harus MEREKONSTRUKSInya dari `HasilBatang` — termasuk ujung KEDUA,
+  // yang tak dilaporkan sama sekali dan karena itu hanya bisa DISIMPULKAN dari
+  // keseimbangan batang. Cacat yang cuma merusak ujung kedua lolos pemeriksaan
+  // semacam itu, karena keseimbangan batang adalah sifat bawaan `kLokal`,
+  // bukan hasil yang diukur.
+  const fSemua: number[][] = []
   const hasil = batang.map((b, e) => {
     const g = geo[e]!
     const peta = petaDof(b)
@@ -257,11 +306,116 @@ export function analisaRangka2D(
       for (let m = 0; m < 6; m++) s += kl[i]![m]! * dLokal[m]!
       f[i] = s
     }
+    fSemua.push(f)
 
     return gayaDalam(b.nama, f, b.qKnM ?? 0, g.lM, b.eMpa, b.iMm4, dLokal)
   })
 
-  return { batang: hasil, catatan: [...CATATAN_BATAS] }
+  // ── 8. Reaksi tumpuan, dipanen dari gaya ujung batang.
+  const reaksi = panenReaksi(simpul, batang, geo, fSemua, beban)
+
+  const gayaUjung: GayaUjungBatang[] = batang.map((b, e) => {
+    const f = fSemua[e]!
+    // MENTAH — tidak diolah, tanda tidak dibalik. Pemeriksa harus bisa
+    // MEMBACA ujung kedua, bukan menyimpulkannya.
+    return { nama: b.nama, f: [f[0]!, f[1]!, f[2]!, f[3]!, f[4]!, f[5]!] }
+  })
+
+  return { batang: hasil, reaksi, gayaUjung, catatan: [...CATATAN_BATAS] }
+}
+
+/**
+ * Reaksi tumpuan dari gaya ujung batang.
+ *
+ * ══════════════════════════════════════════════════════════════════════════════
+ * TANDA — DIUKUR, BUKAN DIBACA DARI KOMENTAR
+ * ══════════════════════════════════════════════════════════════════════════════
+ *
+ * `f` adalah gaya yang SIMPUL berikan kepada BATANG (lihat `gayaDalam`;
+ * komentar versi pertama di sana menyatakannya TERBALIK, dan siapa pun yang
+ * menurunkan reaksi dari sana mengikuti komentar lama mendapat ΣF yang meleset
+ * persis 2×R — bukan nol). Keseimbangan sebuah simpul berbunyi:
+ *
+ *     Σ f  =  beban_luar  +  reaksi
+ *     →  reaksi = Σ f − beban_luar
+ *
+ * Di arah BEBAS ruas kanan itu nol; sisa yang muncul di arah TERTAHAN JUSTRU
+ * reaksinya. Hasilnya: reaksi = gaya yang TUMPUAN berikan kepada STRUKTUR,
+ * jadi Σreaksi = −Σbeban.
+ *
+ * Diukur 2026-09-01 pada tiga kasus yang jawabannya diketahui:
+ *   • balok sederhana q=20 L=6 → +60 kN tiap tumpuan, Σ = +120 = qL
+ *   • kantilever jepit q=20 L=6 → fy +120 kN, m +360 kNm = +wL²/2
+ *   • portal berbeban lateral −40 kN + q=15 bentang 6 → ΣFx +40, ΣFy +90
+ *
+ * ⚠ ARAH YANG TAK DITAHAN DIPAKU NOL, bukan diisi gaya sisa. Rol-x tak bisa
+ * menahan X: mengisinya dengan sisa numerik ~1e-14 masih terlihat wajar, tapi
+ * pada rangka yang sedikit tak seimbang secara numerik ia bisa tumbuh dan
+ * dijumlahkan sebagai reaksi yang secara fisik TIDAK ADA — ΣFx lalu terhitung
+ * dua kali tanpa satu pun galat.
+ *
+ * Momen ujung batang bekerja terhadap simpulnya sendiri, jadi lengannya nol —
+ * tak perlu dipindah. Rangka bidang: momen selalu terhadap sumbu Z yang sama,
+ * jadi ia tak ikut berputar saat lokal → global.
+ */
+function panenReaksi(
+  simpul: Simpul[],
+  batang: BatangModel[],
+  geo: { lM: number; cos: number; sin: number }[],
+  fSemua: number[][],
+  beban: BebanTitik[],
+): ReaksiTumpuan[] {
+  const reaksi: ReaksiTumpuan[] = []
+
+  simpul.forEach((s, i) => {
+    const tahan = DITAHAN[s.tumpuan]!
+    if (tahan.length === 0) return   // simpul bebas tak punya reaksi
+
+    let fx = 0
+    let fy = 0
+    let m = 0
+
+    batang.forEach((b, e) => {
+      const f = fSemua[e]!
+      const g = geo[e]!
+      /*
+        Lokal → global memakai Tᵀ, yang untuk pasangan (N, V) berarti:
+            Fx = N·cos − V·sin        Fy = N·sin + V·cos
+        Memakai T alih-alih Tᵀ di sini tak menimbulkan galat; ia hanya
+        mencerminkan seluruh reaksi terhadap sumbu batang, dan pada rangka
+        bertulang MENDATAR (sin = 0, cos = 1) keduanya memberi angka yang
+        SAMA PERSIS — jadi balok takkan pernah memerahkannya, hanya portal.
+      */
+      if (b.dari === i) {
+        fx += f[0]! * g.cos - f[1]! * g.sin
+        fy += f[0]! * g.sin + f[1]! * g.cos
+        m += f[2]!
+      }
+      if (b.ke === i) {
+        fx += f[3]! * g.cos - f[4]! * g.sin
+        fy += f[3]! * g.sin + f[4]! * g.cos
+        m += f[5]!
+      }
+    })
+
+    for (const p of beban) {
+      if (p.simpul !== i) continue
+      fx -= p.fxKn ?? 0
+      fy -= p.fyKn ?? 0
+      m -= p.mKnm ?? 0
+    }
+
+    // Indeks DOF lokal simpul: 0 = X, 1 = Y, 2 = θ.
+    reaksi.push({
+      simpul: i,
+      nama: s.nama,
+      fxKn: tahan.includes(0) ? fx : 0,
+      fyKn: tahan.includes(1) ? fy : 0,
+      mKnm: tahan.includes(2) ? m : 0,
+    })
+  })
+
+  return reaksi
 }
 
 /** DOF global yang disentuh sebuah batang, berurutan u1,v1,θ1,u2,v2,θ2. */

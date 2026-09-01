@@ -25,48 +25,48 @@
 // diperiksa TIDAK menimbulkan galat. Ia memulangkan angka yang terlihat wajar.
 //
 // ══════════════════════════════════════════════════════════════════════════════
-// APA YANG BISA DAN TAK BISA DIPERIKSA LEWAT API YANG ADA
+// DUA LUBANG VERIFIKASI — SUDAH DITUTUP 2026-09-01
 // ══════════════════════════════════════════════════════════════════════════════
 //
-// `analisaRangka2D` TIDAK memulangkan perpindahan simpul maupun reaksi
-// tumpuan. Yang dipulangkan hanya `HasilBatang[]`. Untungnya keenam gaya ujung
-// lokal tiap batang MASIH bisa direkonstruksi eksak dari sana:
+// Versi pertama berkas ini harus MEREKONSTRUKSI gaya ujung batang, karena
+// `analisaRangka2D` cuma memulangkan `HasilBatang[]`:
 //
 //     f[0] = −aksialKn              f[3] = −f[0]
 //     f[1] = geserKn.di[0].nilai    f[4] = q·L − f[1]
 //     f[2] = −momenKnm.di[0].nilai  f[5] = momenKnm.di[terakhir].nilai
 //
-// Diverifikasi terhadap `f` yang dihitung ulang dari nol (salinan langkah 6
-// `analisaRangka2D`) pada portal tak simetris berbeban campur: cocok sampai
-// digit terakhir, ketiga batangnya.
+// ⚠ TIGA DARI ENAM ITU DERIVASI, BUKAN LAPORAN.
 //
-// ⚠ TAPI TIGA DARI ENAM ITU DERIVASI, BUKAN LAPORAN INDEPENDEN.
+// `f[3]`, `f[4]`, dan `f[5]` dihitung dari keseimbangan BATANG — dan
+// keseimbangan batang itu sendiri adalah sifat bawaan `kLokal`, bukan hasil
+// yang diukur (diukur: baris1+baris4 = 0 dan baris2+baris5+L·baris4 = 0 untuk
+// keenam kolomnya, persis nol). Akibatnya cacat yang HANYA merusak ujung
+// KEDUA batang lolos seluruh berkas ini tanpa satu pun galat: ujung kedua tak
+// pernah dibaca, ia disimpulkan dari sesuatu yang selalu benar.
 //
-// `f[3]`, `f[4]`, dan `f[5]` tidak dipulangkan modul; ia dihitung ulang di
-// sini dari keseimbangan BATANG. Dan keseimbangan batang itu sendiri adalah
-// sifat bawaan `kLokal` — diukur: baris1+baris4 = 0 dan baris2+baris5+L·baris4
-// = 0 untuk keenam kolomnya, persis nol.
+// Lubang kedua bukan cuma masalah test. Reaksi tumpuan tak bisa diminta sama
+// sekali, jadi insinyur yang memeriksa hasil di layar juga tak bisa
+// mencocokkan ΣFy tanpa menghitung ulang sendiri — dan yang tak bisa
+// dicocokkan tak pernah diperiksa siapa pun.
 //
-// Akibatnya: invarian di berkas ini TIDAK bisa menangkap cacat yang hanya
-// merusak ujung KEDUA batang, karena ujung kedua tak pernah benar-benar
-// dibaca — ia disimpulkan. Yang MASIH tertangkap, dan itu justru bagian
-// yang paling mungkin salah:
+// ── Yang berubah
+// `analisaRangka2D` sekarang memulangkan `reaksi` (tiap simpul bertumpu, sumbu
+// global) dan `gayaUjung` (enam angka LOKAL per batang, MENTAH). Berkas ini
+// memakai keduanya apa adanya: ujung kedua DIBACA, reaksi DIBACA. Tak ada lagi
+// yang disimpulkan dari keseimbangan yang bawaannya sudah benar.
+//
+// Ditutupnya lubang (1) DIBUKTIKAN lewat mutasi: `f[4]` dikalikan 1,01 —
+// pelanggaran yang hanya menyentuh ujung kedua — memerahkan invarian simpul
+// dan ΣFy. Pada versi rekonstruksi, mutasi yang sama tetap HIJAU.
+//
+// Yang tertangkap, dan tetap jadi alasan utama berkas ini ada:
 //
 //   • perakitan K global (peta DOF, penjumlahan sumbangan tiap batang)
 //   • matriks rotasi Tᵀ·k·T dan arah pemakaiannya (T vs Tᵀ)
 //   • konversi FEF lokal → global dan tandanya
 //   • pembuangan baris/kolom DOF tertahan
 //   • penyelesai Gauss
-//   • rekonstruksi V1 dan M1 dari perpindahan
-//
-// Semua itu bekerja lewat ujung PERTAMA batang, yang dilaporkan apa adanya.
-//
-// ── Kenapa ini dilaporkan, bukan didiamkan
-// Solver yang tak bisa dimintai reaksi tumpuannya sulit diverifikasi siapa
-// pun — bukan cuma oleh test ini. Insinyur yang memeriksa hasil di layar juga
-// tak bisa mencocokkan ΣFy tanpa menghitung ulang sendiri. Usulnya ada di
-// laporan; TIDAK diterapkan di sini karena mengubah bentuk keluaran adalah
-// perubahan API, bukan penambahan test.
+//   • gaya ujung KEDUA batang — sejak 2026-09-01
 
 import { describe, it, expect } from 'vitest'
 import {
@@ -74,7 +74,6 @@ import {
   type Simpul,
   type BatangModel,
   type BebanTitik,
-  type HasilBatang,
 } from '../rangka-model.js'
 import { analisaBalokMenerus, analisaPortal } from '../rangka-portal.js'
 import { analisaTruss, type InputTruss } from '../rangka-truss.js'
@@ -130,26 +129,26 @@ interface GayaUjung {
 }
 
 /**
- * Membangun kembali keenam gaya ujung lokal dari `HasilBatang`, lalu
- * memutarnya ke sumbu global.
+ * Memutar keenam gaya ujung LOKAL yang dipulangkan modul ke sumbu global.
  *
- * Rumus rekonstruksinya diverifikasi terhadap `f` yang dihitung ulang dari
- * nol — lihat header berkas, termasuk peringatan bahwa tiga dari enam
- * komponennya DERIVASI.
+ * ⚠ `f` DIBACA APA ADANYA dari `hasil.gayaUjung`, TIDAK direkonstruksi.
+ * Itulah perubahan yang menutup lubang (1) — lihat header berkas. Jangan
+ * "menyederhanakan" ini kembali jadi turunan dari `HasilBatang`: yang hilang
+ * bukan kerapian, melainkan kemampuan menangkap cacat di ujung kedua.
  *
  * ══════════════════════════════════════════════════════════════════════════════
  * ⚠ ARAH `f`: SIMPUL → BATANG, BUKAN SEBALIKNYA. DIUKUR, BUKAN DIBACA.
  * ══════════════════════════════════════════════════════════════════════════════
  *
- * Komentar `gayaDalam` di `rangka-model.ts` berbunyi *"`f` … adalah gaya yang
- * DIBERIKAN batang kepada simpul-simpulnya"*. Draf pertama berkas ini
- * mempercayainya, dan SELURUH pemeriksaan ΣFx/ΣFy/ΣM merah dengan sisa
+ * Komentar `gayaDalam` di `rangka-model.ts` pernah berbunyi *"`f` … adalah
+ * gaya yang DIBERIKAN batang kepada simpul-simpulnya"*. Draf pertama berkas
+ * ini mempercayainya, dan SELURUH pemeriksaan ΣFx/ΣFy/ΣM merah dengan sisa
  * relatif yang persis 2,0 — tanda khas tanda terbalik: reaksi yang seharusnya
  * +R terhitung −R, jadi ΣF = −R + beban = −2R.
  *
  * Yang benar diukur pada KANTILEVER jepit-kiri, q = 20 kN/m, L = 6 m:
  *
- *     geserKn.di[0].nilai  =  +120 kN  =  +qL
+ *     gayaUjung[0].f[1]  =  +120 kN  =  +qL
  *
  * Reaksi tegak jepit kantilever adalah qL ke ATAS. Jadi `f[1]` bertanda sama
  * dengan reaksi tumpuan — ia gaya yang SIMPUL berikan kepada BATANG (yang
@@ -162,12 +161,6 @@ interface GayaUjung {
  *     → arah BEBAS   :  Σf = beban_luar          (sisanya harus nol)
  *     → arah TERTAHAN:  reaksi = Σf − beban_luar
  *
- * Diverifikasi pada portal tak simetris berbeban campur (37 kN mendatar di
- * simpul kiri atas, −11 kN + 5 kNm di kanan atas, q = 23,7 kN/m di balok,
- * kaki kiri jepit & kaki kanan sendi): sisa simpul bebas turun dari orde
- * beban menjadi ~1e-13, dan kedua reaksi tegak keluar POSITIF (ke atas)
- * seperti yang memang harus terjadi di bawah beban gravitasi.
- *
  * ── Kenapa ini ditulis panjang
  * Tanda terbalik di PEMERIKSA sama berbahayanya dengan tanda terbalik di
  * solver, dengan satu bedanya: ia merah, jadi ia ketahuan. Yang tak boleh
@@ -179,19 +172,12 @@ interface GayaUjung {
  * Memutarnya ke global memakai Tᵀ (transpos rotasi); momen tak ikut berputar —
  * rangka bidang, momen selalu terhadap sumbu Z yang sama.
  */
-function gayaUjung(
-  hasil: HasilBatang,
-  qKnM: number,
-  lM: number,
+function putarKeGlobal(
+  f: readonly number[],
   cos: number,
   sin: number,
 ): GayaUjung {
-  const f0 = -hasil.aksialKn
-  const f1 = hasil.geserKn.di[0]!.nilai
-  const f2 = -hasil.momenKnm.di[0]!.nilai
-  const f3 = -f0
-  const f4 = qKnM * lM - f1
-  const f5 = hasil.momenKnm.di[hasil.momenKnm.di.length - 1]!.nilai
+  const [f0, f1, f2, f3, f4, f5] = [f[0]!, f[1]!, f[2]!, f[3]!, f[4]!, f[5]!]
 
   // Tᵀ untuk pasangan (N,V): [Fx,Fy] = [N·cos − V·sin, N·sin + V·cos]
   return {
@@ -227,6 +213,17 @@ interface Sisa {
   globalFxRelatif: number
   globalFyRelatif: number
   globalMRelatif: number
+  /**
+   * Selisih relatif antara `reaksi` yang dipulangkan modul dan yang
+   * diturunkan pemeriksa ini dari gaya ujung batang. Dua jalur, satu jawaban.
+   */
+  reaksiSelisihRelatif: number
+  /** Simpul bertumpu mana yang paling besar selisihnya. */
+  reaksiTerburuk: string
+  /** Jumlah baris `reaksi` — wajib = jumlah simpul BERTUMPU, bukan semua. */
+  jumlahReaksi: number
+  /** Berapa simpul yang memang bertumpu di kasus ini. */
+  jumlahBertumpu: number
 }
 
 /** DOF yang ditahan tiap tumpuan — SALINAN dari `rangka-model.ts` (sengaja). */
@@ -275,8 +272,13 @@ function periksaKeseimbangan(k: Kasus): Sisa {
     return { lM, cos: dx / lM, sin: dy / lM }
   })
 
-  const gu = k.batang.map((b, e) =>
-    gayaUjung(h.batang[e]!, b.qKnM ?? 0, geo[e]!.lM, geo[e]!.cos, geo[e]!.sin))
+  /*
+    Gaya ujung DIBACA dari keluaran modul, termasuk f[3]/f[4]/f[5]. Sebelum
+    2026-09-01 ketiganya direkonstruksi dari keseimbangan batang — sifat
+    bawaan `kLokal`, jadi selalu benar, jadi tak pernah menangkap apa pun.
+  */
+  const gu = k.batang.map((_b, e) =>
+    putarKeGlobal(h.gayaUjung[e]!.f, geo[e]!.cos, geo[e]!.sin))
 
   /*
     Skala referensi: besaran gaya terbesar yang muncul di kasus ini. Toleransi
@@ -292,8 +294,21 @@ function periksaKeseimbangan(k: Kasus): Sisa {
   k.batang.forEach((b, e) => semuaGaya.push((b.qKnM ?? 0) * geo[e]!.lM))
   const skala = skalaGaya(semuaGaya)
 
-  // ── 1. Keseimbangan tiap simpul; sekaligus memanen reaksi tumpuan.
-  const reaksi = k.simpul.map(() => ({ fx: 0, fy: 0, m: 0 }))
+  /*
+    ── 1. Keseimbangan tiap simpul; sekaligus MEMBANDINGKAN reaksi yang
+    dipulangkan modul terhadap reaksi yang diturunkan pemeriksa ini sendiri.
+
+    Sebelum 2026-09-01 pemeriksa ini MENDEFINISIKAN reaksinya sendiri, dan
+    definisi tak pernah bisa salah — ia cuma membuat (3) mungkin. Sekarang
+    `reaksiModul` datang dari modul dan `reaksiTurunan` dari pemeriksa;
+    keduanya wajib cocok, dan yang dipakai di (3) adalah punya MODUL. Kalau
+    modul memberi reaksi yang salah, ia merah di dua tempat sekaligus.
+  */
+  const reaksiModul = k.simpul.map(() => ({ fx: 0, fy: 0, m: 0 }))
+  for (const r of h.reaksi) {
+    reaksiModul[r.simpul] = { fx: r.fxKn, fy: r.fyKn, m: r.mKnm }
+  }
+  const reaksiTurunan = k.simpul.map(() => ({ fx: 0, fy: 0, m: 0 }))
   let simpulRelatif = 0
   let simpulTerburuk = '(tak ada)'
 
@@ -332,9 +347,9 @@ function periksaKeseimbangan(k: Kasus): Sisa {
     }
 
     const tahan = DITAHAN_UJI[s.tumpuan]!
-    if (tahan.x) { reaksi[i]!.fx = fx - ex } else { simpulRelatif = Math.max(simpulRelatif, Math.abs(fx - ex) / skala) }
-    if (tahan.y) { reaksi[i]!.fy = fy - ey } else { simpulRelatif = Math.max(simpulRelatif, Math.abs(fy - ey) / skala) }
-    if (tahan.m) { reaksi[i]!.m = m - em } else { simpulRelatif = Math.max(simpulRelatif, Math.abs(m - em) / skala) }
+    if (tahan.x) { reaksiTurunan[i]!.fx = fx - ex } else { simpulRelatif = Math.max(simpulRelatif, Math.abs(fx - ex) / skala) }
+    if (tahan.y) { reaksiTurunan[i]!.fy = fy - ey } else { simpulRelatif = Math.max(simpulRelatif, Math.abs(fy - ey) / skala) }
+    if (tahan.m) { reaksiTurunan[i]!.m = m - em } else { simpulRelatif = Math.max(simpulRelatif, Math.abs(m - em) / skala) }
 
     const sisaSimpul = Math.max(
       tahan.x ? 0 : Math.abs(fx - ex),
@@ -357,8 +372,11 @@ function periksaKeseimbangan(k: Kasus): Sisa {
   let sFy = 0
   let sM = 0
 
+  // Yang dipakai di sini reaksi MILIK MODUL — bukan turunan pemeriksa. Kalau
+  // modul salah, ΣF/ΣM ikut merah; kalau ia cuma memindahkannya dari satu
+  // simpul ke simpul lain, yang merah adalah pembandingan di bawah.
   k.simpul.forEach((s, i) => {
-    const r = reaksi[i]!
+    const r = reaksiModul[i]!
     sFx += r.fx
     sFy += r.fy
     sM += r.m + (s.xM - xAcuan) * r.fy - (s.yM - yAcuan) * r.fx
@@ -407,12 +425,46 @@ function periksaKeseimbangan(k: Kasus): Sisa {
   const lengan = Math.max(1, ...k.simpul.map((s) =>
     Math.max(Math.abs(s.xM - xAcuan), Math.abs(s.yM - yAcuan))))
 
+  /*
+    ── 4. Reaksi modul vs reaksi turunan pemeriksa.
+
+    Dua jalur yang harus bertemu di satu jawaban. Modul menurunkannya di dalam
+    `panenReaksi`; pemeriksa ini menurunkannya sendiri dari gaya ujung yang
+    juga dipulangkan modul. Keduanya memakai aljabar yang sama, jadi ini BUKAN
+    pengukuran yang sepenuhnya bebas — yang ia tangkap adalah penyaringan arah
+    tertahan yang salah, simpul yang tertukar, dan simpul bebas yang ikut
+    terdaftar. Yang menangkap kesalahan aljabarnya sendiri adalah tiga kasus
+    tangan di `rangka-model.test.ts`, yang jawabannya diketahui dari tabel.
+  */
+  let reaksiSelisihRelatif = 0
+  let reaksiTerburuk = '(tak ada)'
+  let jumlahBertumpu = 0
+  k.simpul.forEach((s, i) => {
+    if (s.tumpuan === 'bebas') return
+    jumlahBertumpu++
+    const a = reaksiModul[i]!
+    const b = reaksiTurunan[i]!
+    const d = Math.max(
+      Math.abs(a.fx - b.fx) / skala,
+      Math.abs(a.fy - b.fy) / skala,
+      Math.abs(a.m - b.m) / (skala * lengan),
+    )
+    if (d > reaksiSelisihRelatif) {
+      reaksiSelisihRelatif = d
+      reaksiTerburuk = `${s.nama} (indeks ${i})`
+    }
+  })
+
   return {
     simpulRelatif,
     simpulTerburuk,
     globalFxRelatif: Math.abs(sFx) / skala,
     globalFyRelatif: Math.abs(sFy) / skala,
     globalMRelatif: Math.abs(sM) / (skala * lengan),
+    reaksiSelisihRelatif,
+    reaksiTerburuk,
+    jumlahReaksi: h.reaksi.length,
+    jumlahBertumpu,
   }
 }
 
@@ -684,6 +736,82 @@ describe('invarian keseimbangan — portal tak beraturan, ratusan kombinasi', ()
     expect(gagal).toHaveLength(0)
   })
 
+  it('reaksi yang DIPULANGKAN modul = reaksi yang diturunkan dari gaya ujung', () => {
+    /*
+      Ini yang membuat `reaksi` bukan sekadar medan baru yang percaya diri.
+      Sekaligus memeriksa dua hal yang tak menimbulkan galat kalau salah:
+
+        • jumlah barisnya = jumlah simpul BERTUMPU, bukan semua simpul. Simpul
+          bebas yang ikut terdaftar membuat ΣFy menghitung gaya dalam batang
+          sebagai reaksi — angka yang besarnya masuk akal dan tandanya benar.
+        • arah yang TAK ditahan dipaku nol. Rol-x yang melaporkan fxKn dari
+          gaya sisa memberi reaksi mendatar yang secara fisik tak bisa ada.
+    */
+    const gagal: string[] = []
+    for (const { kasus: k } of kasus) {
+      const s = periksaKeseimbangan(k)
+      if (s.jumlahReaksi !== s.jumlahBertumpu) {
+        gagal.push(`${k.label} → ${s.jumlahReaksi} baris reaksi untuk ${s.jumlahBertumpu} simpul bertumpu`)
+      }
+      if (!(s.reaksiSelisihRelatif < TOL)) {
+        gagal.push(`${k.label} → reaksi ${s.reaksiTerburuk} beda ${s.reaksiSelisihRelatif.toExponential(4)}`)
+      }
+    }
+    expect(gagal.slice(0, 5).join('\n')).toBe('')
+    expect(gagal).toHaveLength(0)
+  })
+
+  it('gayaUjung UJUNG KEDUA benar-benar dibaca — bukan disimpulkan', () => {
+    /*
+      ══════════════════════════════════════════════════════════════════════
+      INI TEST YANG MENUTUP LUBANG (1). Baca header berkas.
+      ══════════════════════════════════════════════════════════════════════
+
+      Sebelum `gayaUjung` ada, f[3]/f[4]/f[5] direkonstruksi dari keseimbangan
+      batang: f[3] = −f[0], f[4] = qL − f[1], f[5] = momen di titik terakhir.
+      Ketiganya SELALU cocok, apa pun yang solver lakukan, karena keseimbangan
+      batang adalah sifat bawaan `kLokal`.
+
+      Yang diperiksa di sini: f yang dipulangkan modul MEMENUHI keseimbangan
+      batangnya sendiri — pengukuran yang baru punya arti sesudah ketiganya
+      dilaporkan alih-alih diturunkan. Kalau solver merusak ujung kedua saja
+      (mis. mengalikan f[4] dengan 1,01), ini merah; pada versi rekonstruksi
+      ia tetap hijau karena f[4] tak pernah datang dari solver.
+
+      Ketiga persamaannya, sumbu lokal batang panjang L berbeban merata q:
+        aksial : f[0] + f[3] = 0
+        geser  : f[1] + f[4] = q·L
+        momen  : f[2] + f[5] + f[4]·L = q·L²/2
+      Yang terakhir adalah momen terhadap ujung AWAL: momen kedua ujung,
+      ditambah geser ujung akhir dikali lengan L, sama dengan momen beban
+      merata terhadap ujung awal.
+    */
+    const gagal: string[] = []
+    for (const { kasus: k } of kasus) {
+      const h = analisaRangka2D(k.simpul, k.batang, k.beban)
+      expect(h.gayaUjung).toHaveLength(k.batang.length)
+
+      k.batang.forEach((b, e) => {
+        const f = h.gayaUjung[e]!.f
+        const a = k.simpul[b.dari]!
+        const z = k.simpul[b.ke]!
+        const L = Math.hypot(z.xM - a.xM, z.yM - a.yM)
+        const q = b.qKnM ?? 0
+        const skala = Math.max(1, ...f.map(Math.abs), Math.abs(q * L))
+
+        const sisaN = Math.abs(f[0] + f[3]) / skala
+        const sisaV = Math.abs(f[1] + f[4] - q * L) / skala
+        const sisaM = Math.abs(f[2] + f[5] + f[4] * L - q * L ** 2 / 2) / (skala * Math.max(1, L))
+
+        if (!(sisaN < TOL)) gagal.push(`${k.label} ${b.nama} → aksial ${sisaN.toExponential(4)}`)
+        if (!(sisaV < TOL)) gagal.push(`${k.label} ${b.nama} → geser ${sisaV.toExponential(4)}`)
+        if (!(sisaM < TOL)) gagal.push(`${k.label} ${b.nama} → momen ${sisaM.toExponential(4)}`)
+      })
+    }
+    expect(gagal.slice(0, 5).join('\n')).toBe('')
+    expect(gagal).toHaveLength(0)
+  })
+
   it('keseimbangan TIAP SIMPUL — memeriksa perakitan matriks, bukan hasil akhir', () => {
     /*
       Yang paling tajam dari keempatnya. ΣFy/ΣFx/ΣM global bisa tetap nol
@@ -727,6 +855,42 @@ describe('invarian keseimbangan — balok menerus bentang TAK SAMA', () => {
       if (!(s.globalFyRelatif < TOL)) gagal.push(`${k.label} → ΣFy ${s.globalFyRelatif.toExponential(4)}`)
       if (!(s.globalFxRelatif < TOL)) gagal.push(`${k.label} → ΣFx ${s.globalFxRelatif.toExponential(4)}`)
       if (!(s.globalMRelatif < TOL)) gagal.push(`${k.label} → ΣM ${s.globalMRelatif.toExponential(4)}`)
+      // Reaksi modul vs turunan pemeriksa, dan jumlah barisnya.
+      if (!(s.reaksiSelisihRelatif < TOL)) gagal.push(`${k.label} → reaksi ${s.reaksiTerburuk} ${s.reaksiSelisihRelatif.toExponential(4)}`)
+      if (s.jumlahReaksi !== s.jumlahBertumpu) gagal.push(`${k.label} → ${s.jumlahReaksi} reaksi vs ${s.jumlahBertumpu} bertumpu`)
+    }
+    expect(gagal.slice(0, 5).join('\n')).toBe('')
+    expect(gagal).toHaveLength(0)
+  })
+
+  it('ΣfyKn reaksi = qL total — dibaca dari `reaksi`, bukan dihitung ulang', () => {
+    /*
+      Balok menerus bentang tak sama: total beban = q × Σbentang, dan seluruh
+      reaksi tegaknya harus berjumlah persis itu — POSITIF, karena reaksi
+      adalah gaya yang TUMPUAN berikan kepada struktur.
+
+      Ini yang bisa dilakukan insinyur di layar tanpa menghitung ulang apa pun,
+      dan itulah alasan kedua `reaksi` ada. Sebelum ini, angka pembandingnya
+      tak pernah keluar dari modul sama sekali.
+    */
+    const gagal: string[] = []
+    for (const k of kasus) {
+      const h = analisaRangka2D(k.simpul, k.batang, k.beban)
+      const total = k.batang.reduce((s, b, e) => {
+        const a = k.simpul[b.dari]!
+        const z = k.simpul[b.ke]!
+        void e
+        return s + (b.qKnM ?? 0) * Math.hypot(z.xM - a.xM, z.yM - a.yM)
+      }, 0)
+      const sFy = h.reaksi.reduce((s, r) => s + r.fyKn, 0)
+      const rel = Math.abs(sFy - total) / Math.max(1, total)
+      if (!(rel < TOL)) {
+        gagal.push(`${k.label} → ΣfyKn ${sFy.toFixed(6)} vs qL total ${total.toFixed(6)} (rel ${rel.toExponential(4)})`)
+      }
+      // Tumpuan sendi/rol saja — tak satu pun jepit, jadi momen reaksi nol.
+      for (const r of h.reaksi) {
+        if (r.mKnm !== 0) gagal.push(`${k.label} → ${r.nama} mKnm ${r.mKnm} bukan nol pada tumpuan tanpa jepit`)
+      }
     }
     expect(gagal.slice(0, 5).join('\n')).toBe('')
     expect(gagal).toHaveLength(0)
