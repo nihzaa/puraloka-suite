@@ -114,6 +114,16 @@ const LEBAR_GAMBAR = W - 2 * MARGIN
 */
 const AMPLITUDO = 42        // simpangan maksimum kurva dari garis nol, px
 const RUANG_LABEL = 22      // ruang tambahan supaya label tak keluar bidang
+/**
+ * Kira-kira selebar judul panel terpanjang ("DIAGRAM GAYA LINTANG / GESER
+ * (kN)" ~250 px pada 12 px system-ui). Dipakai menggeser label yang terdorong
+ * ke baris judul supaya tak berdesakan dengannya.
+ *
+ * Angka hasil MELIHAT, bukan mengukur glif: geseran yang terlalu kecil
+ * menyisakan desakan, yang terlalu besar melempar label ke tengah bidang dan
+ * memutus kaitannya dengan titik yang diwakilinya.
+ */
+const LEBAR_JUDUL_PX = 262
 const TINGGI_PANEL = 2 * (AMPLITUDO + RUANG_LABEL)   // 128
 const JUDUL_KE_NOL = AMPLITUDO + RUANG_LABEL          // judul di tepi atas panel
 
@@ -408,7 +418,28 @@ function labelKritis(
     itulah gunanya RUANG_LABEL.
   */
   const batasAtas = p.yJudul + 12
-  if (yLabel < batasAtas) yLabel = batasAtas
+  const didorong = yLabel < batasAtas
+  if (didorong) yLabel = batasAtas
 
-  return teks(x, yLabel, `${angka(nilai)} ${p.satuan}`, 11, p.warna, anchor)
+  /*
+    ⚠ DUA hal yang masing-masing wajar, tapi BERSAMAAN membuat label
+    berdesakan dengan judul panelnya.
+
+    Ketika nilai ekstrem jatuh di ujung KIRI (x≈0), jangkarnya 'start' — teks
+    mulai persis di tepi kiri bidang, tempat judul panel juga mulai. Kalau
+    label itu SEKALIGUS terdorong turun ke `batasAtas`, keduanya berbaris di
+    kolom yang sama, hanya berbeda 12 px: "DIAGRAM GAYA LINTANG / GESER (kN)"
+    dengan "60,00 kN" menempel tepat di bawahnya.
+
+    Terlihat pada balok portal B1 — geser ekstremnya memang di x=0 — dan
+    TIDAK terlihat pada kolom, yang ekstremnya di ujung kanan. Satu
+    penggambar, dua jenis batang, satu tabrakan; pola yang sama dengan
+    tabrakan bentang kedua di atas.
+
+    Digeser MENDATAR sejauh judulnya, bukan diturunkan lagi: menurunkannya
+    akan menabrak kurva, dan itu justru cacat yang blok di atas perbaiki.
+  */
+  const xAkhir = didorong && anchor === 'start' ? x + LEBAR_JUDUL_PX : x
+
+  return teks(xAkhir, yLabel, `${angka(nilai)} ${p.satuan}`, 11, p.warna, anchor)
 }
