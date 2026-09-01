@@ -54,8 +54,17 @@ const actAs = (a: string) =>
   vi.spyOn(supabaseAuth.auth, 'getUser')
     .mockResolvedValue({ data: { user: { id: a } }, error: null } as never)
 
-const post = (url: string, body: unknown) =>
-  app.inject({ method: 'POST', url, headers: { authorization: 'Bearer t' }, payload: body })
+/*
+  `payload` diketik `Record<string, unknown>`, bukan `unknown`.
+
+  `unknown` tak bisa ditugaskan ke `InjectPayload`, dan tanpa `await`-nya
+  di dalam fungsi, `app.inject` memulangkan tipe rantai (`Chain`) yang tak
+  punya `.statusCode`. Keduanya lolos `npx tsc --noEmit` di mesin ini
+  tetapi MENGGAGALKAN `pnpm build` di server — dan build itu yang
+  membangun image produksi.
+*/
+const post = async (url: string, body: Record<string, unknown>) =>
+  await app.inject({ method: 'POST', url, headers: { authorization: 'Bearer t' }, payload: body })
 
 async function purge() {
   await client.query(`DELETE FROM ncr_items WHERE judul LIKE '[TEST-NOMOR]%'`)
