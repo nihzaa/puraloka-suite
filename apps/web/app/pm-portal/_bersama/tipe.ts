@@ -2124,7 +2124,16 @@ export interface RespGudangDaftar { gudang: GudangLokasi[] }
 export interface StokRingkas {
   id: string; qty_on_hand: number | string; qty_reserved: number | string | null; last_updated_at: string | null
   project: { id: string; name: string } | null
-  material: { id: string; name: string; unit: string; category: { name: string } | null } | null
+  /*
+    `min_stock` ditambahkan 2026-09-01 bersama rutenya.
+
+    Nullable karena material lama bisa belum punya ambang — dan `0` BUKAN
+    nilai jatuhan yang aman di sini: `qty <= 0` akan menandai setiap
+    material berstok nol sebagai "di bawah ambang", termasuk yang memang
+    tak pernah disetel ambangnya. Yang tak punya ambang tak boleh diberi
+    peringatan sama sekali.
+  */
+  material: { id: string; name: string; unit: string; min_stock: number | string | null; category: { name: string } | null } | null
 }
 export interface RespStokDaftar { stocks: StokRingkas[] }
 

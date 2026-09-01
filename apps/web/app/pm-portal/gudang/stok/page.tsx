@@ -34,7 +34,7 @@
 // ============================================================================
 
 import { useMemo, useState } from "react";
-import { Boxes, History, Plus } from "lucide-react";
+import { Boxes, History, Plus, TriangleAlert } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
 import { api } from "@/lib/api";
 import EmptyState from "@/components/portal/EmptyState";
@@ -45,6 +45,27 @@ import type { ProyekPM, RespStokDaftar, StokRingkas, RespMutasiDaftar, GalatApi 
 import { pesanGalat } from "../../_bersama/tipe";
 
 interface RespProyek { projects: ProyekPM[] }
+
+/**
+ * Apakah stok material ini SUDAH di bawah ambang minimumnya?
+ *
+ * ⚠ Material TANPA ambang tak pernah diberi peringatan.
+ *
+ * Nilai jatuhan 0 akan salah ke arah yang berisik: `qty <= 0` menandai
+ * setiap material berstok nol sebagai bermasalah, termasuk yang memang
+ * belum pernah disetel ambangnya. Peringatan yang muncul di mana-mana
+ * mengajari orang mengabaikannya — dan yang sungguhan ikut terabaikan.
+ *
+ * Angkanya bisa datang sebagai string dari PostgREST (kolom numeric),
+ * jadi Number() dulu, dan NaN diperlakukan seperti tak punya ambang.
+ */
+function dibawahAmbang(s: StokRingkas): boolean {
+  const min = Number(s.material?.min_stock ?? NaN);
+  if (!Number.isFinite(min) || min <= 0) return false;
+  const qty = Number(s.qty_on_hand ?? NaN);
+  if (!Number.isFinite(qty)) return false;
+  return qty <= min;
+}
 
 export default function PmStokPage() {
   const [proyekId, setProyekId] = useState("");
@@ -96,9 +117,32 @@ export default function PmStokPage() {
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{s.material?.name ?? "—"}</div>
             <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{s.material?.category?.name ?? "Tanpa kategori"}</div>
+            {dibawahAmbang(s) && (
+              /*
+                Peringatan disertai ANGKA ambangnya, bukan kata "menipis" saja.
+
+                PM di lapangan memutuskan pesan atau tidak; "menipis" tak
+                menjawab berapa yang kurang. Angka menjawabnya tanpa membuka
+                halaman lain.
+              */
+              <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 11, fontWeight: 600, color: "var(--warning-teks)" }}>
+                <TriangleAlert size={12} aria-hidden="true" />
+                <span>Di bawah minimum ({s.material?.min_stock} {s.material?.unit ?? ""})</span>
+              </div>
+            )}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--navy)" }}>{s.qty_on_hand} {s.material?.unit ?? ""}</span>
+            <span style={{
+              fontSize: 14, fontWeight: 700,
+              /*
+                Warna angka ikut berubah — indikator tak boleh bergantung
+                pada IKON saja. Ikon 12px di layar HP mudah terlewat, dan
+                pengguna dengan gangguan penglihatan warna tetap terbantu
+                oleh teks "Di bawah minimum" di sebelahnya. Tiga penanda
+                (teks, ikon, warna) untuk satu keadaan.
+              */
+              color: dibawahAmbang(s) ? "var(--warning-teks)" : "var(--navy)",
+            }}>{s.qty_on_hand} {s.material?.unit ?? ""}</span>
             <History size={14} color="var(--text-secondary)" aria-hidden="true" />
           </div>
         </button>

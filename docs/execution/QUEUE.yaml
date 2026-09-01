@@ -3403,7 +3403,7 @@ items:
       - "apps/web/app/pm-portal/gudang/stok/page.tsx menampilkan indikator/badge saat qty on-hand <= min_stock, read-only (tak perlu form edit)"
     cara_verifikasi: "Buka /pm-portal/gudang/stok sebagai PM untuk proyek dengan material qty <= min_stock — badge/warna peringatan harus terlihat tanpa membuka /procurement/material (web)"
     bobot: S
-    status: menunggu
+    status: done
     catatan_kemajuan: >-
       Ditemukan 2026-08-21 (Task 26, saat memutuskan fallback iv-minstok ke
       web). Dicek langsung isi apps/web/app/pm-portal/gudang/stok/page.tsx
@@ -3428,6 +3428,30 @@ items:
       item QUEUE.yaml eksplisit supaya tak bergantung pada seseorang
       membaca komentar kode untuk menemukannya lagi — pola sama dengan
       A11Y-PM-PORTAL di atas.
+      SELESAI 2026-09-01. Rute menyertakan min_stock (procurement.ts,
+      select project_stocks), tipe StokRingkas diperbarui bersamanya, dan
+      halaman menampilkan tiga penanda untuk satu keadaan: teks
+      "Di bawah minimum (N satuan)", ikon segitiga, dan warna angka qty.
+      Tiga penanda karena ikon 12px di HP mudah terlewat dan warna saja
+      tak membantu pengguna dengan gangguan penglihatan warna.
+
+      Angka ambangnya IKUT ditulis, bukan sekadar kata "menipis" — PM di
+      lapangan memutuskan pesan atau tidak, dan "menipis" tak menjawab
+      berapa yang kurang.
+
+      Material TANPA ambang tak pernah diberi peringatan. Nilai jatuhan 0
+      akan menandai setiap material berstok nol sebagai bermasalah, dan
+      peringatan yang muncul di mana-mana mengajari orang mengabaikannya.
+
+      Diverifikasi di LAYAR, bukan dari kode. Akun uji PM memegang tiga
+      proyek yang semuanya nol stok, jadi datanya dibuat
+      (scripts/db/seed-uji-stok-minstock.mjs, idempoten, bertanda
+      [SEED-MINSTOK]) dengan tiga baris sengaja: qty 5/min 20 (badge
+      wajib muncul), qty 20/min 20 (batas <=, wajib muncul), qty 99/min 20
+      (wajib TIDAK muncul). Yang ketiga menangkap pagar kelewat longgar.
+
+      Hasil: ketiganya sesuai harapan. Potret
+      apps/web/.layar/pm-stok-minstock.png.
 
   - id: RATCHET-DRIFT-ADMIN-PORTAL-TAHAP1
     fase: null

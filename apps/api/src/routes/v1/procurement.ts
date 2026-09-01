@@ -1666,7 +1666,20 @@ export default async function procurementRoutes(app: FastifyInstance) {
     const { project_id } = request.query as { project_id?: string }
     let q = supabase
       .from('project_stocks')
-      .select('id, qty_on_hand, qty_reserved, last_updated_at, project:projects(id, name), material:materials(id, name, unit, category:material_categories(name))')
+      /*
+        `min_stock` ikut diambil — tanpa itu PM tak punya tempat MELIHAT
+        peringatan stok minimum di HP.
+
+        Ambangnya sudah dipakai rute lain (`/procurement/reorder-alerts`
+        menghitungnya di baris ~1933), tetapi rute INI yang dibaca layar
+        `pm-portal/gudang/stok`. PM yang di lapangan harus membuka halaman
+        web `/procurement/material` untuk tahu sebuah material sudah di
+        bawah ambang — layar yang tak dirancang untuk HP.
+
+        Kolomnya hanya DIBACA di sini; penyuntingan ambang tetap di web
+        (rute PATCH terpisah, bergerbang izin lain).
+      */
+      .select('id, qty_on_hand, qty_reserved, last_updated_at, project:projects(id, name), material:materials(id, name, unit, min_stock, category:material_categories(name))')
       .order('last_updated_at', { ascending: false })
 
     const idProyekSt = await proyekBolehDibaca(request, project_id)
