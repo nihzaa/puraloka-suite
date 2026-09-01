@@ -100,13 +100,60 @@ const AMBANG = {
   // Keduanya memberi hal yang sama pada pemakai keyboard: bisa difokus,
   // diaktifkan Enter/Spasi, dan dikenali pembaca layar. `e.preventDefault()`
   // pada Spasi wajib — tanpa itu halaman ikut menggulir saat tombol ditekan.
-  'jsx-a11y/click-events-have-key-events': 57,  // 59 -> 57 (2026-08-13, backdrop lightbox jadi <button> saudara)
+  /*
+    57 → 56 (2026-09-01). Hitungan sebenarnya 54; jarak 2.
+
+    ⚠ Ambang ini LONGGAR SEJAK HARI PERTAMA, dan itu temuan yang lebih
+    penting daripada angkanya.
+
+    Diukur di worktree pada commit penyetelnya (0aa1cc05, 2026-08-13):
+    hitungan saat itu 36 — sementara ambangnya dipasang 57. Longgar 21.
+
+    Akibatnya hutang a11y NAIK 36 → 54 sepanjang tiga minggu dan CI tetap
+    hijau sepanjang itu. Ratchet yang dipasang jauh di atas kenyataan
+    bukan ratchet; ia izin bertambah yang tak seorang pun sadari
+    diberikan.
+
+    Bentuknya sama dengan catatan 2026-08-07 di berkas ini sendiri
+    ("utang naik 3 tanpa CI menangkapnya") — hanya enam kali lebih besar
+    dan tiga minggu lebih lama.
+
+    ── Kenapa 56, bukan 54
+
+    Mengencangkan ke hitungan sekarang MENGUNCI hutang yang terlanjur
+    naik alih-alih memperbaikinya. Jarak 2 menutup ruang naik diam-diam
+    (yang tadinya 21) tanpa membekukan keadaan buruk sebagai "normal
+    baru".
+
+    Diukur sebelum menyetel: worktree `kematangan-modul` (25 berkas belum
+    ter-commit) NOL menyentuh `onClick`, jadi ini tak mengunci siapa pun
+    yang sedang bekerja.
+
+    Turunkan tiap kali ada yang benar-benar dibersihkan — pelanggarannya
+    tersebar di banyak berkas, jadi penurunannya akan bertahap.
+  */
+  'jsx-a11y/click-events-have-key-events': 56,  // 59 -> 57 (2026-08-13, backdrop lightbox jadi <button> saudara)
   // 115 → 108 → 106 (2026-08-01; `rab-section`, lalu kartu proyek jadi `<Link>`): baris kategori/sub-kategori yang
   // bisa dilipat, sel komponen biaya, dan area seret-jatuh. Dipakai helper
   // `lib/dapat-ditekan.ts` supaya `role`+`tabIndex`+Enter/Space selalu lengkap
   // — separuh implementasi (umumnya Enter ditangani, Space tidak) terasa rusak
   // sesekali, dan itu lebih membingungkan daripada rusak konsisten.
-  'jsx-a11y/no-static-element-interactions': 63,  // 64 -> 63 (2026-08-13, sumber yang sama)
+  /*
+    63 → 61 (2026-09-01). Hitungan sebenarnya 59; jarak 2.
+
+    Kasus yang sama persis dengan `click-events-have-key-events` di atas —
+    keduanya disetel commit yang sama (0aa1cc05) dan sama-sama longgar
+    sejak hari pertama:
+
+        saat disetel  40   ambang 63   longgar 23
+        sekarang      59   ambang 63   longgar  4
+
+    Hutang naik 19 tanpa satu pun penjaga berbunyi. Alasan lengkapnya di
+    komentar `click-events` di atas; jangan menurunkannya di sini saja
+    tanpa membaca yang itu — keduanya bergerak bersama, dan pelanggaran
+    yang sama sering menghitung di kedua aturan.
+  */
+  'jsx-a11y/no-static-element-interactions': 61,  // 64 -> 63 (2026-08-13, sumber yang sama)
   'jsx-a11y/no-noninteractive-element-interactions': 6,
 
   // ── Hutang lint lain ────────────────────────────────────────────────────
@@ -305,6 +352,41 @@ const turun = Object.entries(AMBANG)
   .filter(([rule, ambang]) => (perRule[rule] ?? 0) < ambang)
   .map(([rule, ambang]) => `${rule}: ${perRule[rule] ?? 0} < ${ambang}`)
 
+/*
+  ── AMBANG YANG TERLALU LONGGAR ADALAH IZIN BERTAMBAH ────────────────────
+
+  Ditemukan 2026-09-01, dengan menjalankan lint di worktree pada commit
+  penyetel tiap ambang:
+
+      click-events-have-key-events   disetel 57, hitungan saat itu 36
+      no-static-element-interactions disetel 63, hitungan saat itu 40
+
+  Longgar 21 dan 23 SEJAK HARI PERTAMA. Akibatnya hutang naik 36 → 54 dan
+  40 → 59 sepanjang tiga minggu, dan CI hijau sepanjang itu.
+
+  Ratchet yang dipasang jauh di atas kenyataan bukan ratchet — ia izin
+  bertambah yang tak seorang pun sadar telah diberikan. Dan blok `turun`
+  di atas hanya MENYARANKAN (exit 0), jadi saran itu bisa diabaikan
+  berminggu-minggu tanpa gejala.
+
+  Sekarang kelonggarannya sendiri dijaga: jarak > BATAS_LONGGAR membuat
+  ratchet MERAH, dengan pesan yang menyebut angkanya.
+
+  ── Kenapa 8, bukan 0
+
+  Jarak nol memaksa tiap perbaikan kecil disertai sunting berkas ini —
+  gesekan yang membuat orang berhenti memperbaiki. Dan pekerjaan yang
+  sedang berjalan di worktree lain butuh ruang: satu `onClick` sementara
+  tak boleh memerahkan CI orang yang tak memakukan angkanya.
+
+  Delapan cukup untuk keduanya, dan jauh di bawah 21 yang lolos selama
+  tiga minggu.
+*/
+const BATAS_LONGGAR = 8
+const terlaluLonggar = Object.entries(AMBANG)
+  .map(([rule, ambang]) => ({ rule, ambang, kini: perRule[rule] ?? 0 }))
+  .filter((x) => x.ambang - x.kini > BATAS_LONGGAR)
+
 if (pelanggaran.length) {
   console.error('\n❌ RATCHET LINT GAGAL — hutang lint BERTAMBAH:\n')
   pelanggaran.forEach((p) => console.error('   ' + p))
@@ -319,4 +401,23 @@ console.log(`✅ Ratchet lint web: ${error} error, ${Object.values(perRule).redu
 if (turun.length) {
   console.log('\n📉 Turun dari ambang — silakan kencangkan angkanya di scripts/lint-ratchet.mjs:')
   turun.forEach((t) => console.log('   ' + t))
+}
+
+if (terlaluLonggar.length) {
+  console.error(`\n❌ ${terlaluLonggar.length} ambang TERLALU LONGGAR (jarak > ${BATAS_LONGGAR}):\n`)
+  for (const x of terlaluLonggar) {
+    console.error(`   ${x.rule}: ambang ${x.ambang}, hitungan ${x.kini} — longgar ${x.ambang - x.kini}`)
+  }
+  console.error('')
+  console.error('   Ambang yang jauh di atas kenyataan bukan ratchet; ia IZIN')
+  console.error('   BERTAMBAH yang tak seorang pun sadar telah diberikan.')
+  console.error('')
+  console.error('   Diukur 2026-09-01: dua ambang dipasang longgar 21 dan 23')
+  console.error('   sejak hari pertama, dan hutangnya naik 18-19 sepanjang tiga')
+  console.error('   minggu dengan CI hijau terus.')
+  console.error('')
+  console.error('   Turunkan ke sekitar hitungan sekarang — beri jarak kecil')
+  console.error('   untuk pekerjaan yang sedang berjalan, bukan puluhan.')
+  console.error('')
+  process.exit(1)
 }
