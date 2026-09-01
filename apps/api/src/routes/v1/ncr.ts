@@ -94,9 +94,77 @@ async function nomorBerikutnya(db: TenantDb, projectId: string): Promise<string>
   if (error) throw new Error(`Gagal membaca nomor NCR terakhir: ${error.message}`)
   if (!data || data.length === 0) return 'NCR-001'
 
-  const cocok = /^NCR-(\d+)$/.exec(data[0].nomor as string)
-  if (!cocok) return 'NCR-001'
-  return `NCR-${String(parseInt(cocok[1], 10) + 1).padStart(3, '0')}`
+  /*
+    DUA bentuk nomor hidup berdampingan di basis ini, dan fungsi ini
+    dulu hanya mengenali satu.
+
+    Diukur 2026-09-01 lewat rute produksi:
+
+        18 nomor  NCR-YYMM-NNN   (mis. NCR-2608-004)
+         1 nomor  NCR-NNN
+
+    Pola lama `/^NCR-(\d+)$/` tak cocok dengan bentuk pertama, jatuh ke
+    `return 'NCR-001'`, dan menabrak `uq_ncr_items_project_nomor` begitu
+    NCR-001 sudah ada. Akibatnya:
+
+        POST /projects/:id/ncr → 500 "Gagal mencatat ketidaksesuaian"
+
+    di TUJUH proyek. Galat 500 tak menyebut sebabnya di badan balasan;
+    yang menyebut "duplicate key" hanya log server. Mandor di lapangan
+    melihat kegagalan yang tak bisa ia jelaskan maupun hindari.
+
+    ── Kenapa nomor lama TIDAK diseragamkan
+
+    Nomor NCR dirujuk dalam surat resmi ke konsultan dan pemilik.
+    Menomori ulang berarti dokumen yang sudah beredar menunjuk nomor yang
+    tak ada lagi. Yang diperbaiki: fungsi ini mengenali keduanya, dan
+    melanjutkan bentuk yang SUDAH DIPAKAI proyek itu.
+
+    ── Urutan pemeriksaan mengikat
+
+    `NCR-YYMM-NNN` diperiksa DULU. Pola `NCR-(\d+)` yang dijalankan lebih
+    dulu akan mencocokkan `2608` dari `NCR-2608-004` dan menghasilkan
+    `NCR-2609` — nomor yang bentuknya asing bagi keduanya.
+
+    ⚠ `.order('nomor')` mengurutkan sebagai TEKS. Itu benar selama
+    lebarnya tetap (NNN tiga digit): 'NCR-2608-009' < 'NCR-2608-010'.
+    Begitu sebuah proyek melewati 999 NCR, urutannya patah — dan itu
+    dicatat di sini, bukan diasumsikan tak akan terjadi.
+  */
+  const nomorTerakhir = data[0].nomor as string
+
+  const berperiode = /^NCR-(\d{4})-(\d+)$/.exec(nomorTerakhir)
+  if (berperiode) {
+    const [, periode, urut] = berperiode
+    return `NCR-${periode}-${String(parseInt(urut, 10) + 1).padStart(3, '0')}`
+  }
+
+  const cocok = /^NCR-(\d+)$/.exec(nomorTerakhir)
+  if (cocok) {
+    return `NCR-${String(parseInt(cocok[1], 10) + 1).padStart(3, '0')}`
+  }
+
+  /*
+    ⚠ Pola TAK DIKENAL bukan alasan memulai dari satu.
+
+    Baris lama berbunyi `if (!cocok) return 'NCR-001'` — tampak seperti
+    penanganan aman, dan justru melakukan hal yang komentar di ATAS fungsi
+    ini peringatkan untuk kasus `error`: "Gagal baca ≠ belum ada NCR".
+    Bentuk tak dikenal juga ≠ belum ada NCR.
+
+    Cacat itu yang menghasilkan 500 hari ini: format berubah jadi
+    `NCR-YYMM-NNN`, pola lama gagal cocok, fungsi memulangkan 'NCR-001',
+    dan INSERT menabrak `uq_ncr_items_project_nomor`.
+
+    Sekarang bentuk ketiga apa pun MELEMPAR, dengan nomornya disebut.
+    Nomor NCR dirujuk dalam surat resmi; menebaknya jauh lebih mahal
+    daripada berhenti dan mengatakan apa yang tak dikenali.
+  */
+  throw new Error(
+    `Bentuk nomor NCR tak dikenali: "${nomorTerakhir}". `
+    + 'Yang dikenali: NCR-NNN dan NCR-YYMM-NNN. Nomor tak boleh ditebak — '
+    + 'ia dirujuk dalam surat resmi ke konsultan.'
+  )
 }
 
 export default async function ncrRoutes(app: FastifyInstance) {
