@@ -343,7 +343,33 @@ export default function PortalShell({
         </nav>
       </header>
 
-      <main className="portal-isi" style={{ flex: 1, padding: "20px 16px", paddingBottom: 96 }}>
+      {/*
+        `tabIndex={0}` supaya area yang BISA DIGULIR bisa dicapai keyboard.
+
+        Ditemukan audit a11y 2026-09-01 (serious,
+        `scrollable-region-focusable`) di /pm-portal/keuangan/dashboard.
+        Media query di atas memberi `.portal-isi` `overflow-y: auto` pada
+        layar >= 1024px — jadi di PC ia jadi wilayah bergulir, dan wilayah
+        bergulir yang tak bisa difokus tak bisa digulir dengan panah atau
+        Page Down.
+
+        Yang terdampak bukan kasus langka: pengguna yang tak memakai tetikus
+        sama sekali kehilangan akses ke bagian bawah SETIAP halaman portal
+        yang isinya lebih panjang dari layar.
+
+        `aria-label` menyertainya karena elemen fokusable tanpa nama
+        diumumkan pembaca layar sebagai "grup" telanjang — pengguna tahu
+        fokusnya berpindah tetapi tak tahu ke mana.
+
+        Tak ada garis fokus yang dipaksa hilang: `:focus-visible` bawaan
+        peramban hanya muncul saat dinavigasi keyboard, bukan saat diklik.
+      */}
+      <main
+        className="portal-isi"
+        tabIndex={0}
+        aria-label="Isi halaman"
+        style={{ flex: 1, padding: "20px 16px", paddingBottom: 96 }}
+      >
         {children}
       </main>
 

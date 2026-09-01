@@ -171,7 +171,27 @@ export default function PmPengadaanLanjutanPage() {
             role="tab"
             id={`tab-${t.key}`}
             aria-selected={tab === t.key}
-            aria-controls={`panel-${t.key}`}
+            /*
+              `aria-controls` HANYA disebut saat panelnya benar-benar ada
+              di DOM.
+
+              Ditemukan audit a11y 2026-09-01 (critical,
+              `aria-valid-attr-value`): panel dirender bersyarat
+              `!memuat && data && tab === t.key`, jadi selama memuat, saat
+              data kosong, dan untuk dua tab yang TIDAK aktif, id yang
+              ditunjuk tak ada sama sekali.
+
+              Atribut yang menunjuk id hantu bukan cacat kosmetik: pembaca
+              layar mengumumkan tab itu mengendalikan sesuatu, lalu
+              perintah "loncat ke panelnya" tak menemukan apa pun. Pengguna
+              menyimpulkan halamannya rusak.
+
+              Alternatifnya merender ketiga panel sekaligus dan
+              menyembunyikan yang tak aktif — itu menambah tiga kali
+              permintaan data untuk halaman yang dibuka di HP lapangan.
+              Menghapus atributnya lebih murah dan sama benarnya.
+            */
+            aria-controls={tab === t.key && !memuat && data ? `panel-${t.key}` : undefined}
             onClick={() => setTab(t.key)}
             style={{
               padding: "6px 14px", borderRadius: "var(--portal-radius-pill)", fontSize: 12, fontWeight: 600,

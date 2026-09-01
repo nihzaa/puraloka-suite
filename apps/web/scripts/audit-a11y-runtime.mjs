@@ -58,6 +58,27 @@ const GELAP = ARG.includes('--gelap')
 const iUrl = ARG.indexOf('--url')
 const URL_TUNGGAL = iUrl >= 0 ? ARG[iUrl + 1] : null
 
+/*
+  `--awalan /pm-portal` — pindai hanya cabang tertentu.
+
+  Kenapa perlu: memindai SELURUH 155+ halaman butuh lebih dari sembilan
+  menit, dan setiap jalan yang terpotong tak pernah sampai mencetak
+  laporannya. Hasilnya nol informasi dari audit yang berjalan lama.
+
+  Item `A11Y-PM-PORTAL` hanya menuntut cakupan `pm-portal/*` — 78 halaman
+  yang tak pernah terpindai karena akun uji berperan admin. Memindai
+  sisanya di jalan yang sama membuat yang dituntut ikut gagal.
+
+  ⚠ Ini MEMPERSEMPIT cakupan, jadi angka "0 pelanggaran" dari jalan
+  ber-`--awalan` TIDAK boleh dibaca sebagai "aplikasi bersih". Laporannya
+  menyebutkan awalannya supaya tak tertukar.
+
+  ⚠ Argumen berawalan `/` DIRUSAK Git Bash (MSYS mengubahnya jadi path
+  Windows) — pakai `MSYS_NO_PATHCONV=1`, sama seperti `--url`.
+*/
+const iAwalan = ARG.indexOf('--awalan')
+const AWALAN = iAwalan >= 0 ? ARG[iAwalan + 1] : null
+
 const BASIS = process.env.LAYAR_BASIS ?? 'http://localhost:3000'
 const EMAIL = process.env.LAYAR_EMAIL
 const SANDI = process.env.LAYAR_SANDI
@@ -228,7 +249,19 @@ function halamanDariBerkas() {
     .sort()
 }
 
-const HALAMAN = URL_TUNGGAL ? [URL_TUNGGAL] : halamanDariBerkas()
+const SEMUA_HALAMAN = URL_TUNGGAL ? [URL_TUNGGAL] : halamanDariBerkas()
+const HALAMAN = AWALAN ? SEMUA_HALAMAN.filter((h) => h.startsWith(AWALAN)) : SEMUA_HALAMAN
+
+if (AWALAN && HALAMAN.length === 0) {
+  console.error(`❌ Nol halaman berawalan "${AWALAN}" dari ${SEMUA_HALAMAN.length} yang ada.`)
+  console.error('   Awalannya salah tulis, atau dirusak Git Bash — pakai MSYS_NO_PATHCONV=1.')
+  console.error('   Hijau dari korpus kosong adalah kebohongan.')
+  process.exit(2)
+}
+if (AWALAN) {
+  console.log(`⚠  Cakupan DIPERSEMPIT ke "${AWALAN}": ${HALAMAN.length} dari ${SEMUA_HALAMAN.length} halaman.`)
+  console.log('   Angka pelanggaran di bawah TIDAK berlaku untuk seluruh aplikasi.\n')
+}
 
 // Rute dinamis yang dilewati karena tak diberi contoh id — dinyatakan, bukan
 // dihilangkan diam-diam.

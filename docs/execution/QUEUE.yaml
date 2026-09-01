@@ -3240,7 +3240,7 @@ items:
       - "node apps/web/scripts/jalankan-a11y-lengkap.mjs dijalankan dengan akun itu, cakupan pm-portal/* terkonfirmasi (bukan 'dialihkan')"
     cara_verifikasi: "Cek rincian apps/web/.a11y-terang.json — halaman berprefix /pm-portal harus muncul di daftar 'dipindai', bukan 'dialihkan'"
     bobot: S
-    status: menunggu
+    status: done
     catatan_kemajuan: >-
       Ditemukan 2026-08-20 saat Task 10 plan Portal PM Lengkap (Tahap 0-1):
       hasil audit a11y "155 halaman, 0 pelanggaran" TIDAK mencakup 25
@@ -3270,6 +3270,36 @@ items:
       halaman Tahap 7 (`sdm/timesheet`, `dokumen-kendali`) mengonfirmasi
       redirect yang sama. Status TETAP `menunggu` — bukan diklaim
       selesai.
+      SELESAI 2026-09-01. Kriteria pertama (akun uji berperan pm) dipenuhi
+      lebih dulu: ketiga akun portal ternyata SUDAH ADA, sehat, dan pernah
+      berhasil login — hanya sandinya tak tercatat di mana pun. Disamakan
+      dengan LAYAR_SANDI lewat Supabase Admin API
+      (scripts/db/setel-sandi-akun-uji-portal.mjs).
+
+      Hasil, keempat portal, mode terang:
+        pm-portal      66 halaman   0 pelanggaran
+        admin-portal   28 halaman   0 pelanggaran
+        mandor-portal  19 halaman   0 pelanggaran
+        portal (klien)  3 halaman   0 pelanggaran
+
+      DUA pelanggaran nyata ditemukan dan diperbaiki dalam prosesnya:
+        [critical] aria-valid-attr-value — aria-controls menunjuk id panel
+          yang tak ada di DOM (panel dirender bersyarat), di
+          pm-portal/keuangan/pengadaan-lanjutan
+        [serious] scrollable-region-focusable — .portal-isi diberi
+          overflow-y:auto oleh media query >=1024px, jadi wilayah bergulir
+          yang tak bisa difokus keyboard. Menyentuh SEMUA portal.
+        [serious] nested-interactive — <a> bersarang di role=button di
+          mandor-portal/scope (ditemukan sesudah perubahan PortalShell,
+          bukan disebabkan olehnya)
+
+      Alat ukurnya ikut diperbaiki: satu halaman crash dulu mematikan
+      SELURUH audit tanpa menyebut halamannya, dan 77 halaman lain jadi
+      tak terukur tanpa laporan apa pun. Kini crash dicatat bernama, audit
+      lanjut, dan halaman rusak DIKELUARKAN dari hitungan dipindai.
+      Ditambah opsi --awalan: memindai 274 halaman butuh lebih dari
+      sembilan menit dan tiap jalan yang terpotong tak pernah mencetak
+      laporannya.
 
   - id: JUDUL-RATCHET-PORTAL-MOBILE
     fase: null

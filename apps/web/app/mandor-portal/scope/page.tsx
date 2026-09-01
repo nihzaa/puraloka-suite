@@ -286,21 +286,43 @@ export default function MandorScopePage() {
                               </div>
                             )}
 
-                            {isProgressPct && scope.status === "active" && (
+                          </div>
+
+                          {/*
+                            Tautan ini DIPINDAHKAN keluar dari `role="button"`
+                            di atasnya.
+
+                            Ditemukan audit a11y 2026-09-01 (serious,
+                            `nested-interactive`): sebuah `<a>` bersarang di
+                            dalam elemen ber-`role="button"`. Pembaca layar
+                            tak selalu mengumumkan keduanya, dan urutan fokus
+                            jadi tak terduga — mandor yang menavigasi dengan
+                            keyboard bisa "masuk" ke kartu tanpa cara jelas
+                            mencapai tombol penagihannya.
+
+                            `stopPropagation` yang dulu dipakai menahan
+                            KLIK-nya saja; ia tak berbuat apa pun terhadap
+                            struktur DOM yang dibaca teknologi bantu, dan
+                            tak lagi diperlukan sesudah tautannya di luar.
+
+                            Padding kiri disamakan dengan kartu di atasnya
+                            supaya tak terlihat menggantung.
+                          */}
+                          {isProgressPct && scope.status === "active" && (
+                            <div style={{ padding: "0 20px 16px" }}>
                               <Link
                                 href="/mandor-portal/penagihan"
-                                onClick={(e) => e.stopPropagation()}
                                 style={{
                                   display: "inline-flex", alignItems: "center", gap: 4, minHeight: 44,
-                                  marginTop: 10, padding: "0 12px", borderRadius: "var(--portal-radius-pill)",
+                                  padding: "0 12px", borderRadius: "var(--portal-radius-pill)",
                                   border: "1px solid var(--navy)", background: "var(--navy-light)",
                                   color: "var(--navy)", fontSize: 12, fontWeight: 700, textDecoration: "none",
                                 }}
                               >
                                 Ajukan Penagihan →
                               </Link>
-                            )}
-                          </div>
+                            </div>
+                          )}
 
                           {isExpanded && <ScopeItemsDetail scopeId={scope.id} />}
                         </div>
