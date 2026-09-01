@@ -172,6 +172,23 @@ b. Ganti label kritis dari `momenKnm.maks` jadi `Math.max(...di.map(p=>p.nilai))
 ```
 Kalau ada yang tetap hijau, testnya tak menjaga apa-apa — laporkan.
 
+⚠ **Mutasi (b) MEMANG selamat saat Task 1 dikerjakan, dan sebabnya layak
+diingat.** `toMatch(/50[.,]6/)` mencari di SELURUH string SVG. Draf pertama
+merakit `aria-label` dari `batang.momenKnm.maks` secara terpisah, jadi
+"50,63" tetap ada di berkas walau label VISUALNYA sudah salah — test hijau
+atas angka yang tak seorang pun lihat.
+
+Diperbaiki bukan dengan melonggarkan test melainkan dengan menutup cacat
+nyata di baliknya: `aria-label` kini dirakit dari daftar label yang
+BENAR-BENAR tergambar (satu sumber). Dua sumber untuk satu angka berarti
+pembaca layar dan pembaca awas bisa diberi tahu nilai berbeda, dan keduanya
+terlihat wajar.
+
+**Pelajaran umum:** assertion yang mencari di seluruh keluaran (SVG, HTML,
+JSON) bisa hijau karena angka yang sama muncul di tempat LAIN. Kalau yang
+diuji posisi/tampilan, ujilah bagian yang tepat — bukan keberadaan
+substring di mana pun.
+
 - [ ] **Step 6: Typecheck, lint, commit**
 
 ```bash
