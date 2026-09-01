@@ -2123,6 +2123,30 @@ jobs:
       # kontrak besar tanpa belanja tetap HIJAU.
       - name: Nilai kontrak waras terhadap belanjanya
         run: node scripts/audit-nilai-kontrak-waras.mjs
+
+      # ci.yml wajib YAML yang SAH. Diukur 2026-09-01: berkas ini RUSAK
+      # sejak commit 31349bb1, dan 41 commit berturut-turut tak pernah
+      # diperiksa CI sama sekali.
+      #
+      # Satu baris: . Kutip di
+      # AWAL nilai membuat YAML mengurainya sebagai string berkutip, lalu
+      # tersisa teks yang tak punya tempat.
+      #
+      # Yang membuatnya nyaris tak terlihat: GitHub tak menjalankan SATU
+      # PUN langkah — ia gagal sebelum itu dengan pesan "workflow file
+      # issue". Nol job merah, nol langkah merah, dan permintaan lognya
+      # menjawab "log not found". Di daftar ia terlihat sama persis
+      # dengan kegagalan biasa.
+      #
+      # Dan penjaga LOKAL tetap melapor "216 hijau" karena ia membaca
+      # ci.yml sebagai TEKS untuk mencari perintah — bukan mengurainya.
+      # Dua alat, dua jawaban, dan yang menentukan justru yang tak
+      # dilihat siapa pun.
+      #
+      # Ambang NOL untuk keterbacaan YAML; ratchet 10% untuk jumlah
+      # langkah (struktur salah bisa menelan langkah tanpa galat).
+      - name: ci.yml sah dan langkahnya terbaca
+        run: node scripts/audit-ci-yml-sah.mjs
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
@@ -3072,7 +3096,7 @@ jobs:
       #
       # Ambang NOL. Bukti merah: tiga arah (tanda dicabut · entri lain ikut
       # bertanda · korpus kosong).
-      - name: "Lainnya" di dasar sidebar portal
+      - name: Entri Lainnya di dasar sidebar portal
         run: node scripts/uji-lainnya-di-dasar-sidebar.mjs
 
       # Jalur bar progres wajib TERLIHAT di atas kartunya. Sepuluh bar di
