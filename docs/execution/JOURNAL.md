@@ -222,6 +222,105 @@ bukan bukti benarnya hierarki.
 
 ---
 
+## 2026-09-01 — konsol vendor: tiga cacat yang alat yang ada tak bisa lihat
+
+Founder minta konsol admin-saas "lebih bagus", tanpa arahan lebih lanjut.
+Riset dulu (agen terpisah), lalu kerjakan yang paling berdampak.
+
+### Riset mengoreksi asumsi saya
+
+Saya menulis brief "CSS variables — TANPA Tailwind". **Salah.** Repo memakai
+Tailwind v4 dengan `@theme inline` yang membungkus CSS variables — 1.374
+`className` vs 14 `style={{}}`.
+
+Dan konsolnya jauh lebih matang dari dugaan: dark mode tiga keadaan, kontras
+teks semua lolos AA, status tak pernah cuma warna, penjaga token-drift yang
+lahir dari cacat nyata.
+
+### Tiga yang dikerjakan
+
+**1. Daftar terpotong diam-diam — 1 halaman jadi 8.**
+Setiap daftar punya batas kueri (benar), tapi hanya Audit yang memberi tahu.
+Di Billing — layar UANG — tagihan ke-201 hilang tanpa gejala. Founder yang
+menghitung total dari yang terlihat mendapat angka salah.
+
+Saya kira 3 halaman; penjaga menemukan **6 lagi**. Dua di antaranya di
+PEMINDAI LATAR yang tak punya layar — dan itu lebih berbahaya: langganan
+ke-501 tak ditagih bulan itu, nol galat, nol jejak.
+
+14 batas kini bernama, dan tiga sifat dipisah: batas daftar, batas ringkasan
+(sengaja lebih tinggi — kalau sama, kartu "Total" berhenti di 200 sementara
+daftarnya benar), dan batas pemindai.
+
+**2. `--border-strong` gagal WCAG 1.4.11 — 4 dari 4.**
+
+    #d1d5db vs #ffffff  1,47 : 1     #363a52 vs #212536  1,36 : 1  ← terparah
+    #d1d5db vs #f9fafb  1,41 : 1     #363a52 vs #161921  1,58 : 1
+
+Ambangnya 3:1. Dipakai 148 tempat.
+
+**Kenapa bertahan lama: axe-core BUTA terhadapnya.** `audit-a11y.mjs`
+melapor bersih — dan ia benar, karena axe memeriksa kontras TEKS, bukan
+kontras BATAS KOMPONEN. Kelas cacat yang tak bisa ditangkap alat yang ada
+adalah yang paling lama bertahan: setiap pemeriksaan melaporkannya aman.
+
+Dipisah jadi dua peran — `--border-strong` (kontrol, wajib 3:1) dan
+`--garis-kartu` (dekoratif, sengaja redam). Menaikkan semuanya akan membuat
+148 tempat bergaris tebal dan justru menghilangkan hierarki.
+
+**3. `loading.tsx` + `error.tsx` — nol sebelumnya.**
+Setiap halaman `await` lintas terowongan SSH. Tanpa keduanya: klik menu
+membekukan layar tanpa tanda, dan galat jadi layar putih tanpa sidebar.
+
+### Penjaga saya sendiri punya cacat, dua kali
+
+`audit-daftar-tak-terpotong-senyap.mjs` lolos DUA mutasi:
+
+- spanduk diganti `<div>` → hijau, karena baris `import` masih menyebut nama
+- spanduk jadi `{/* … */}` → hijau, karena pelucut komentarnya tak kenal
+  komentar JSX
+
+Yang kedua ironis: "penjaga yang puas oleh komentar" adalah cacat yang
+diperingatkan penjaga-penjaga lain di repo ini, dan saya mengulanginya di
+penjaga yang saya tulis sendiri.
+
+Dan sekali lagi saya membuat penjaga terlalu galak: versi pertama merahkan
+17 hal, sebagian besar bukan masalah (`.limit(8)` untuk widget "8 terbaru").
+Penjaga yang merahkan hal sepele melatih orang mengabaikan baris merah.
+
+### Kode unik transfer
+
+Rp 1.500.000 → diminta transfer Rp 1.500.**347**. Kodenya TAK PERNAH masuk
+`jumlah_idr` — itu dasar PPN dan pengakuan pendapatan; menambahkan Rp 347 ke
+sana menggelembungkan pendapatan tercatat tiap tagihan, selamanya, tanpa
+pernah cukup besar untuk terlihat salah.
+
+Mutasi membuktikan test buta terhadapnya: mencemarkan `jumlah_idr` **nol
+test merah**, karena yang diuji fungsinya — bukan tempat pemakaiannya.
+Karena itu penjaga, bukan test.
+
+### Penjalan migrasi akhirnya memberi tahu PostgREST
+
+Cacat yang berulang EMPAT KALI (migrasi 011, 012, 014, 019): kolom baru ada
+di basis, PostgREST menolak kuerinya, dan galatnya menuduh KOLOMNYA. Tiga
+kali pertama diperbaiki manual lalu dilupakan — jadi yang keempat mengulang
+seluruh penelusurannya, dan saya sempat menyalahkan koneksi.
+
+**Perbaikan manual yang tak masuk kode bukan perbaikan; ia jeda.**
+
+### Diukur
+
+    admin-saas   audit-daftar-tak-terpotong  hijau; merah 3 arah
+                 audit-kontras-permukaan     hijau; merah 3 arah
+                 audit-kode-unik-tak-cemari  hijau; merah 2 arah
+                 next build berhasil · tsc bersih
+    potret       dilihat dengan mata — kotak input kini jelas, kartu tetap
+                 redam, hierarki MENGUAT
+
+Commit: `cdcd539`, `d765458`, `88581d9`, `4a2c499`.
+
+---
+
 ## 2026-09-01 — kuota penyimpanan, dan mutasi yang membuktikan test saya buta
 
 `kuota.penyimpanan_gb` terdaftar di katalog sejak migrasi 538 dan dijual di
