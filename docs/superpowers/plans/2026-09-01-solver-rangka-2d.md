@@ -753,13 +753,30 @@ describe('analisaPortal — lapis 3 (gravitasi)', () => {
       penting: portal satu bentang berkaki jepit TIDAK punya rumus tertutup
       sesederhana balok — momennya bergantung kekakuan RELATIF kolom-balok.
 
-      Tetapi ia PASTI terkurung di antara dua batas yang punya rumus tertutup:
+      ⚠ KOREKSI 2026-09-01 (ditemukan saat Task 4 dikerjakan). Draf plan ini
+      semula menulis batasnya "antara wL²/12 dan wL²/8", dan itu SALAH SECARA
+      FISIKA — arahnya terbalik:
 
-        kolom sangat kaku  → balok mendekati JEPIT-JEPIT  → wL²/12
-        kolom sangat lunak → balok mendekati SEDERHANA    → wL²/8
+          wL²/8 adalah momen LAPANGAN balok sederhana, bukan momen TUMPUAN.
+          Balok sederhana bermomen tumpuan NOL.
 
-      Jadi M tumpuan balok WAJIB di antara wL²/12 dan wL²/8. Di luar itu,
-      solvernya salah — dan batas ini tak bisa dipenuhi secara kebetulan.
+      Jadi kolom yang makin lunak MENURUNKAN M tumpuan ke 0, bukan
+      menaikkannya ke wL²/8; dan wL²/12 adalah batas ATAS, bukan bawah:
+
+          0  <  M tumpuan  <  wL²/12
+
+      Diukur (balok 300×500, L=6, h=3,5, w=20): kolom 50²→0,034 · 200²→7,65 ·
+      400²→41,93 · 800²→58,23 · 2000²→59,88 (→ wL²/12 = 60). Batas plan lama
+      menuntut > 51 untuk kolom 400×400 — penampang LAZIM — dan karenanya
+      merah pada geometrinya sendiri.
+
+      YANG DIPAKAI SEBAGAI GANTI, lebih tajam daripada rentang mana pun:
+
+          M tumpuan + M lapangan = wL²/8   PERSIS, kekakuan kolom berapa pun
+
+      Terukur 90,000 di kelima kekakuan di atas. Solver yang salah membagi
+      momen antara kolom dan balok langsung melanggarnya, dan identitas ini
+      tak bisa dipenuhi secara kebetulan.
     */
     const h = analisaPortal(dasar)
     const balok = h.batang.find((b) => b.nama.startsWith('B'))!
@@ -835,14 +852,13 @@ git add -- apps/api/src/lib/rangka-portal.ts apps/api/src/lib/__tests__/rangka-p
 git commit -m "feat(rangka): portal gravitasi — lapis 3
 
 Portal satu bentang berkaki jepit tak punya rumus tertutup sesederhana
-balok: momennya bergantung kekakuan RELATIF kolom-balok. Karena itu yang
-diuji BATASNYA, dan batas itu punya rumus tertutup —
+balok: momennya bergantung kekakuan RELATIF kolom-balok. Yang diuji
+adalah IDENTITAS yang berlaku pada kekakuan berapa pun:
 
-  kolom sangat kaku  -> balok mendekati jepit-jepit wL2/12
-  kolom sangat lunak -> balok mendekati sederhana   wL2/8
+  M tumpuan + M lapangan = wL2/8   persis
 
-Momen tumpuan balok WAJIB terkurung di antara keduanya. Batas itu tak
-bisa dipenuhi secara kebetulan oleh solver yang salah.
+Solver yang salah membagi momen antara kolom dan balok langsung
+melanggarnya.
 
 Dua mutasi dibuktikan MERAH: penampang balok/kolom ditukar, beban merata
 dibuang."
