@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 304 dokumen** — antrean 17 · acuan 218 · riwayat 69.
+**Total 305 dokumen** — antrean 17 · acuan 219 · riwayat 69.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -134,6 +134,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [2026-08-22-n8n-shared-multi-tenant](superpowers/plans/2026-08-22-n8n-shared-multi-tenant.md) | riwayat |  | n8n Shared Multi-Tenant Implementation Plan |
 | [2026-08-22-portal-admin-direktur-lengkap](superpowers/plans/2026-08-22-portal-admin-direktur-lengkap.md) | riwayat |  | Portal Admin/Direktur Lengkap Implementation Plan |
 | [2026-09-01-solver-rangka-2d](superpowers/plans/2026-09-01-solver-rangka-2d.md) | antrean |  | Solver Rangka 2D — Implementation Plan |
+| [2026-09-01-solver-rangka-dipakai](superpowers/plans/2026-09-01-solver-rangka-dipakai.md) | acuan |  | Solver Rangka Dipakai — Implementation Plan |
 
 ### `docs/superpowers/specs`
 

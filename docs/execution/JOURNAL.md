@@ -5,6 +5,65 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-01 (lanjutan 2) — solver rangka DIPAKAI: diagram, rute, mode ketiga
+
+Solver lapis 1-5 sudah benar tapi belum berguna bagi siapa pun. Bagian ini
+menutup jaraknya.
+
+### Yang dibangun
+
+    rangka-gambar.ts     diagram M/V/lendutan dari deret titik solver   29f293ba
+    rangka-ke-saran.ts   solver -> rekomendasi tulangan tiap batang     2652faf3
+    routes/v1/struktur   POST /api/v1/struktur/analisa-rangka           ad631738
+    layar pembesian      mode ketiga "Analisa rangka"                    06048734
+    (perbaikan label ekstrem berdesakan judul panel)                    d99d15c1
+
+45 test rangka hijau · tsc exit 0 TANPA filter · 216 penjaga CI hijau,
+0 "tak ketemu". Tiga lapis ketelitian kini hidup di satu layar:
+
+    angka langsung  ->  koefisien pendekatan  ->  analisa rangka
+
+Diverifikasi sendiri, bukan percaya laporan subagent: portal 6 m w=20
+memberi 2 kolom @ 60 kN (total 120 = qL benar) dan balok M 48,07 + 41,93
+= 90,00 = wL2/8 PERSIS — identitas lapis 3.
+
+### Tiga pelajaran yang layak diingat
+
+**1. Mutasi yang SELAMAT, dan sebabnya.** Mutasi label kritis di Task 1
+tetap hijau: `toMatch(/50[.,]6/)` mencari di SELURUH string SVG, sementara
+aria-label merakit angkanya sendiri dari sumber terpisah. Test hijau atas
+angka yang tak seorang pun lihat. Ditutup dengan menyatukan sumbernya —
+dua sumber untuk satu angka berarti pembaca layar dan pembaca awas bisa
+diberi tahu nilai berbeda. Assertion yang mencari di seluruh keluaran
+(SVG/HTML/JSON) bisa hijau karena angkanya muncul di tempat LAIN.
+
+**2. Tujuh cacat gambar, nol tertangkap test.** Enam ditemukan subagent
+saat merender Task 1 (label tercoret kurvanya sendiri, terpotong tepi
+viewBox, bertumpuk judul di bentang kedua), satu lagi saya temukan sendiri
+sesudah Task 4: label ekstrem di x=0 berdesakan dengan judul panelnya —
+terlihat pada balok B1, TIDAK pada kolom yang ekstremnya di kanan. Test
+SVG bisa memastikan elemennya ADA, bukan bahwa ia TERBACA.
+
+**3. CRLF menggagalkan sunting SECARA SENYAP.** Dua percobaan perbaikan
+label saya tak menempel karena berkasnya CRLF sementara pola pencarian LF;
+`.count()` memulangkan 0, tak ada yang berubah, dan test tetap hijau —
+karena memang tak ada yang disentuh. Hijau sesudah edit yang tak menempel
+bukan bukti apa-apa.
+
+### Yang BELUM — jangan dibaca sebagai selesai
+
+- **Halaman Analisa Rangka tersendiri** (keputusan founder: mode ketiga
+  dulu, halaman menyusul) — untuk portal banyak lantai/bentang.
+- **Menyambung `analisaTruss` ke `analisaRangka`** di struktur-baja-rangka.ts,
+  yang `gayaKn`-nya masih input.
+- **Kombinasi 1,4D dan 1,2D+1,6L** — beban masih satu `qKnM` terfaktor.
+- **A11y kartu hasil rangka belum terpindai** — axe memindai keadaan awal
+  halaman (mode "angka"); ia tak menekan tombol. Batas alat ukurnya.
+- **Mode gelap belum benar-benar dilihat** untuk kartu rangka.
+- **VPS belum diperbarui** dengan seluruh commit ini.
+
+---
+
 ## 2026-09-01 (lanjutan) — solver rangka 2D lapis 1-5, dan EMPAT cacat di plan saya sendiri
 
 Bagian 2 dari pekerjaan yang dipicu iklan PortalRC. Lima lapis solver selesai

@@ -536,6 +536,8 @@ mekanisme.
 | `superpowers/plans/2026-08-07-landing-publik-tahap-1.md` | halaman publik tahap 1 — pintu masuk sebelum login, prasyarat penjualan |
 | `superpowers/plans/2026-08-19-portal-mobile-rombak.md` | rombak portal mandor/PM ke PWA installable — fondasi (ikon, manifest, service worker, SwipeableCard) + modul lanjutan (K3, Punch List, Inspeksi/RFI, Submittal, Dokumen, Jadwal, Kontrak, Procurement) |
 | `superpowers/plans/2026-08-20-portal-pm-lengkap.md` | lanjutan rombak portal PM — Tahap 1 (Operasi Lapangan + Mandor & Subkon): Penugasan, Kasbon, Opname, SPK, Tender, Retensi, Back-charge, Tukang, Mitra, navigasi kategori berjenjang |
+| `superpowers/plans/2026-09-01-solver-rangka-2d.md` | solver rangka 2D — matriks kekakuan, gaya dalam & lendutan, balok menerus, portal gravitasi, beban lateral, truss. SELESAI: 45 test hijau, tiap lapis ditutup kasus tangan yang dihitung ulang |
+| `superpowers/plans/2026-09-01-solver-rangka-dipakai.md` | membuat solver itu DIPAKAI — diagram M/V/lendutan dari deret titiknya sendiri, penyambung ke rekomendasi tulangan, rute `analisa-rangka`, mode ketiga di layar pembesian |
 
 Diagnosisnya singkat: **bukan warna atau font yang salah**. Padding 2× lebih
 longgar dari standar data-dense sementara font justru lebih kecil, 20 dari 22
