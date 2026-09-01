@@ -70,7 +70,20 @@ export interface SaranBatang {
 
 export interface HasilSaranDariRangka {
   batang: SaranBatang[]
-  /** Hasil solver UTUH — supaya diagram M/V/lendutan bisa digambar pemanggil. */
+  /**
+   * Hasil solver UTUH — supaya diagram M/V/lendutan bisa digambar pemanggil,
+   * DAN supaya `reaksi` tumpuannya sampai ke layar.
+   *
+   * ⚠ `reaksi` bukan hiasan tabel. Ia satu-satunya angka di seluruh keluaran
+   * ini yang bisa DIPERIKSA SENDIRI oleh pembacanya di atas kertas:
+   *
+   *     Σ fyKn  =  total beban vertikal  =  q × L
+   *
+   * Tanpanya, memakai usulan tulangan di atas berarti mempercayai solver —
+   * tak ada jalan lain. Versi pertama berkas ini membuangnya (Object.keys
+   * memulangkan hanya [batang, catatan]) karena ditulis sebelum `reaksi` ada
+   * di lapis bawah, dan hilangnya tak menimbulkan satu pun galat.
+   */
   rangka: HasilPortal
   /** Batas solver + batas mesin tulangan, di-dedup. WAJIB ikut ditampilkan. */
   catatan: string[]

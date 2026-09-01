@@ -25,7 +25,9 @@ import {
   analisaRangka2D,
   type BatangModel,
   type BebanTitik,
+  type GayaUjungBatang,
   type HasilBatang,
+  type ReaksiTumpuan,
   type Simpul,
 } from './rangka-model.js'
 import type { GayaTingkat } from './struktur-beban-lateral.js'
@@ -190,6 +192,19 @@ export interface InputPortal {
 
 export interface HasilPortal {
   batang: HasilBatang[]
+  /**
+   * Reaksi tiap kaki portal, sumbu global — APA ADANYA dari `analisaRangka2D`.
+   *
+   * Versi pertama lapis ini membuangnya, dan itu menutup satu-satunya
+   * pemeriksaan yang bisa dilakukan pembacanya SENDIRI: Σfy = q × L. Tanpa
+   * angka ini, memakai hasil solver berarti mempercayainya — tak ada jalan
+   * lain. Diteruskan tanpa diolah: mengolahnya di sini membuat angka yang
+   * TAMPIL berbeda dari angka yang solver hitung, dan dua angka yang
+   * menyimpang tidak melempar apa pun.
+   */
+  reaksi: ReaksiTumpuan[]
+  /** Gaya ujung batang di sumbu lokal, mentah dari penyelesai. */
+  gayaUjung: GayaUjungBatang[]
   catatan: string[]
 }
 
@@ -320,6 +335,9 @@ export function analisaPortal(input: InputPortal): HasilPortal {
   const h = analisaRangka2D(simpul, batang, bebanTitik)
   return {
     batang: h.batang,
+    // Diteruskan APA ADANYA — alasannya di `HasilPortal.reaksi`.
+    reaksi: h.reaksi,
+    gayaUjung: h.gayaUjung,
     catatan: [...h.catatan, CATATAN_PORTAL],
   }
 }

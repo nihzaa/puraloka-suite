@@ -46,7 +46,7 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import { TriangleAlert, Info, Lightbulb, ArrowRight } from "lucide-react";
+import { TriangleAlert, Info, Lightbulb, ArrowRight, Check } from "lucide-react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useData } from "@/lib/data-cache";
@@ -127,8 +127,38 @@ interface SaranBatang {
   };
 }
 
+/**
+ * Reaksi di satu kaki portal, sumbu global — APA ADANYA dari solver.
+ *
+ * Angka-angka ini TIDAK diolah di layar selain dibulatkan untuk dibaca.
+ * Pembulatan tampilan tak boleh naik ke penjumlahan: Σ dihitung dari nilai
+ * ASLI, baru hasilnya dibulatkan. Menjumlahkan angka yang sudah dibulatkan
+ * membuat baris JUMLAH berbeda dari jumlah kolom di atasnya — selisih yang
+ * terlihat seperti cacat solver padahal cacat layar.
+ */
+interface ReaksiTumpuan {
+  simpul: number;
+  nama: string;
+  fxKn: number;
+  fyKn: number;
+  mKnm: number;
+}
+
 interface HasilRangka {
   batang: SaranBatang[];
+  /**
+   * Hasil solver UTUH — `reaksi` ADA DI DALAM SINI, bukan di akar jawaban.
+   *
+   * ⚠ Rute memulangkan `{ batang, rangka, catatan }`, dan `rangka` itulah
+   * `HasilPortal` dari API. Versi pertama kartu di bawah membaca
+   * `hasilRangka.reaksi` (satu tingkat terlalu tinggi) — `tsc` HIJAU karena
+   * tipenya ikut salah, dan kartunya diam-diam TIDAK PERNAH DIRENDER:
+   * `undefined && …` bernilai falsy, jadi React tak menggambar apa pun dan
+   * tak ada satu pun galat. Ketahuan hanya karena layarnya DIPOTRET.
+   */
+  rangka: {
+    reaksi: ReaksiTumpuan[];
+  };
   /*
     `gambar` HILANG dari JSON saat rute dipanggil dengan `gambar: false` —
     kuncinya tak ada sama sekali, bukan bernilai null. Karena itu pembacanya
@@ -230,6 +260,20 @@ export default function PembesianPage() {
   const [f, setF] = useState<Record<string, string>>(AWAL_BALOK);
   const [hasil, setHasil] = useState<HasilSaran | null>(null);
   const [hasilRangka, setHasilRangka] = useState<HasilRangka | null>(null);
+
+  /*
+    Portal yang BENAR-BENAR dikirim ke solver, dibekukan saat tombol Hitung
+    ditekan.
+
+    ⚠ Pemeriksaan ΣFy = q×L WAJIB memakai angka ini, BUKAN `fr` (isi form).
+    Form bisa disunting sesudah hasilnya tampil; pembanding yang dibaca dari
+    form membuat baris pemeriksaan berubah jadi MERAH tanpa satu pun angka
+    hasil berubah — dan pemakainya lalu menuduh solvernya salah. Kelas cacat
+    yang sama dengan angka tampil ≠ angka hitung (pelajaran 5b43d275), hanya
+    sumbernya waktu, bukan pembulatan.
+  */
+  const [portalDipakai, setPortalDipakai] =
+    useState<{ qKnM: number; bentangM: number } | null>(null);
   const [memuat, setMemuat] = useState(false);
 
   /*
@@ -258,6 +302,7 @@ export default function PembesianPage() {
     if (j === "kolom") setMode("angka");
     setHasil(null);
     setHasilRangka(null);
+    setPortalDipakai(null);
     setGalatAksi(null);
   }, []);
 
@@ -279,6 +324,7 @@ export default function PembesianPage() {
     }
     setHasil(null);
     setHasilRangka(null);
+    setPortalDipakai(null);
     setGalatAksi(null);
   }, []);
 
@@ -304,17 +350,24 @@ export default function PembesianPage() {
         tampil di bawah judul mode yang baru.
       */
       if (mode === "rangka") {
+        /*
+          Dibaca SEKALI ke variabel lokal, lalu dipakai untuk kirim DAN untuk
+          dibekukan sebagai pembanding. Membaca `fr` dua kali membuka celah
+          nilai yang berbeda di antara keduanya.
+        */
+        const qKnM = +fr.qKnM;
+        const bentangM = +fr.bentangM;
         const { data } = await api.post<HasilRangka>(
           "/api/v1/struktur/analisa-rangka",
           {
             portal: {
-              bentangM: +fr.bentangM,
+              bentangM,
               tinggiM: +fr.tinggiM,
               jumlahLantai: +fr.jumlahLantai,
               balok: { bMm: +fr.balokB, hMm: +fr.balokH },
               kolom: { bMm: +fr.kolomB, hMm: +fr.kolomH },
               fcMpa: +f.fcMpa,
-              qKnM: +fr.qKnM,
+              qKnM,
             },
             selimutMm: +f.selimutMm,
             mutu,
@@ -322,6 +375,7 @@ export default function PembesianPage() {
         );
         setHasil(null);
         setHasilRangka(data);
+        setPortalDipakai({ qKnM, bentangM });
         return;
       }
 
@@ -357,6 +411,7 @@ export default function PembesianPage() {
         "/api/v1/struktur/saran-pembesian", badan,
       );
       setHasilRangka(null);
+    setPortalDipakai(null);
       setHasil(data);
     } catch (e) {
       const pesan = (e as { response?: { data?: { error?: string } } })
@@ -802,6 +857,240 @@ export default function PembesianPage() {
               })}
             </div>
           </Kartu>
+
+          {/*
+            ══════════════════════════════════════════════════════════════════
+            REAKSI TUMPUAN — dan kenapa TABELNYA BUKAN INTI KARTU INI
+            ══════════════════════════════════════════════════════════════════
+
+            Inti kartu ini BUKAN tabel angkanya. Tabel gaya tumpuan tanpa
+            pembanding tak membuktikan apa pun: ia hanya memindahkan
+            kepercayaan dari solver ke tabel, dan pembacanya tetap harus
+            percaya bahwa keduanya benar. Insinyur yang melihat "60,00 kN" tak
+            punya cara tahu apakah itu hasil keseimbangan atau hasil salah
+            tanda yang kebetulan terlihat wajar.
+
+            Yang membuat kartu ini bernilai adalah SATU baris di bawah tabel:
+
+                Σ Fy  =  q × L
+
+            Pembacanya bisa menghitung ruas kanan di kepalanya sendiri
+            (20 × 6 = 120) lalu mencocokkannya. Kalau cocok, ia tahu solver
+            menutup keseimbangan tegak — TANPA membaca satu baris pun kode
+            matriks kekakuan, dan tanpa mempercayai layar ini. Itulah seluruh
+            alasan fitur ini ada; tabelnya cuma bahan bakunya.
+
+            Karena itu baris pemeriksaan TIDAK BOLEH diam saat selisihnya
+            besar. Angka yang salah tak punya "rasa salah" — 120 dan 96
+            sama-sama terlihat wajar bagi mata yang tak menghitung. Pembacanya
+            harus DIBERI TAHU, bukan dibiarkan menyimpulkan sendiri dari dua
+            angka yang tak pernah ia bandingkan.
+          */}
+          {hasilRangka.rangka.reaksi && hasilRangka.rangka.reaksi.length > 0 && (() => {
+            /*
+              Σ dihitung dari nilai ASLI, baru hasilnya dibulatkan untuk
+              ditampilkan. Menjumlahkan angka yang SUDAH dibulatkan membuat
+              baris JUMLAH berbeda dari jumlah kolom di atasnya — selisih
+              yang terbaca seperti cacat solver padahal cacat layar.
+            */
+            const sumFx = hasilRangka.rangka.reaksi.reduce((a, r) => a + r.fxKn, 0);
+            const sumFy = hasilRangka.rangka.reaksi.reduce((a, r) => a + r.fyKn, 0);
+            const sumM = hasilRangka.rangka.reaksi.reduce((a, r) => a + r.mKnm, 0);
+
+            const bebanTotal = portalDipakai
+              ? portalDipakai.qKnM * portalDipakai.bentangM
+              : null;
+            /*
+              Ambang 0,01 kN = satu kilogram-gaya. Di bawah itu selisihnya
+              sisa pembulatan aritmetika titik-mengambang, bukan cacat
+              keseimbangan; di atas itu ada yang perlu dilihat orang. Ambang
+              RELATIF ikut dipakai supaya portal besar tak dituduh salah hanya
+              karena angkanya besar — menuntut 0,01 kN dari total 12.000 kN
+              adalah presisi yang tak masuk akal diminta dari `double`.
+            */
+            const selisih = bebanTotal === null ? null : Math.abs(sumFy - bebanTotal);
+            const ambang = bebanTotal === null
+              ? 0
+              : Math.max(0.01, Math.abs(bebanTotal) * 1e-6);
+            const cocok = selisih !== null && selisih <= ambang;
+
+            const num = (n: number) => n.toLocaleString("id-ID", {
+              minimumFractionDigits: 2, maximumFractionDigits: 2,
+            });
+            /*
+              Sel angka: rata KANAN + `tabular-nums` supaya digit sejajar ke
+              bawah. Tanpa `tabular-nums`, glif "1" lebih sempit dari "8" dan
+              kolom angkanya terlihat bergoyang — pada tabel yang SELURUH
+              gunanya membandingkan angka, itu merusak gunanya.
+
+              `whiteSpace: nowrap` supaya "−60,00" tak pernah patah jadi dua
+              baris di layar sempit; tabelnya sudah punya `overflowX`.
+            */
+            const selAngka = {
+              padding: "var(--pad-baris)",
+              textAlign: "right" as const,
+              fontVariantNumeric: "tabular-nums" as const,
+              fontFamily: "var(--font-display)",
+              borderBottom: `1px solid ${C.border}`,
+              whiteSpace: "nowrap" as const,
+            };
+            const kepalaAngka = {
+              padding: "var(--pad-baris)",
+              textAlign: "right" as const,
+              fontSize: "var(--teks-label)",
+              fontWeight: 700,
+              color: C.muted,
+              borderBottom: `1px solid ${C.border}`,
+              whiteSpace: "nowrap" as const,
+            };
+            const selJumlah = {
+              ...selAngka,
+              fontWeight: 700,
+              color: C.navy,
+              borderBottom: "none",
+              borderTop: `2px solid ${C.border}`,
+            };
+
+            return (
+              <Kartu>
+                <JudulKartu>Reaksi tumpuan</JudulKartu>
+                <p style={{
+                  margin: "0 0 var(--gap-bagian)", color: C.muted,
+                  fontSize: "var(--teks-label)", lineHeight: 1.6,
+                }}>
+                  Gaya yang tumpuan berikan kepada struktur, sumbu global.
+                  Angkanya ada di sini supaya keseimbangan portal bisa Anda
+                  periksa sendiri — bukan supaya dipercaya.
+                </p>
+
+                {/*
+                  ⚠ `maxWidth` — dan ini TERLIHAT DARI POTRET, bukan ditebak.
+
+                  Versi pertama memakai `width: 100%` saja. Kartunya lebih
+                  dari 1.900 px di layar lebar, jadi keempat kolomnya terentang
+                  sampai ada ~700 px kosong antara nama simpul dan angkanya.
+                  Mata lalu kehilangan jejak baris: "S0Ki" di ujung kiri dan
+                  "-20,78" di ujung kanan tak lagi terbaca sebagai satu baris,
+                  dan itu justru merusak SATU-SATUNYA guna tabel ini —
+                  membandingkan angka.
+
+                  Dibatasi, bukan diregangkan: tabel empat kolom angka pendek
+                  memang tak butuh lebar penuh.
+                */}
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{
+                    width: "100%", maxWidth: 620,
+                    borderCollapse: "collapse",
+                  }}>
+                    {/*
+                      Caption DISEMBUNYIKAN DARI MATA, bukan dibuang.
+
+                      Versi pertama menampilkannya, dan di potret ia terbaca
+                      sebagai kalimat KEDUA yang mengatakan hal yang sama
+                      dengan paragraf tepat di atasnya — dua baris pengantar
+                      berturut-turut untuk satu tabel kecil.
+
+                      Dibuang sama sekali juga salah: pembaca layar kehilangan
+                      nama tabelnya. Jadi ia tetap ada di pohon aksesibilitas,
+                      hanya tak memakan ruang visual.
+                    */}
+                    <caption style={{
+                      position: "absolute", width: 1, height: 1,
+                      overflow: "hidden", clip: "rect(0 0 0 0)",
+                      whiteSpace: "nowrap",
+                    }}>
+                      Reaksi tiap simpul bertumpu, beserta jumlahnya.
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col" style={{
+                          padding: "var(--pad-baris)", textAlign: "left",
+                          fontSize: "var(--teks-label)", fontWeight: 700,
+                          color: C.muted, borderBottom: `1px solid ${C.border}`,
+                        }}>
+                          Simpul
+                        </th>
+                        <th scope="col" style={kepalaAngka}>Fx (kN)</th>
+                        <th scope="col" style={kepalaAngka}>Fy (kN)</th>
+                        <th scope="col" style={kepalaAngka}>M (kNm)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {hasilRangka.rangka.reaksi.map((r) => (
+                        <tr key={r.simpul}>
+                          <th scope="row" style={{
+                            padding: "var(--pad-baris)", textAlign: "left",
+                            fontWeight: 600, color: C.navy,
+                            borderBottom: `1px solid ${C.border}`,
+                            whiteSpace: "nowrap",
+                          }}>
+                            {r.nama}
+                          </th>
+                          <td style={selAngka}>{num(r.fxKn)}</td>
+                          <td style={selAngka}>{num(r.fyKn)}</td>
+                          <td style={selAngka}>{num(r.mKnm)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <th scope="row" style={{
+                          padding: "var(--pad-baris)", textAlign: "left",
+                          fontWeight: 700, color: C.navy,
+                          borderTop: `2px solid ${C.border}`,
+                          whiteSpace: "nowrap",
+                        }}>
+                          JUMLAH
+                        </th>
+                        <td style={selJumlah}>{num(sumFx)}</td>
+                        <td style={selJumlah}>{num(sumFy)}</td>
+                        <td style={selJumlah}>{num(sumM)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+
+                {/*
+                  BARIS PEMERIKSAAN — inti kartu ini.
+
+                  Ditulis sebagai kalimat lengkap, bukan lencana "OK", karena
+                  yang perlu sampai ke pembacanya bukan VONIS melainkan CARA
+                  memeriksanya: ruas kanan (q × L) sengaja ditulis lengkap
+                  dengan angkanya supaya bisa dihitung ulang di kepala.
+                */}
+                {bebanTotal !== null && portalDipakai && (
+                  <div
+                    role="note"
+                    style={{
+                      marginTop: "var(--gap-bagian)",
+                      display: "flex", gap: 10, alignItems: "flex-start",
+                      padding: "var(--pad-kartu)",
+                      borderRadius: "var(--rad-sedang)",
+                      background: cocok ? C.greenBg : C.yellowBg,
+                      border: `1px solid ${cocok ? C.greenBorder : C.yellowBorder}`,
+                    }}
+                  >
+                    {cocok
+                      ? <Check size={18} aria-hidden="true"
+                          style={{ color: C.green, flexShrink: 0, marginTop: 2 }} />
+                      : <TriangleAlert size={18} aria-hidden="true"
+                          style={{ color: C.yellow, flexShrink: 0, marginTop: 2 }} />}
+                    <p style={{ margin: 0, color: C.mid, lineHeight: 1.7 }}>
+                      <strong style={{ color: C.navy }}>
+                        ΣFy = {num(sumFy)} kN
+                      </strong>
+                      {cocok ? " — sama dengan " : " — TIDAK sama dengan "}
+                      total beban vertikal (q × L = {num(portalDipakai.qKnM)}
+                      {" × "}{num(portalDipakai.bentangM)} = {num(bebanTotal)} kN).
+                      {cocok
+                        ? " Keseimbangan tegak menutup — Anda bisa memeriksanya sendiri di atas kertas."
+                        : ` Selisih ${num(selisih!)} kN. Jangan pakai angka di atas sebelum sebabnya diketahui.`}
+                    </p>
+                  </div>
+                )}
+              </Kartu>
+            );
+          })()}
 
           {/* Catatan & batas — kartu TERPISAH, sama seperti mode lain. */}
           <Kartu>
