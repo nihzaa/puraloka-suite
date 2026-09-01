@@ -110,7 +110,40 @@ const AMBANG = {
   'jsx-a11y/no-noninteractive-element-interactions': 6,
 
   // ── Hutang lint lain ────────────────────────────────────────────────────
-  '@typescript-eslint/no-explicit-any': 59, // 194 → 191 (2026-08-01) → 180 (2026-08-07)
+  /*
+    59 → 43 (2026-09-01). Hitungan sebenarnya 39; ambang diberi jarak 4.
+
+    ── Kenapa dikencangkan sekarang
+
+    Selisih 59 vs 39 ditemukan saat CI hidup kembali sesudah mati 42
+    commit, dan pertanyaannya: apakah hutangnya benar-benar turun, atau
+    angka 59 yang sudah lama tak mencerminkan kenyataan?
+
+    Diukur di worktree pada commit penyetel ambang (8ade844e, 2026-08-07):
+    hitungannya 56 — jadi 59 memang akurat saat itu, dan 56 → 39 adalah
+    17 pelanggaran yang benar-benar dibersihkan sejak Agustus.
+
+    ⚠ Pelacakan `git log -S ': any'` memulangkan netto NOL dan sempat
+    membuat saya menyimpulkan sebaliknya. Sebabnya: hanya 14 dari 39
+    pelanggaran berbentuk `: any` — sisanya `as any`, `any[]`, generik,
+    yang tak terlihat pencarian teks. Nol hasil bukan bukti ketiadaan.
+
+    ── Kenapa 43, bukan 39
+
+    Worktree `kematangan-modul` sedang menggarap
+    `mandor/_bersama/komponen.tsx` (25 berkas belum ter-commit) — berkas
+    yang menyumbang 10 dari 39 pelanggaran ini. Diukur: kerjanya TAK
+    menyentuh `any` (nol di kedua arah), jadi 39 tak akan mengunci
+    mereka hari ini.
+
+    Tetapi ratchet yang dipaku persis di hitungan sekarang membuat
+    penambahan `any` yang wajar di tengah pekerjaan berjalan langsung
+    memerahkan CI orang lain. Jarak 4 menutup selisih 20 yang menganga
+    tanpa mengunci siapa pun.
+
+    Turunkan ke 39 saat modul mandor selesai digarap.
+  */
+  '@typescript-eslint/no-explicit-any': 43, // 194 → 191 (2026-08-01) → 180 (2026-08-07)
  // 100 -> 99 (2026-08-07) // 99 -> 59 (2026-08-07, mandor-portal bertipe)
   // 71 → 70 (HargaTab) → 69 (2026-08-01, klien) → 68.
   //
