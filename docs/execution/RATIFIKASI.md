@@ -4249,6 +4249,77 @@ pernah di-replay. CI kembali hijau atas basis yang tak pernah dibangun.
 kehilangan satu syarat yang sudah ada di blok sebelahnya). B menambah dua
 berkas untuk hasil akhir yang sama; C bukan perbaikan.
 
+### ⚠ KOREKSI 2026-09-02 — diagnosis di atas SALAH SASARAN
+
+Segala yang tertulis di bawah tentang **blok (2)** tetap benar sebagai
+pengamatan, tetapi ia **bukan penyebab kegagalan CI**. Dibiarkan utuh
+karena menghapusnya menyembunyikan cara kesalahannya terjadi.
+
+#### Apa yang membalikkannya
+
+Sesi lain menanyakan: dari 18 href yang disebut log CI, adakah yang
+dipegang **induk**? Diukur:
+
+```
+baris yang memegang 12 href dari log CI : 20
+di antaranya INDUK (parent_id NULL)     :  0
+```
+
+**Nol.** Seluruhnya menu *anak* — jadi bentroknya tak mungkin lahir dari
+blok (2), yang hanya menyentuh induk.
+
+#### Penyebab sesungguhnya
+
+Tiap href bentrok dipegang **dua** menu — satu bernama, satu `yt-*`:
+
+```
+/k3/insiden           yt-k3-insiden      · hse-insiden(A)
+/k3/rk3k              hse-rk3k(A)        · yt-k3-rk3k
+/risiko               rk-register(A)     · yt-risiko
+/sdm/timesheet        yt-sdm-timesheet   · hr-absensi(A)
+…
+```
+
+Menu `yt-*` itu disisipkan **migrasi 531** (`531_menu_halaman_yatim.sql`,
+namanya nyaris sama dengan 558 — itu sendiri jebakan) yang membuat 28 menu
+`yt-*` **aktif**, dan diukur: **nol** pemeriksaan href di seluruh berkas itu.
+
+Di basis dev/produksi hanya satu dari tiap pasangan yang aktif — sisanya
+sudah dimatikan migrasi lain sesudahnya. Di replay bersih, keduanya
+menyala berbarengan.
+
+#### Kenapa 558 yang merah, bukan 531
+
+Verifikasi 558 memeriksa **seluruh tabel**, bukan hanya baris yang
+disentuhnya:
+
+```sql
+SELECT href FROM menu_items
+ WHERE is_active AND href IS NOT NULL
+ GROUP BY href HAVING count(*) > 1
+```
+
+Jadi ia gagal atas cemaran yang **sudah ada sebelum ia berjalan**. Pagar
+itu bekerja sebagaimana mestinya — ia hanya menunjuk migrasi yang salah,
+karena yang bersalah tak punya pagar sama sekali.
+
+#### Apa artinya untuk keputusan
+
+Patch tiga baris di bawah **TIDAK akan menyelesaikannya**. Menyentuh
+558 tanpa menyentuh sumbernya hanya memindahkan merah, dan itu persis
+yang sesi lain peringatkan.
+
+Perbaikannya perlu menyasar **531** atau menambah migrasi maju yang
+mematikan `yt-*` yang href-nya sudah dipegang. Yang kedua tak menyentuh
+migrasi tercatat sama sekali — jadi mungkin **tak butuh G-2**.
+
+Saya belum mengusulkan bentuk akhirnya: pengukuran ini baru selesai, dan
+mengusulkan perbaikan kedua di hari yang sama dengan diagnosis pertama
+yang salah bukan kebiasaan yang baik. Yang pasti: **izin untuk opsi A
+sebaiknya tidak dipakai** sampai diagnosis ini diperiksa ulang.
+
+---
+
 #### Satu angka yang menutup keraguannya
 
 Ditambahkan 2026-09-02, diukur dua sesi secara terpisah ke basis yang sama:
