@@ -724,6 +724,41 @@ Selesai ≠ kode jalan. Selesai = **ada buktinya**:
   suntik pelanggaran → MERAH → pulihkan → HIJAU. Penjaga yang tak pernah
   merah adalah hiasan.
 
+**Dua hal yang membuat uji mutasi berbohong** — keduanya menggigit dua sesi
+berbeda pada 2026-09-01, dan hijaunya terlihat sama persis dengan hijau yang
+sah:
+
+1. **Pastikan mutasinya MENGENAI hal yang dijaga.** Dua sasaran mutasi
+   dipilih salah (`ai-asisten-pemilik`, `hse-apd` — keduanya ternyata punya
+   `href`, jadi memang di luar cakupan penjaga), hasilnya HIJAU, dan sempat
+   terbaca sebagai "penjaganya bocor". Sesi lain kena bentuk yang sama:
+   assertion mencari substring di seluruh SVG sementara angkanya ada di
+   `aria-label` yang dirakit terpisah — test hijau atas angka yang tak
+   seorang pun lihat.
+
+2. **Periksa DUA hal per mutasi: penjaga MERAH _dan_ menyebut namanya.**
+   Merah tanpa menyebut entri yang bermasalah memaksa orang berikutnya
+   mencari sendiri — di kasus peta-menu itu 204 entri. Biayanya dibayar
+   orang lain, bukan penulis penjaganya.
+
+**Dan satu kelas cacat yang lebih halus dari penjaga yang tak pernah merah:**
+penjelasan yang BENAR mendampingi keadaan yang SALAH. Empat bentuknya
+ditemukan dalam satu sesi:
+
+- komentar yang menyebut hal terlarang untuk menjelaskan kenapa ia TIDAK
+  dipakai — penjaga memindai teks, jadi tetap terhitung sebagai pemakaian;
+- `continue` yang melompati pengecualian yang alasannya tertulis panjang
+  persis di bawahnya (37 grup, nol yang pernah lolos sejak ditulis);
+- peringatan "jangan menyaring lewat nama" ditulis di komentar, sementara
+  kodenya tetap menyaring lewat nama — dan dua entri lolos karenanya;
+- selisih angka antar-pengukuran dijelaskan dengan tebakan yang nyaman
+  ("mungkin potretnya lama") alih-alih diukur. Ternyata penyaringnya yang
+  salah, dan selisih itu menunjuk cacat nyata.
+
+Yang terakhir punya aturannya sendiri: **selisih yang tak bisa dijelaskan
+adalah temuan yang belum dibuka.** Menutupnya dengan cerita lebih mahal
+daripada membiarkannya terbuka.
+
 ### 8a.3 UI/UX — pedoman WAJIB dibaca sebelum menulis kode visual
 
 Untuk pekerjaan apa pun yang menyentuh tampilan (komponen, halaman,
