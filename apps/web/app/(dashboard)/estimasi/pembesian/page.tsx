@@ -50,9 +50,11 @@ import { TriangleAlert, Info, Lightbulb, ArrowRight, Check } from "lucide-react"
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useData } from "@/lib/data-cache";
+import { formatAngka } from "@/lib/format";
+import { PilihanKartu } from "@/components/pilihan-kartu";
 import { C } from "@/lib/warna-ui";
 import {
-  Kartu, JudulKartu, Rangka, Galat,
+  Kartu, JudulKartu, Rangka, Galat, Tabel,
   Tombol, Lencana, Medan, gayaInput,
 } from "@/components/dasar";
 
@@ -687,28 +689,29 @@ export default function PembesianPage() {
               )}
             </div>
 
-            <fieldset style={{ marginTop: 14, border: "none", padding: 0 }}>
-              <legend style={{
-                padding: 0, marginBottom: 6, fontSize: "var(--teks-label)", fontWeight: 700,
-                letterSpacing: ".05em", textTransform: "uppercase", color: C.muted,
-              }}>
-                Lapisan beban mati
-              </legend>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 18px" }}>
-                {(katalog?.lapisMati ?? []).map((l) => (
-                  <label key={l.kunci} style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    color: C.mid, cursor: "pointer",
-                  }}>
-                    <input type="checkbox" checked={lapis.includes(l.kunci)}
-                      onChange={(e) => setLapis((xs) => e.target.checked
-                        ? [...xs, l.kunci]
-                        : xs.filter((k) => k !== l.kunci))} />
-                    {l.nama} <span style={{ color: C.muted }}>({l.knM2} kN/m²)</span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
+            {/*
+              Dipilih lewat `PilihanKartu ganda`, bukan <input type="checkbox">
+              telanjang. Dijaga `uji-pilihan-seragam.mjs`, dan alasannya bukan
+              kerapian: kotak centang bawaan peramban punya sasaran sentuh ~13px
+              di HP — di bawah ambang WCAG 2.5.5 — sementara komponen ini
+              menjadikan SELURUH kartu sasarannya.
+            */}
+            <div style={{ marginTop: 14 }}>
+              <PilihanKartu
+                ganda
+                nama="lapis-mati"
+                label="Lapisan beban mati"
+                keterangan="Boleh lebih dari satu. Angkanya dari katalog SNI, bukan ketikan."
+                nilai={lapis}
+                onUbah={(k) => setLapis((xs) =>
+                  xs.includes(k) ? xs.filter((x) => x !== k) : [...xs, k])}
+                opsi={(katalog?.lapisMati ?? []).map((l) => ({
+                  nilai: l.kunci,
+                  label: l.nama,
+                  ringkas: `${l.knM2} kN/m²`,
+                }))}
+              />
+            </div>
           </div>
         )}
 
@@ -914,9 +917,14 @@ export default function PembesianPage() {
               : Math.max(0.01, Math.abs(bebanTotal) * 1e-6);
             const cocok = selisih !== null && selisih <= ambang;
 
-            const num = (n: number) => n.toLocaleString("id-ID", {
-              minimumFractionDigits: 2, maximumFractionDigits: 2,
-            });
+            /*
+              Lewat `formatAngka` dari lib/format.ts, bukan pemformat bawaan
+              langsung — dijaga `format-ratchet.mjs`. Alasannya bukan gaya:
+              format angka yang ditulis per-halaman berpisah dari yang lain
+              begitu salah satunya dikoreksi, dan pemakainya melihat "1.250,5"
+              di satu layar dan "1250.50" di layar sebelahnya.
+            */
+            const num = (n: number) => formatAngka(n, 2);
             /*
               Sel angka: rata KANAN + `tabular-nums` supaya digit sejajar ke
               bawah. Tanpa `tabular-nums`, glif "1" lebih sempit dari "8" dan
@@ -978,76 +986,39 @@ export default function PembesianPage() {
                   memang tak butuh lebar penuh.
                 */}
                 <div style={{ overflowX: "auto" }}>
-                  <table style={{
-                    width: "100%", maxWidth: 620,
-                    borderCollapse: "collapse",
-                  }}>
-                    {/*
-                      Caption DISEMBUNYIKAN DARI MATA, bukan dibuang.
+                  {/*
+                    Dirender komponen Tabel dari @/components/dasar, bukan
+                    elemen tabel HTML telanjang
+                    telanjang — dijaga `tabel-mentah-ratchet.mjs`.
 
-                      Versi pertama menampilkannya, dan di potret ia terbaca
-                      sebagai kalimat KEDUA yang mengatakan hal yang sama
-                      dengan paragraf tepat di atasnya — dua baris pengantar
-                      berturut-turut untuk satu tabel kecil.
-
-                      Dibuang sama sekali juga salah: pembaca layar kehilangan
-                      nama tabelnya. Jadi ia tetap ada di pohon aksesibilitas,
-                      hanya tak memakan ruang visual.
-                    */}
-                    <caption style={{
-                      position: "absolute", width: 1, height: 1,
-                      overflow: "hidden", clip: "rect(0 0 0 0)",
-                      whiteSpace: "nowrap",
-                    }}>
-                      Reaksi tiap simpul bertumpu, beserta jumlahnya.
-                    </caption>
-                    <thead>
-                      <tr>
-                        <th scope="col" style={{
-                          padding: "var(--pad-baris)", textAlign: "left",
-                          fontSize: "var(--teks-label)", fontWeight: 700,
-                          color: C.muted, borderBottom: `1px solid ${C.border}`,
-                        }}>
-                          Simpul
-                        </th>
-                        <th scope="col" style={kepalaAngka}>Fx (kN)</th>
-                        <th scope="col" style={kepalaAngka}>Fy (kN)</th>
-                        <th scope="col" style={kepalaAngka}>M (kNm)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {hasilRangka.rangka.reaksi.map((r) => (
-                        <tr key={r.simpul}>
-                          <th scope="row" style={{
-                            padding: "var(--pad-baris)", textAlign: "left",
-                            fontWeight: 600, color: C.navy,
-                            borderBottom: `1px solid ${C.border}`,
-                            whiteSpace: "nowrap",
-                          }}>
-                            {r.nama}
-                          </th>
-                          <td style={selAngka}>{num(r.fxKn)}</td>
-                          <td style={selAngka}>{num(r.fyKn)}</td>
-                          <td style={selAngka}>{num(r.mKnm)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr>
-                        <th scope="row" style={{
-                          padding: "var(--pad-baris)", textAlign: "left",
-                          fontWeight: 700, color: C.navy,
-                          borderTop: `2px solid ${C.border}`,
-                          whiteSpace: "nowrap",
-                        }}>
-                          JUMLAH
-                        </th>
-                        <td style={selJumlah}>{num(sumFx)}</td>
-                        <td style={selJumlah}>{num(sumFy)}</td>
-                        <td style={selJumlah}>{num(sumM)}</td>
-                      </tr>
-                    </tfoot>
-                  </table>
+                    Yang didapat gratis dan sempat saya tulis tangan sendiri:
+                    caption sr-only, baris JUMLAH di <tfoot> (bukan baris data
+                    terakhir — pembaca layar mengumumkannya sebagai ringkasan,
+                    dan peramban menjaganya tetap di bawah saat tabel digulir),
+                    serta rata-kanan + tabular-nums untuk kolom angka.
+                  */}
+                  <Tabel
+                    berpermukaan
+                    caption="Reaksi tiap simpul bertumpu, beserta jumlahnya."
+                    data={hasilRangka.rangka.reaksi}
+                    kunciBaris={(r) => r.nama}
+                    kolom={[
+                      { kunci: "nama", judul: "Simpul", kepalaBaris: true,
+                        render: (r) => r.nama },
+                      { kunci: "fx", judul: "Fx (kN)", rata: "kanan",
+                        render: (r) => formatAngka(r.fxKn, 2) },
+                      { kunci: "fy", judul: "Fy (kN)", rata: "kanan",
+                        render: (r) => formatAngka(r.fyKn, 2) },
+                      { kunci: "m", judul: "M (kNm)", rata: "kanan",
+                        render: (r) => formatAngka(r.mKnm, 2) },
+                    ]}
+                    total={[
+                      { kunci: "nama", isi: "JUMLAH" },
+                      { kunci: "fx", isi: formatAngka(sumFx, 2), rata: "kanan" },
+                      { kunci: "fy", isi: formatAngka(sumFy, 2), rata: "kanan" },
+                      { kunci: "m", isi: formatAngka(sumM, 2), rata: "kanan" },
+                    ]}
+                  />
                 </div>
 
                 {/*
