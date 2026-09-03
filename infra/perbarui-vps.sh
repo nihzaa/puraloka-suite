@@ -118,12 +118,50 @@ echo ""
 echo "== 6. Situs lain tak terganggu ============================"
 # nginx melayani EMPAT situs lain di mesin ini. Pembaruan yang menjatuhkan
 # salah satunya tak boleh lolos tanpa ketahuan.
+# ⚠ Kode yang DICETAK tapi tak DIPERIKSA tak menjaga apa pun.
+#
+# Versi sebelumnya hanya `printf` — sebuah `000` (situs TJS mati karena
+# pembaruan ini) tetap membuat skrip mencetak SELESAI. Langkah verifikasi
+# yang tak bisa menggagalkan apa pun cuma menghasilkan angka untuk dibaca
+# sekilas lalu dilupakan.
+#
+# Sekarang ia mengumpulkan yang mati dan menggagalkan di akhir — di akhir,
+# bukan seketika, supaya laporannya menyebut SEMUA yang jatuh, bukan yang
+# pertama saja.
+MATI=""
 for H in tjs-command-center.duckdns.org \
          n8n.tjs-command-center.duckdns.org \
          admin.puraloka-suite.duckdns.org; do
   KODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 12 "https://$H/" || echo 000)
   printf '   %-52s %s\n' "$H" "$KODE"
+  case "$KODE" in
+    2*|3*) ;;
+    *) MATI="$MATI $H($KODE)" ;;
+  esac
 done
+if [ -n "$MATI" ]; then
+  echo ""
+  echo "   GAGAL: situs lain jatuh sesudah pembaruan ini:$MATI"
+  echo "   Pembaruan Puraloka TIDAK boleh menjatuhkan situs TJS atau admin."
+  exit 1
+fi
+
+echo ""
+echo "== 7. Host porto yang menyala wajib bisa dibuka ============"
+# Baris `situs_domain` yang `aktif` + `terverifikasi` adalah JANJI bahwa
+# alamat itu menyajikan profil perusahaannya. Diukur 2026-09-04:
+# `porto.puraloka-suite.duckdns.org` menyala di basis selama berjam-jam
+# tanpa server block maupun sertifikat — TLS ditolak sebelum satu byte HTTP
+# terkirim, dan tak ada di sistem ini yang bisa memberi tahu.
+#
+# Penjaganya dijalankan DI SINI, bukan di CI: CI menilai kode yang BELUM
+# tayang, jadi ia hanya bisa mengukur server versi lama. Yang bermakna
+# adalah keadaan sesudah deploy — persis di titik ini.
+if [ -f "$AKAR/apps/api/scripts/audit-situs-host-dilayani.mjs" ]; then
+  node "$AKAR/apps/api/scripts/audit-situs-host-dilayani.mjs" || exit 1
+else
+  echo "   LEWAT: penjaga belum ada di versi ini."
+fi
 
 echo ""
 echo "SELESAI. Versi terpasang: $(git log --oneline -1)"
