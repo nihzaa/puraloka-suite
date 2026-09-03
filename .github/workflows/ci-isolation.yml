@@ -14,6 +14,11 @@ on:
         default: inventory
         type: choice
         options: [inventory, periksa-gl, setup, setup-clean]
+      paksa_ulang:
+        description: 'Nomor migrasi yang catatannya dihapus supaya DIPUTAR ULANG (mis. "377,398"). Kosongkan bila tak perlu.'
+        required: false
+        default: ''
+        type: string
 
 # ⚠ Group per-run ini menjaga run inventaris dari pembatalan — TETAPI ia juga
 # menempatkan workflow ini DI LUAR barisan `ci-shared-ci-db` milik `ci.yml`.
@@ -87,6 +92,7 @@ jobs:
         run: node scripts/ci-project-setup.mjs
         env:
           CI_DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+          PAKSA_ULANG: ${{ inputs.paksa_ulang }}
 
       # A2 — setup-clean: WIPE project CI lalu replay BERSIH sekali dari nol (angka jujur).
       - name: A2 Setup CLEAN (wipe + replay + seed)
@@ -94,4 +100,5 @@ jobs:
         run: node scripts/ci-project-setup.mjs
         env:
           CI_DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+          PAKSA_ULANG: ${{ inputs.paksa_ulang }}
           WIPE: '1'

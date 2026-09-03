@@ -7,6 +7,7 @@
 import pg from 'pg'
 import fs from 'fs'
 import path from 'path'
+import crypto from 'crypto'
 
 const url = process.env.CI_DIRECT_URL
 if (!url) { console.error('FATAL: CI_DIRECT_URL kosong'); process.exit(1) }
@@ -237,6 +238,38 @@ for (const [versi, a] of Object.entries(SKIP_ALLOWLIST)) {
   }
 }
 
+/*
+  ── PAKSA_ULANG: hapus catatan versi tertentu supaya diputar ulang ─────────
+
+  Sidik jari di bawah menutup kelas cacat "disunting tapi tak diputar ulang"
+  untuk SETERUSNYA — tetapi tidak ke belakang: entri yang sudah tercatat
+  sebelum fitur ini ada belum punya sidik jari, dan sengaja dianggap cocok.
+  Tanpa itu, satu kali jalan akan memutar ulang SELURUH 551 migrasi sekaligus.
+
+  Jalan keluarnya untuk perbaikan yang terlanjur tertahan: sebut versinya.
+
+      PAKSA_ULANG=377,398 node scripts/ci-project-setup.mjs
+
+  ⚠ Sengaja MENUNTUT daftar versi, bukan menerima `all`. Buku migrasi adalah
+  Gerbang Keras G-2 (CLAUDE.md §5.5) — sebuah sakelar yang bisa menghapus
+  seluruh catatan sekali tekan adalah pintu belakang yang cepat sekali dipakai
+  tanpa berpikir. Menyebut nomornya memaksa orang tahu apa yang ia putar ulang.
+*/
+const PAKSA_ULANG = new Set(
+  (process.env.PAKSA_ULANG ?? '')
+    .split(',')
+    .map((v) => v.trim())
+    .filter((v) => /^\d+$/.test(v)),
+)
+if (PAKSA_ULANG.size) {
+  const daftar = [...PAKSA_ULANG]
+  const { rowCount } = await c.query(
+    `DELETE FROM supabase_migrations.schema_migrations WHERE version = ANY($1)`,
+    [daftar],
+  )
+  console.log(`PAKSA_ULANG: ${rowCount} catatan dihapus (${daftar.join(', ')}) — akan diputar ulang.`)
+}
+
 let applied = 0, alreadyThere = 0
 const skippedList = []
 for (const f of files) {
@@ -267,17 +300,64 @@ for (const f of files) {
     `SELECT name FROM supabase_migrations.schema_migrations WHERE version=$1`,
     [version],
   )
-  const tercatatSkip = rows.length > 0 && /\[SKIP:/.test(rows[0].name ?? '')
-  if (rows.length && !tercatatSkip) { alreadyThere++; continue }
+  const sql = fs.readFileSync(path.join(dir, f), 'utf8')
+
+  /*
+    ── SIDIK JARI ISI: migrasi yang DISUNTING wajib diputar ulang ───────────
+
+    Kelas cacat sepupu dari `[SKIP:]` di atas, dan sama tak bergejalanya.
+
+    Diukur 2026-09-04: migrasi 377 diperbaiki (ia mematikan SELURUH company
+    di schema bersih), tetapi run berikutnya melewatinya — versinya sudah
+    tercatat BERHASIL. Perbaikannya tak pernah berlaku, dan kegagalan yang
+    sama muncul lagi di migrasi 398 dengan galat yang menuduh tipe data.
+
+    Yang membuatnya sulit dilihat: angkanya TIDAK BERGERAK SAMA SEKALI antar
+    run. Kalau perbaikan berjalan tapi kurang, angkanya akan berubah sedikit.
+    Nol pergerakan itulah petunjuknya — dan butuh tiga run untuk terbaca.
+
+    Komentar `[SKIP:]` di atas sudah menuliskan pelajarannya untuk migrasi
+    yang DILEWATI. Yang tak tercakup: migrasi yang BERHASIL lalu disunting.
+    Keduanya kini ditangani dengan alasan yang sama.
+
+    ⚠ Sidik jari disimpan di kolom `name`, BUKAN kolom baru.
+    `supabase_migrations.schema_migrations` milik Supabase (version,
+    statements, name) — menambah kolom ke sana berisiko bentrok dengan
+    alatnya sendiri. Kolom `name` sudah dipakai skrip INI untuk penanda
+    `[SKIP:]`, jadi bentuknya punya preseden.
+
+    CR dibuang sebelum menghitung: berkas migrasi bisa ber-CRLF di satu
+    checkout dan LF di lain (CLAUDE.md §7a), dan sidik jari yang berubah
+    karena akhir baris akan memutar ulang SELURUH rantai tanpa sebab.
+  */
+  const sidik = crypto
+    .createHash('sha256')
+    .update(sql.replace(/\r/g, ''), 'utf8')
+    .digest('hex')
+    .slice(0, 12)
+
+  const namaTercatat = rows[0]?.name ?? ''
+  const tercatatSkip = rows.length > 0 && /\[SKIP:/.test(namaTercatat)
+  const cocokSidik = namaTercatat.includes(`[SHA:${sidik}]`)
+  // Entri LAMA belum punya sidik jari sama sekali — jangan putar ulang
+  // seluruh rantai hanya karena formatnya berubah. Ia dianggap cocok, dan
+  // sidik jarinya ditulis saat migrasi itu memang perlu dijalankan lagi.
+  const punyaSidik = /\[SHA:[0-9a-f]{12}\]/.test(namaTercatat)
+  const isiBerubah = punyaSidik && !cocokSidik
+
+  if (rows.length && !tercatatSkip && !isiBerubah) { alreadyThere++; continue }
+  if (isiBerubah) {
+    console.log(`  ulang(isi-berubah) ${f} — sidik jari berbeda; perbaikan wajib berlaku`)
+    await c.query(`DELETE FROM supabase_migrations.schema_migrations WHERE version=$1`, [version])
+  }
   if (tercatatSkip) {
     console.log(`  retry(bekas-skip) ${f} — dicoba ulang; perbaikan tak boleh terhalang catatannya sendiri`)
     await c.query(`DELETE FROM supabase_migrations.schema_migrations WHERE version=$1`, [version])
   }
-  const sql = fs.readFileSync(path.join(dir, f), 'utf8')
   try {
     await c.query('BEGIN')
     await c.query(sql)
-    await c.query(`INSERT INTO supabase_migrations.schema_migrations (version, name) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [version, f])
+    await c.query(`INSERT INTO supabase_migrations.schema_migrations (version, name) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [version, `${f} [SHA:${sidik}]`])
     await c.query('COMMIT')
     applied++
     if (applied % 25 === 0) console.log(`  …applied ${applied} (terakhir ${f})`)
@@ -285,7 +365,7 @@ for (const f of files) {
     await c.query('ROLLBACK')
     const allow = SKIP_ALLOWLIST[version]
     if (allow) {
-      await c.query(`INSERT INTO supabase_migrations.schema_migrations (version, name) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [version, `${f} [SKIP:${allow.class}]`])
+      await c.query(`INSERT INTO supabase_migrations.schema_migrations (version, name) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [version, `${f} [SKIP:${allow.class}] [SHA:${sidik}]`])
       skippedList.push(`${f} [${allow.class}] — ${allow.reason} — gagal: ${e.message.split('\n')[0]}`)
       console.warn(`  skip(allowlist:${allow.class}) ${f} → ${e.message.split('\n')[0]}`)
       continue
