@@ -500,8 +500,13 @@ await seed('client', async () => {
     hubungannya dengan sebabnya.
 
     Bentuknya sama dengan seed `assets`/`suppliers`/`pegawai` di berkas ini,
-    yang semuanya sudah menyebut `company_id`. Dua yang tertinggal cuma
-    `clients` dan `cost_codes`.
+    yang semuanya sudah menyebut `company_id`.
+
+    ⚠ Kalimat asli di sini berbunyi "dua yang tertinggal cuma `clients` dan
+    `cost_codes`". Itu SALAH — `projects` juga tertinggal, dan baru ketahuan
+    2026-09-04 saat rantai migrasi akhirnya diputar penuh dari nol. Sebuah
+    daftar yang menyebut dirinya lengkap membuat orang berikutnya berhenti
+    mencari.
   */
   const { rows: has } = await c.query(`SELECT 1 FROM clients WHERE contact_person='CI Seed Client' LIMIT 1`)
   if (has.length) return
@@ -526,9 +531,21 @@ await seed('client', async () => {
 // 1 cost_code (CECEP) — created_by admin.
 await seed('cost_code', async () => {
   await c.query(
-    `INSERT INTO cost_codes (code, name, created_by)
-     SELECT 'CC-CI-SEED', 'CI seed cost code', (SELECT id FROM public.users WHERE email='ci-admin@puraloka.test' LIMIT 1)
-     WHERE NOT EXISTS (SELECT 1 FROM cost_codes WHERE code='CC-CI-SEED')`)
+    /*
+      `company_id` DISEBUT EKSPLISIT — 2026-09-04.
+
+      Komentar di seed `client` menyatakan `cost_codes` sudah diperbaiki;
+      ternyata belum. Ia tak roboh seperti `projects` karena kolomnya
+      menerima nilai dari default, dan itu justru cacat yang komentar itu
+      sendiri peringatkan: barisnya lahir di tenant mana pun yang kebetulan
+      terpilih, dan galatnya muncul jauh dari sini.
+    */
+    `INSERT INTO cost_codes (company_id, code, name, created_by)
+     SELECT (SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1),
+            'CC-CI-SEED', 'CI seed cost code',
+            (SELECT id FROM public.users WHERE email='ci-admin@puraloka.test' LIMIT 1)
+     WHERE NOT EXISTS (SELECT 1 FROM cost_codes WHERE code='CC-CI-SEED')
+       AND EXISTS (SELECT 1 FROM companies WHERE parent_company_id IS NULL)`)
 })
 
 // 1 asset (alat) — dibutuhkan `uji-invarian-alat.mjs`.
@@ -679,10 +696,36 @@ await seed('fixture project+mandor2+assignments+log', async () => {
   // project (idempoten by name)
   let projId = (await c.query(`SELECT id FROM projects WHERE name='CI Seed Project' LIMIT 1`)).rows[0]?.id
   if (!projId) {
+    /*
+      `company_id` DISEBUT EKSPLISIT — ditambahkan 2026-09-04, dan ini yang
+      KETIGA sesudah `clients` dan `cost_codes` (lihat komentar di seed
+      `client`, yang menyebut "dua yang tertinggal" — ternyata tiga).
+
+      Dulu tak terlihat karena `projects.company_id` mengandalkan DEFAULT,
+      dan defaultnya menjawab selama ada company yang bisa dipilih. Begitu
+      rantai migrasi akhirnya diputar penuh dari nol, seed ini roboh:
+
+          null value in column "company_id" of relation "projects"
+          violates not-null constraint
+
+      Dan robohnya beruntun — milestone, purchase_order, rab_items, kasbon,
+      weekly_wage_reports, proyek kedua, semuanya butuh proyek ini lebih
+      dulu. Satu kolom yang tak disebut menjatuhkan tujuh seed sesudahnya.
+
+      Tenant diambil dengan cara yang SAMA seperti seed lain di berkas ini:
+      company induk pertama. Menyalin dari sumber berbeda membuat fixture
+      lintas-tenant yang galatnya muncul jauh dari sebabnya.
+    */
     const { rows: pr } = await c.query(
-      `INSERT INTO projects (client_id, pm_id, name, location, start_date, end_date, created_by)
-       VALUES ($1,$2,'CI Seed Project','Bandung',CURRENT_DATE,CURRENT_DATE+30,$3) RETURNING id`,
+      `INSERT INTO projects (company_id, client_id, pm_id, name, location,
+                             start_date, end_date, created_by)
+       SELECT (SELECT id FROM companies WHERE parent_company_id IS NULL
+                ORDER BY created_at LIMIT 1),
+              $1,$2,'CI Seed Project','Bandung',CURRENT_DATE,CURRENT_DATE+30,$3
+        WHERE EXISTS (SELECT 1 FROM companies WHERE parent_company_id IS NULL)
+       RETURNING id`,
       [clientId, pmId, adminId])
+    if (!pr.length) throw new Error('tak ada company induk untuk memasangi proyek fixture')
     projId = pr[0].id
   }
   // mandor_assignments: X & Y di proyek yang sama (status default 'active' ≠ terminated)
