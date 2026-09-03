@@ -65,9 +65,88 @@ if (process.env.WIPE === '1') {
   }
   console.log(`  ${didrop} tabel di-drop.`)
 
-  // Sisa objek yang bukan tabel (view, sequence, fungsi, tipe) ikut hilang
-  // lewat CASCADE di atas atau tak menghalangi replay. Schema-nya sendiri
-  // tetap ada — tak perlu dibuat ulang, jadi grant bawaannya pun utuh.
+  /*
+    ⚠ TABEL SAJA TIDAK CUKUP — dan versi pertama saya berhenti di situ.
+
+    Diukur 2026-09-04: sesudah 294 tabel terhapus dan WIPE melapor "project
+    CI benar-benar kosong", migrasi PERTAMA langsung gagal:
+
+        HARD FAIL 001_extensions_and_enums.sql
+        type "project_status" already exists
+
+    `DROP SCHEMA CASCADE` versi lama membuang SEMUANYA. Menggantinya dengan
+    drop per-tabel menyelesaikan masalah slot kunci tetapi meninggalkan
+    kelas objek lain — dan "kosong" yang saya cetak itu tidak benar.
+
+    Diukur di basis dev: 294 tabel · 3 view · 83 tipe berdiri sendiri ·
+    515 fungsi. Tipe dan fungsi JAUH lebih banyak dari tabelnya.
+
+    Tiap kelas dibuang dalam transaksinya sendiri, alasan yang sama dengan
+    tabel: satu perintah yang mengunci ratusan objek sekaligus tak akan muat.
+  */
+  const { rows: view } = await c.query(`
+    SELECT viewname FROM pg_views WHERE schemaname = 'public'`)
+  for (const { viewname } of view) {
+    const { rows: q } = await c.query(`SELECT quote_ident($1) AS nama`, [viewname])
+    await c.query(`DROP VIEW IF EXISTS public.${q[0].nama} CASCADE`)
+  }
+  if (view.length) console.log(`  ${view.length} view di-drop.`)
+
+  /*
+    Hanya tipe yang BERDIRI SENDIRI. Tiap tabel punya "tipe baris" otomatis
+    bernama sama; ia hilang bersama tabelnya dan tak boleh di-drop terpisah.
+    Tanpa saringan `typrelid = 0`, hitungannya 380 — dan sebagian besarnya
+    bayangan tabel yang sudah tiada.
+  */
+  const { rows: tipe } = await c.query(`
+    SELECT t.typname FROM pg_type t
+      JOIN pg_namespace ns ON ns.oid = t.typnamespace
+     WHERE ns.nspname = 'public' AND t.typtype IN ('e','d','c')
+       AND t.typrelid = 0
+       AND NOT EXISTS (SELECT 1 FROM pg_class c2 WHERE c2.reltype = t.oid)`)
+  for (const { typname } of tipe) {
+    const { rows: q } = await c.query(`SELECT quote_ident($1) AS nama`, [typname])
+    await c.query(`DROP TYPE IF EXISTS public.${q[0].nama} CASCADE`)
+  }
+  console.log(`  ${tipe.length} tipe di-drop.`)
+
+  /*
+    Fungsi di-drop lewat tanda tangan lengkapnya (`oid::regprocedure`) —
+    nama saja ambigu bila ada beberapa yang kelebihan beban, dan
+    `DROP FUNCTION nama` menolak dengan galat yang menuduh nama itu tak ada.
+  */
+  const { rows: fungsi } = await c.query(`
+    SELECT p.oid::regprocedure::text AS sig, p.prokind
+      FROM pg_proc p JOIN pg_namespace ns ON ns.oid = p.pronamespace
+     WHERE ns.nspname = 'public'`)
+  let fdrop = 0
+  const fgagal = []
+  for (const { sig, prokind } of fungsi) {
+    const jenis = prokind === 'a' ? 'AGGREGATE' : prokind === 'p' ? 'PROCEDURE' : 'FUNCTION'
+    try {
+      await c.query(`DROP ${jenis} IF EXISTS ${sig} CASCADE`)
+      fdrop++
+    } catch (e) {
+      /*
+        Sebagian fungsi ikut terbuang lewat CASCADE fungsi lain, dan
+        `regprocedure` yang sudah tak ada memang menolak. Itu wajar.
+
+        Yang TIDAK wajar adalah menelannya diam-diam: kalau sebuah fungsi
+        bertahan karena sebab lain, replay berikutnya gagal dengan galat
+        yang menuduh migrasinya. Dikumpulkan dan dilaporkan — sesudah
+        semuanya dicoba, bukan berhenti di yang pertama.
+      */
+      fgagal.push(`${sig}: ${e.message}`)
+    }
+  }
+  console.log(`  ${fdrop} fungsi/prosedur di-drop.`)
+  if (fgagal.length) {
+    console.log(`  ${fgagal.length} tak bisa di-drop (biasanya sudah ikut CASCADE):`)
+    for (const g of fgagal.slice(0, 5)) console.log(`      ${g}`)
+  }
+
+  // Schema-nya sendiri tetap ada — tak perlu dibuat ulang, jadi grant
+  // bawaan Supabase pun utuh (alasannya di catatan panjang di bawah).
   await c.query(`CREATE SCHEMA IF NOT EXISTS public`)
   await c.query(`GRANT ALL ON SCHEMA public TO postgres`)
   await c.query(`GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role`)
