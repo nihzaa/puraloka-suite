@@ -5,6 +5,72 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-04 (lanjutan) — host yang MENYALA di basis tapi mati di dunia
+
+Menyiapkan deploy multi-tenant. Sebelum menjalankannya, saya ukur kedua host
+porto dari luar — dan salah satunya tak bisa dibuka sama sekali.
+
+    persada.puraloka-suite.duckdns.org   200
+    porto.puraloka-suite.duckdns.org     000   (exit curl 60)
+
+`porto.` terdaftar `aktif = true` DAN `terverifikasi = true` — dua kolom yang
+berarti "boleh menyajikan konten" — padahal nginx tak punya server block
+untuknya (10 host terdaftar, `porto.` bukan salah satunya) dan sertifikat
+`puraloka-suite.duckdns.org` memuat 6 nama tanpa `porto.`. Yang disajikan
+sertifikat `admin.`; nama tak cocok, TLS ditolak sebelum satu byte HTTP.
+
+**Tak ada yang gagal.** Basis menjawab benar, aplikasi menjawab benar (tak
+pernah ditanya), nginx menjawab benar (host tak dikenal -> blok bawaan). Tiap
+lapisan benar untuk dirinya sendiri — keluarga yang sama dengan `curl` 200
+tapi browser 500 di CLAUDE.md §7a.
+
+Barisnya dinonaktifkan, bukan diterbitkan sertifikatnya: `porto.` alamat
+generik yang tak menunjuk perusahaan mana pun, bertentangan dengan model
+per-perusahaan yang diminta founder.
+
+### Saya salah — tiga kali, semuanya pada ALAT UKUR
+
+**1. `porto.` saya baca `000000`.** Tiga kode tergabung; saya sempat mengira
+curl mengikuti pengalihan. Diukur benar: `lompatan=0`, exit 60. Bentuk
+keluaran yang aneh adalah tanda alat ukurnya, bukan temuan.
+
+**2. Penjaga baru melaporkan `persada.` MERAH** padahal saya sendiri
+mengukurnya 200 beberapa menit sebelumnya. Sebabnya `-o /dev/null` TAK ADA di
+Windows: curl gagal exit 23 ("write error"), dan penjaga menerjemahkannya
+sebagai kegagalan jaringan. Merah palsu dari alat ukurnya sendiri — dan
+penjaga yang merah tanpa sebab melatih orang mengabaikan hasilnya, persis
+alasan yang sudah tertulis panjang di `perbarui-vps.sh` langkah 5.
+
+**3. `grep -rl` di `/etc/nginx/sites-enabled/` memulangkan nol** — bukan
+karena tak ada yang cocok, melainkan karena isinya symlink dan `grep -r` tak
+menembusnya. Nol hasil bukan bukti ketiadaan, untuk kesekian kalinya.
+
+### Yang dibangun
+
+    audit-situs-host-dilayani.mjs   host `bawaan` menyala wajib bisa dibuka
+    perbarui-vps.sh langkah 7       penjaga itu dijalankan SESUDAH deploy
+    perbarui-vps.sh langkah 6       kode situs lain kini DIPERIKSA, bukan
+                                    cuma dicetak — `000` dulu lolos SELESAI
+
+Penjaga terbukti bisa merah tanpa mutasi buatan, atas cacat produksi nyata:
+MERAH (exit 1, menyebut host + sebabnya) -> nonaktifkan -> HIJAU (exit 0).
+
+`000` sendiri tak berguna dilaporkan: ia sama untuk DNS gagal, port tertutup,
+TLS ditolak, dan waktu habis. Empat sebab, empat perbaikan berbeda, satu
+angka. Penjaga membaca exit code dan menerjemahkannya.
+
+Sengaja TIDAK di `ci.yml`: CI menilai kode yang belum tayang, jadi ia hanya
+bisa mengukur server versi lama. `audit-penjaga-tercatat-jalan.mjs` mewajibkan
+yang tertabel §6 benar-benar jalan di CI — jadi penjaga ini dicatat di §7,
+bukan ditabelkan.
+
+### PR #148
+
+Push branch TAK memicu CI: `ci.yml` hanya `pull_request` + push ke `main`.
+Jalurnya PR, dan itu yang dibuka — 93 commit, 103 berkas.
+
+---
+
 ## 2026-09-01 (lanjutan 2) — solver rangka DIPAKAI: diagram, rute, mode ketiga
 
 Solver lapis 1-5 sudah benar tapi belum berguna bagi siapa pun. Bagian ini

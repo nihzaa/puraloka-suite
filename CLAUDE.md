@@ -352,6 +352,30 @@ sebelum menyentuh kode terkait** — bukan sekadar daftar isi.
 | `audit-auth-mobile-utuh.mjs` | kontrak login mobile wajib utuh di KEDUA sisi — diukur 2026-09-01 aplikasi mobile TAK PERNAH bisa login: token hanya dikirim lewat cookie HttpOnly, mobile menyimpan `undefined`, setiap permintaan 401, dan layar login menuduh kredensial. Ikut menjaga token diberikan HANYA bagi klien ber-`X-Client` — memberikannya ke semua membuang perlindungan XSS (ambang NOL) |
 | `audit-hook-eas-utuh.mjs` | rantai hook build EAS wajib utuh — SEMBILAN build APK gagal karena celah dua versi pnpm (server 9.15.5, lokal 11.8.0): `overrides` di `pnpm-workspace.yaml` adalah fitur pnpm 10+, dan pnpm 9 tak membacanya lalu menolak dengan galat yang menuduh lockfile. Menghapus satu mata rantai tak menggagalkan tsc maupun test; yang gagal cuma build di server 20 menit kemudian (ambang NOL) |
 
+**Host porto yang menyala wajib bisa dibuka — SESUDAH DEPLOY, bukan di CI:**
+
+```bash
+node apps/api/scripts/audit-situs-host-dilayani.mjs   # ambang NOL
+```
+
+Baris `situs_domain` yang `aktif` + `terverifikasi` adalah JANJI bahwa alamat
+itu menyajikan profil perusahaannya. Diukur 2026-09-04:
+`porto.puraloka-suite.duckdns.org` menyala di basis tanpa server block maupun
+sertifikat — TLS ditolak sebelum satu byte HTTP terkirim, dan tak ada di
+sistem ini yang bisa memberi tahu. Tiap lapisan menjawab benar untuk dirinya
+sendiri.
+
+⚠ **Sengaja TIDAK di `ci.yml`**, jadi jangan menabelkannya di §6 —
+`audit-penjaga-tercatat-jalan.mjs` mewajibkan yang tertabel benar-benar
+dijalankan CI, dan penjaga ini justru tak boleh. CI menilai kode yang BELUM
+tayang; ia hanya bisa mengukur server versi lama. Tempatnya
+`infra/perbarui-vps.sh` langkah 7 — sesudah deploy, saat keadaannya bermakna.
+
+⚠ `000` dari curl TIDAK cukup dilaporkan: ia sama untuk DNS gagal, port
+tertutup, TLS ditolak, dan waktu habis — empat sebab, empat perbaikan. Penjaga
+ini membaca EXIT CODE-nya. Dan `-o /dev/null` TAK ADA di Windows (exit 23),
+yang pada jalan pertamanya melaporkan host sehat sebagai MERAH.
+
 **Alur take-off → RAB — MANUAL, butuh API hidup:**
 
 ```bash
