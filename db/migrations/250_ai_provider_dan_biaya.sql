@@ -232,9 +232,27 @@ BEGIN
     RAISE EXCEPTION '250 gagal: ada tabel tanpa tenant_isolation RESTRICTIVE';
   END LOOP;
 
+  /*
+    ⚠ Seed di atas disaring `WHERE EXISTS (company_members)` — dan pagar ini
+    harus memakai syarat yang SAMA. Diperbaiki 2026-09-04 (preseden 212 & 016).
+
+    Di schema BERSIH tak ada satu pun `users`, dan migrasi 126 mengisi
+    `company_members` DARI tabel users. Nol user berarti nol anggota, jadi
+    seed-nya memang nol — bukan gagal.
+
+    Diukur di CI: replay bersih lolos 249 migrasi lalu tumbang di sini dengan
+    pesan yang menuduh seed-nya. Seed-nya benar; pagarnya yang membaca
+    "kosong" sebagai "rusak" — bentuk yang sama persis dengan 245, dan
+    komentar di atas seed ini bahkan MENYEBUT pelajaran 245.
+
+    Pola yang dipakai di sini sudah ada di repo ini: migrasi 270 menjaga
+    pemeriksaannya dengan `IF v_comp IS NOT NULL THEN`. Itu yang ditiru,
+    bukan pendekatan baru.
+  */
   SELECT count(*) INTO v_seed FROM ai_provider_config WHERE asisten = 'insight';
-  IF v_seed = 0 THEN
-    RAISE EXCEPTION '250 gagal: config insight tidak ter-seed';
+  IF v_seed = 0 AND EXISTS (SELECT 1 FROM company_members) THEN
+    RAISE EXCEPTION
+      '250 gagal: config insight tidak ter-seed padahal ada tenant beranggota';
   END IF;
 
   -- Nominal WAJIB numeric, bukan float (CLAUDE.md §5.4).

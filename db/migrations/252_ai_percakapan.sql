@@ -236,9 +236,19 @@ BEGIN
     RAISE EXCEPTION '252 gagal: ada tabel tanpa tenant_isolation RESTRICTIVE';
   END LOOP;
 
+  /*
+    ⚠ Seed di atas disaring `WHERE EXISTS (company_members)` — pagar ini
+    memakai syarat yang SAMA. Diperbaiki 2026-09-04, sama seperti 245 dan 250.
+
+    Di schema bersih nol user → nol anggota (migrasi 126 mengisi
+    `company_members` dari tabel users) → nol seed. Itu hasil yang BENAR,
+    bukan kegagalan. Pola `IF … IS NOT NULL` yang setara sudah dipakai
+    migrasi 270.
+  */
   SELECT count(*) INTO v_n FROM ai_pengaturan_tenant;
-  IF v_n = 0 THEN
-    RAISE EXCEPTION '252 gagal: pengaturan tenant tidak ter-seed';
+  IF v_n = 0 AND EXISTS (SELECT 1 FROM company_members) THEN
+    RAISE EXCEPTION
+      '252 gagal: pengaturan tenant tidak ter-seed padahal ada tenant beranggota';
   END IF;
 
   -- Blok tool WAJIB bisa disimpan — inilah perbaikan C-5, dan migrasi yang
