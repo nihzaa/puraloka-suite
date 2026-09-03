@@ -5,6 +5,101 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-04 (lanjutan 3) — rantai migrasi diputar dari nol: 001 → 523
+
+Membersihkan rantai migrasi supaya PR #148 (multi-tenant porto) bisa hijau.
+Kode porto sendiri sudah lulus sejak awal — yang tertahan suite API, dan ia
+mati di penyiapan basis, bukan di test. Nol test pernah berjalan.
+
+Kemajuan tiap siklus CI (~5 menit per siklus):
+
+    001 → 244 → 249 → 251 → 253 → 315 → 330 → 336 → 364 → 365
+        → 367 → 371 → 397 → 400 → 436 → 523
+
+### Satu kelas yang menjelaskan hampir semuanya
+
+**Pembuktian yang kehilangan bahannya melapor sebagai pembuktian yang GAGAL.**
+
+Blok verifikasi mengambil fixture (`users`, `companies`, `projects`) yang di
+schema bersih memang tak ada, lalu menuduh CHECK bocor, seed hilang, atau
+tenant bocor. Dua puluh delapan migrasi, dan gejalanya selalu terdengar
+seperti temuan nyata.
+
+Yang lebih halus lagi, dan berulang lima kali: **dua syarat berbeda untuk satu
+hal**. Seed disaring `WHERE EXISTS (company_members)`, pagarnya cuma
+`count = 0`. Keduanya benar sendiri-sendiri; yang salah adalah tak sepakat.
+(250 · 252 · 377 · 401 · 524)
+
+### Empat yang berbeda kelasnya, dan lebih berbahaya
+
+**368 — angka benar, kesimpulan keliru.** View memulangkan 20 baris ber-NULL,
+sungguhan. Tapi `set_config('app.company_id', NULL)` tak memasang konteks apa
+pun, jadi view tak menyaring. Laporannya terdengar seperti temuan keamanan;
+siapa pun yang membacanya akan mengejar kebocoran yang tak ada.
+
+**377 — MENGUBAH KEADAAN, bukan salah melapor.** Ia mematikan SELURUH company
+karena tak satu pun punya anggota, dan kerusakannya muncul dua puluh migrasi
+kemudian sebagai `398 gagal: value_type ambang EVM = "<NULL>"` — galat yang
+menuduh tipe data. Dibawa ke founder lebih dulu; ini satu-satunya yang
+mengubah perilaku, bukan pagar.
+
+**365 — galat yang memuat kontradiksinya sendiri.** *"nol role tersalin
+padahal 0 tenant punya anggota"*. Ia MENGHITUNG konteksnya, mencetaknya di
+pesan, lalu tak memakainya dalam syarat.
+
+**437 — `CREATE TABLE IF NOT EXISTS` tak memeriksa `pg_type`.** Postgres
+membuat satu tipe baris per tabel; tipe yang tertinggal tanpa tabelnya
+menggagalkan dengan `duplicate key ... pg_type_typname_nsp_index`, galat yang
+tak menyebut tabel maupun tipe. Sumbernya WIPE saya sendiri: saringan
+`typrelid = 0` benar untuk tabel yang hidup, dan runtuh untuk yang sudah tiada.
+
+### Kelas G-2 yang saya catat "masih terbuka" — menggigit hari itu juga
+
+Perbaikan 377 tak berlaku TIGA run berturut-turut: migrasi yang tercatat
+BERHASIL tak pernah diputar ulang, apa pun isinya sekarang.
+
+Yang paling sulit dilihat: **angkanya tak bergerak sedikit pun**. Perbaikan
+yang berjalan tapi kurang akan menggeser angkanya; nol pergerakan itulah
+petunjuknya, dan butuh tiga run untuk terbaca.
+
+Ditutup atas keputusan founder dengan sidik jari isi migrasi (SHA-256 di kolom
+`name` — bukan kolom baru; tabel itu milik Supabase). `PAKSA_ULANG` menolak
+`all` dengan sengaja: sakelar yang menghapus seluruh buku sekali tekan adalah
+pintu belakang G-2 yang cepat sekali dipakai tanpa berpikir.
+
+### Yang TIDAK dikerjakan, dan itu keputusan
+
+Penyisiran pola menawarkan jalan pintas berkali-kali, dan tiga kali saya
+menolaknya:
+
+  · 22 kandidat "rentan" — penyaringnya masih memuat palsu (`n_policy` dari
+    pg_policies tak tertangkap). Menyunting 22 berkas atas dasar penyaring
+    yang belum bisa dipercaya lebih berisiko daripada beberapa siklus CI.
+  · 53 kandidat di 401-565 — diperiksa dua, ternyata bergantung `n_aktif`
+    (company AKTIF), yang justru terpenuhi KARENA perbaikan 377. Rantai lalu
+    melompat 36 migrasi tanpa satu pun disentuh. **Angka 53 itu ukuran
+    penyaring saya, bukan ukuran kerusakan.**
+  · 344 & 458 cocok dengan pola pencarian tetapi FUNGSI TRIGGER — validasi
+    runtime untuk data sungguhan. Menyuntingnya berarti melumpuhkan
+    perlindungan produksi demi membuat CI hijau.
+
+### Kesalahan saya, semuanya pada ALAT UKUR
+
+- **Pengganti regex berhenti di kecocokan PERTAMA per berkas.** 337 punya dua
+  pagar; yang kedua lolos, dan CI menemukannya lima menit kemudian.
+- **Pemantau membaca `conclusion` kosong sebagai "gagal"** — padahal artinya
+  BELUM SELESAI. Melapor "tidak-lulus: 11" untuk run yang masih berjalan.
+  Keluarga yang sama dengan `000` curl: alat yang tak bisa membedakan "belum"
+  dari "gagal".
+- **`DELETE roles` untuk uji mutasi melanggar FK** — cara ujinya yang salah,
+  bukan kodenya. Diganti uji predikat langsung.
+- **CR masuk berulang kali** lewat Edit (176, 138, 478 di berkas berbeda).
+  Sekarang diperiksa sebelum tiap commit, bukan menunggu peringatan git.
+- **Sempat mengira `node_modules` hancur** karena `ls | wc -l` = 2. Salah:
+  root workspace memang hanya punya dua devDependency terlihat.
+
+---
+
 ## 2026-09-04 (lanjutan 2) — CI menemukan tiga cacat yang lokal tak bisa lihat
 
 PR #148 dibuka supaya CI menilai apa yang tak bisa diukur di mesin ini.
