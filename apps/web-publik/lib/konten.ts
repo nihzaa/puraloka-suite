@@ -1,4 +1,4 @@
-import { resolveTenant } from './tenant'
+import { resolveHost, tenantCadangan } from './tenant'
 
 // ════════════════════════════════════════════════════════════════════════════
 // Bentuk payload `/api/v1/public/situs` + pembaca yang aman dipakai di JSX.
@@ -95,8 +95,18 @@ export function srcSetMedia(path: string): string {
 }
 
 export async function ambilKonten(): Promise<KontenSitus> {
-  // Gagal cepat bila situs belum dikonfigurasi — sebelum permintaan jaringan.
-  resolveTenant()
+  /*
+   * Tenant ditentukan dari HOSTNAME permintaan (migrasi 564), bukan env.
+   *
+   * Hostnya dikirim sebagai header `x-situs-host`; API yang memetakannya ke
+   * company lewat `situs_company_dari_host()`. Satu tempat yang boleh
+   * memetakan host → company adalah tempat yang juga menyaring datanya.
+   *
+   * `tenantCadangan()` hanya hidup di luar produksi — di produksi, host yang
+   * tak terdaftar HARUS gagal, bukan jatuh ke company tertentu.
+   */
+  const host = await resolveHost()
+  const cadangan = tenantCadangan()
 
   const base = process.env.NEXT_PUBLIC_API_URL
   if (!base) throw new Error('NEXT_PUBLIC_API_URL belum diset.')
@@ -113,6 +123,10 @@ export async function ambilKonten(): Promise<KontenSitus> {
     // Dengan tag saja: konten bertahan di cache sampai admin menyimpan, lalu
     // langsung terbit. Tak ada permintaan DB per pengunjung, dan tak ada jeda
     // yang membuat admin mengira simpanannya gagal.
+    headers: {
+      'x-situs-host': host,
+      ...(cadangan ? { 'x-situs-company-cadangan': cadangan } : {}),
+    },
     next: { tags: ['situs'] },
   })
   if (!r.ok) throw new Error(`API situs menjawab ${r.status}`)
