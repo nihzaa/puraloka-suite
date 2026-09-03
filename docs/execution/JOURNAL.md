@@ -34299,3 +34299,60 @@ bucket sementara kodenya menulis ke ENAM — ditutup 556.
 **Migrasi 557**: menu `pengaturan-langganan` lahir `is_active = true`
 (migrasi 552) tapi terbaca `false`, dan `audit-nav-yatim` merahkannya.
 Diperbaiki lewat migrasi maju.
+
+## 2026-09-04 — Tahap 4 & 5: tiga prasyarat ternyata sudah lunas
+
+Founder meminta portofolio per-perusahaan dengan subdomain yang bisa
+diganti. Itu menabrak **Gerbang Mutlak** (`STATUS.md` baris 101): tenant
+kedua dilarang sebelum Tahap 4 & 5 selesai.
+
+Saya tawarkan tiga jalan; founder memilih **menyelesaikan Tahap 4 & 5 dulu** —
+urutan yang benar, bukan yang cepat. Dicatat di `RATIFIKASI.md`.
+
+### Yang ternyata sudah beres (diukur, bukan dibaca dari dokumen)
+
+| Prasyarat | Bukti |
+|---|---|
+| **P1** nol `DEFAULT_COMPANY_ID` | satu-satunya kemunculan adalah komentar yang menyatakan ia tak ada |
+| **P2** uji kill-switch | `t5b-kill-switch.test.ts` — **9/9 hijau**, dua arah |
+| **P3** klasifikasi tabel | `audit-klasifikasi-tenancy.mjs` — 293 tabel, exit 0 |
+
+Ketiganya sudah dibangun sesi-sesi sebelumnya dan tak pernah ditutup di
+QUEUE. Ini bentuk yang sama dengan tujuh sub-menu yang bertanda 🔴 padahal
+UI-nya hidup berbulan-bulan.
+
+### Yang dikerjakan
+
+**Ratchet tenancy 4 → 2.** `notifications/subscribe` (POST + DELETE)
+dipindah dari `supabase` mentah ke `request.db`. Keduanya sudah aman lewat
+`.eq('id', user.id)` — yang salah bukan perilakunya, melainkan bahwa
+saringan itu satu-satunya lapisan. Terukur 168 dari 170 rute bergerbang.
+
+**T5A ditutup.** Testnya merah berbulan-bulan atas dua tabel yang
+SEBENARNYA TERLINDUNGI. Ia menyaring `policyname='tenant_isolation'` cocok
+persis, sementara `entitlement_snapshot` dan `tagihan_tenant` memakai nama
+lain dengan predikat yang benar (permissive + restrictive,
+`company_id = auth_company_id()`).
+
+Disaring lewat predikat sekarang. Arah sebaliknya ikut tertutup: versi lama
+akan MELOLOSKAN tabel bernama `tenant_isolation` yang predikatnya salah.
+
+### Saya salah dua kali, dan keduanya soal ALAT UKUR
+
+**Mutasi pertama dan kedua memulangkan HIJAU** dan sempat terbaca sebagai
+"penjaganya bocor". Sebabnya bukan penjaga: pola `python .replace()` saya
+tak lagi cocok sesudah komentar disisipkan, jadi mutasinya **tak mengubah
+satu baris pun**. Mutasi yang tak mengubah apa pun membuktikan NOL.
+
+Ketahuan dengan membaca badan rute yang BENAR-BENAR dilihat penjaga, lalu
+mutasi ulang dengan `sed` yang terbukti menyentuh 10 tempat → MERAH,
+menyebut namanya → pulih HIJAU.
+
+Ini kelas yang sama dengan yang sudah tercatat di §8a.2: mutasi wajib
+diperiksa MENGENAI sasarannya, bukan cuma dijalankan.
+
+### Sisa untuk membuka gerbang
+
+Ketiga prasyarat ADR-011 §9.5 lunas. Yang belum diukur: apakah masih ada
+item T4/T5 lain di QUEUE selain T5A. Itu langkah berikutnya — jangan
+menyimpulkan gerbang terbuka sebelum daftarnya habis diperiksa.
