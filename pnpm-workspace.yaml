@@ -97,6 +97,23 @@ overrides:
   # Rantainya: fastify > @fastify/ajv-compiler > ajv > fast-uri (9 jalur).
   # Transitif — tak satu pun package.json di repo ini memintanya.
   fast-uri: '>=4.1.3'
+  # `browserslist` <=4.28.6 — dua advisory HIGH: pertumbuhan memori tanpa
+  # batas (cache tak terpakai) dan crash / penulisan prototype.
+  #
+  # Transitif SEPENUHNYA lewat rantai mobile, tiga jalur berbeda yang semuanya
+  # bermuara di Babel:
+  #
+  #     apps__mobile > @expo/vector-icons > expo-font > expo > @expo/cli
+  #       > @expo/metro-config > @babel/core
+  #       > @babel/helper-compilation-targets > browserslist
+  #
+  # Tak satu pun package.json di repo ini memintanya, dan menaikkan Expo demi
+  # ini bukan pilihan: SEBELAS build APK gagal sebelum rantai versinya cocok
+  # (CLAUDE.md §7a). Override menutup advisory-nya tanpa menyentuh rantai itu.
+  #
+  # Patch dalam mayor yang sama (4.28.6 -> 4.28.7), jadi tak ada perubahan
+  # bentuk ekspor — pola yang sama dengan `fast-uri` di atas.
+  browserslist: '>=4.28.7'
   sharp: '>=0.35.0'
   postcss: '>=8.5.18'
   find-my-way: '>=9.6.1'
