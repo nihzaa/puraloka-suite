@@ -3686,7 +3686,11 @@ items:
     judul: "trg_protect_builtin_roles (migrasi 050) menolak DELETE atas role is_builtin=true TANPA memandang company_id — tenant asli tak bisa hapus role hasil salinan"
     blokir_oleh: []
     kriteria_selesai:
-      - "trigger fn_protect_builtin_roles hanya menolak DELETE saat company_id IS NULL (baris template global), bukan salinan per-tenant"
+      # ⚠ Nama fungsi sebenarnya `protect_builtin_roles` TANPA awalan `fn_`.
+      # Diverifikasi ke basis 2026-09-04: mencari `fn_protect_builtin_roles`
+      # memulangkan "fungsi TIDAK ADA" — yang terbaca seperti pekerjaan belum
+      # dikerjakan, padahal cuma namanya salah tulis di sini.
+      - "trigger protect_builtin_roles hanya menolak DELETE saat company_id IS NULL (baris template global), bukan salinan per-tenant"
       - "tenant admin bisa DELETE role miliknya sendiri yang is_builtin=true (hasil salinan provisioning), role TEMPLATE global tetap terlindungi seperti semula"
     cara_verifikasi: "sebagai admin tenant, coba hapus salah satu role bawaan hasil provisioning (mis. 'mandor') — harus berhasil; coba hapus role TEMPLATE (company_id NULL) — harus tetap ditolak"
     bobot: S
