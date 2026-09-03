@@ -209,6 +209,24 @@ BEGIN
    WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id) LIMIT 1;
   SELECT user_id INTO v_user FROM company_members WHERE company_id = v_company LIMIT 1;
 
+  /*
+    ⚠ Pembuktian di bawah butuh company + user SUNGGUHAN.
+
+    Di schema BERSIH tak ada anggota, jadi `v_company` dan `v_user` keduanya
+    NULL — dan `INSERT … VALUES (NULL, NULL, …)` melanggar NOT NULL, BUKAN
+    CHECK. `EXCEPTION WHEN check_violation` tak menangkapnya, jadi migrasinya
+    gagal dengan galat yang sama sekali tak menyinggung sebabnya.
+
+    Kelas yang sama dengan 252 dan 254: pembuktian yang kehilangan bahannya
+    melapor sebagai pembuktian yang gagal. Bedanya di sini gejalanya lebih
+    menyesatkan lagi, karena galat NOT NULL menuduh kolomnya.
+
+    Pemeriksaan `wa_pesan_log` di bawah TIDAK ikut dijaga — ia membaca
+    information_schema, tak butuh satu baris pun, dan harus tetap berjalan
+    di lingkungan mana pun.
+  */
+  IF v_company IS NOT NULL AND v_user IS NOT NULL THEN
+
   -- Nomor tak ternormalisasi DITOLAK. CHECK-nya ada supaya satu jalur masuk
   -- yang lupa menormalkan tak menyimpan bentuk lain diam-diam.
   BEGIN
@@ -251,7 +269,10 @@ BEGIN
   END;
   DELETE FROM wa_kirim_idempotensi WHERE kunci = 'uji:256';
 
-  -- Log TIDAK boleh punya kolom isi pesan.
+  END IF;   -- v_company / v_user tersedia
+
+  -- Log TIDAK boleh punya kolom isi pesan. TIDAK dijaga: membaca
+  -- information_schema, tak butuh satu baris pun.
   IF EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_name = 'wa_pesan_log' AND column_name IN ('isi', 'pesan', 'teks', 'body')
