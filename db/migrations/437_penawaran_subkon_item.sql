@@ -82,6 +82,40 @@
 -- punya pembanding, dan itu justru yang paling perlu terlihat.
 -- ════════════════════════════════════════════════════════════════════════════
 
+-- ─── 0. Tipe baris yatim dibuang lebih dulu ─────────────────────────────────
+--
+-- ⚠ `CREATE TABLE IF NOT EXISTS` TIDAK memeriksa `pg_type`.
+--
+-- Postgres membuat satu "tipe baris" bernama sama dengan tiap tabel. Kalau
+-- tabelnya hilang tetapi tipenya tertinggal — misalnya sesudah pembersihan
+-- schema yang tak menyapu tipe milik tabel — maka `IF NOT EXISTS` tak
+-- menolong sama sekali dan migrasi ini gagal dengan:
+--
+--     duplicate key value violates unique constraint "pg_type_typname_nsp_index"
+--
+-- Galat itu menuduh KUNCI GANDA, dan tak menyebut tabel maupun tipe. Diukur
+-- di CI 2026-09-04, sesudah replay bersih menerapkan 436 migrasi.
+--
+-- Blok ini hanya membuang tipe yang benar-benar YATIM (pg_class-nya sudah
+-- tiada). Bila tabelnya ada, `typrelid` menunjuk baris yang hidup dan tak
+-- ada yang disentuh — jadi ia aman dijalankan berkali-kali di lingkungan
+-- mana pun.
+DO $$
+DECLARE v_nama text;
+BEGIN
+  SELECT t.typname INTO v_nama
+    FROM pg_type t
+    JOIN pg_namespace ns ON ns.oid = t.typnamespace
+   WHERE ns.nspname = 'public'
+     AND t.typname = 'penawaran_subkon_item'
+     AND t.typrelid <> 0
+     AND NOT EXISTS (SELECT 1 FROM pg_class c WHERE c.oid = t.typrelid);
+  IF v_nama IS NOT NULL THEN
+    RAISE NOTICE '437: tipe baris yatim "%" dibuang lebih dulu', v_nama;
+    EXECUTE format('DROP TYPE IF EXISTS public.%I CASCADE', v_nama);
+  END IF;
+END $$;
+
 -- ─── 1. Tabel item penawaran ────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.penawaran_subkon_item (
   id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),

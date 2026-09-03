@@ -99,12 +99,39 @@ if (process.env.WIPE === '1') {
     Tanpa saringan `typrelid = 0`, hitungannya 380 — dan sebagian besarnya
     bayangan tabel yang sudah tiada.
   */
+  /*
+    ⚠ `typrelid = 0` SAJA MELEWATKAN TIPE YATIM.
+
+    Diukur 2026-09-04, sesudah WIPE melapor 258/258 tabel ter-drop:
+
+        437 gagal: duplicate key violates unique constraint
+                   "pg_type_typname_nsp_index"
+
+    `CREATE TABLE IF NOT EXISTS penawaran_subkon_item` gagal — bukan karena
+    tabelnya ada (tak ada), melainkan karena TIPE BARIS bernama sama masih
+    tersisa. Postgres membuat satu tipe per tabel, dan `IF NOT EXISTS` pada
+    tabel tak memeriksa `pg_type`.
+
+    Saringan lama mengecualikan tipe ber-`typrelid <> 0` dengan alasan yang
+    benar (ia milik tabel, hilang bersama tabelnya) — tetapi alasan itu
+    runtuh bila tabelnya sudah tiada sementara tipenya tertinggal. Tipe
+    seperti itu tak terlihat oleh saringan mana pun dan menghalangi replay
+    berikutnya dengan galat yang menuduh KUNCI GANDA.
+
+    Kondisi kedua di bawah menyapunya: tipe ber-typrelid yang `pg_class`-nya
+    TIDAK ADA lagi.
+  */
   const { rows: tipe } = await c.query(`
     SELECT t.typname FROM pg_type t
       JOIN pg_namespace ns ON ns.oid = t.typnamespace
      WHERE ns.nspname = 'public' AND t.typtype IN ('e','d','c')
-       AND t.typrelid = 0
-       AND NOT EXISTS (SELECT 1 FROM pg_class c2 WHERE c2.reltype = t.oid)`)
+       AND (
+         (t.typrelid = 0
+          AND NOT EXISTS (SELECT 1 FROM pg_class c2 WHERE c2.reltype = t.oid))
+         OR
+         (t.typrelid <> 0
+          AND NOT EXISTS (SELECT 1 FROM pg_class c3 WHERE c3.oid = t.typrelid))
+       )`)
   for (const { typname } of tipe) {
     const { rows: q } = await c.query(`SELECT quote_ident($1) AS nama`, [typname])
     await c.query(`DROP TYPE IF EXISTS public.${q[0].nama} CASCADE`)
