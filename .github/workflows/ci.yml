@@ -92,6 +92,29 @@ on:
 # (project CI terpisah, atau harness yang tak menyentuh `public`). Serialisasi
 # membuat CI lebih lambat saat banyak PR — itu harga yang dibayar sadar, dan
 # alasannya ada di sini supaya tak dibongkar lagi tanpa membaca riwayat ini.
+#
+# ⚠ BARISAN INI TIDAK MENCAKUP `ci-isolation.yml` — dan itu memakan tiga run.
+#
+# Diukur 2026-09-04: `ci-isolation.yml` sengaja memakai group SENDIRI per-run
+# (`ci-isolation-ops-${run_id}`) supaya tak dibatalkan run lain. Akibatnya
+# `setup-clean` (WIPE + replay) berjalan BERBARENGAN dengan CI di sini —
+# keduanya menulis ke project CI yang sama, terpisah tiga detik:
+#
+#     19:25:24  CI                 ← 6 shard menjalankan Prepare CI project
+#     19:25:21  CI Isolation       ← WIPE mengosongkan basis
+#
+# WIPE mengosongkan, shard langsung memutar migrasi ke dalamnya, salah satunya
+# membuat `project_status`, lalu `setup-clean` mencoba 001 dan gagal dengan
+# `type "project_status" already exists`. Galat yang menuduh migrasinya,
+# padahal yang bertabrakan dua workflow.
+#
+# Gejala yang paling menyesatkan: WIPE mencetak "benar-benar kosong" dan
+# inventaris sesudahnya menemukan 77 tabel berisi data. Keduanya benar pada
+# saat masing-masing diukur.
+#
+# Sampai R-009 selesai: JANGAN menjalankan `setup-clean` selagi ada run CI
+# aktif, dan jangan mem-push apa pun selama ia berjalan — push memicu CI, dan
+# CI memicu balapannya.
 concurrency:
   group: ci-shared-ci-db
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
