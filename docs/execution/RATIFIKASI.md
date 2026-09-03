@@ -4488,3 +4488,78 @@ node -e "…"  # lihat scripts/db/_koneksi.mjs; kueri di badan entri ini
 # Run CI yang gagal
 gh run list --workflow ci.yml --branch main --limit 1
 ```
+
+---
+
+## 2026-09-04 — Portofolio multi-perusahaan: DITUNDA sampai Tahap 4 & 5
+
+**Diputuskan founder.** Bukan usulan saya — saya menawarkan tiga jalan dan
+founder memilih yang paling benar urutannya, bukan yang paling cepat.
+
+### Yang diminta
+
+Situs portofolio (`apps/web-publik`) yang saat ini melayani satu perusahaan,
+dijadikan **per-perusahaan**: tiap pelanggan punya halaman profilnya sendiri.
+
+Soal alamat, keputusan founder persis: *"default-nya pakai subdomainnya
+sendiri, tapi kalau perusahaan punya domain sendiri juga bisa."* Dua jalur,
+bukan salah satu:
+
+- **default** — subdomain di bawah domain kita (`porto.<x>.duckdns.org`)
+- **opsional** — domain milik pelanggan sendiri (mis. `ptmakmur.co.id`)
+
+### Kenapa ditunda
+
+`STATUS.md` baris 101 — **GERBANG MUTLAK**: *"tenant kedua TIDAK BOLEH
+dibuat di produksi sebelum Tahap 4 dan 5 selesai penuh."*
+
+Diukur 2026-09-04: Tahap 4 & 5 **belum selesai**; fase aktif masih 8 item
+ROADMAP sisa. Gerbang masih berlaku.
+
+Dua celah yang disebut gerbang itu, dan keduanya berdampak NOL hari ini
+justru karena baru ada satu company:
+
+- `modules.is_enabled` di baris katalog **bersama** — satu perusahaan
+  mematikan modul untuk semua (sudah ditutup, migrasi 155)
+- API dan RLS memakai peran **berbeda** — `auth_role()` per-company sejak
+  migrasi 144, `authenticate()` masih global. Arah berbahayanya: peran
+  global `admin` membawa 95 permission ke company tempat orangnya hanya
+  `mandor`.
+
+### Yang membuat keputusan ini tidak sepele
+
+Situs porto **hanya MEMBACA** (`/api/v1/public/situs`, nol tulis, nol
+pembuatan tenant). Ada bacaan yang masuk akal bahwa gerbang melarang
+*membuat* tenant, bukan *membaca* konten yang sudah ada.
+
+Saya tidak memakai bacaan itu. Bedanya terlalu tipis untuk diputuskan
+sendiri, dan gerbang yang ditafsir longgar sekali akan ditafsir longgar
+lagi.
+
+### Yang sudah siap saat gerbangnya terbuka
+
+`apps/web-publik/lib/tenant.ts` sengaja dirancang untuk ini sejak awal —
+komentarnya menulis: *"saat multi-tenant tiba, yang berubah HANYA di sini —
+resolusi dari hostname permintaan — bukan satu pun pemanggilnya."*
+
+Jadi pekerjaan multi-tenant di situs porto adalah **satu fungsi**, bukan
+retrofit. Yang mahal bukan situsnya, melainkan isolasi tenant yang
+dijaga gerbang.
+
+### Prasyarat yang harus lunas (dari ADR-011 §9.5)
+
+- **P1** company pertama = tenant biasa (nol `DEFAULT_COMPANY_ID`) → T2
+- **P2** isolasi dibuktikan via fixture TENANT-A/B + **uji kill-switch**
+  (matikan wrapper → test tetap hijau karena RLS, dan sebaliknya; kalau
+  merah berarti lapisnya cuma satu) → T5b
+- **P3** tabel ke-95 tak bisa lahir tanpa klasifikasi → T4a
+
+### Cara mengukur ulang
+
+```bash
+# Gerbangnya masih berlaku?
+grep -n "GERBANG MUTLAK" STATUS.md
+
+# Ratchet tenancy — berapa rute masih tanpa gerbang
+cd apps/api && node scripts/audit-gerbang-tenancy.mjs
+```

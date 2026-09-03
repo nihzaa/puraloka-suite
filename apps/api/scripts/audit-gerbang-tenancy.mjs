@@ -189,7 +189,24 @@ for (const f of readdirSync(RUTE).filter((x) => x.endsWith('.ts'))) {
 // penjaganya melapor turun sendiri, dan ratchet yang tak dikencangkan berhenti
 // menjaga - ia mengizinkan dua rute tanpa gerbang lahir kembali tanpa satu pun
 // suara. Angka hari ini adalah lantai hari ini.
-const AMBANG_TANPA_GERBANG = 4
+//
+// Dikencangkan 4 -> 2 pada 2026-09-04, dan kali ini KARENA ada yang
+// diperbaiki: `notifications/subscribe` (POST + DELETE) dipindah dari
+// `supabase` mentah ke `request.db`.
+//
+// Keduanya SUDAH aman lewat `.eq('id', user.id)` sebelum diubah. Yang salah
+// bukan perilakunya hari ini, melainkan bahwa saringan itu SATU-SATUNYA
+// lapisan: kalau `.eq()` hilang dalam penyuntingan berikutnya, tak ada yang
+// menahan satu pengguna menimpa langganan push milik siapa pun.
+//
+// Dikerjakan sebagai prasyarat portofolio multi-perusahaan (RATIFIKASI
+// 2026-09-04) — founder memilih menyelesaikan Tahap 4 & 5 lebih dulu alih-alih
+// menembus Gerbang Mutlak.
+//
+// Sisa 2 keduanya katalog izin bersama (`/permissions`,
+// `/auth/me/permissions`): kunci permission adalah kontrak arsitektur, sama
+// untuk setiap perusahaan. Itu bukan celah, itu memang lintas-tenant.
+const AMBANG_TANPA_GERBANG = 2
 
 console.log(`Gerbang yang DITEMUKAN otomatis (${gerbang.size}): ${[...gerbang].sort().join(', ')}`)
 console.log(`\nRute ber-supabase-mentah: ${bergerbang + temuan.length} · bergerbang ${bergerbang} · TANPA gerbang ${temuan.length}`)
