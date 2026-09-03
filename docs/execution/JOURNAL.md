@@ -5,6 +5,106 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-04 (lanjutan 2) — CI menemukan tiga cacat yang lokal tak bisa lihat
+
+PR #148 dibuka supaya CI menilai apa yang tak bisa diukur di mesin ini.
+Ia menjawab, dan jawabannya tiga cacat nyata — dua di antaranya memblokir
+SELURUH suite API sehingga NOL test pernah berjalan.
+
+Lokal: 222 penjaga hijau, 28/28 test porto, next build bersih. Tak satu pun
+dari ketiganya terlihat dari sini.
+
+### 1. Migrasi 558 gagal di schema bersih — 18 href ganda
+
+    HARD FAIL — migrasi GAGAL di LUAR allowlist: 558_hidupkan_menu_halaman_yatim.sql
+      558 gagal: 18 href dipegang >1 menu aktif
+
+Diukur lokal: **0** href ganda. Di CI: **18**. Sebabnya 558 SUDAH tercatat di
+buku migrasi lokal, jadi tak pernah diputar ulang — pagarnya tak pernah
+diminta memeriksa apa pun lagi. Hanya schema bersih memutar rantai dari nol.
+
+Akarnya migrasi 531: ia menyisipkan 28 menu `yt-*` dengan `is_active = true`,
+syarat masuknya HANYA `key` belum ada — tak pernah bertanya apakah HREF-nya
+sudah dipegang menu lain. 20 dari 29 punya kembaran bernama.
+
+**Saya salah dua kali di sini, dan yang kedua lebih mahal.**
+
+Pertama saya menulis migrasi 565 untuk merapikan akibatnya. Salah sasaran:
+565 berjalan SESUDAH 558, dan 558-lah yang gagal — migrasi yang merapikan
+tak pernah dipanggil kalau yang memasang pagar gagal duluan. Nomor di bawah
+558 sudah habis. 565 dicabut.
+
+Allowlist juga tak sah, dan `ci-project-setup.mjs` sudah menuliskan
+syaratnya: kelas `cacat-tertambal` HANYA berlaku bila migrasinya gagal
+SESUDAH bagian penting ter-commit. 558 gagal di blok VERIFIKASI, dan tiap
+migrasi berjalan dalam transaksi — kegagalan itu membuang seluruh 558,
+termasuk penyalaan menu yang benar. Preseden 212 mencatat persis jebakan ini.
+
+Yang benar: 531 diperbaiki di tempatnya (preseden 212 & 016). Suntingannya
+MENYEMPITKAN — menyisipkan lebih sedikit, tak pernah lebih.
+
+### 2. `fast-uri` — entri override yang TERLIHAT sudah menutupinya
+
+Advisory ketiga pada paket itu (percent-encoded scheme, butuh >=4.1.3).
+Override `fast-uri` SUDAH ADA sejak Agustus dengan `>=4.1.2` untuk advisory
+backslash. Terpasang 4.1.2: tepat satu patch di bawah.
+
+Sebuah pagar yang menyebut nama paket yang benar, dengan angka yang salah
+satu digit, terbaca persis seperti pagar yang bekerja.
+
+Yang membuatnya layak dikerjakan sekarang, bukan ditunda: tiga advisory
+berturut-turut pada paket ini semuanya "host confusion" — dan sejak migrasi
+564 server ini meresolusi TENANT DARI HOSTNAME.
+
+### 3. SEPULUH job merah karena satu angka di sepuluh tempat
+
+Menaikkan pnpm 11.8.0 -> 11.11.0 di package.json memerahkan SELURUH CI:
+
+    Run pnpm/action-setup@v4
+    Error: Multiple versions of pnpm specified
+
+`_catatan_packageManager` sudah memperingatkan "KEDUANYA HARUS SAMA VERSINYA",
+dan saya menaikkan keduanya. Yang tak disebut catatan itu: ada DELAPAN tempat
+lain di `.github/workflows/`.
+
+**Catatan yang benar bisa tetap menyesatkan kalau cakupannya tak lengkap.**
+Ia menyebut "dua deklarasi" karena dua itu yang penulisnya ketahui. Sepuluh
+angka, empat berkas, nol alat yang membandingkan.
+
+Kini dijaga `audit-versi-pnpm-satu-suara.mjs` — dan ia menyaring lewat BENTUK
+(`^\s+version: X.Y.Z$`), bukan teks polos: komentar di ci.yml memang menyebut
+"11.8.0" saat menjelaskan celah pnpm 9 vs 11.
+
+### Yang saya pelajari tentang alat ukur, lagi
+
+- **`jq` tak ada di mesin ini.** Pemantau CI pertama saya memakainya — ia
+  lumpuh sejak dipasang dan takkan pernah melapor apa pun. `gh --jq` bawaan
+  yang bekerja. Bentuk yang sama dengan pemantau EAS di CLAUDE.md §7.
+- **`git add` berhenti di pathspec pertama yang gagal.** Commit `0e75baa4`
+  hanya memuat penghapusan 565; perbaikan 531 dan kenaikan pnpm tak ikut.
+  Pesannya panjang, statistiknya satu baris — wajar dilihat sekilas.
+  Ketahuan karena `git show --stat`, bukan karena ada yang gagal.
+- **Alarm palsu saya sendiri:** `ls node_modules | wc -l` = 2 saya baca
+  sebagai kerusakan. Salah — root workspace ini memang hanya punya dua
+  devDependency yang terlihat; `.pnpm` utuh 1434 paket.
+- **`newline=''` di Python menambahkan CR** ke dua berkas workflow yang
+  sebelumnya nol. Ia mempertahankan CR dari checkout Git Bash lalu
+  menuliskannya sebagai isi berkas.
+
+### Yang diuji, bukan diasumsikan
+
+Rantai EAS diuji dengan pnpm **9.15.5 sungguhan** — versi server, terbaca di
+fase SPIN_UP_BUILDER — di salinan terisolasi tanpa node_modules:
+
+    hook eas-lockfile-satu-dokumen  -> 15396 -> 15197 baris, 14 overrides
+    pnpm@9.15.5 --frozen-lockfile   -> EXIT 0, "Done in 324ms"
+
+Percobaan pertama saya menjalankannya di direktori uji tanpa menyalin
+skripnya — `AKAR` dihitung dari lokasi skrip, jadi hook menormalkan berkas
+REPO, bukan salinan. Laporan "lockfileVersion x1" itu tentang berkas lain.
+
+---
+
 ## 2026-09-04 (lanjutan) — host yang MENYALA di basis tapi mati di dunia
 
 Menyiapkan deploy multi-tenant. Sebelum menjalankannya, saya ukur kedua host
