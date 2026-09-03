@@ -112,6 +112,29 @@ BEGIN
   SELECT company_id INTO v_co FROM projects WHERE company_id IS NOT NULL LIMIT 1;
   SELECT count(*) INTO v_awal FROM materials;
 
+  /*
+    ⚠ SELURUH pembuktian di bawah butuh SATU company sungguhan.
+
+    `v_co` diambil dari `projects`, yang KOSONG di schema bersih. Dengan
+    `v_co` NULL, `impor_commit` menyimpan material ber-`company_id` NULL —
+    dan pagar di bawah menangkapnya dengan benar:
+
+        316 gagal: material impor ber-company_id NULL — bocor ke semua tenant
+
+    Pagar itu BENAR dan tak boleh dilemahkan: kolomnya nullable, jadi lupa
+    mengisinya tak menghasilkan galat apa pun, dan material impor akan
+    terlihat oleh SELURUH tenant. Yang dijaga di sini adalah blok UJINYA,
+    bukan pemeriksaannya — supaya ia tak dijalankan tanpa bahan.
+
+    Diukur di CI 2026-09-04: replay bersih lolos 315 migrasi lalu tumbang di
+    sini. Kelas yang sama dengan 252, 254, dan 256: pembuktian yang
+    kehilangan bahannya melapor sebagai kegagalan pembuktian.
+
+    Di dev, staging, dan produksi (yang punya proyek) seluruh pembuktian
+    all-or-nothing dan anti-bocor ini tetap berjalan penuh.
+  */
+  IF v_co IS NOT NULL THEN
+
   -- 1. Tabel tak dikenal DITOLAK — bukan diterima lalu gagal di query.
   BEGIN
     PERFORM impor_commit('users', v_co, '[{"code":"X"}]'::jsonb);
@@ -184,4 +207,8 @@ BEGIN
 
   RAISE NOTICE '316 OK — all-or-nothing terbukti: baris pertama TIDAK tersisa '
     'saat baris kedua gagal; tabel sembarang & array kosong ditolak';
+
+  ELSE
+    RAISE NOTICE '316: belum ada proyek — pembuktian importer DILEWATI (schema bersih)';
+  END IF;
 END $$;
