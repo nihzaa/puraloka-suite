@@ -81,7 +81,22 @@ overrides:
   # Advisory kedua (host confusion via backslash, butuh >=4.1.2) muncul
   # 2026-08-04 — beda dari yang pertama. Batas dinaikkan, bukan diabaikan:
   # ini patch dalam mayor yang sama, jadi tak ada perubahan bentuk ekspor.
-  fast-uri: '>=4.1.2'
+  #
+  # Advisory KETIGA 2026-09-04 (GHSA-jqff-g426-hqxp): host confusion lewat
+  # normalisasi skema BER-PERSEN — mekanisme lain, butuh >=4.1.3. Terpasang
+  # 4.1.2: tepat satu patch di bawah, jadi `>=4.1.2` di atas terlihat sudah
+  # menutupinya padahal tidak. Ditemukan CI PR #148 (19 kerentanan, 14 high),
+  # bukan dari pemeriksaan lokal — `pnpm audit` tak dijalankan di sini.
+  #
+  # ⚠ Tiga advisory berturut-turut pada paket ini, semuanya "host confusion".
+  # Itu bukan kebetulan yang bisa diabaikan: sejak migrasi 564 server ini
+  # meresolusi TENANT DARI HOSTNAME. Dua lapisan yang menormalisasi host
+  # secara berbeda adalah cara membuat satu perusahaan melihat data
+  # perusahaan lain — tanpa satu pun galat.
+  #
+  # Rantainya: fastify > @fastify/ajv-compiler > ajv > fast-uri (9 jalur).
+  # Transitif — tak satu pun package.json di repo ini memintanya.
+  fast-uri: '>=4.1.3'
   sharp: '>=0.35.0'
   postcss: '>=8.5.18'
   find-my-way: '>=9.6.1'
