@@ -238,7 +238,18 @@ BEGIN
   SELECT count(*) INTO n_tanpa FROM projects p
    WHERE p.is_deleted = false AND p.status = 'active'
      AND NOT EXISTS (SELECT 1 FROM polis_asuransi a WHERE a.project_id = p.id);
-  IF n_tanpa < 1 THEN
+  /*
+    ⚠ Syaratnya memakai `n_aktif` yang SUDAH dihitung — kelas yang sama
+    dengan migrasi 365, di mana pagarnya menghitung konteks lalu
+    mengabaikannya.
+
+    Maksud pagar ini: harus ADA proyek aktif tanpa polis, supaya automation
+    9.2 punya bahan untuk berbunyi. Itu benar bila ada proyek. Di schema
+    bersih nol proyek aktif, jadi `n_tanpa = 0` bukan karena semuanya sudah
+    berpolis melainkan karena tak ada apa pun — dan pesannya akan berbunyi
+    "SEMUA 0 proyek aktif punya polis", kalimat yang menyesatkan pembacanya.
+  */
+  IF n_tanpa < 1 AND n_aktif > 0 THEN
     RAISE EXCEPTION
       '428 gagal: SEMUA % proyek aktif punya polis — automation 9.2 tak akan pernah berbunyi',
       n_aktif;

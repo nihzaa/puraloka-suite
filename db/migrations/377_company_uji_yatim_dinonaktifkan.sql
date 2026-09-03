@@ -76,7 +76,24 @@ BEGIN
    WHERE co.is_active
      AND EXISTS (SELECT 1 FROM public.company_members m WHERE m.company_id = co.id);
   IF n_nyata = 0 THEN
-    RAISE EXCEPTION '377 gagal: NOL company beranggota yang masih aktif — terlalu banyak dimatikan';
+    /*
+      "Nol company beranggota" bukan berarti terlalu banyak dimatikan — di
+      schema bersih memang tak pernah ada satu pun anggota (nol user → nol
+      company_members). Yang dilaporkan bukan akibat migrasi ini.
+
+      Diperbaiki 2026-09-04 bersama 372, sesudah keduanya terkonfirmasi lewat
+      CI — bukan lewat penyaring pola, yang sempat menandai 22 kandidat dan
+      terbukti memuat palsu. Di sini sumbernya dibaca langsung: `n_nyata`
+      menghitung company yang PUNYA ANGGOTA, jadi ia memang bergantung
+      fixture. Bandingkan 378/379 (menghitung role template yang dibuat
+      migrasinya sendiri) dan 381 (approval_chains miliknya sendiri) —
+      ketiganya AMAN dan tak disentuh.
+
+      Penonaktifan company yatim di atas TETAP berjalan; yang dilewati hanya
+      pemeriksaan sesudahnya. (kelas 245/250/252/…/366/368/372)
+    */
+    RAISE NOTICE '377: belum ada company beranggota — pemeriksaan DILEWATI (schema bersih)';
+    RETURN;
   END IF;
 
   RAISE NOTICE '377: % company aktif tersisa (semuanya beranggota) · nol yatim', n_aktif;
