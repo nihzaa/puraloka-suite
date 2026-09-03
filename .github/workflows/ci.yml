@@ -170,7 +170,7 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 11.8.0
+          version: 11.11.0
 
       - uses: actions/setup-node@v4
         with:
@@ -198,6 +198,19 @@ jobs:
       # Tak menyentuh DB — murni analisis sumber.
       - name: Gerbang tenancy (rute tanpa saringan tenant tak boleh bertambah)
         run: node scripts/audit-gerbang-tenancy.mjs
+
+      # Versi pnpm dideklarasikan di SEPULUH tempat: dua di package.json dan
+      # delapan `version:` di berkas ini + ci-isolation + ci-keepalive.
+      # `pnpm/action-setup` membaca dua sumber dan MENOLAK bila berbeda:
+      #
+      #     Error: Multiple versions of pnpm specified
+      #
+      # Diukur 2026-09-04 (PR #148): menaikkan pnpm hanya di package.json
+      # memerahkan SEPULUH job di langkah setup — termasuk yang tak menyentuh
+      # kode sama sekali. Lokal semuanya hijau; tak ada alat di sini yang
+      # membandingkan kesepuluh angka itu.
+      - name: Versi pnpm satu suara (10 tempat wajib sama)
+        run: node scripts/audit-versi-pnpm-satu-suara.mjs
 
       # `?? []` pada hasil query mengubah KEGAGALAN jadi HASIL KOSONG yang
       # terlihat sah. Bukan hipotetis: kurva-s.ts kehilangan Rp 631,7 juta dari
@@ -2766,7 +2779,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 11.8.0
+          version: 11.11.0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -2808,7 +2821,7 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 11.8.0
+          version: 11.11.0
 
       - uses: actions/setup-node@v4
         with:
@@ -3769,7 +3782,7 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 11.8.0
+          version: 11.11.0
 
       - uses: actions/setup-node@v4
         with:
@@ -3833,7 +3846,7 @@ jobs:
       # repo ini — dan mati di 8 detik sebelum satu pun test jalan.
       - uses: pnpm/action-setup@v4
         with:
-          version: 11.8.0
+          version: 11.11.0
 
       - uses: actions/setup-node@v4
         with:
@@ -3886,7 +3899,7 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 11.8.0
+          version: 11.11.0
 
       - uses: actions/setup-node@v4
         with:
