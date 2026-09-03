@@ -251,8 +251,23 @@ BEGIN
       '252 gagal: pengaturan tenant tidak ter-seed padahal ada tenant beranggota';
   END IF;
 
-  -- Blok tool WAJIB bisa disimpan — inilah perbaikan C-5, dan migrasi yang
-  -- membuat kolomnya tapi tak membuktikannya bisa diisi tak membuktikan apa pun.
+  /*
+    Blok tool WAJIB bisa disimpan — inilah perbaikan C-5, dan migrasi yang
+    membuat kolomnya tapi tak membuktikannya bisa diisi tak membuktikan apa pun.
+
+    ⚠ Pembuktiannya butuh SATU user sungguhan (`JOIN users u ON u.id = …`).
+    Di schema BERSIH tak ada satu pun user, jadi INSERT-nya menghasilkan NOL
+    baris, pesannya tak pernah tersimpan, dan pagarnya menyala atas keadaan
+    yang bukan kegagalan.
+
+    Diukur di CI 2026-09-04: replay bersih lolos 251 migrasi lalu tumbang di
+    sini. Yang dilewati bukan pembuktiannya — hanya keadaan di mana ia tak
+    bisa dijalankan sama sekali. Di lingkungan mana pun yang punya user
+    (dev, staging, produksi) pembuktian C-5 tetap berjalan penuh.
+
+    Pola `IF … IS NOT NULL THEN` yang setara sudah dipakai migrasi 270.
+  */
+  IF EXISTS (SELECT 1 FROM users) AND EXISTS (SELECT 1 FROM companies) THEN
   BEGIN
     INSERT INTO ai_percakapan (id, company_id, user_id, asisten)
     SELECT '00000000-0000-0000-0000-0000000000c5', c.id, u.id, 'staff'
@@ -276,8 +291,21 @@ BEGIN
     -- Bersihkan baris ujinya sendiri.
     DELETE FROM ai_percakapan WHERE id = '00000000-0000-0000-0000-0000000000c5';
   END;
+  END IF;
 
-  -- Retensi tak masuk akal ditolak.
+  /*
+    Retensi tak masuk akal ditolak.
+
+    ⚠ Dijaga dengan alasan yang sama: `UPDATE … WHERE company_id = (SELECT …
+    LIMIT 1)` atas tabel KOSONG meng-update nol baris, tak melanggar CHECK
+    apa pun, lalu `RAISE EXCEPTION` di bawahnya menyala — melaporkan
+    "retensi 0 tidak ditolak" padahal tak ada baris yang pernah diuji.
+
+    Cacat yang sama bentuknya dengan blok C-5 di atas, dan sama tak
+    terlihatnya: keduanya melapor kegagalan pembuktian, bukan ketiadaan
+    bahan untuk membuktikan.
+  */
+  IF EXISTS (SELECT 1 FROM ai_pengaturan_tenant) THEN
   BEGIN
     UPDATE ai_pengaturan_tenant SET retensi_hari = 0
     WHERE company_id = (SELECT company_id FROM ai_pengaturan_tenant LIMIT 1);
@@ -285,4 +313,5 @@ BEGIN
   EXCEPTION
     WHEN check_violation THEN NULL;
   END;
+  END IF;
 END $$;
