@@ -4563,3 +4563,69 @@ grep -n "GERBANG MUTLAK" STATUS.md
 # Ratchet tenancy — berapa rute masih tanpa gerbang
 cd apps/api && node scripts/audit-gerbang-tenancy.mjs
 ```
+
+---
+
+## 2026-09-04 — GERBANG MUTLAK: kelima prasyarat LUNAS, minta keputusan cabut
+
+**Menunggu founder.** Saya tidak mencabutnya sendiri: Gerbang Mutlak adalah
+salah satu dari lima hal yang menghentikan autopilot (CHARTER §8a.1 poin 5),
+dan gerbang yang dicabut oleh yang diuntungkan olehnya bukan gerbang.
+
+### Apa yang berubah sejak entri sebelumnya hari ini
+
+Entri di atas menunda portofolio multi-perusahaan karena `STATUS.md` baris
+101 melarang tenant kedua sebelum Tahap 4 & 5 selesai. Saat itu saya belum
+mengukur seberapa jauh tahap itu.
+
+Sesudah diukur: **kelimanya lunas.**
+
+| Prasyarat | Diukur 2026-09-04 | Cara mengulang |
+|---|---|---|
+| **P1** nol `DEFAULT_COMPANY_ID` | LUNAS — satu-satunya kemunculan adalah komentar yang menyatakan ia tak ada | `grep -rn DEFAULT_COMPANY_ID apps/api/src --include=*.ts \| grep -v __tests__` |
+| **P2** uji kill-switch | LUNAS — **9/9 hijau**, dua arah | `cd apps/api && npx vitest run src/routes/v1/__tests__/t5b-kill-switch.test.ts` |
+| **P3** klasifikasi tabel | LUNAS — 293 tabel, exit 0 | `cd apps/api && node scripts/audit-klasifikasi-tenancy.mjs` |
+| **T5A** policy tenant | LUNAS — ditutup hari ini (`ccdc630c`) | `cd apps/api && npx vitest run src/routes/v1/__tests__/t5a-policy-tenant.test.ts` |
+| ratchet gerbang tenancy | HIJAU pada ambang **2** (dari 4) — 168/170 rute bergerbang | `cd apps/api && node scripts/audit-gerbang-tenancy.mjs` |
+
+### Kenapa P2 yang paling menentukan
+
+Klaim arsitektur ini "isolasi dijaga DUA lapis" hanya bermakna kalau tiap
+lapis bertahan **sendirian**. `t5b-kill-switch.test.ts` mengujinya dengan
+mematikan satu lapis dengan sengaja:
+
+- **KILL-SWITCH 1** — wrapper dimatikan, query polos tanpa filter company.
+  RLS menahan (proyek, `clients` ber-PII, kategori C), dan tenant A tetap
+  melihat datanya sendiri (bukan menutup semuanya).
+- **KILL-SWITCH 2** — `row_security=off`, policy dilewati. Predikat wrapper
+  menahan, termasuk kategori C.
+- Plus satu test yang memastikan mematikan satu lapis **tidak** ikut
+  mematikan lapis lain.
+
+### Dua celah yang jadi alasan gerbang ini ada — keduanya sudah ditutup
+
+- `modules.is_enabled` di baris katalog bersama → migrasi 155
+- `auth_role()` per-company sejak migrasi 144; `authenticate()` global →
+  ROADMAP 14i ✅
+
+### Yang SAYA MINTA diputuskan
+
+**Boleh gerbang dicabut, sehingga tenant kedua boleh lahir di produksi?**
+
+Kalau ya, yang saya kerjakan berikutnya (permintaan founder 2026-09-04):
+portofolio per-perusahaan, **default subdomain sendiri**
+(`porto.<x>.duckdns.org`), **opsional domain milik pelanggan**
+(mis. `ptmakmur.co.id`).
+
+Pekerjaan situsnya sendiri kecil — `apps/web-publik/lib/tenant.ts` sengaja
+dirancang sebagai satu titik ubah. Yang mahal justru isolasi yang baru saja
+terbukti.
+
+### Yang TIDAK saya klaim
+
+Kelima prasyarat lunas **tidak sama dengan** "tenant kedua pasti aman".
+Yang terbukti: lapisan isolasinya dua dan masing-masing berdiri sendiri.
+Yang belum pernah terjadi: tenant kedua nyata dengan data nyata.
+
+Saran saya kalau gerbang dicabut: tenant kedua PERTAMA adalah tenant uji
+milik kita sendiri, bukan pelanggan membayar.
