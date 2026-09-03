@@ -1,4 +1,3 @@
-import { resolveHost, tenantCadangan } from './tenant'
 
 // ════════════════════════════════════════════════════════════════════════════
 // Bentuk payload `/api/v1/public/situs` + pembaca yang aman dipakai di JSX.
@@ -94,43 +93,21 @@ export function srcSetMedia(path: string): string {
     .join(', ')
 }
 
-export async function ambilKonten(): Promise<KontenSitus> {
-  /*
-   * Tenant ditentukan dari HOSTNAME permintaan (migrasi 564), bukan env.
-   *
-   * Hostnya dikirim sebagai header `x-situs-host`; API yang memetakannya ke
-   * company lewat `situs_company_dari_host()`. Satu tempat yang boleh
-   * memetakan host → company adalah tempat yang juga menyaring datanya.
-   *
-   * `tenantCadangan()` hanya hidup di luar produksi — di produksi, host yang
-   * tak terdaftar HARUS gagal, bukan jatuh ke company tertentu.
-   */
-  const host = await resolveHost()
-  const cadangan = tenantCadangan()
-
-  const base = process.env.NEXT_PUBLIC_API_URL
-  if (!base) throw new Error('NEXT_PUBLIC_API_URL belum diset.')
-
-  const r = await fetch(`${base}/api/v1/public/situs`, {
-    // Hanya TAG, tanpa `revalidate: <detik>`.
-    //
-    // Keduanya bersamaan membuat entri punya dua penentu kesegaran, dan yang
-    // berbasis waktu menang: `revalidateTag('situs')` membalas sukses sementara
-    // halaman tetap menyajikan HTML lama sampai jendela waktunya habis. Itu
-    // terbukti saat pengujian — DB berubah, API benar, revalidate 200, halaman
-    // tak bergerak.
-    //
-    // Dengan tag saja: konten bertahan di cache sampai admin menyimpan, lalu
-    // langsung terbit. Tak ada permintaan DB per pengunjung, dan tak ada jeda
-    // yang membuat admin mengira simpanannya gagal.
-    headers: {
-      'x-situs-host': host,
-      ...(cadangan ? { 'x-situs-company-cadangan': cadangan } : {}),
-    },
-    next: { tags: ['situs'] },
-  })
-  if (!r.ok) throw new Error(`API situs menjawab ${r.status}`)
-
-  const { data } = (await r.json()) as { data: KontenSitus }
-  return data
-}
+/*
+ * ⚠ `ambilKonten()` PINDAH ke `konten-server.ts`.
+ *
+ * Diukur 2026-09-04: `next build` gagal dengan *"You're importing a module
+ * that depends on next/headers"*. Berkas ini dipakai KOMPONEN (`teks`,
+ * `urlMedia`, `srcSetMedia`, tipe), jadi ia ikut ke bundle klien — dan
+ * `ambilKonten()` di dalamnya menyeret `next/headers` ke sana.
+ *
+ * Impor dinamis di dalam fungsi TIDAK menolong: Turbopack tetap
+ * menganalisisnya.
+ *
+ * `tsc --noEmit` HIJAU selama itu — typecheck tak menjalankan bundler, jadi
+ * ia tak tahu apa-apa soal batas server/klien. Keluarga yang sama dengan
+ * mobile yang `tsc` hijau tapi Metro gagal (CLAUDE.md §7a).
+ *
+ * Pemisahannya: berkas INI murni (aman di mana pun), `konten-server.ts`
+ * menyentuh permintaan.
+ */

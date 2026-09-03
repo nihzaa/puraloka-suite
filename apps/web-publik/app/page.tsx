@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
-import { ambilKonten, type KontenSitus } from '@/lib/konten'
+import { type KontenSitus } from '@/lib/konten'
+import { ambilKonten } from '@/lib/konten-server'
 import { Hero } from '@/components/seksi/Hero'
 import { Bukti } from '@/components/seksi/Bukti'
 import { Proses } from '@/components/seksi/Proses'

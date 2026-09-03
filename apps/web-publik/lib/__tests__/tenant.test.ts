@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { resolveHost, tenantCadangan } from '../tenant'
+import { rapikanHost, tenantCadangan } from '../tenant'
+import { resolveHost } from '../tenant-server'
 
 vi.mock('next/headers', () => ({
   headers: vi.fn(),
@@ -14,6 +15,28 @@ function permintaan(h: Record<string, string>) {
 
 afterEach(() => {
   vi.unstubAllEnvs()
+})
+
+describe('rapikanHost — pembersihan murni', () => {
+  /*
+   * Diuji TERPISAH dari `resolveHost` karena ia murni: tak menyentuh
+   * permintaan, jadi tak butuh `next/headers` dipalsukan.
+   *
+   * Pemisahan itu sendiri lahir dari kegagalan build 2026-09-04 —
+   * `next/headers` menyeret modul ini ke bundle klien.
+   */
+  it('membuang port', () => {
+    expect(rapikanHost('localhost:3200')).toBe('localhost')
+  })
+  it('menurunkan ke huruf kecil', () => {
+    expect(rapikanHost('PortO.DuckDNS.org')).toBe('porto.duckdns.org')
+  })
+  it('mengambil host PERTAMA saat proxy menumpuk beberapa', () => {
+    expect(rapikanHost('ptmakmur.co.id, internal.lb')).toBe('ptmakmur.co.id')
+  })
+  it('memulangkan string kosong untuk null — bukan melempar', () => {
+    expect(rapikanHost(null)).toBe('')
+  })
 })
 
 describe('resolveHost — hostname permintaan', () => {

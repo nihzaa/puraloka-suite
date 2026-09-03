@@ -1,72 +1,62 @@
-import { headers } from 'next/headers'
-
 // ════════════════════════════════════════════════════════════════════════════
 // SATU-SATUNYA tempat tenant ditentukan di aplikasi ini.
 //
-// Janji yang ditulis versi sebelumnya: *"saat multi-tenant tiba, yang berubah
-// HANYA di sini — resolusi dari hostname permintaan — bukan satu pun
-// pemanggilnya."*
+// Janji yang ditulis versi lama: *"saat multi-tenant tiba, yang berubah HANYA
+// di sini — resolusi dari hostname permintaan."*
 //
-// Multi-tenant tiba 2026-09-04. Janji itu ditepati SEBAGIAN, dan bagian yang
-// meleset layak dicatat: `ambilKonten()` ikut berubah karena hostname harus
-// DIKIRIM ke API, dan pengiriman itu tak bisa disembunyikan di balik fungsi
-// yang tak dipanggil siapa-siapa.
-//
-// Yang benar-benar ditepati: nol KOMPONEN berubah. Seluruh halaman dan
-// komponen tetap memanggil `ambilKonten()` tanpa tahu tenant itu apa.
+// Multi-tenant tiba 2026-09-04. Ditepati SEBAGIAN: `ambilKonten()` ikut
+// berubah karena hostname harus DIKIRIM ke API. Yang benar-benar ditepati:
+// nol KOMPONEN berubah — seluruh halaman tetap memanggil `ambilKonten()`
+// tanpa tahu tenant itu apa.
 //
 // ── Dua jalur alamat, permintaan founder
 //
-//   default   `porto.<slug>.duckdns.org`   diberikan otomatis saat provisioning
+//   default   `porto.<slug>.duckdns.org`   diberikan saat provisioning
 //   opsional  `ptmakmur.co.id`             dibawa pelanggan sendiri
 //
-// Keduanya baris di `situs_domain` (migrasi 564). Yang membedakan cuma
-// `jenis` dan apakah kepemilikannya perlu dibuktikan.
+// Keduanya baris `situs_domain` (migrasi 564).
 //
-// ── Kenapa hostname DIKIRIM, bukan diresolusi di sini
+// ⚠ BERKAS INI TAK BOLEH MENGIMPOR `next/headers`.
 //
-// Godaan yang wajar: panggil `situs_company_dari_host()` langsung dari sini.
-// Tapi situs publik tak punya — dan tak boleh punya — kredensial basis. Ia
-// mengirim hostnya ke API, dan API yang menyimpulkan miliknya siapa.
+// Diukur 2026-09-04: versi pertama mengimpornya, dan `next build` GAGAL —
+// `konten.ts` ikut tertarik ke Client Component lewat `Proses.tsx` (yang cuma
+// butuh `teks` dan sebuah tipe), dan `next/headers` tak ada di browser.
 //
-// Satu tempat yang boleh memetakan host → company adalah tempat yang juga
-// menyaring datanya. Memisahkan keduanya berarti dua sumber kebenaran yang
-// pelan-pelan berbeda.
+// `tsc --noEmit` HIJAU selama itu: typecheck tak menjalankan bundler, jadi ia
+// tak tahu apa-apa soal batas server/klien. Keluarga yang sama dengan mobile
+// yang `tsc` hijau tapi Metro gagal (CLAUDE.md §7a).
+//
+// Pengambilan hostname pindah ke `tenant-server.ts`, yang hanya diimpor dari
+// jalur server.
 // ════════════════════════════════════════════════════════════════════════════
 
 /**
- * Hostname permintaan yang sedang berjalan, sudah dibersihkan.
+ * Membersihkan hostname mentah jadi bentuk yang dipakai `situs_domain`.
+ *
+ * Murni — tak menyentuh permintaan, jadi aman di mana pun dan bisa diuji
+ * tanpa memalsukan `next/headers`.
  *
  * ⚠ Port DIBUANG. `localhost:3200` dan `localhost` adalah situs yang sama;
- * membiarkan portnya membuat pencarian di `situs_domain` gagal senyap saat
- * pengembangan — dan gagalnya terlihat seperti "situsnya belum dibuat".
- *
- * ⚠ `x-forwarded-host` didahulukan. Di balik nginx, `host` berisi nama
- * internal kontainer, bukan alamat yang diketik pengunjung.
+ * membiarkan portnya membuat pencarian gagal senyap saat pengembangan — dan
+ * gagalnya terlihat seperti "situsnya belum dibuat".
  */
-export async function resolveHost(): Promise<string> {
-  const h = await headers()
-  const mentah = h.get('x-forwarded-host') ?? h.get('host') ?? ''
-  const host = mentah.split(',')[0].trim().toLowerCase().replace(/:\d+$/, '')
-
-  if (!host) {
-    throw new Error(
-      'Hostname permintaan kosong. Situs publik tidak tahu konten milik siapa.',
-    )
-  }
-  return host
+export function rapikanHost(mentah: string | null | undefined): string {
+  return (mentah ?? '')
+    .split(',')[0]
+    .trim()
+    .toLowerCase()
+    .replace(/:\d+$/, '')
 }
 
 /**
  * Company id dari env — JALUR CADANGAN, bukan jalur utama.
  *
- * ⚠ Sengaja dipertahankan untuk satu keadaan saja: pengembangan lokal, tempat
- * hostnya `localhost` dan belum tentu terdaftar di `situs_domain`.
+ * ⚠ Hidup HANYA di luar produksi: pengembangan lokal memakai `localhost`,
+ * yang belum tentu terdaftar di `situs_domain`.
  *
- * Di produksi, host yang tak terdaftar HARUS gagal — bukan diam-diam jatuh ke
- * satu company tertentu. Situs yang menyajikan profil perusahaan A di alamat
- * perusahaan B adalah kebocoran, dan jatuhan env adalah cara paling mudah
- * membuatnya terjadi tanpa gejala.
+ * Di produksi, host tak terdaftar HARUS gagal. Situs yang menyajikan profil
+ * perusahaan A di alamat perusahaan B adalah kebocoran, dan jatuhan env
+ * adalah cara paling mudah membuatnya terjadi tanpa satu pun gejala.
  */
 export function tenantCadangan(): string | null {
   if (process.env.NODE_ENV === 'production') return null
