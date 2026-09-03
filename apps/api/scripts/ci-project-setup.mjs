@@ -17,9 +17,58 @@ await c.connect()
 
 // ── 0. (opsional) WIPE — replay BERSIH dari nol. HANYA bila WIPE=1 (project CI disposable).
 if (process.env.WIPE === '1') {
-  console.log('WIPE: DROP SCHEMA public CASCADE + reset schema_migrations …')
-  await c.query(`DROP SCHEMA IF EXISTS public CASCADE`)
-  await c.query(`CREATE SCHEMA public`)
+  /*
+    ⚠ `DROP SCHEMA public CASCADE` TIDAK MUAT — dan gagalnya menuduh memori.
+
+    Diukur 2026-09-04, pertama kalinya WIPE dijalankan sejak schema tumbuh:
+
+        error: out of shared memory
+        routine: 'LockAcquireExtended'
+
+    Sebabnya bukan memori server melainkan SLOT KUNCI: satu `DROP … CASCADE`
+    mengunci SELURUH objek turunan dalam SATU transaksi, dan `public` berisi
+    **1.351 objek** (297 tabel + indeks + sequence + view) sementara
+    `max_locks_per_transaction` bawaan hanya 64.
+
+    Galat "out of shared memory" terbaca seperti server kekurangan RAM —
+    dan itu menuntun ke arah yang salah sepenuhnya. Yang habis adalah tabel
+    kunci, yang ukurannya ditentukan setelan, bukan beban.
+
+    Yang benar: drop BERTAHAP, satu transaksi per tabel. Lebih lambat, tapi
+    tiap transaksi hanya memegang kunci untuk satu tabel beserta turunannya
+    — jumlah yang selalu muat berapa pun schema tumbuh.
+  */
+  console.log('WIPE: drop bertahap semua tabel public + reset schema_migrations …')
+  const { rows: tabel } = await c.query(`
+    SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename`)
+  console.log(`  ${tabel.length} tabel akan di-drop satu per satu`)
+  let didrop = 0
+  for (const { tablename } of tabel) {
+    /*
+      `CASCADE` per-tabel tetap dipakai: ia hanya menyeret objek MILIK tabel
+      itu (indeks, constraint, view yang bergantung), bukan seluruh schema.
+
+      ⚠ Nama tabel di-quote lewat `quote_ident()` Postgres, bukan dirangkai
+      di JavaScript. Nama dari `pg_tables` memang berasal dari basis kita
+      sendiri, tetapi merangkai identifier dengan tangan adalah kebiasaan
+      yang benar sampai suatu hari sumbernya berubah — dan `quote_ident`
+      menangani huruf besar, spasi, dan kata kunci SQL.
+
+      Diuji di schema terpisah: tabel bernama `Huruf Besar` dan `select`
+      keduanya ter-drop, FK antar-tabel teratasi CASCADE per-tabel, dan
+      view yang bergantung ikut hilang.
+    */
+    const { rows: q } = await c.query(`SELECT quote_ident($1) AS nama`, [tablename])
+    await c.query(`DROP TABLE IF EXISTS public.${q[0].nama} CASCADE`)
+    didrop++
+    if (didrop % 50 === 0) console.log(`  …${didrop}/${tabel.length}`)
+  }
+  console.log(`  ${didrop} tabel di-drop.`)
+
+  // Sisa objek yang bukan tabel (view, sequence, fungsi, tipe) ikut hilang
+  // lewat CASCADE di atas atau tak menghalangi replay. Schema-nya sendiri
+  // tetap ada — tak perlu dibuat ulang, jadi grant bawaannya pun utuh.
+  await c.query(`CREATE SCHEMA IF NOT EXISTS public`)
   await c.query(`GRANT ALL ON SCHEMA public TO postgres`)
   await c.query(`GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role`)
   await c.query(`DROP TABLE IF EXISTS supabase_migrations.schema_migrations`)
