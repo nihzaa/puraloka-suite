@@ -75,18 +75,56 @@ Pagar 558 ("nol href ganda") tetap utuh — ia yang menemukan cacat ini, dan
 tak disentuh sama sekali. Pagar 245 tetap menangkap predikat keliru di basis
 berisi data; yang berubah hanya pembacaannya terhadap schema kosong.
 
+## Sudah TUJUH BELAS migrasi, bukan dua — dan satu perubahan G-2
+
+Entri ini semula menyebut dua migrasi. Rantai ternyata jauh lebih rusak, dan
+tiap perbaikan menampakkan yang berikutnya:
+
+    245 250 252 254 256 316 331 333 335 337 340 343 344
+    365 366 368 372 377 398 402 425 428 438 471 472 531
+
+Hampir semuanya satu kelas: **pembuktian yang kehilangan bahannya melapor
+sebagai pembuktian yang GAGAL.** Blok verifikasi mengambil fixture (`user`,
+`company`, `projects`) yang di schema bersih memang tak ada, lalu menuduh
+CHECK bocor, seed hilang, atau tenant bocor.
+
+Tiga yang berbeda kelasnya, dan ketiganya lebih berbahaya:
+
+**368** membaca angka yang BENAR (20 baris ber-company_id NULL) lalu
+menyimpulkan kebocoran tenant — padahal yang tak terpasang adalah konteksnya
+sendiri. Laporannya terdengar seperti temuan keamanan.
+
+**377** tidak salah melapor melainkan **MENGUBAH KEADAAN**: ia mematikan
+SELURUH company karena tak satu pun punya anggota, dan kerusakannya muncul dua
+puluh migrasi kemudian sebagai galat yang menuduh tipe data.
+
+**365** menghitung konteksnya lalu mengabaikannya dalam syarat, sehingga
+galatnya memuat kontradiksinya sendiri: *"nol role tersalin padahal 0 tenant
+punya anggota"*.
+
+## Kelas cacat G-2 yang semula terbuka — SUDAH DITUTUP
+
+Entri ini semula mencatat: *"migrasi yang BERHASIL lalu disunting tak pernah
+diputar ulang"*, dan menyebutnya layak dinilai terpisah.
+
+Ia menggigit lagi hari itu juga. Perbaikan 377 tak berlaku tiga run
+berturut-turut, dan yang paling sulit dilihat: **angkanya tak bergerak sedikit
+pun**. Perbaikan yang berjalan tapi kurang akan menggeser angkanya; nol
+pergerakan itulah petunjuknya.
+
+Atas keputusan Anda, ditutup permanen dengan **sidik jari isi migrasi** —
+SHA-256 di kolom `name` (bukan kolom baru: tabel itu milik Supabase). Migrasi
+yang isinya berubah kini diputar ulang sendiri.
+
+`PAKSA_ULANG=377,398` disediakan untuk perbaikan yang terlanjur tertahan, dan
+sengaja MENOLAK `all`: sakelar yang menghapus seluruh buku sekali tekan adalah
+pintu belakang G-2 yang cepat sekali dipakai tanpa berpikir.
+
 ## Yang masih terbuka
 
-Rantai belum tentu bersih di belakang 245. Tiap replay ~4 menit dan hanya
-menampakkan kegagalan BERIKUTNYA, jadi jumlah sisanya belum bisa saya sebut —
-dan menebaknya lebih buruk daripada mengatakan belum tahu.
-
-Satu kelas cacat juga masih terbuka dan layak dinilai terpisah: **migrasi yang
-BERHASIL lalu disunting tak pernah diputar ulang.** `ci-project-setup.mjs`
-melewati yang sudah tercatat tanpa membaca isinya, jadi perbaikan 531 sempat
-tak berlaku tiga run berturut-turut sementara angkanya tak bergerak sedikit pun.
-Menutupnya butuh sidik jari isi migrasi di buku — perubahan pada Gerbang Keras
-G-2, bukan sesuatu yang pantas diselundupkan ke PR multi-tenant.
+Rantai belum tentu bersih di belakang migrasi terakhir yang lolos. Tiap replay
+~5 menit dan hanya menampakkan kegagalan BERIKUTNYA, jadi jumlah sisanya belum
+bisa saya sebut — dan menebaknya lebih buruk daripada mengatakan belum tahu.
 
 ---
 
