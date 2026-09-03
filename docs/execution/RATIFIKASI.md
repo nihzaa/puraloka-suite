@@ -6,6 +6,90 @@ bawah entrinya.
 
 ---
 
+# ⏳ R-024 · DUA migrasi lama disunting supaya rantai bisa diputar dari nol (2026-09-04)
+
+## Kenapa ini sampai ke Anda
+
+Menyunting migrasi yang SUDAH JALAN di produksi biasanya dilarang (CLAUDE.md
+§5.5). Dua di antaranya saya sunting, dan Anda berhak tahu sebelum menganggapnya
+selesai.
+
+Yang membuatnya sah: `ci-project-setup.mjs` sendiri menuliskan pengecualiannya —
+untuk migrasi yang gagal DI TENGAH TRANSAKSI, tak ada penambal yang cukup, dan
+yang rusak harus diperbaiki di tempatnya. Preseden 212 dan 016.
+
+## Apa yang ditemukan, dan bagaimana
+
+PR #148 (multi-tenant porto) memaksa CI memutar seluruh rantai migrasi dari
+schema kosong. Itu belum pernah terjadi sejak rantainya panjang — dan rantai
+itu ternyata **sudah rusak sebelum PR ini menyentuhnya**.
+
+Akibatnya bukan kosmetik: keenam shard test API mati di langkah penyiapan
+basis, jadi **NOL test pernah berjalan** — sementara mesin lokal melaporkan 222
+penjaga hijau. Basis lokal tak pernah memutar ulang migrasi yang sudah tercatat,
+jadi pagarnya tak pernah diminta memeriksa apa pun lagi.
+
+## Yang disunting
+
+**531 — menu halaman yatim.** Ia menyisipkan 28 menu `yt-*` dengan
+`is_active = true`, syarat masuknya HANYA "kunci belum ada" — tak pernah
+bertanya apakah HREF-nya sudah dipegang menu lain. Diukur: 20 dari 29 punya
+kembaran bernama (`/risiko` ↔ `rk-register`, `/sdm/timesheet` ↔ `hr-absensi`).
+Di schema bersih itu jadi 18 href dengan dua menu aktif — dua baris sidebar
+berbeda nama yang membuka layar sama persis. Migrasi 558 (yang pertama memasang
+pagar) menggagalkan seluruh penyiapan.
+
+Suntingannya menambah satu syarat: tolak href yang sudah dipegang menu aktif.
+**Menyempitkan** — menyisipkan lebih sedikit, tak pernah lebih.
+
+**245 — jadwal hanya tenant beranggota.** Pagarnya menggagalkan migrasi bila
+SEMUA jadwal terhapus, dengan alasan yang benar untuk basis berisi data. Tapi
+migrasi 126 mengisi `company_members` DARI tabel users, dan di replay bersih tak
+ada satu pun user — jadi nol anggota, dan menghapus semua jadwal adalah hasil
+yang BENAR. Pagar yang membaca "kosong" sebagai "rusak".
+
+Syaratnya kini menyebut sebabnya: gagal bila jadwal habis PADAHAL ada anggota.
+
+## Bukti
+
+Keduanya diuji dengan transaksi di-rollback, tak menyentuh data:
+
+    531 di schema bersih (6 contoh)
+      ditolak : /k3/insiden · /risiko · /sdm/timesheet   (kembarannya aktif)
+      lolos   : /master/ahsp · /otomasi · /sdm/cuti      (belum punya menu)
+      href ganda 0 · anak menggantung 0
+
+    245 tiga keadaan — yang ketiga uji mutasi
+      dev (49 anggota, ada jadwal)      -> diam      ✅
+      nol anggota (tiru schema bersih)  -> diam      ✅ yang diperbaiki
+      49 anggota TAPI jadwal habis      -> MENYALA   ✅ perlindungan utuh
+
+Yang ketiga penting: pagarnya tak hanya merah, ia menyebut angkanya —
+"padahal ada 49 anggota".
+
+Replay bersih terakhir: **244 migrasi lolos** (001..244), berhenti di 245.
+
+## Yang TIDAK dilemahkan
+
+Pagar 558 ("nol href ganda") tetap utuh — ia yang menemukan cacat ini, dan
+tak disentuh sama sekali. Pagar 245 tetap menangkap predikat keliru di basis
+berisi data; yang berubah hanya pembacaannya terhadap schema kosong.
+
+## Yang masih terbuka
+
+Rantai belum tentu bersih di belakang 245. Tiap replay ~4 menit dan hanya
+menampakkan kegagalan BERIKUTNYA, jadi jumlah sisanya belum bisa saya sebut —
+dan menebaknya lebih buruk daripada mengatakan belum tahu.
+
+Satu kelas cacat juga masih terbuka dan layak dinilai terpisah: **migrasi yang
+BERHASIL lalu disunting tak pernah diputar ulang.** `ci-project-setup.mjs`
+melewati yang sudah tercatat tanpa membaca isinya, jadi perbaikan 531 sempat
+tak berlaku tiga run berturut-turut sementara angkanya tak bergerak sedikit pun.
+Menutupnya butuh sidik jari isi migrasi di buku — perubahan pada Gerbang Keras
+G-2, bukan sesuatu yang pantas diselundupkan ke PR multi-tenant.
+
+---
+
 # ✅ 🔒 R-023 · Isolasi antar-tenant kini dijamin BASIS DATA — SELESAI, termasuk langkah yang semula menunggu Anda (2026-08-28)
 
 ## Yang ditemukan
