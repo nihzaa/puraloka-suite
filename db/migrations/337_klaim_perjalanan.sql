@@ -449,7 +449,11 @@ BEGIN
 
     SELECT id INTO us FROM users ORDER BY created_at LIMIT 1;
     IF us IS NULL THEN
-      RAISE EXCEPTION '337 gagal: nol users — basis belum berisi apa pun';
+      -- Pagar KEDUA di berkas ini. Perbaikan sebelumnya hanya menutup yang
+      -- pertama (`co IS NULL`) karena penggantinya berhenti di kecocokan
+      -- pertama per berkas — dan CI menemukan sisanya lima menit kemudian.
+      RAISE NOTICE '337: belum ada user — verifikasi DILEWATI (schema bersih)';
+      RETURN;
     END IF;
 
     -- `pegawai` tak punya kolom nama: identitasnya ada di `users` lewat
