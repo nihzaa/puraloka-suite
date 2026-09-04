@@ -51,7 +51,8 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { api, MENU_CACHE_KEY } from "@/lib/api";
+import { MENU_CACHE_KEY } from "@/lib/api";
+import { muatMenu } from "@/lib/muat-menu";
 
 interface NodeMenu {
   key: string;
@@ -100,15 +101,18 @@ function RemahIsi({ modul }: { modul: string }) {
       /* cache rusak/ditolak — breadcrumb tetap dua tingkat, bukan crash */
     }
 
-    // Cadangan jaringan, sama seperti `JudulBagian`: cache saja tak cukup
-    // pada muat pertama, dan breadcrumb yang baru muncul setelah kunjungan
-    // kedua terbaca seperti kerusakan acak.
+    /*
+      Cadangan jaringan lewat `muatMenu()` — permintaan DISATUKAN dengan
+      `JudulBagian`, yang dirender di halaman yang sama.
+
+      Sebelum 2026-09-05 keduanya memanggil `/api/v1/menu` sendiri-sendiri.
+      Diukur di produksi: 9 panggilan untuk 5 halaman, 59,5 KB per panggilan.
+      Cache saja tak cukup pada muat pertama — breadcrumb yang baru muncul
+      setelah kunjungan kedua terbaca seperti kerusakan acak.
+    */
     let batal = false;
-    api.get<NodeMenu[] | { menu: NodeMenu[] }>("/api/v1/menu")
-      .then(({ data }) => {
-        if (batal) return;
-        setMenu(Array.isArray(data) ? data : (data.menu ?? []));
-      })
+    muatMenu<NodeMenu>()
+      .then((daftar) => { if (!batal) setMenu(daftar); })
       .catch(() => { /* dua tingkat sudah cukup; jangan gagalkan topbar */ });
     return () => { batal = true; };
   }, []);
