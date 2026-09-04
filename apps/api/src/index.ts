@@ -229,7 +229,29 @@ await app.register(cors, {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  /*
+    `X-Client` WAJIB ada di sini, dan ketiadaannya nol gejala selama tiga hari.
+
+    Header itu yang membuat `/auth/login` memulangkan `access_token` di BADAN
+    — aplikasi native tak bisa memakai cookie HttpOnly. Ditambahkan
+    2026-09-01, tak pernah didaftarkan ke CORS.
+
+    Kenapa tak ketahuan: aplikasi NATIVE tak mengirim preflight (tak ada
+    Origin, jadi tak ada CORS sama sekali). Cacatnya hanya hidup di peramban.
+
+    Dan dua pengukuran yang KEDUANYA BENAR melewatkannya — terukur di
+    produksi 2026-09-04:
+
+        OPTIONS /api/v1/auth/login  →  204 No Content
+        access-control-allow-headers: Content-Type, Authorization
+
+    Perhatikan `204` — status SUKSES. `curl` POST juga menjawab 200, karena
+    curl tak menegakkan CORS. OPTIONS yang lolos ORIGIN masih bisa menolak
+    HEADER-nya, dan hanya peramban yang menegakkan bedanya.
+
+    Dijaga `audit-auth-mobile-utuh.mjs`. Ditemukan sesi `puraloka-suite-42`.
+  */
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Client'],
 })
 await app.register(helmet, {
   crossOriginResourcePolicy: { policy: 'same-site' },

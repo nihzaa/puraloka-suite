@@ -442,10 +442,20 @@ export default async function authRoutes(app: FastifyInstance) {
     })
 
     if (error || !data.session) {
-      // Hapus cookie yang sudah tidak valid
+      /*
+        Hapus cookie yang sudah tidak valid — ATRIBUTNYA WAJIB SAMA dengan
+        saat memasang, lihat penjelasan panjang di `/auth/logout` di bawah.
+
+        Jalur INI yang paling menentukan: refresh yang gagal adalah persis
+        yang terjadi saat sesi habis. Kalau cookie tak benar-benar terhapus
+        di sini, klien memanggil `/auth/logout` sebagai jaring pengaman —
+        dan sampai 2026-09-04 keduanya sama-sama gagal karena kehilangan
+        `Secure`, jadi tak ada jaring sama sekali.
+      */
+      const { maxAge: _abaikan, ...OPSI_HAPUS } = COOKIE_OPTS
       reply
-        .clearCookie('puraloka_token', { path: '/' })
-        .clearCookie('puraloka_refresh', { path: '/' })
+        .clearCookie('puraloka_token', OPSI_HAPUS)
+        .clearCookie('puraloka_refresh', OPSI_HAPUS)
       return reply.status(401).send({ error: 'Refresh token tidak valid' })
     }
 
@@ -550,11 +560,43 @@ export default async function authRoutes(app: FastifyInstance) {
     return reply.send({ user, permissions, homePortal })
   })
 
-  // POST /api/v1/auth/logout — hapus cookie server-side
+  /*
+    POST /api/v1/auth/logout — hapus cookie server-side
+
+    ⚠ ATRIBUTNYA WAJIB SAMA PERSIS dengan yang dipakai saat memasang.
+
+    Sampai 2026-09-04 baris ini hanya memberi `{ path: '/' }`, dan cookie-nya
+    TIDAK PERNAH TERHAPUS di produksi. Peramban mencocokkan cookie yang
+    dihapus lewat atributnya; `Secure` yang hilang membuatnya menganggap ini
+    cookie LAIN, jadi penghapusannya tak mengenai sasaran.
+
+    Terukur dari produksi — perhatikan `Secure` yang ada di satu sisi saja:
+
+        dipasang : HttpOnly; Secure; SameSite=Lax; Path=/
+        dihapus  :           ~~~~~~  SameSite=Lax; Path=/
+
+    Balasannya tetap `200 OK` dengan dua header `Set-Cookie` yang terlihat
+    benar, jadi tak ada satu pun galat — di klien maupun di server.
+
+    Akibatnya berantai dan itulah yang dilaporkan founder: token akses
+    kedaluwarsa (~1 jam) sementara cookie berumur 7 hari → semua API 401 →
+    refresh gagal → logout dipanggil TAPI cookie bertahan → `middleware.ts`
+    (yang hanya memeriksa cookie ADA atau tidak) melempar /login balik ke
+    home → /dashboard memuat ulang dirinya ~3x per detik sampai tab ditutup.
+
+    Diukur sesudah `clearAuthAndRedirect` diperbaiki tetapi SEBELUM baris ini:
+    masih 80 navigasi dalam 12 detik. Perbaikan di sisi klien saja tak cukup —
+    yang memegang cookie HttpOnly hanya server.
+
+    Dijaga `audit-hapus-cookie-cocok-pasang.mjs` (ambang NOL).
+  */
   app.post('/api/v1/auth/logout', async (_request, reply) => {
+    // `maxAge` sengaja dibuang: yang menghapus adalah `expires` yang dipasang
+    // `clearCookie` sendiri. Sisanya WAJIB identik dengan COOKIE_OPTS.
+    const { maxAge: _abaikan, ...OPSI_HAPUS } = COOKIE_OPTS
     reply
-      .clearCookie('puraloka_token', { path: '/' })
-      .clearCookie('puraloka_refresh', { path: '/' })
+      .clearCookie('puraloka_token', OPSI_HAPUS)
+      .clearCookie('puraloka_refresh', OPSI_HAPUS)
     return reply.send({ success: true })
   })
 }
