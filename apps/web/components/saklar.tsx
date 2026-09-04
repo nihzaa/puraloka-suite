@@ -134,7 +134,7 @@ export function Saklar({
           {label}
         </span>
         {ringkas ? (
-          <span style={{ display: "block", fontSize: 11.5, color: C.muted, lineHeight: 1.5, marginTop: 2 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.5, marginTop: 2 }}>
             {ringkas}
           </span>
         ) : null}

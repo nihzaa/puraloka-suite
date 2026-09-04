@@ -389,7 +389,7 @@ export function Pilihan({
                   >
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {o.grup && (
-                        <span style={{ color: "var(--text-muted)", fontSize: 11 }}>{o.grup} · </span>
+                        <span style={{ color: "var(--text-muted)", fontSize: "var(--t-kecil)" }}>{o.grup} · </span>
                       )}
                       {o.label || <span style={{ color: "var(--text-muted)" }}>—</span>}
                     </span>

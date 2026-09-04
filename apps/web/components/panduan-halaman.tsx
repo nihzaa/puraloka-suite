@@ -145,7 +145,7 @@ export function PanduanHalaman({
                   borderRadius: "50%",
                   display: "grid",
                   placeItems: "center",
-                  fontSize: 10.5,
+                  fontSize: "var(--t-mikro)",
                   fontWeight: 700,
                   background: l.selesai ? "var(--success-bg)" : "var(--surface-subtle)",
                   color: l.selesai ? "var(--success)" : C.mid,

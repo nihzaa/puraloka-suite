@@ -42,7 +42,7 @@ function PPCard({ p, isAction, onTinjau }: {
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
             <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{p.work_scope?.scope_name ?? "—"}</span>
-            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 20, color: meta.color, background: meta.bg }}>
+            <span style={{ fontSize: "var(--t-mikro)", fontWeight: 600, padding: "2px 8px", borderRadius: 20, color: meta.color, background: meta.bg }}>
               {meta.label}
             </span>
           </div>
@@ -386,21 +386,21 @@ function PanelKesiapan({ kesiapan }: { kesiapan: Kesiapan[] }) {
                 {k.scope_name}
               </div>
               {/* Kalimatnya, bukan angkanya, yang bisa ditindaklanjuti. */}
-              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2, lineHeight: 1.45 }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2, lineHeight: 1.45 }}>
                 {k.sebab}
               </div>
             </div>
             <div style={{ textAlign: "right", color: C.mid, fontVariantNumeric: "tabular-nums" }}>
               {k.pct_opname === null ? "—" : `${k.pct_opname}%`}
-              <div style={{ fontSize: 10.5, color: C.muted }}>terukur</div>
+              <div style={{ fontSize: "var(--t-mikro)", color: C.muted }}>terukur</div>
             </div>
             <div style={{ textAlign: "right", color: C.mid, fontVariantNumeric: "tabular-nums" }}>
               {k.pct_sudah_ditagih}%
-              <div style={{ fontSize: 10.5, color: C.muted }}>ditagih</div>
+              <div style={{ fontSize: "var(--t-mikro)", color: C.muted }}>ditagih</div>
             </div>
             <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: warna, fontWeight: 700 }}>
               {k.pct_sisa === null ? "—" : `${k.pct_sisa}%`}
-              <div style={{ fontSize: 10.5, color: C.muted, fontWeight: 400 }}>sisa</div>
+              <div style={{ fontSize: "var(--t-mikro)", color: C.muted, fontWeight: 400 }}>sisa</div>
             </div>
           </div>
         );
@@ -477,7 +477,7 @@ function PanelBackCharge({ baris, ringkas, bolehSetujui, onPutuskan }: {
           }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ color: C.text }}>{b.uraian}</div>
-              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>
                 {b.nomor} · {b.kategori}
                 {b.scope?.scope_name && ` · ${b.scope.scope_name}`}
                 {b.pengaju?.name && ` · diajukan ${b.pengaju.name}`}
@@ -501,12 +501,12 @@ function PanelBackCharge({ baris, ringkas, bolehSetujui, onPutuskan }: {
                     id: b.id, nomor: b.nomor, uraian: b.uraian,
                     nilai: b.nilai, scopeNama: b.scope?.scope_name ?? null,
                   })} style={{
-                    padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                    padding: "4px 10px", borderRadius: 6, fontSize: "var(--t-kecil)", fontWeight: 600,
                     border: `1px solid ${C.border}`, background: "var(--surface)",
                     color: C.mid, cursor: "pointer", whiteSpace: "nowrap",
                   }}>Putuskan</button>
                 ) : (
-                  <span style={{ fontSize: 11, color: C.muted }}>—</span>
+                  <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>—</span>
                 )}
               </div>
             )}

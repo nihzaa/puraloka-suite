@@ -60,14 +60,14 @@ export function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit, o
         <div style={{ fontSize: 12, fontWeight: 700, color: C.navy, fontFamily: "var(--font-display)", marginBottom: 2 }}>
           {inv.invoice_number}
         </div>
-        <div style={{ fontSize: 10, color: C.muted }}>
+        <div style={{ fontSize: "var(--t-mikro)", color: C.muted }}>
           {INVOICE_TYPE_LABEL[inv.invoice_type] ?? inv.invoice_type}
           {inv.termin_schedules && ` · Termin ${inv.termin_schedules.termin_number}`}
         </div>
       </td>
       <td style={{ padding: "var(--pad-baris)" }}>
         <div style={{ fontSize: 13, fontWeight: 500, color: C.text, marginBottom: 2 }}>{inv.projects?.name ?? "—"}</div>
-        {inv.projects?.location && <div style={{ fontSize: 11, color: C.muted }}>{inv.projects.location}</div>}
+        {inv.projects?.location && <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>{inv.projects.location}</div>}
       </td>
       <td style={{ padding: "var(--pad-baris)", textAlign: "right", fontFamily: "monospace", fontSize: 13, fontWeight: 600, color: C.text }}>
         {fmt(Number(inv.total_amount))}
@@ -82,8 +82,8 @@ export function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit, o
         <div style={{ fontSize: 12, color: overdue ? C.red : dueSoon ? C.yellow : C.mid, fontWeight: overdue || dueSoon ? 600 : 400 }}>
           {fmtDate(inv.due_date)}
         </div>
-        {overdue && <div style={{ fontSize: 10, color: C.red }}>{Math.abs(days)}h lewat</div>}
-        {dueSoon && <div style={{ fontSize: 10, color: C.yellow }}>{days}h lagi</div>}
+        {overdue && <div style={{ fontSize: "var(--t-mikro)", color: C.red }}>{Math.abs(days)}h lewat</div>}
+        {dueSoon && <div style={{ fontSize: "var(--t-mikro)", color: C.yellow }}>{days}h lagi</div>}
       </td>
       <td style={{ padding: "var(--pad-baris)", textAlign: "center" }}>
         <StatusBadge status={overdue ? "overdue" : inv.status} map={INVOICE_STATUS} />
@@ -97,7 +97,7 @@ export function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit, o
                 display: "inline-flex", alignItems: "center", gap: 4,
                 padding: "4px 12px", borderRadius: 6, border: "none",
                 background: C.navyLight, color: C.navy,
-                fontSize: 11, fontWeight: 600, cursor: "pointer",
+                fontSize: "var(--t-kecil)", fontWeight: 600, cursor: "pointer",
                 transition: "all 0.15s", whiteSpace: "nowrap",
               }}
               onMouseEnter={e => { e.currentTarget.style.background = C.navy; e.currentTarget.style.color = "var(--surface)"; }}
@@ -107,7 +107,7 @@ export function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit, o
             </button>
           )}
           {inv.status === "paid" && (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: C.green }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: "var(--t-kecil)", color: C.green }}>
               <CheckCircle2 size={13} /> Lunas
             </span>
           )}
@@ -120,7 +120,7 @@ export function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit, o
               display: "inline-flex", alignItems: "center", gap: 4,
               padding: "4px 8px", borderRadius: 6,
               border: `1px solid ${C.border}`, background: loadingPdf ? "var(--surface-hover)" : "var(--surface)",
-              color: loadingPdf ? C.muted : C.mid, fontSize: 11, cursor: loadingPdf ? "not-allowed" : "pointer",
+              color: loadingPdf ? C.muted : C.mid, fontSize: "var(--t-kecil)", cursor: loadingPdf ? "not-allowed" : "pointer",
               transition: "all 0.15s", whiteSpace: "nowrap",
             }}
             onMouseEnter={e => { if (!loadingPdf) { e.currentTarget.style.background = "var(--surface-hover)"; e.currentTarget.style.color = C.text; } }}
@@ -131,7 +131,7 @@ export function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit, o
           {/* Denda: estimasi/otoritatif + pemutihan. Muncul utk invoice belum lunas telat / lunas. */}
           {inv.status !== "cancelled" && (
             <button aria-label="Denda keterlambatan" onClick={() => setDendaOpen(true)} title="Denda keterlambatan"
-              style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: overdue ? C.red : C.mid, fontSize: 11, cursor: "pointer", whiteSpace: "nowrap" }}>
+              style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: overdue ? C.red : C.mid, fontSize: "var(--t-kecil)", cursor: "pointer", whiteSpace: "nowrap" }}>
               <AlertTriangle size={11} /> Denda
             </button>
           )}
@@ -151,7 +151,7 @@ export function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit, o
           {canEdit && inv.status !== "paid" && (
             <button aria-label="Ubah status invoice" onClick={() => setStatusOpen(true)}
               title="Ubah status invoice"
-              style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 11, cursor: "pointer", whiteSpace: "nowrap" }}>
+              style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: "var(--t-kecil)", cursor: "pointer", whiteSpace: "nowrap" }}>
               <FileText size={11} /> Status
             </button>
           )}
@@ -519,11 +519,11 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
                     style={{ padding: "6px 12px", borderRadius: 6, border: `2px solid ${invoiceMode === m.value ? m.color : C.border}`,
                       background: invoiceMode === m.value ? m.bg : "var(--surface)", cursor: "pointer", textAlign: "left" }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: invoiceMode === m.value ? m.color : C.text }}>{m.label}</div>
-                    <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>{m.desc}</div>
+                    <div style={{ fontSize: "var(--t-mikro)", color: C.muted, marginTop: 1 }}>{m.desc}</div>
                   </button>
                 ))}
               </div>
-              <div style={{ marginTop: 6, fontSize: 11, color: C.muted }}>Pajak: {taxLabel}</div>
+              <div style={{ marginTop: 6, fontSize: "var(--t-kecil)", color: C.muted }}>Pajak: {taxLabel}</div>
             </div>
 
             {/* ── TERMIN: pilih termin ── */}
@@ -539,7 +539,7 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
                   ))}
                 </Pilihan>
                 {projectDetail.termin_schedules.length === 0 && (
-                  <div style={{ fontSize: 11, color: C.red, marginTop: 4 }}>Proyek ini belum memiliki jadwal termin</div>
+                  <div style={{ fontSize: "var(--t-kecil)", color: C.red, marginTop: 4 }}>Proyek ini belum memiliki jadwal termin</div>
                 )}
               </div>
             )}
@@ -567,16 +567,16 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
                               <div style={{ fontSize: 12, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                 {exp.description}
                               </div>
-                              <div style={{ fontSize: 10, color: C.muted }}>
+                              <div style={{ fontSize: "var(--t-mikro)", color: C.muted }}>
                                 {exp.expense_date} · {exp.category?.name ?? "—"} {exp.vendor_name ? `· ${exp.vendor_name}` : ""}
                               </div>
                             </div>
                             <div style={{ textAlign: "right", flexShrink: 0 }}>
                               <div style={{ fontSize: 12, fontWeight: 700, color: C.green }}>{fmt(exp.remaining)}</div>
-                              {exp.billed_amount > 0 && <div style={{ fontSize: 10, color: C.muted }}>sisa dari {fmt(exp.total_amount)}</div>}
+                              {exp.billed_amount > 0 && <div style={{ fontSize: "var(--t-mikro)", color: C.muted }}>sisa dari {fmt(exp.total_amount)}</div>}
                             </div>
                             <button type="button" disabled={alreadyAdded} onClick={() => addExpenseAsLineItem(exp)}
-                              style={{ padding: "4px 8px", borderRadius: 6, border: "none", background: alreadyAdded ? C.border : C.navy, color: "var(--surface)", fontSize: 11, cursor: alreadyAdded ? "default" : "pointer", flexShrink: 0 }}>
+                              style={{ padding: "4px 8px", borderRadius: 6, border: "none", background: alreadyAdded ? C.border : C.navy, color: "var(--surface)", fontSize: "var(--t-kecil)", cursor: alreadyAdded ? "default" : "pointer", flexShrink: 0 }}>
                               {alreadyAdded ? "✓" : "+ Tambah"}
                             </button>
                           </div>
@@ -603,19 +603,19 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
                             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                               {li.isManual && (<>
                                 <input type="number" min={0.001} step={0.001} value={li.qty || ""} onChange={e => updateLineItem(li.key, { qty: parseFloat(e.target.value) || 1 })}
-                                  placeholder="Qty" style={{ ...inputStyle, padding: "4px 8px", fontSize: 11, width: 64, flexShrink: 0 }} />
+                                  placeholder="Qty" style={{ ...inputStyle, padding: "4px 8px", fontSize: "var(--t-kecil)", width: 64, flexShrink: 0 }} />
                                 <input value={li.unit} onChange={e => updateLineItem(li.key, { unit: e.target.value })}
-                                  placeholder="Satuan" style={{ ...inputStyle, padding: "4px 8px", fontSize: 11, width: 72, flexShrink: 0 }} />
+                                  placeholder="Satuan" style={{ ...inputStyle, padding: "4px 8px", fontSize: "var(--t-kecil)", width: 72, flexShrink: 0 }} />
                                 <div style={{ position: "relative", flexShrink: 0, width: 120 }}>
-                                  <span style={{ position: "absolute", left: 7, top: "50%", transform: "translateY(-50%)", fontSize: 10, color: C.muted }}>Rp</span>
+                                  <span style={{ position: "absolute", left: 7, top: "50%", transform: "translateY(-50%)", fontSize: "var(--t-mikro)", color: C.muted }}>Rp</span>
                                   <input type="number" min={0} value={li.unit_price || ""} onChange={e => updateLineItem(li.key, { unit_price: parseFloat(e.target.value) || 0 })}
-                                    placeholder="Harga satuan" style={{ ...inputStyle, padding: "4px 8px 4px 24px", fontSize: 11 }} />
+                                    placeholder="Harga satuan" style={{ ...inputStyle, padding: "4px 8px 4px 24px", fontSize: "var(--t-kecil)" }} />
                                 </div>
                               </>)}
                               <div style={{ marginLeft: "auto", textAlign: "right", flexShrink: 0 }}>
-                                <div style={{ fontSize: 11, color: C.muted, marginBottom: 2 }}>Tagihkan:</div>
+                                <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginBottom: 2 }}>Tagihkan:</div>
                                 <div style={{ position: "relative", width: 130 }}>
-                                  <span style={{ position: "absolute", left: 7, top: "50%", transform: "translateY(-50%)", fontSize: 10, color: C.muted }}>Rp</span>
+                                  <span style={{ position: "absolute", left: 7, top: "50%", transform: "translateY(-50%)", fontSize: "var(--t-mikro)", color: C.muted }}>Rp</span>
                                   <input type="number" min={0.01}
                                     max={!li.isManual && li.expense_id ? (billableExpenses.find(e => e.id === li.expense_id)?.remaining ?? undefined) : undefined}
                                     value={li.amount || ""}
@@ -624,7 +624,7 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
                                 </div>
                                 {!li.isManual && li.expense_id && (() => {
                                   const exp = billableExpenses.find(e => e.id === li.expense_id);
-                                  return exp ? <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>maks {fmt(exp.remaining)}</div> : null;
+                                  return exp ? <div style={{ fontSize: "var(--t-mikro)", color: C.muted, marginTop: 2 }}>maks {fmt(exp.remaining)}</div> : null;
                                 })()}
                               </div>
                             </div>
@@ -672,11 +672,11 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
                 <div>
                   <label htmlFor="commission-fee-amount" style={labelStyle}>Nominal Fee Komisi <span style={{ color: C.red }}>*</span></label>
                   <div style={{ position: "relative" }}>
-                    <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: C.muted }}>Rp</span>
+                    <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: "var(--t-kecil)", color: C.muted }}>Rp</span>
                     <input id="commission-fee-amount" type="number" min={1} value={commissionFeeAmount} onChange={e => setCommissionFeeAmount(e.target.value)}
                       style={inputRpStyle} placeholder="0" />
                   </div>
-                  <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Bisa diubah dari saran di atas</div>
+                  <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4 }}>Bisa diubah dari saran di atas</div>
                 </div>
               </div>
             )}
@@ -689,7 +689,7 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
                   <div>
                     <label htmlFor="total-pengeluaran" style={labelStyle}>Total Pengeluaran <span style={{ color: C.red }}>*</span></label>
                     <div style={{ position: "relative" }}>
-                      <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: C.muted }}>Rp</span>
+                      <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: "var(--t-kecil)", color: C.muted }}>Rp</span>
                       <input id="total-pengeluaran" type="number" min={1} value={totalPengeluaran} onChange={e => setTotalPengeluaran(e.target.value)} required style={inputRpStyle} placeholder="0" />
                     </div>
                   </div>
@@ -699,7 +699,7 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
                     </label>
                     <div style={{ position: "relative" }}>
                       <input type="number" min={0} max={100} step={0.5} value={commissionPct} onChange={e => setCommissionPct(e.target.value)} style={{ ...inputStyle, paddingRight: 28 }} placeholder="0" />
-                      <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: C.muted }}>%</span>
+                      <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: "var(--t-kecil)", color: C.muted }}>%</span>
                     </div>
                   </div>
                 </div>
@@ -720,7 +720,7 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
                   {isCommBill && <span style={{ fontWeight: 400, color: C.muted }}> (auto-dihitung)</span>}
                 </label>
                 <div style={{ position: "relative" }}>
-                  <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: C.muted }}>Rp</span>
+                  <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: "var(--t-kecil)", color: C.muted }}>Rp</span>
                   <input id="base-amount" type="number" min={1} value={baseAmount} onChange={e => setBaseAmount(e.target.value)}
                     readOnly={isCommBill} required style={{ ...inputRpStyle, background: isCommBill ? "var(--surface-subtle)" : "var(--surface)" }} placeholder="0" />
                 </div>
@@ -748,7 +748,7 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
                     </label>
                     <div style={{ position: "relative" }}>
                       <input type="number" min={0} max={100} step={0.5} value={retensiPct} onChange={e => setRetensiPct(e.target.value)} style={{ ...inputStyle, paddingRight: 28 }} placeholder="5" />
-                      <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: C.muted }}>%</span>
+                      <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: "var(--t-kecil)", color: C.muted }}>%</span>
                     </div>
                   </div>
                   <div>
@@ -792,7 +792,7 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
                       <input id="dp-deduction-amount" type="number" min={0} max={dpAvailable ?? undefined} value={dpDeductionAmount}
                         onChange={e => setDpDeductionAmount(e.target.value)} style={inputRpStyle} />
                     </div>
-                    <div style={{ marginTop: 6, fontSize: 11, color: C.muted }}>
+                    <div style={{ marginTop: 6, fontSize: "var(--t-kecil)", color: C.muted }}>
                       DP yang sudah dibayar klien dipotong dari tagihan ini. Sisa DP setelah invoice ini: {fmt(Math.max((dpAvailable ?? 0) - dpAmt, 0))}
                     </div>
                   </div>
@@ -822,7 +822,7 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
             {/* ── Summary footer real-time ── */}
             {base > 0 && (
               <div style={{ borderRadius: 10, border: `1px solid ${C.border}`, overflow: "hidden" }}>
-                <div style={{ background: "var(--bg)", padding: "8px 12px", fontSize: 11, fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: "0.06em" }}>Ringkasan Invoice</div>
+                <div style={{ background: "var(--bg)", padding: "8px 12px", fontSize: "var(--t-kecil)", fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: "0.06em" }}>Ringkasan Invoice</div>
                 <div style={{ padding: "8px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
                   {isExpBilling && lineItems.map(li => (
                     <SummaryRow key={li.key} label={li.description || "Item"} value={fmt(li.amount)} />
@@ -944,7 +944,7 @@ export function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; on
             </div>
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Tambah Kasbon Mandor</h3>
-              <p style={{ fontSize: 11, color: C.muted, margin: 0 }}>Dibuat langsung oleh admin/PM</p>
+              <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: 0 }}>Dibuat langsung oleh admin/PM</p>
             </div>
           </div>
           <button aria-label="Tutup" onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted, padding: 4 }}><X size={18} /></button>
@@ -966,7 +966,7 @@ export function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; on
               ))}
             </Pilihan>
             {selectedScope && (
-              <div style={{ marginTop: 6, fontSize: 11, color: C.muted }}>
+              <div style={{ marginTop: 6, fontSize: "var(--t-kecil)", color: C.muted }}>
                 Mandor: <strong style={{ color: C.text }}>{selectedScope.assignment?.mandor?.name}</strong>
                 {" · "}Proyek: <strong style={{ color: C.text }}>{selectedScope.assignment?.project?.name}</strong>
               </div>
@@ -1043,7 +1043,7 @@ export function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; on
             {/* Pilih kas sumber jika auto-approve */}
             {autoApprove && (
               <div style={{ marginTop: 12 }}>
-                <label htmlFor="cash-account-id" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Potong dari akun kas:</label>
+                <label htmlFor="cash-account-id" style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, marginBottom: 5 }}>Potong dari akun kas:</label>
                 <Pilihan id="cash-account-id" aria-label="Akun kas yang dipotong untuk kasbon ini" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)}
                   style={{ width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                   <option value="">-- Pilih akun kas --</option>
@@ -1054,7 +1054,7 @@ export function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; on
                   ))}
                 </Pilihan>
                 {selectedAccount && amount && (
-                  <div style={{ marginTop: 6, fontSize: 11, color: Number(selectedAccount.balance) >= parseFloat(amount || "0") ? C.green : C.red }}>
+                  <div style={{ marginTop: 6, fontSize: "var(--t-kecil)", color: Number(selectedAccount.balance) >= parseFloat(amount || "0") ? C.green : C.red }}>
                     Saldo setelah: {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(selectedAccount.balance) - (parseFloat(amount) || 0))}
                   </div>
                 )}
@@ -1082,7 +1082,7 @@ export function StatusBadge({ status, map }: { status: string; map: Record<strin
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 4,
-      padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600,
+      padding: "2px 8px", borderRadius: 99, fontSize: "var(--t-kecil)", fontWeight: 600,
       color: m.color, background: m.bg, border: `1px solid ${m.border}`,
       whiteSpace: "nowrap",
     }}>
@@ -1149,18 +1149,18 @@ export function PenaltyModal({ invoiceId, invoiceNumber, onClose }: { invoiceId:
               )}
               {auth ? (
                 <div style={{ padding: "var(--pad-baris)", borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>
-                  <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", marginBottom: 4 }}>Denda resmi (tercatat)</div>
+                  <div style={{ fontSize: "var(--t-kecil)", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", marginBottom: 4 }}>Denda resmi (tercatat)</div>
                   <div style={{ fontSize: 24, fontWeight: 800, color: "var(--danger)", fontFamily: "var(--font-display)" }}>{fmtIdr(Number(auth.penalty_amount))}</div>
                   <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>{auth.days_late} hari telat · basis {BASIS[auth.basis] ?? auth.basis} {fmtIdr(Number(auth.base_amount))} · per {auth.anchor_date}</div>
                 </div>
               ) : est?.enabled && (
                 <div style={{ padding: "var(--pad-baris)", borderRadius: 10, background: "var(--surface-subtle)", border: "1px dashed var(--border)" }}>
-                  <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", marginBottom: 4 }}>Estimasi per {est.as_of} · belum final</div>
+                  <div style={{ fontSize: "var(--t-kecil)", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", marginBottom: 4 }}>Estimasi per {est.as_of} · belum final</div>
                   <div style={{ fontSize: 24, fontWeight: 800, color: est.applicable ? "var(--warning)" : "var(--text-muted)", fontFamily: "var(--font-display)" }}>{fmtIdr(Number(est.penaltyAmount))}</div>
                   <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>
                     {est.applicable ? `${est.daysLate} hari telat · basis ${BASIS[est.basis] ?? est.basis} ${fmtIdr(Number(est.baseAmount))}` : est.reason === "not_late" ? "Belum jatuh tempo / belum telat" : est.reason === "waived" ? "Diputihkan" : "Tidak berlaku"}
                   </div>
-                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6 }}>Estimasi tampilan — angka resmi dihitung saat invoice lunas.</div>
+                  <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginTop: 6 }}>Estimasi tampilan — angka resmi dihitung saat invoice lunas.</div>
                 </div>
               )}
               {err && <div style={{ fontSize: 12, color: "var(--danger)" }}>{err}</div>}
@@ -1266,7 +1266,7 @@ export function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invo
             </div>
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Catat Pembayaran</h3>
-              <p style={{ fontSize: 11, color: C.muted, margin: 0 }}>{invoice.invoice_number} · {invoice.projects?.name}</p>
+              <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: 0 }}>{invoice.invoice_number} · {invoice.projects?.name}</p>
             </div>
           </div>
           <button aria-label="Tutup" onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted, padding: 4 }}><X size={18} /></button>
@@ -1276,11 +1276,11 @@ export function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invo
           {/* Invoice info */}
           <div style={{ background: C.greenBg, border: `1px solid ${C.greenBorder}`, borderRadius: 10, padding: "12px 16px", marginBottom: 20, display: "flex", justifyContent: "space-between" }}>
             <div>
-              <div style={{ fontSize: 11, color: C.green, fontWeight: 600, marginBottom: 2 }}>Sisa Tagihan</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.green, fontWeight: 600, marginBottom: 2 }}>Sisa Tagihan</div>
               <div style={{ fontSize: 20, fontWeight: 800, color: C.green, fontFamily: "var(--font-display)" }}>{fmt(Number(invoice.amount_due))}</div>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 11, color: C.green, fontWeight: 600, marginBottom: 2 }}>Total Invoice</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.green, fontWeight: 600, marginBottom: 2 }}>Total Invoice</div>
               <div style={{ fontSize: 13, fontWeight: 600, color: C.mid }}>{fmt(Number(invoice.total_amount))}</div>
             </div>
           </div>
