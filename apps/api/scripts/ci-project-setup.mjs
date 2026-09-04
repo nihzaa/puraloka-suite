@@ -640,6 +640,42 @@ await seed('role tenant + izin (salin ulang sesudah keanggotaan ada)', async () 
 
   Keempat asisten disemai supaya test mana pun menemukan bahannya.
 */
+/*
+  Pengaturan AI per tenant — saklar `ai_aktif` dan plafon biaya.
+
+  Disemai migrasi 252 dengan syarat `EXISTS (company_members)`, yang nol saat
+  ia berjalan. Keenam kalinya bentuk yang sama muncul hari ini.
+
+  Tanpa barisnya, `UPDATE ai_pengaturan_tenant SET ai_aktif = false` di test
+  mengenai NOL baris — gerbang gratis tak menyala, dan kode jalan terus sampai
+  memeriksa kunci:
+
+      expected 503 to be 403   "AI dimatikan → 403"
+      expected 503 to be 402   "asisten dinonaktifkan → 402"
+
+  ⚠ Yang kurang BUKAN kunci API. Urutan gerbang di `ai-jalankan.ts` sudah
+  benar — `ai_nonaktif` (baris 406) dan `nonaktif`/`batas_terlampaui` (417)
+  dievaluasi SEBELUM `ambilKunci` (428). Gerbang gratis memang tak butuh
+  kunci; ia hanya tak pernah tercapai karena barisnya tak ada.
+
+  Diperiksa juga test `penyedia_tak_dikenal`: ia memakai penyedia salah ketik
+  ('anthropc') yang ditolak sebelum kunci diperiksa. Jadi tak satu pun test
+  yang gagal ini menuntut kunci sungguhan — dan `app_credentials` sengaja
+  TIDAK disemai. Menyemai kunci ke CI berarti tiap run bisa memanggil API
+  berbayar, persis yang komentar di `ai-chat.test.ts` peringatkan.
+*/
+await seed('pengaturan AI per tenant (saklar & plafon)', async () => {
+  await c.query(
+    `INSERT INTO ai_pengaturan_tenant (company_id, ai_aktif, retensi_hari)
+     SELECT c2.id, true, 30
+       FROM companies c2
+      WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c2.id)
+     ON CONFLICT (company_id) DO NOTHING`)
+
+  const { rows } = await c.query(`SELECT count(*)::int n FROM ai_pengaturan_tenant`)
+  if (rows[0].n === 0) throw new Error('nol pengaturan AI sesudah seed')
+})
+
 await seed('config AI per tenant (bahan uji gerbang gratis)', async () => {
   const { rowCount } = await c.query(
     `INSERT INTO ai_provider_config (company_id, asisten, penyedia, model, max_token, aktif)
