@@ -14,13 +14,14 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 import {
-  getStoredUser, logout, api, MENU_CACHE_KEY, MENU_ETAG_KEY,
+  getStoredUser, logout, api,
   type PuralokaUser,
 } from "@/lib/api";
 import { SidebarFokus } from "@/components/sidebar-fokus";
 import { LogoPuraloka } from "@/components/logo-puraloka";
 import { GrupCiut } from "@/components/grup-ciut";
 import { useSidebar } from "@/lib/sidebar-context";
+import { muatMenu, menuDariCache } from "@/lib/muat-menu";
 
 const roleLabel: Record<string, string> = {
   admin: "Administrator",
@@ -495,38 +496,23 @@ function SidebarIsi() {
       })()
     ));
 
-    // Menu: pakai cache dulu (render instan), lalu revalidate dari API.
-    let etagTersimpan: string | null = null;
-    try {
-      const cached = localStorage.getItem(MENU_CACHE_KEY);
-      if (cached) {
-        setMenu(JSON.parse(cached) as MenuNode[]);
-        // ETag hanya dikirim kalau muatannya BENAR-BENAR ada di tangan.
-        // Mengirimnya tanpa muatan berarti meminta 304 lalu tak punya apa pun
-        // untuk ditampilkan — sidebar kosong tanpa satu pun pesan galat.
-        etagTersimpan = localStorage.getItem(MENU_ETAG_KEY);
-      }
-    } catch {}
+    /*
+      Menu: cache dulu (render instan), lalu revalidate lewat `muatMenu()`.
 
-    api.get<{ menu: MenuNode[] }>("/api/v1/menu", {
-      headers: etagTersimpan ? { "If-None-Match": etagTersimpan } : undefined,
-      // Tanpa ini axios memperlakukan 304 sebagai galat dan jatuh ke `.catch`.
-      // Perilakunya tetap benar (cache dipakai), tapi lewat jalur penanganan
-      // galat — dan revalidasi yang berhasil tak boleh terlihat seperti gagal.
-      validateStatus: (s) => (s >= 200 && s < 300) || s === 304,
-    })
-      .then(({ status, data, headers }) => {
-        // 304 = yang dipegang masih mutakhir. Tak ada badan untuk dibaca;
-        // menyentuh `data.menu` di sini akan melempar dan mengosongkan menu.
-        if (status === 304) return;
-        setMenu(data.menu);
-        try {
-          localStorage.setItem(MENU_CACHE_KEY, JSON.stringify(data.menu));
-          const etag = headers?.etag ?? (headers as Record<string, string>)?.["etag"];
-          if (etag) localStorage.setItem(MENU_ETAG_KEY, etag);
-          else localStorage.removeItem(MENU_ETAG_KEY);
-        } catch {}
-      })
+      Permintaannya DISATUKAN dengan `JudulBagian` dan `RemahHalaman` yang
+      dirender di halaman yang sama. Sebelum 2026-09-05 ketiganya memanggil
+      `/api/v1/menu` sendiri-sendiri; diukur di produksi: 9 panggilan untuk 5
+      halaman, 59,5 KB per panggilan, 536 KB untuk data yang identik.
+
+      Logika ETag dan penanganan 304 yang dulu ada di sini dipindahkan ke
+      `lib/muat-menu.ts` apa adanya — termasuk kehati-hatian "ETag hanya
+      dikirim kalau muatannya ada di tangan", yang lahir di berkas ini.
+    */
+    const dariCache = menuDariCache<MenuNode>();
+    if (dariCache) setMenu(dariCache);
+
+    void muatMenu<MenuNode>()
+      .then((daftar) => { if (daftar.length) setMenu(daftar); })
       .catch(() => { /* pakai cache; sidebar tidak boleh gagal render */ });
   }, []);
 

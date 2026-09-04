@@ -31,7 +31,8 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { api, MENU_CACHE_KEY } from "@/lib/api";
+import { api } from "@/lib/api";
+import { muatMenu, menuDariCache } from "@/lib/muat-menu";
 import { C } from "@/lib/warna-ui";
 import { IkonMenu } from "@/lib/ikon-menu";
 
@@ -143,28 +144,25 @@ function JudulBagianIsi({ cadangan, keterangan, aksi }: JudulBagianProps) {
   const [menu, setMenu] = useState<NodeMenu[]>([]);
 
   useEffect(() => {
-    // Cache dulu supaya judul tak berkedip saat pindah halaman; jaringan
-    // menyusul dan memperbaruinya bila berubah.
-    //
-    // `queueMicrotask`, bukan `setMenu` langsung: setState SINKRON di dalam
-    // effect memicu render kedua sebelum yang pertama selesai
-    // (`react-hooks/set-state-in-effect`). Menunda satu microtask
-    // memindahkannya keluar dari fase render tanpa menambah jeda yang
-    // terlihat — pola yang sama sudah dipakai belasan halaman di repo ini.
-    try {
-      const c = localStorage.getItem(MENU_CACHE_KEY);
-      if (c) {
-        const dariCache = JSON.parse(c) as NodeMenu[];
-        queueMicrotask(() => setMenu(dariCache));
-      }
-    } catch { /* cache rusak bukan alasan halaman gagal */ }
+    /*
+      Cache dulu supaya judul tak berkedip saat pindah halaman; jaringan
+      menyusul lewat `muatMenu()` yang MENYATUKAN permintaan.
+
+      Sebelum 2026-09-05 komponen ini memanggil `/api/v1/menu` sendiri, dan
+      begitu pula `remah-halaman` — keduanya dirender bersamaan di tiap
+      halaman dashboard. Diukur di produksi: 9 panggilan untuk 5 halaman,
+      59,5 KB per panggilan, 536 KB untuk data yang identik.
+
+      `queueMicrotask`, bukan `setMenu` langsung: setState SINKRON di dalam
+      effect memicu render kedua sebelum yang pertama selesai
+      (`react-hooks/set-state-in-effect`).
+    */
+    const dariCache = menuDariCache<NodeMenu>();
+    if (dariCache) queueMicrotask(() => setMenu(dariCache));
 
     let batal = false;
-    api.get<NodeMenu[] | { menu: NodeMenu[] }>("/api/v1/menu")
-      .then(({ data }) => {
-        if (batal) return;
-        setMenu(Array.isArray(data) ? data : (data.menu ?? []));
-      })
+    muatMenu<NodeMenu>()
+      .then((daftar) => { if (!batal) setMenu(daftar); })
       .catch(() => { /* judul cadangan sudah cukup; jangan gagalkan halaman */ });
     return () => { batal = true; };
   }, []);
