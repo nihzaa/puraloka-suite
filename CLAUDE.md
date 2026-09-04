@@ -381,6 +381,7 @@ salah dengar memindahkan uang.
 | `audit-halaman-pakai-cache.mjs` | halaman yang mengambil data wajib lewat `useData()` — lapis cache dibangun 2026-08-04 lalu tak dipakai satu halaman pun (ratchet) |
 | `uji-galat-muat-terpisah.mjs` | galat MUAT dan galat AKSI tak boleh berbagi satu state — gagal simpan menghapus pesan gagal muat, ditemukan di 11 halaman (ambang NOL) |
 | `uji-rute-id-tak-basi.mjs` | halaman rute `[id]` ber-`useData` wajib mencocokkan identitas — tanpanya /x/A→/x/B menampilkan data A di bawah URL B (ambang NOL) |
+| `audit-alih-auth-tak-berputar.mjs` | alih keluar saat sesi habis wajib menunggu logout, menghapus `puraloka_role`, menahan alih-berulang, dan tak mengalihkan bila sudah di `/login`. Token akses kedaluwarsa ~1 jam sementara cookie-nya 7 hari, dan `middleware.ts` hanya memeriksa cookie ADA atau tidak — jadi `/login` dilempar balik ke home selama cookie belum terhapus. Diukur 2026-09-04: 64 navigasi dalam 12 detik, `/dashboard` memuat ulang dirinya ~3x per detik. Sah di tiap lapisan; yang salah cuma urutan dua operasi async, dan akibatnya baru muncul sejam sesudah login di browser pengguna (ambang NOL) |
 | `audit-notifikasi-tak-kembar.mjs` | dedup notifikasi harian wajib menahan — kembar HARI INI (ambang NOL) |
 | `audit-izin-tanpa-konteks.mjs` | fungsi izin tak boleh kosong saat `auth_company_id()` NULL (ambang NOL) |
 | `audit-peristiwa-punya-alur.mjs` | tiap peristiwa yang diterbitkan wajib punya alur n8n penerima (ambang NOL) |
