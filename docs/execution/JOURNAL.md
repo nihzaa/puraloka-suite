@@ -5,6 +5,109 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-04 (mobile, lanjutan) — riset dulu, lalu empat layar yang ternyata kosong atau rusak
+
+Founder minta UI sekelas frontend engineer profesional, dan minta riset
+lebih dulu. Dijalankan lewat mesin `ui-ux-pro-max` (`--design-system` +
+`--stack react-native`), bukan dari ingatan. Style yang keluar: Data-Dense
+Dashboard, terang + gelap penuh.
+
+Palet dan font TIDAK diambil dari rekomendasi — navy #003366 keputusan
+founder (ARAH-VISUAL §2), font sudah diratifikasi.
+
+Yang penting: tiap pedoman DIUKUR ke kode, bukan diterapkan mentah.
+
+### Pengukuran mengubah rencana dua kali
+
+Rencana pertama: pindahkan 11 layar `ScrollView`+`.map()` ke `FlatList`.
+Dipetakan dulu — asal tiap `.map()` (konstanta vs state), baris nyata dari
+API, pertumbuhan 30 hari dari basis:
+
+    projects   19 → proyeksi 158    workers  63 → 783
+    kasbons    67 → 199             notifications  8.947
+
+Enam dari sebelas ternyata FORM ISIAN — chip pilihan mendatar, bukan daftar
+bergulir. Memindahkannya menambah kerumitan tanpa manfaat.
+
+Dan yang paling mendesak bukan virtualisasi sama sekali: **`/notifications`
+punya 8.947 baris di basis dan layar hanya bisa melihat 30 — selamanya.**
+Tak ada `onEndReached`, tak ada tombol muat-lebih, tak ada tanda.
+
+### Empat layar kosong atau rusak, semua alat diam
+
+| Layar | Yang terjadi | Kenapa hijau |
+|---|---|---|
+| `mandor` | **114 karakter** — judul + bilah tab | objek disimpan ke state larik · `data?.data` yang tak ada · `try/finally` tanpa `catch` (dan `allSettled` tak melempar, jadi `catch` pun tak akan terpanggil) |
+| `notifications` | nol dari 30 menampilkan isinya | API kirim `message`, layar baca `body` |
+| `pekerjaan` + `notifications` | CRASH "Rendered more hooks…" | hook di bawah early-return — kode saya sendiri |
+| `notifications` | 30 dari 8.947 | paginasi rutenya ada, layar tak pernah memintanya |
+
+Yang ketiga paling mengganggu: **potret melaporkan "✅ Semua layar terisi"
+atas layar yang crash** — stack trace React memang berisi banyak teks, tak
+menggulir mendatar, dan tak punya teks di bawah 12px. Ketiga pengukuran
+benar untuk dirinya sendiri.
+
+Ia baru ketahuan saat saya menambahkan deteksi crash untuk cacat yang SAMA
+di layar lain — dan deteksi itu langsung menemukan `pekerjaan` juga, yang
+sudah rusak sejak migrasi sebelumnya dan dilaporkan hijau dua kali.
+
+### Enam belas tombol yang diam saat ditekan
+
+`Pressable` bawaannya tak melakukan apa pun saat ditekan. `TouchableOpacity`
+memudar sendiri — jadi keduanya terlihat sama di kode dan hanya satu yang
+diam. Tiga dari enam berkas terdampak adalah layar TULIS.
+
+Kelas cacat yang bahkan MEMOTRET tak bisa temukan: umpan balik hanya hidup
+~100ms saat jari menempel.
+
+### Saya salah lima kali, dan tiap kali alat ukurnya yang menuduh produk
+
+1. **Mutasi salah sasaran** — penjaga daftar "lolos" karena mutasinya tak
+   mengenai yang dijaga.
+2. **Merah tanpa menyebut pelakunya** — berkas baru tenggelam di dasar
+   daftar 14 baris. Lantai kini menyimpan NAMA, bukan cuma angka.
+3. **Lantai tercemar berkas mutasi** — `--turunkan` dijalankan sebelum
+   berkas uji dihapus.
+4. **Menghitung kartu DOM untuk menguji paginasi** — 14 → 26 → 24,
+   naik-turun. `FlatList` MELEPAS kartu di luar jendela render; itu gunanya.
+5. **`scrollTop = scrollHeight`** tak memicu paginasi sama sekali.
+   `FlatList` membaca event `scroll` ter-throttle.
+
+Ditambah penjaga status yang salah TIGA kali sebelum dipasang: nama tabel
+ditebak dari nama rute (`weekly_wage_reports`, bukan `mandor_wage_reports`),
+membaca CHECK padahal repo ini pakai ENUM, dan mendaftarkan tabel yang
+layarnya punya peta sendiri — lima temuan palsu dari satu tabel.
+
+**Penjaga yang salah merah lebih cepat dimatikan daripada penjaga yang
+jangkauannya sempit.** Ketiganya diperbaiki sebelum dipasang.
+
+### Dan satu yang penjaganya benar, saya yang salah
+
+`audit-akhir-baris.mjs` merah: `ci.yml` LF di HEAD, CRLF di pohon kerja.
+Skrip Python saya yang menulisnya begitu, dan git menormalkan saat commit —
+jadi diff-nya selalu bersih dan saya tak pernah melihatnya. Dinormalkan
+(4.132 CR → 0), dan ini koreksi untuk commit-commit saya sebelumnya.
+
+### Terukur
+
+    penjaga CI          230 hijau · 0 MERAH · 0 tak ketemu   (dari 227)
+    tsc mobile          exit 0
+    potret terang+gelap 14/14 keduanya
+    uji-paginasi-hidup  1 → 2 → 3 permintaan ber-offset
+    elemen a11y terjaga 30 → 44
+    hex tulisan tangan  319 → 264
+    fontFamily dipakai  51 → 88
+    FlatList            0 → 5 layar (ratchet 14 → 9)
+    mandor              114 → 2.364 huruf terender
+
+Lima penjaga baru, semuanya di ci.yml dan terbukti bisa merah:
+`audit-tekan-berumpan` · `audit-daftar-mobile-virtual` ·
+`audit-status-mobile-berlabel` · `audit-bentuk-balasan-mobile` (diperluas) ·
+`audit-a11y-mobile` (diperbaiki — jangkauannya sempat turun 43 → 30 tanpa
+gejala saat 16 elemen pindah ke `Tekan`).
+
+---
+
 ## 2026-09-04 (mobile) — memotret aplikasi HP untuk pertama kalinya, dan enam cacat yang tak satu pun alat bisa lihat
 
 Aplikasi mobile tak pernah sekali pun dipotret. Web punya potret sejak lama

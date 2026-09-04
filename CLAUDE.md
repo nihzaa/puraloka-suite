@@ -350,6 +350,9 @@ sebelum menyentuh kode terkait** — bukan sekadar daftar isi.
 | `audit-modul-mobile-nyata.mjs` | tiap modul WebView mobile wajib menunjuk halaman web yang ADA — jalur tanpa `page.tsx` membuka 404 di dalam bingkai aplikasi, tanpa tombol kembali. Peta di `web/[modul].tsx`, halaman di `apps/web/app/(dashboard)/`: dua tempat, tak ada yang menghubungkan. Pada jalan pertamanya menemukan `/sdm` sudah buntu sejak dibuat (ambang NOL) |
 | `audit-antrean-punya-rute.mjs` | tiap kiriman antrean mobile wajib menunjuk rute API yang ADA — mandor mengisi laporan, layar berkata "tersimpan" (benar: tersimpan di HP), server menjawab 404, antrean menahannya, dan tak seorang pun tahu. Lahir dari temuan foto progres yang TAK PERNAH sampai (multipart vs JSON, `project_photos` nol dalam 30 hari). Yang dijaga JALURNYA, bukan bentuk muatannya (ambang NOL) |
 | `audit-auth-mobile-utuh.mjs` | kontrak login mobile wajib utuh di KEDUA sisi — diukur 2026-09-01 aplikasi mobile TAK PERNAH bisa login: token hanya dikirim lewat cookie HttpOnly, mobile menyimpan `undefined`, setiap permintaan 401, dan layar login menuduh kredensial. Ikut menjaga token diberikan HANYA bagi klien ber-`X-Client` — memberikannya ke semua membuang perlindungan XSS. Sejak 2026-09-04 menjaga SISI KETIGA: `X-Client` wajib ada di `allowedHeaders` CORS — ia tak pernah didaftarkan, dan nol gejala selama tiga hari karena aplikasi NATIVE tak mengirim preflight sama sekali. Dua pengukuran yang keduanya BENAR melewatkannya: preflight OPTIONS menjawab **204** (status sukses) dengan origin yang diizinkan, dan `curl` POST menjawab 200 — `curl` tak menegakkan CORS, dan OPTIONS yang lolos origin masih bisa menolak HEADER-nya (ambang NOL) |
+| `audit-tekan-berumpan.mjs` | tiap `Pressable` wajib memberi umpan balik saat ditekan — diukur 2026-09-04: 17 dipakai, 1 berumpan, **16 TELANJANG**. `Pressable` BAWAANNYA diam total (tak ada ripple, tak ada pudar) kecuali `style` ditulis sebagai fungsi `({ pressed })` atau `android_ripple` dipasang; itu membuatnya LEBIH berbahaya daripada `TouchableOpacity`, yang memudar sendiri — keduanya terlihat sama di kode. Tiga dari enam berkas terdampak adalah layar TULIS (ncr/punch/izin-kerja): tekanan yang tak terasa terjadi akan diulang, dan hasilnya dua NCR dari satu temuan. ⚠ Kelas cacat yang bahkan MEMOTRET tak bisa temukan — umpan balik hanya hidup ~100ms saat jari menempel (ambang NOL) |
+| `audit-daftar-mobile-virtual.mjs` | daftar panjang wajib `FlatList`, bukan `ScrollView` + `.map()` — diukur 2026-09-04: **NOL FlatList** di seluruh apps/mobile, 14 layar memakai ScrollView+map. Baris nyata dari API: kasbons 67 · pekerjaan 63 · wage-reports 51 · notifications 30. Ambang virtualisasi 50 (pedoman stack react-native, severity High). `ScrollView` menahan SELURUH anaknya di memori termasuk yang tak pernah tergulir; gejalanya makin parah seiring bertambahnya data — jadi paling buruk persis saat aplikasinya paling dipakai, dan di perangkat penguji dengan 5 baris semuanya mulus (ratchet; lantai menyimpan DAFTAR NAMA, bukan cuma angka — merah tanpa menyebut pelakunya memaksa orang berikutnya menyisir 14 baris) |
+| `audit-status-mobile-berlabel.mjs` | tiap status yang bisa sampai ke layar mobile wajib punya label Indonesia — ditemukan dari MEMOTRET layar mandor: lencananya berbunyi **"submitted"**. `statusLabel()` memakai `map[status] ?? status`, jadi status tak terdaftar TIDAK gagal, ia muncul MENTAH. Daftarnya dibaca dari tipe ENUM PostgreSQL, bukan dari isi tabel (tabel yang hari ini cuma berisi dua nilai tetap boleh menghasilkan yang ketiga besok). ⚠ Hanya menjaga peta `Badge.statusLabel`; `pekerjaan.tsx` punya STATUS_PUNCH/NCR/IZIN sendiri yang TIDAK dijaga di sini (ambang NOL) |
 | `audit-bentuk-balasan-mobile.mjs` | kunci yang dibaca layar mobile wajib benar-benar DIKIRIM rutenya — diukur 2026-09-04, potret pertama dashboard yang berhasil login: "Proyek Aktif 0 · Total Kontrak Rp 0", sementara API pada detik yang sama mengirim 15 proyek dan Rp 7.135.525.000. API bersarang `{kpis:{…}}`, layar membaca datar, dan `?? 0` menelan seluruhnya — **nol yang salah tak bisa dibedakan dari nol yang benar**. `tsc` hijau karena `res.data` bertipe `any` dari axios. ⚠ Ia menangkap kunci SALAH NAMA, BUKAN kunci SALAH SARANG (terukur lewat mutasi; batasnya tertulis di kepala berkas) (ambang NOL) |
 | `audit-warna-mobile-bertoken.mjs` | warna mobile wajib dari token, bukan hex diketik — diukur 2026-09-04 sebelum `lib/tema.ts` ada: 39 hex unik di 445 tempat, `#003366` sendiri 88 kali, nol token, nol mode gelap. Web punya 105 token berriwayat WCAG; mobile mewarisi nol, sehingga dua hal MUSTAHIL: ganti merek tanpa ratusan suntingan, dan mode gelap tanpa membuka ulang tiap layar (ratchet) |
 | `audit-font-mobile-terpakai.mjs` | font merek yang DIMUAT wajib DIPAKAI — diukur 2026-09-04 tepat sesudah dua keluarga font dipasang dan splash ditahan menunggunya: `fontFamily` di seluruh layar **NOL**. Biaya penuh (dua unduhan + splash menunggu), nol hasil, dan tsc/Metro/a11y/kontras semuanya hijau karena tak ada yang SALAH — cuma tak ada yang memanggilnya. Kembaran cacat `useData()` di web. Merah untuk TIGA keadaan: dimuat-tapi-nol-dipakai, dipakai-tapi-tak-dimuat (RN jatuh diam-diam ke bawaan), dan pemakaian yang TURUN (ratchet naik) |
@@ -947,6 +950,38 @@ React Native asli tak memotong tinggi. Dua percobaan perbaikan gagal
 (tinggi bilah 44→58px, `lineHeight` eksplisit) sebelum sumbernya
 ditelusuri. Sebelum memperbaiki apa pun yang terlihat di potret, tanyakan
 dulu apakah ia juga ada di APK sungguhan.
+
+**Dan POTRET pun tak cukup — paginasi hidup di keadaan KEDUA.**
+
+```bash
+# Membuktikan gulir benar-benar memuat lebih. Expo web hidup di 8081.
+UJI_BASIS=http://localhost:8081 node apps/mobile/scripts/uji-paginasi-hidup.mjs
+```
+
+Potret memotret keadaan AWAL. `onEndReached` yang salah pasang menghasilkan
+layar yang terlihat sempurna di potret dan berhenti di 30 baris selamanya —
+persis keadaan `/notifications` sampai 2026-09-04: **8.947 baris di basis,
+30 yang bisa dilihat dari HP**, nol tanda.
+
+⚠ Dua kali alat ukurnya sendiri yang salah, dan keduanya menuduh produk:
+
+| Alat yang salah | Gejalanya | Sebabnya |
+|---|---|---|
+| menghitung kartu di DOM | 14 → 26 → 24, naik-turun | `FlatList` MELEPAS kartu di luar jendela render — itu gunanya |
+| `scrollTop = scrollHeight` | permintaan tetap 1 | `FlatList` membaca event `scroll` ter-throttle; satu lompatan tak melewati ambang. Pakai `mouse.wheel` bertahap |
+
+**Empat layar terbukti kosong atau rusak, dan semua alat diam:**
+
+| Layar | Yang terjadi | Kenapa hijau |
+|---|---|---|
+| `dashboard` | NOL untuk semua KPI (API kirim 15 proyek, Rp 7,14 M) | API bersarang `{kpis:{…}}`, layar baca datar; `?? 0` menelannya |
+| `mandor` | **114 karakter** — judul + bilah tab, nol isi | tiga cacat menumpuk: objek disimpan ke state larik, `data?.data` yang tak ada, `try/finally` tanpa `catch` |
+| `notifications` | nol dari 30 menampilkan isinya | API kirim `message`, layar baca `body` |
+| `pekerjaan` + `notifications` | CRASH "Rendered more hooks…" | hook di bawah early-return; potret melapor "✅ semua layar terisi" karena stack trace React BERISI teks |
+
+Yang terakhir melahirkan aturannya sendiri: **layar yang crash tetap lolos
+"berisi teks, tak menggulir mendatar, tak ada teks kecil".** `potret-mobile.mjs`
+kini mendeteksi overlay LogBox/RedBox dan melaporkannya lebih dulu.
 
 ⚠ **Skrip potret pernah melapor HIJAU atas sepuluh layar login.** Ketiga
 pengukurannya lulus dengan jujur — layar login memang berisi teks, memang
