@@ -1082,6 +1082,33 @@ jobs:
       # (ambang NOL)
       - name: clearCookie cocok dengan setCookie
         run: node scripts/audit-hapus-cookie-cocok-pasang.mjs
+      # URL verifikasi dokumen tak boleh dipaku, dan /verify wajib publik.
+      #
+      # Dilaporkan founder 2026-09-04 dari PDF invoice sungguhan:
+      #
+      #     Verifikasi keabsahan dokumen: puraloka.app/verify/invoice/<id>
+      #
+      # `puraloka.app` tak pernah ada. QR code di dokumen yang sama menunjuk
+      # domain mati itu juga — dua tempat terpisah, jadi memperbaiki satu
+      # meninggalkan yang lain tanpa gejala.
+      #
+      # Ditelusuri, ada dua cacat lagi: `/verify` tak terdaftar publik
+      # (produksi membalas 307 ke /login — halaman bukti keaslian yang
+      # menuntut login, padahal yang membukanya KLIEN), dan rute publik yang
+      # dibuka saat SUDAH login dilempar ke home (staf tak pernah bisa
+      # membuka tautan yang mereka kirim sendiri).
+      #
+      # Taruhannya bukan kenyamanan: tautan verifikasi yang tak bisa dibuka
+      # pada dokumen TAGIHAN membuat penerimanya curiga dokumennya palsu —
+      # kebalikan persis dari gunanya.
+      #
+      # Bukti merah: keempat cacat disuntik sendiri-sendiri → exit 1 semua.
+      # Penjaganya sendiri sempat LOLOS pada bentuk asli cacatnya (regex
+      # rakus: `[a-z0-9.-]*` menelan `.app/verify/...` sampai TLD tak lagi
+      # di ujung) dan sempat MENUDUH komentar yang menjelaskan cacat ini.
+      # Keduanya diperbaiki sebelum didaftarkan. (ambang NOL)
+      - name: URL verifikasi dokumen tak dipaku
+        run: node scripts/audit-url-dokumen-tak-dipaku.mjs
 
       # Keputusan persetujuan hanya lewat SATU pintu (utils/approval.ts).
       # Menulis `approved_by` langsung berarti entitas yang menurut

@@ -23,6 +23,7 @@ import {
   Wallet, X,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { urlVerifikasi } from "@/lib/url-dokumen";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { C } from "@/lib/warna-ui";
 import {
@@ -1421,7 +1422,7 @@ export async function unduhInvoicePdf(inv: Invoice): Promise<void> {
 
     const [companyRes, qrDataUrl] = await Promise.all([
       api.get<{ company: import("@/components/invoice-pdf").CompanyProfile }>("/api/v1/settings/company"),
-      QRCode.toDataURL(`https://puraloka.app/verify/invoice/${inv.id}`, { width: 200, margin: 1 }),
+      QRCode.toDataURL(urlVerifikasi("invoice", inv.id), { width: 200, margin: 1 }),
     ]);
     const company = companyRes.data.company;
 
