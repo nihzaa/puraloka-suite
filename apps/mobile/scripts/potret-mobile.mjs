@@ -113,8 +113,25 @@ try {
     if ((await isian.count()) >= 2) {
       await isian.nth(0).fill(EMAIL)
       await isian.nth(1).fill(SANDI)
-      await hal.keyboard.press('Enter')
-      await hal.waitForTimeout(4000)
+      /*
+        ⚠ Tombolnya DITEKAN, bukan Enter.
+
+        Versi pertama memakai `keyboard.press('Enter')` — kebiasaan dari
+        skrip potret web, tempat isian hidup di dalam `<form>` dan Enter
+        mengirimkannya.
+
+        React Native tak punya form. `TextInput` yang dirender
+        `react-native-web` adalah `<input>` telanjang, dan Enter di atasnya
+        tak memicu apa pun: nol permintaan jaringan, nol galat, nol
+        peringatan konsol. Layar tetap di /login, dan satu-satunya bedanya
+        dengan "sandi salah" adalah tak ada pesan galat yang muncul.
+
+        Terukur saat mendiagnosisnya: pageerror 0, requestfailed 0,
+        localStorage kosong. Semua alat menjawab "tak ada yang salah",
+        karena memang tak ada yang salah — cuma tak ada yang terjadi.
+      */
+      await hal.getByText('Masuk', { exact: true }).last().click()
+      await hal.waitForTimeout(5000)
     } else {
       masalah.push(`@${namaLebar}: isian login tak ditemukan (${await isian.count()} input)`)
     }

@@ -16,12 +16,59 @@ import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
 import { pesanGalat } from '@/lib/galat';
 
+/**
+ * Bentuk balasan `/api/v1/dashboard`.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * CACAT YANG DIPERBAIKI 2026-09-04 — layar ini menampilkan NOL untuk SEMUA
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Diukur langsung ke API produksi:
+ *
+ *     API mengirim  { kpis: { active_projects: 15, … } }   ← BERSARANG
+ *     layar membaca   data?.active_projects                 ← DATAR
+ *
+ * Tiga nama juga tak pernah cocok:
+ *
+ *     net_cash          → sebenarnya `kpis.net_cash_estimate`
+ *     recent_projects   → sebenarnya `projects_list` (19 proyek)
+ *     (KPI lain)        → semuanya di bawah `kpis`
+ *
+ * Yang membuatnya bertahan tanpa gejala: `?? 0` di tiap pembacaan. Nilai
+ * `undefined` jadi 0, dan **nol yang salah tak bisa dibedakan dari nol yang
+ * benar**. Layar terlihat sehat, memuat cepat, tanpa satu pun galat — dan
+ * memberitahu pemiliknya bahwa perusahaannya punya nol proyek aktif dan
+ * nol nilai kontrak. Yang sesungguhnya: 15 proyek, Rp 7,14 miliar.
+ *
+ * `tsc` hijau selama itu karena `res.data` bertipe `any` dari axios: TypeScript
+ * dengan senang hati mencocokkan apa pun ke `DashboardData`.
+ *
+ * Ini KELAS cacat, bukan satu kesalahan ketik: tiap layar mobile menebak
+ * bentuk balasan dari ingatan, dan tak ada satu pun tempat yang membandingkan
+ * tebakan itu dengan kenyataan. Dijaga `audit-bentuk-balasan-mobile.mjs`.
+ */
 interface DashboardData {
-  active_projects: number;
-  total_contract_value: number;
-  invoice_outstanding: number;
-  net_cash: number;
-  recent_projects?: Array<{ id: string; name: string; status: string; progress_pct: number }>;
+  kpis?: {
+    active_projects?: number;
+    total_contract_value?: number;
+    invoice_outstanding?: number;
+    income_this_month?: number;
+    net_cash_estimate?: number;
+    kasbon_active_total?: number;
+  };
+  alerts?: {
+    kasbon_pending?: number;
+    invoice_overdue?: number;
+    milestone_late?: number;
+  };
+  projects_list?: Array<{
+    id: string;
+    name: string;
+    status: string;
+    progress_pct: number;
+    location?: string | null;
+    contract_value?: number;
+  }>;
 }
 
 function fmt(n: number) {
@@ -83,26 +130,26 @@ export default function DashboardScreen() {
         <View style={styles.kpiGrid}>
           <Card style={styles.kpiCard}>
             <Text style={styles.kpiLabel}>Proyek Aktif</Text>
-            <Text style={styles.kpiValue}>{data?.active_projects ?? 0}</Text>
+            <Text style={styles.kpiValue}>{data?.kpis?.active_projects ?? 0}</Text>
           </Card>
           <Card style={styles.kpiCard}>
             <Text style={styles.kpiLabel}>Total Kontrak</Text>
-            <Text style={styles.kpiValueSm}>{fmt(data?.total_contract_value ?? 0)}</Text>
+            <Text style={styles.kpiValueSm}>{fmt(data?.kpis?.total_contract_value ?? 0)}</Text>
           </Card>
           <Card style={styles.kpiCard}>
             <Text style={styles.kpiLabel}>Invoice Belum Lunas</Text>
-            <Text style={styles.kpiValueSm}>{fmt(data?.invoice_outstanding ?? 0)}</Text>
+            <Text style={styles.kpiValueSm}>{fmt(data?.kpis?.invoice_outstanding ?? 0)}</Text>
           </Card>
           <Card style={styles.kpiCard}>
             <Text style={styles.kpiLabel}>Kas Bersih</Text>
-            <Text style={styles.kpiValueSm}>{fmt(data?.net_cash ?? 0)}</Text>
+            <Text style={styles.kpiValueSm}>{fmt(data?.kpis?.net_cash_estimate ?? 0)}</Text>
           </Card>
         </View>
 
-        {data?.recent_projects && data.recent_projects.length > 0 && (
+        {data?.projects_list && data.projects_list.length > 0 && (
           <>
             <Text style={styles.sectionTitle}>Proyek Aktif</Text>
-            {data.recent_projects.map((proj) => (
+            {data.projects_list.slice(0, 5).map((proj) => (
               <Card key={proj.id} style={styles.projCard}>
                 <Text style={styles.projName}>{proj.name}</Text>
                 <View style={styles.progressBar}>

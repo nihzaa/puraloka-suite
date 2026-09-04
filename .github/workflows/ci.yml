@@ -2036,6 +2036,21 @@ jobs:
       - name: Font merek mobile terpakai
         run: node scripts/audit-font-mobile-terpakai.mjs
 
+      # Layar mobile wajib membaca bentuk balasan yang BENAR-BENAR dikirim
+      # rute. Diukur 2026-09-04, potret pertama dashboard yang berhasil
+      # login: "Proyek Aktif 0 - Total Kontrak Rp 0 - Kas Bersih Rp 0",
+      # sementara API pada detik yang sama mengirim 15 proyek dan
+      # Rp 7.135.525.000.
+      #
+      # Sebabnya satu tingkat sarang: API mengirim { kpis: { ... } }, layar
+      # membaca data?.active_projects. `?? 0` menelan seluruh ketidakcocokan,
+      # dan NOL YANG SALAH TAK BISA DIBEDAKAN DARI NOL YANG BENAR - layar
+      # memuat cepat, tanpa galat, tanpa spanduk merah.
+      #
+      # tsc hijau karena `res.data` bertipe any dari axios.
+      - name: Bentuk balasan mobile cocok rutenya
+        run: node scripts/audit-bentuk-balasan-mobile.mjs
+
       # Versi paket mobile wajib cocok dengan Expo SDK. Diukur 2026-08-31,
       # PERTAMA kalinya `expo export` dijalankan di repo ini: bundling GAGAL,
       # dan sebelas paket tak cocok — React 18 (butuh 19), React Native 0.76
