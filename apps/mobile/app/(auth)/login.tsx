@@ -13,10 +13,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/hooks/useAuth';
+import { useTema } from '@/hooks/useTema';
+import { FONT, HURUF, RADIUS, SPASI, type Palet } from '@/lib/tema';
 import { login } from '@/lib/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { c } = useTema();
+  const styles = gaya(c);
   const { setUser, setIzin } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -81,7 +85,28 @@ export default function LoginScreen() {
               secureTextEntry
             />
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
-            <Button title="Masuk" onPress={handleLogin} loading={loading} style={styles.btn} />
+            <Button
+              title="Masuk"
+              onPress={handleLogin}
+              loading={loading}
+              /*
+                Mati selama salah satu isian kosong.
+
+                Sebelumnya tombol ini navy penuh sejak layar terbuka, dan
+                validasinya berjalan SESUDAH ditekan ("Email dan password
+                wajib diisi"). Ketahuan dari memotret layar ini.
+
+                Urutan itu terbalik: pengguna diberi tombol yang mengundang
+                ditekan, lalu ditegur karena menekannya. Sekarang tombolnya
+                sendiri yang menunjukkan formulirnya belum lengkap.
+
+                Validasi di `handleLogin` TETAP ada — ia menjaga jalur yang
+                tak lewat tombol (Enter di papan ketik keras, atau perubahan
+                keadaan yang mendahului render).
+              */
+              disabled={!email.trim() || !password}
+              style={styles.btn}
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -89,23 +114,49 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F8F9FA' },
-  container: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  header: { alignItems: 'center', marginBottom: 40 },
-  logo: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    backgroundColor: '#003366',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  logoText: { color: '#fff', fontSize: 28, fontWeight: '700' },
-  title: { fontSize: 24, fontWeight: '700', color: '#111827', marginBottom: 6 },
-  subtitle: { fontSize: 15, color: '#6B7280' },
-  form: { gap: 16 },
-  errorText: { fontSize: 13, color: '#B91C1C', textAlign: 'center' },
-  btn: { marginTop: 8 },
-});
+/**
+ * Gaya layar masuk.
+ *
+ * ── Kenapa `justifyContent: 'center'` DIBUANG
+ *
+ * Versi sebelumnya memusatkan seluruh isi secara vertikal. Terlihat rapi
+ * di mockup, dan salah di HP: dengan hanya dua isian, logo jatuh ke 30%
+ * tinggi layar dengan ±200px kosong di atasnya, dan formulir berakhir di
+ * 65% dengan sisanya kosong juga. Berat visualnya melayang di tengah
+ * tanpa alasan.
+ *
+ * Yang lebih buruk terjadi saat papan ketik naik: isi yang terpusat
+ * TERDORONG, jadi logo dan judul bergeser ke atas dan sebagian terpotong —
+ * gerakan yang tak berarti apa-apa bagi penggunanya.
+ *
+ * Sekarang mengalir dari atas dengan jarak yang disengaja. Papan ketik naik,
+ * kepala tetap di tempatnya.
+ */
+function gaya(c0: Palet) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: c0.surfaceSubtle },
+    container: { flexGrow: 1, paddingTop: 72, paddingHorizontal: SPASI.xxl, paddingBottom: SPASI.xxl },
+    header: { alignItems: 'center', marginBottom: 36 },
+    logo: {
+      width: 64,
+      height: 64,
+      borderRadius: RADIUS.lg,
+      backgroundColor: c0.navy,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: SPASI.lg,
+    },
+    logoText: { color: c0.onNavy, fontSize: 28, fontFamily: FONT.judul },
+    title: {
+      fontSize: HURUF.xxl, fontFamily: FONT.judul,
+      color: c0.textPrimary, marginBottom: 6,
+    },
+    subtitle: { fontSize: HURUF.base, fontFamily: FONT.isi, color: c0.textSecondary },
+    form: { gap: SPASI.lg },
+    errorText: {
+      fontSize: HURUF.sm, fontFamily: FONT.isi,
+      color: c0.danger, textAlign: 'center',
+    },
+    btn: { marginTop: SPASI.sm },
+  });
+}
