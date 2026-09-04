@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTema } from '@/hooks/useTema';
-import { FONT, RADIUS, type Palet } from '@/lib/tema';
+import { FONT, HURUF, RADIUS, type Palet } from '@/lib/tema';
 
 type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'default';
 
@@ -93,7 +93,18 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   label: {
-    fontSize: 11,
+    /*
+      12px, bukan 11.
+
+      Diukur lewat potret 2026-09-04: lencana ini menyumbang sebagian besar
+      dari 75 teks di bawah 12px pada layar kasbon dan 27 pada layar proyek.
+      Ia dipakai untuk STATUS ("Menunggu", "Disetujui", "Jatuh Tempo") —
+      justru kata yang menentukan apakah pengguna perlu bertindak.
+
+      Di bawah 12px teks tak terbaca di bawah matahari langsung, dan layar
+      ini dibuka di lokasi proyek.
+    */
+    fontSize: HURUF.xs,
     fontFamily: FONT.isiTebal,
   },
 });

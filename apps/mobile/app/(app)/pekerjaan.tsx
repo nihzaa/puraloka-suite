@@ -550,8 +550,25 @@ export default function PekerjaanSaya() {
                       <Text style={s.pilTeks}>{b.severity}</Text>
                     </View>
                   )}
-                  <View style={[s.pil, s.pilStatus, b.mendesak && s.pilStatusMendesak]}>
-                    <Text style={[s.pilTeks, s.pilStatusTeks, b.mendesak && s.pilTeks]}>
+                  {/*
+                    ⚠ Pil STATUS tak lagi ikut memerah saat barisnya mendesak.
+
+                    Terlihat dari potret 2026-09-04: kartu mendesak
+                    menampilkan DUA pil merah berdampingan — "Berat" (tingkat)
+                    dan "Menunggu Pengecekan" (status). Yang kedua bukan
+                    keadaan bahaya; ia sekadar tahap kerja.
+
+                    Akibatnya merah kehilangan artinya. Kalau "Sedang
+                    Dikerjakan" semerah "Kritis", pembacanya berhenti memakai
+                    warna sebagai isyarat dan harus membaca tiap kata —
+                    persis kemampuan yang seharusnya diberikan warna.
+
+                    Kemendesakan tetap terlihat, dan lewat isyarat yang tak
+                    bersaing: garis kiri tebal pada kartunya (`kartuMendesak`)
+                    plus pil tingkat yang memang berwarna semantik.
+                  */}
+                  <View style={[s.pil, s.pilStatus]}>
+                    <Text style={[s.pilTeks, s.pilStatusTeks]}>
                       {petaStatus[b.status] ?? b.status}
                     </Text>
                   </View>
@@ -648,11 +665,22 @@ function gaya(c: Palet) {
       flexDirection: 'row', justifyContent: 'space-between',
       alignItems: 'center', marginBottom: 6,
     },
+    /*
+      12px, bukan 11.
+
+      Diukur 2026-09-04 lewat potret: 223 elemen teks di layar ini terender
+      di bawah 12px, dan SEMUANYA 11px dari tiga gaya di bawah — bukan 223
+      keputusan berbeda, melainkan tiga yang terulang di tiap kartu.
+
+      Ambang 12px bukan selera: di bawah itu teks tak terbaca di bawah
+      matahari langsung, dan layar ini dibuka di lokasi proyek. Isinya juga
+      bukan hiasan — nomor izin kerja, umur temuan, dan tingkat keparahan.
+    */
     jenisTag: {
-      fontSize: 11, fontFamily: FONT.isiTebal, color: c.navy,
+      fontSize: HURUF.xs, fontFamily: FONT.isiTebal, color: c.navy,
       letterSpacing: 0.4, textTransform: 'uppercase',
     },
-    usia: { fontSize: 11, fontFamily: FONT.isi, color: c.textSecondary },
+    usia: { fontSize: HURUF.xs, fontFamily: FONT.isi, color: c.textSecondary },
     judul: {
       fontSize: HURUF.sm + 1, fontFamily: FONT.isiTebal,
       color: c.textPrimary, lineHeight: 20,
@@ -664,12 +692,11 @@ function gaya(c: Palet) {
     kaki: { flexDirection: 'row', gap: 6, marginTop: 10, flexWrap: 'wrap' },
     pil: { paddingVertical: 4, paddingHorizontal: 9, borderRadius: 7 },
     pilTeks: {
-      fontSize: 11, fontFamily: FONT.isiTebal, color: c.onNavy,
+      fontSize: HURUF.xs, fontFamily: FONT.isiTebal, color: c.onNavy,
       textTransform: 'capitalize',
     },
     pilStatus: { backgroundColor: c.surfaceHover },
     pilStatusTeks: { color: c.textPrimary, textTransform: 'none' },
-    pilStatusMendesak: { backgroundColor: c.danger },
     tombolSelesai: {
       marginTop: 6, paddingVertical: SPASI.md, alignItems: 'center',
       borderRadius: 10, borderWidth: 1, borderColor: c.border,

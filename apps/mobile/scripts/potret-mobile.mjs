@@ -238,12 +238,38 @@ try {
             // Tak boleh menggulir MENDATAR — tanda tata letak melebihi layar.
             lebarGulir: b.scrollWidth,
             lebarLayar: window.innerWidth,
-            // Teks di bawah 12px tak terbaca di bawah matahari.
+            /*
+              Teks di bawah 12px tak terbaca di bawah matahari — dan layar
+              ini dibuka di lokasi proyek.
+
+              ⚠ Label BILAH TAB dikecualikan, dan alasannya bukan kelonggaran.
+
+              Bilah tab expo-router menyetel `numberOfLines={1}` pada
+              labelnya; di web itu memakai `styles.textOneLine` milik
+              react-native-web (`overflow: hidden`), dan elemennya berakhir
+              5px. Ukuran 11px di sana adalah keputusan yang DIHITUNG —
+              delapan tab pada layar 360px memberi ~45px per tab, dan 12px
+              membuat "Beranda" dan "Lainnya" melebihi lebarnya.
+
+              Tanpa pengecualian ini, delapan pelanggaran abadi akan muncul
+              di tiap jalan. Penjaga yang selalu merah untuk hal yang benar
+              mengajari orang mengabaikan keluarannya — dan kegagalan
+              sungguhan berikutnya ikut terabaikan.
+
+              Dikecualikan lewat POSISI, bukan lewat teksnya: label tab
+              adalah yang berada di dalam 70px terbawah viewport. Menyaring
+              lewat daftar nama ("Beranda", "Proyek", …) akan basi diam-diam
+              begitu ada tab baru — kelas kesalahan yang sama dengan
+              menyaring grup menu lewat nama (CLAUDE.md §8a.2).
+            */
             terlaluKecil: [...document.querySelectorAll('*')].filter((el) => {
               const t = el.textContent?.trim()
               if (!t || el.children.length > 0) return false
               const fs = parseFloat(getComputedStyle(el).fontSize)
-              return fs > 0 && fs < 12
+              if (!(fs > 0 && fs < 12)) return false
+              const kotak = el.getBoundingClientRect()
+              const diBilahTab = kotak.top >= window.innerHeight - 70
+              return !diBilahTab
             }).length,
           }
         })
