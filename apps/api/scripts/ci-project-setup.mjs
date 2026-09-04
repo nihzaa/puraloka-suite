@@ -1118,6 +1118,53 @@ await seed('worker x2 (bahan uji tukang & beban mandor)', async () => {
 })
 
 /*
+  Temuan K3 BERAT yang MENGGANTUNG — bahan uji otomasi sertifikat/K3.
+
+      AssertionError: temuan berat menggantung tak terbentuk
+
+  Test menuntut otomasi menghasilkan notifikasi `k3_temuan_berat_menggantung`,
+  dan itu hanya terjadi bila ada temuan yang memenuhi TIGA syarat sekaligus.
+  Ketiganya dibaca dari kodenya, bukan ditebak:
+
+      tingkat >= 3            `rekapTemuan` (k3-lapangan.ts:435) → berat
+      status <> 'ditutup'     idem, baris 433
+      tenggat sudah lewat     `rekap.lewat_tenggat > 0`
+                              (otomasi-terjadwal.ts:2184)
+
+  Fixture ini BERLAPIS: `temuan_k3` butuh `inspeksi_id`, jadi inspeksi dibuat
+  lebih dulu. Menyisipkan temuan tanpa inspeksinya akan gagal FK dengan galat
+  yang menuduh kolom, bukan urutan.
+
+  `status` diisi 'terbuka' — salah satu dari tiga nilai yang benar-benar
+  dipakai di basis (diukur `SELECT DISTINCT`: terbuka, diperbaiki, ditutup).
+*/
+await seed('temuan K3 berat menggantung (bahan uji otomasi K3)', async () => {
+  await c.query(
+    `INSERT INTO inspeksi_k3 (project_id, tanggal)
+     SELECT p.id, CURRENT_DATE - 30
+       FROM projects p
+      WHERE p.name = 'CI Seed Project'
+        AND NOT EXISTS (
+          SELECT 1 FROM inspeksi_k3 i
+           WHERE i.project_id = p.id AND i.tanggal = CURRENT_DATE - 30)`)
+
+  await c.query(
+    `INSERT INTO temuan_k3 (inspeksi_id, uraian, tingkat, status, tenggat)
+     SELECT i.id, 'CI Seed temuan berat menggantung', 3, 'terbuka', CURRENT_DATE - 14
+       FROM inspeksi_k3 i
+       JOIN projects p ON p.id = i.project_id
+      WHERE p.name = 'CI Seed Project'
+        AND NOT EXISTS (
+          SELECT 1 FROM temuan_k3 t
+           WHERE t.uraian = 'CI Seed temuan berat menggantung')`)
+
+  const { rows } = await c.query(
+    `SELECT count(*)::int n FROM temuan_k3
+      WHERE tingkat >= 3 AND status <> 'ditutup' AND tenggat < CURRENT_DATE`)
+  if (rows[0].n === 0) throw new Error('nol temuan berat menggantung sesudah seed')
+})
+
+/*
   Invoice bernilai > 2 juta — bahan uji tulis-pembayaran.
 
       Error: prasyarat gagal: nol invoice yang bisa dipinjam
