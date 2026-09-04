@@ -36,7 +36,7 @@ const LABEL_MODEL: Record<string, string> = {
   lump_sum: "Lump Sum", unit_price: "Harga Satuan", cost_plus: "Cost Plus",
 };
 const LABEL_PAJAK: Record<string, string> = {
-  pph_final: "PPh Final 2%", ppn: "PPN 11%",
+  pph_final: "PPh Final 2%", ppn: "PPN 11%", tanpa_pajak: "Tanpa Pajak",
 };
 
 export default function PmKontrakPage() {

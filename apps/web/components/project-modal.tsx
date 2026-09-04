@@ -31,7 +31,7 @@ export interface ProjectFormData {
   // Step 2
   contract_model: "termin" | "komisi";
   contract_value: string;
-  tax_scheme: "pph_final" | "ppn";
+  tax_scheme: "pph_final" | "ppn" | "tanpa_pajak";
   commission_pct: string;
   retention_pct: string;
   start_date: string;
@@ -439,12 +439,47 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                 </div>
               </Field>
 
-              <Field label="Tax Scheme">
-                <div style={{ display: "flex", gap: 12 }}>
-                  <RadioCard label="PPh Final (2%)" description="Untuk klien perorangan" checked={form.tax_scheme === "pph_final"} onClick={() => set("tax_scheme", "pph_final")} />
-                  <RadioCard label="PPN (11%)" description="Untuk klien perusahaan (B2B)" checked={form.tax_scheme === "ppn"} onClick={() => set("tax_scheme", "ppn")} />
-                </div>
+              {/*
+                Saklar pajak — diminta founder 2026-09-04: "pas bikin proyek
+                juga bisa gapake pajak … ada saklar on off nya".
+
+                Sebelum ini pilihannya cuma DUA, dan keduanya berarti "kena":
+                PPh Final atau PPN. Untuk borongan kecil dan pekerjaan
+                perorangan, tidak dikenai pajak adalah keadaan yang WAJAR —
+                dan memaksa memilih salah satu membuat angka RAB serta invoice
+                memuat pajak yang tak pernah ditagihkan ke klien.
+
+                Nilai ketiga `tanpa_pajak` ditambahkan ke enum lewat migrasi
+                566, BUKAN kolom boolean terpisah: satu kolom, satu kebenaran.
+                Kolom `kena_pajak` di samping `tax_scheme` melahirkan keadaan
+                mustahil (mati tapi skemanya PPN), dan tiap pembaca harus tahu
+                mana yang menang.
+
+                Saat saklar dimatikan, pilihan skemanya DISEMBUNYIKAN — bukan
+                sekadar diabaikan. Pilihan yang terlihat tapi tak berpengaruh
+                mengajari orang bahwa layar ini tak bisa dipercaya.
+              */}
+              <Field label="Pajak">
+                <Saklar
+                  nyala={form.tax_scheme !== "tanpa_pajak"}
+                  onUbah={(n) => set("tax_scheme", n ? "pph_final" : "tanpa_pajak")}
+                  label="Proyek ini dikenai pajak"
+                  ringkas={
+                    form.tax_scheme === "tanpa_pajak"
+                      ? "Dimatikan — RAB dan invoice dihitung tanpa pajak."
+                      : "Pilih skemanya di bawah."
+                  }
+                />
               </Field>
+
+              {form.tax_scheme !== "tanpa_pajak" && (
+                <Field label="Skema Pajak">
+                  <div style={{ display: "flex", gap: 12 }}>
+                    <RadioCard label="PPh Final (2%)" description="Untuk klien perorangan" checked={form.tax_scheme === "pph_final"} onClick={() => set("tax_scheme", "pph_final")} />
+                    <RadioCard label="PPN (11%)" description="Untuk klien perusahaan (B2B)" checked={form.tax_scheme === "ppn"} onClick={() => set("tax_scheme", "ppn")} />
+                  </div>
+                </Field>
+              )}
 
               {form.contract_model === "komisi" && (
                 <Field label="Persentase Komisi (%)*" error={errors.commission_pct}>

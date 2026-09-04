@@ -188,7 +188,7 @@ export function ProjectCardGrid({ project: p, hariIni, onClick }: {
         }
       }}
       style={{
-        ...kartu, padding: 20, cursor: "pointer",
+        ...kartu, padding: 16, cursor: "pointer",
         transition: "all 0.15s ease",
         borderColor: lewat ? C.redBorder : segera ? C.yellowBorder : "var(--border)",
       }}
@@ -201,7 +201,7 @@ export function ProjectCardGrid({ project: p, hariIni, onClick }: {
         e.currentTarget.style.transform = "translateY(0)";
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
         <StatusBadge status={p.status} />
         <ModelBadge model={p.contract_model} />
         {lewat && (
@@ -228,18 +228,18 @@ export function ProjectCardGrid({ project: p, hariIni, onClick }: {
         {p.name}
       </h3>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 10 }}>
         <MapPin size={11} aria-hidden="true" style={{ color: C.muted, flexShrink: 0 }} />
         <span style={{ fontSize: 12, color: C.muted }}>{p.location}</span>
       </div>
 
       <div style={{
         display: "flex", alignItems: "center", gap: 12,
-        paddingBottom: 14, borderBottom: "1px solid var(--surface-hover)", marginBottom: 14,
+        paddingBottom: 10, borderBottom: "1px solid var(--surface-hover)", marginBottom: 10,
       }}>
         {p.clients && (
           <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
-            <Avatar name={p.clients.contact_person} size={26} />
+            <Avatar name={p.clients.contact_person} size={24} />
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 10, color: C.muted }}>Klien</div>
               <div style={{ fontSize: 12, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -248,10 +248,10 @@ export function ProjectCardGrid({ project: p, hariIni, onClick }: {
             </div>
           </div>
         )}
-        {p.clients && p.pm && <div aria-hidden="true" style={{ width: 1, height: 28, background: "var(--surface-hover)", flexShrink: 0 }} />}
+        {p.clients && p.pm && <div aria-hidden="true" style={{ width: 1, height: 26, background: "var(--surface-hover)", flexShrink: 0 }} />}
         {p.pm && (
           <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
-            <Avatar name={p.pm.name} size={26} />
+            <Avatar name={p.pm.name} size={24} />
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 10, color: C.muted }}>PM</div>
               <div style={{ fontSize: 12, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -262,8 +262,8 @@ export function ProjectCardGrid({ project: p, hariIni, onClick }: {
         )}
       </div>
 
-      <div style={{ marginBottom: 14 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
           <span style={{ fontSize: 11, color: C.muted }}>Serapan Anggaran</span>
           <span style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>{Number(p.progress_pct).toFixed(1)}%</span>
         </div>
