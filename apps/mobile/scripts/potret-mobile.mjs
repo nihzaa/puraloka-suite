@@ -173,6 +173,33 @@ const LAYAR = [
  */
 const LAYAR_BERPARAM = [['proyek-detail', (id) => `/proyek/${id}`]]
 
+/**
+ * Layar SEBELUM login — konteks yang berbeda, jadi jalur yang berbeda.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA TAK BISA IKUT MATRIKS UTAMA
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Matriks di atas berjalan SESUDAH login berhasil — itu justru syarat yang
+ * membuatnya bermakna (potret sepuluh layar login pernah dilaporkan hijau
+ * sebelum syarat itu ada).
+ *
+ * Perkenalan dan login hidup di sisi lain syarat itu. Memotretnya butuh
+ * konteks yang BELUM login, dan penyimpanan yang bersih — perkenalan hanya
+ * muncul sekali seumur pemasangan, jadi konteks bekas login sebelumnya
+ * akan melewatinya.
+ *
+ * ⚠ Ditambahkan 2026-09-05, dan keterlambatannya sendiri layak dicatat:
+ * keduanya BARU DIBANGUN hari itu dan tetap tak masuk daftar potret.
+ * Pelajaran "layar yang tak dipotret adalah layar yang tak seorang pun
+ * lihat" sudah ditulis di berkas ini untuk `/notifications` dan `/mandor`,
+ * dan tetap terulang.
+ */
+const LAYAR_PRA_LOGIN = [
+  ['kenalan', '/kenalan', { bersihkanPenyimpanan: true }],
+  ['login', '/login', { lewatiKenalan: true }],
+]
+
 /** Dua lebar yang mewakili sisi berlawanan dari rentang HP nyata. */
 const LEBAR = [
   ['kecil', 360, 800],
@@ -219,10 +246,93 @@ const peramban = await chromium.launch()
   await ctxPanas.close()
 }
 const masalah = []
+
+/*
+  ── Layar PRA-LOGIN, dipotret lebih dulu ────────────────────────────────
+
+  Konteks sendiri per layar, dan penyimpanan dibersihkan untuk perkenalan:
+  ia muncul sekali seumur pemasangan, jadi konteks bekas akan melewatinya
+  dan menghasilkan potret layar login dengan nama berkas "kenalan" —
+  potret yang salah dengan nama yang meyakinkan.
+*/
+async function potretPraLogin(namaLebar, w, h) {
+  for (const [nama, jalur, opsi] of LAYAR_PRA_LOGIN) {
+    const ctx = await peramban.newContext({
+      viewport: { width: w, height: h },
+      colorScheme: GELAP ? 'dark' : 'light',
+      deviceScaleFactor: 2,
+      isMobile: true,
+      hasTouch: true,
+    })
+    const hal = await ctx.newPage()
+    try {
+      await hal.goto(`${BASIS}${jalur}`, { waitUntil: 'networkidle', timeout: 60_000 })
+      await hal.waitForTimeout(3500)
+
+      /*
+        Untuk layar LOGIN: perkenalan dilewati dulu lewat tombolnya, bukan
+        dengan menulis penanda ke penyimpanan.
+
+        Menulis penandanya langsung akan melewati jalur yang sesungguhnya
+        dipakai orang — dan jalur itu punya cacat yang baru saja ditemukan
+        (guard memantulkan kembali ke perkenalan). Menekan tombolnya
+        membuat potret ini ikut menguji alurnya.
+      */
+      if (opsi?.lewatiKenalan) {
+        const lewati = hal.getByText('Lewati', { exact: true })
+        if (await lewati.count()) {
+          await lewati.click()
+          await hal.waitForTimeout(3000)
+        }
+        if (!hal.url().includes('/login')) {
+          masalah.push(
+            `${nama} @${namaLebar}: "Lewati" tak sampai ke /login (${hal.url()}) — ` +
+              'alur perkenalan→login putus'
+          )
+          await ctx.close()
+          continue
+        }
+      }
+
+      const berkas = `mobile-${nama}-${namaLebar}${GELAP ? '-gelap' : ''}.png`
+      await hal.screenshot({ path: join(KELUAR, berkas) })
+      dipotret++
+
+      const ukur = await hal.evaluate(() => ({
+        panjangTeks: (document.body.innerText ?? '').trim().length,
+        lebarGulir: document.body.scrollWidth,
+        lebarLayar: window.innerWidth,
+      }))
+      if (ukur.panjangTeks < 20) {
+        masalah.push(`${nama} @${namaLebar}: layar nyaris kosong (${ukur.panjangTeks} huruf)`)
+      }
+      if (ukur.lebarGulir > ukur.lebarLayar + 1) {
+        masalah.push(
+          `${nama} @${namaLebar}: menggulir MENDATAR (${ukur.lebarGulir} > ${ukur.lebarLayar}px)`
+        )
+      }
+      console.log(
+        `  ${namaLebar.padEnd(6)} ${nama.padEnd(12)} teks=${String(ukur.panjangTeks).padStart(5)} ` +
+          `lebar=${ukur.lebarGulir}/${ukur.lebarLayar}  (pra-login)`
+      )
+    } catch (e) {
+      masalah.push(`${nama} @${namaLebar}: ${String(e.message).split('\n')[0].slice(0, 80)}`)
+    } finally {
+      await ctx.close()
+    }
+  }
+}
 let dipotret = 0
 
 try {
   for (const [namaLebar, w, h] of LEBAR) {
+    /*
+      Pra-login lebih dulu, di konteksnya sendiri — dan SEBELUM konteks
+      utama login. Konteks yang sudah login tak bisa memotret layar
+      perkenalan sama sekali: guard-nya langsung mengalihkan ke dashboard.
+    */
+    await potretPraLogin(namaLebar, w, h)
+
     const ctx = await peramban.newContext({
       viewport: { width: w, height: h },
       colorScheme: GELAP ? 'dark' : 'light',
@@ -241,6 +351,31 @@ try {
     hal.on('pageerror', (e) => galatJs.push(String(e.message).slice(0, 120)))
 
     await hal.goto(`${BASIS}/login`, { waitUntil: 'networkidle', timeout: 60_000 }).catch(() => {})
+
+    /*
+      ── Perkenalan dilewati dulu ────────────────────────────────────────
+
+      Ditambahkan 2026-09-05 bersama layar perkenalan itu sendiri, dan
+      keterlambatannya langsung terlihat: matriks utama gagal dengan
+      "isian login tak ditemukan (0 input)" — konteks baru mendarat di
+      perkenalan, bukan login, karena penyimpanannya bersih.
+
+      Gejalanya menuduh LAYAR LOGIN ("isiannya hilang"), padahal layar
+      login tak pernah dibuka. Bentuk yang sama dengan yang berulang di
+      berkas ini: pesan yang benar tentang hal yang salah.
+
+      Dilewati lewat TOMBOLNYA, bukan dengan menulis penanda ke
+      penyimpanan — jalur yang sesungguhnya dipakai orang, dan jalur itu
+      punya cacat yang baru ditemukan hari ini (guard memantulkan kembali
+      ke perkenalan). Menekan tombolnya membuat matriks ini ikut
+      menjaganya.
+    */
+    const lewatiKenalan = hal.getByText('Lewati', { exact: true })
+    if (await lewatiKenalan.count().catch(() => 0)) {
+      await lewatiKenalan.click().catch(() => {})
+      await hal.waitForTimeout(3000)
+    }
+
     /*
       ⚠ MENUNGGU KEADAAN, bukan durasi.
 
@@ -601,7 +736,8 @@ if (masalah.length) {
   konsisten adalah lapis kedua: dua alat yang menunjuk hal yang sama lebih
   sulit dilewati daripada satu.
 */
-const DIHARAPKAN = (LAYAR.length + LAYAR_BERPARAM.length) * LEBAR.length
+const DIHARAPKAN =
+  (LAYAR.length + LAYAR_BERPARAM.length + LAYAR_PRA_LOGIN.length) * LEBAR.length
 
 if (dipotret === 0) {
   console.error('')
