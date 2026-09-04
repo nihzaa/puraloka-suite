@@ -5,6 +5,62 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-05 (koreksi) — saya salah menuduh `git add .`, dan celahnya lebih halus
+
+Entri di bawah menulis bahwa enam berkas saya tersapu karena bentuk yang
+"persis diperingatkan §8a.1" — yang tercatat di sana adalah `git add .` /
+`git add -A`.
+
+**Saya salah.** Sesi `puraloka-suite-5c` memeriksanya dan memberi tahu:
+ia MEMANG memakai `git add -- <berkas>`, dan `git diff --cached` sebelum
+commit memperlihatkan satu berkas.
+
+### Celah yang sesungguhnya
+
+Yang terjadi: saya men-stage berkas saya **di sela** antara pemeriksaan
+indeksnya dan `git commit` miliknya. `git commit` mengambil seluruh indeks
+**pada saat ia berjalan**, bukan yang terlihat beberapa detik sebelumnya.
+
+Jadi §8a.1 belum lengkap. `git add .` memang penyebab yang tercatat, tapi
+`add` yang BENAR pun tak cukup:
+
+> **Jendela antara "memeriksa indeks" dan "mengirim" bukan milik satu
+> sesi.** Indeks git dibagi seluruh checkout, dan tak ada penguncian.
+
+Yang menutupnya: cetak `git diff --cached --name-only` sebagai baris
+**di perintah yang sama** dengan `git commit`, bukan sebagai langkah
+terpisah. Keluarannya lalu menjadi bagian dari catatan commit itu sendiri,
+dan selisih apa pun terlihat saat itu juga.
+
+Dipakai untuk commit `c934817b` hari ini — enam berkas tercetak, enam yang
+ter-commit.
+
+### Kenapa ini layak dicatat terpisah
+
+Diagnosis yang salah lebih mahal daripada tak ada diagnosis: ia
+mengarahkan orang berikutnya memeriksa `git add .` yang tak pernah
+terjadi, dan celah yang sebenarnya tetap terbuka.
+
+Saya juga menuliskannya di jurnal sebelum sesi lain sempat memeriksa —
+padahal `git log` sudah memberi tahu bahwa berkasnya di-stage dengan
+benar. Bentuk yang sama dengan `a11y-ratchet` di entri bawah: saya
+meneruskan kesimpulan tanpa memeriksanya.
+
+Dua kali dalam satu sesi, dan keduanya ke arah yang sama — **menuduh
+berdasarkan pola yang saya kenali, bukan berdasarkan yang saya ukur.**
+
+### Penyelesaiannya
+
+Sesi itu memperbaikinya sebelum ter-push: `reset --soft` (isi di disk tak
+tersentuh) → `restore --staged --` menyebut keenam jalur → commit ulang.
+Commit a11y sekarang `610071ae`, satu berkas. Keenam berkas saya kembali
+belum-ter-stage, terverifikasi identik, lalu saya commit sendiri sebagai
+`c934817b`.
+
+Nol yang hilang.
+
+---
+
 ## 2026-09-05 (mobile) — layar terkaya di aplikasi, dan RAB 287 baris yang berbunyi "belum ada"
 
 `proyek/[id]` adalah layar terkompleks di aplikasi mobile: tiga tab, RAB

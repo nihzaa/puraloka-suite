@@ -729,6 +729,41 @@ dari gejala yang menunjuk ke tempat lain.
 | menulis `JOURNAL.md` | dua sesi menulis dengan konvensi berbeda; yang belakangan menimpa struktur yang pertama. |
 | `git add .` / `git add -A` | menyapu berkas yang sesi lain sedang stage. Terjadi 2026-08-31: commit `5f3c9eda` — berjudul "sembilan keluhan CI…" — ikut menelan upgrade Expo milik sesi lain (11 paket, React 18→19, lock 2.247 baris) dan menyembunyikannya di balik pesan tentang seed proyek. **Yang membuatnya sulit dilihat: `git status` si penyapu BERSIH sesudah commit** — nol gejala dari sisinya, dan yang kehilangan baru tahu saat mencari kerjanya sendiri. **Selalu sebut BERKAS-nya:** `git add -- path/ke/berkas`. |
 
+⚠ **`git add -- <berkas>` yang BENAR pun tidak cukup.** Ditemukan
+2026-09-05, dan penyebabnya bukan perintah yang salah.
+
+Sesi A memakai `git add -- <berkas>` dengan benar, lalu memeriksa
+`git diff --cached` — satu berkas, sesuai harapan. Beberapa detik kemudian
+ia menjalankan `git commit`, dan commit itu memuat **tujuh** berkas: enam
+di antaranya milik sesi B, yang men-stage pekerjaannya di sela antara dua
+perintah itu.
+
+    git add -- berkas-saya          ← benar
+    git diff --cached               ← satu berkas, benar
+    (sesi lain men-stage di sini)
+    git commit                      ← mengambil TUJUH
+
+`git commit` mengambil seluruh indeks **pada saat ia berjalan**, bukan
+yang terlihat sebelumnya. Indeks git dibagi seluruh checkout, dan tak ada
+penguncian.
+
+**Jendela antara "memeriksa indeks" dan "mengirim" bukan milik satu sesi.**
+
+Yang menutupnya: cetak isinya di perintah yang SAMA dengan commit —
+
+```bash
+git add -- <berkas…>   && echo "── indeks TEPAT SEBELUM commit ──"   && git diff --cached --name-only   && git commit -m "…"
+```
+
+Keluarannya jadi bagian dari catatan commit itu sendiri, jadi selisih apa
+pun terlihat saat itu juga — bukan berhari-hari kemudian saat seseorang
+mencari kerjanya sendiri.
+
+⚠ **Dan satu perintah pemulihan yang menggigit balik:** `git restore
+--staged` TANPA pathspec melepas SELURUH indeks, bukan berkas yang
+dimaksud. Sebut jalurnya: `git restore --staged -- <berkas>`.
+
+
 **Yang benar:** pindah ke worktree sendiri. Repo ini sudah punya jalurnya —
 `.claude/worktrees/` dan `.worktrees/` berisi beberapa, dan `git worktree list`
 memperlihatkan siapa di mana.
