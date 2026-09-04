@@ -43,6 +43,7 @@ import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
+import { Pilihan } from "@/components/pilihan";
 
 type Keadaan = "untung" | "rugi" | "impas" | "tanpa_biaya" | "belum_mulai" | "tak_berlaku";
 
@@ -231,7 +232,7 @@ function kolomCvr(
     render: (b) => {
       const sedang = menyimpan === b.scope_id;
       return (
-        <select
+        <Pilihan
           aria-label={`Kategori RAB untuk ${b.scope_name}`}
           value={b.rab_category_id ?? ""}
           disabled={sedang || kategori.length === 0}
@@ -245,7 +246,7 @@ function kolomCvr(
         >
           <option value="">{kategori.length === 0 ? "— tak ada kategori RAB —" : "— belum dipilih —"}</option>
           {kategori.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
-        </select>
+        </Pilihan>
       );
     },
   },
@@ -429,7 +430,7 @@ export default function CvrPage() {
           fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
           marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
         }}>Proyek</label>
-        <select
+        <Pilihan
           id="cvr-proyek" value={projectId} onChange={(e) => setProjectId(e.target.value)}
           style={{
             padding: "8px 10px", borderRadius: 6, border: `1px solid ${C.border}`,
@@ -438,7 +439,7 @@ export default function CvrPage() {
         >
           <option value="">— pilih proyek —</option>
           {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
+        </Pilihan>
       </div>
 
       {!projectId ? (

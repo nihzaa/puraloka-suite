@@ -11,6 +11,7 @@ import { X, Upload, CheckCircle2, FileImage, Trash2, Banknote, Wallet } from "lu
 
 import { C } from "@/lib/warna-ui";
 import { PilihanKartu } from "@/components/pilihan-kartu";
+import { Pilihan } from "@/components/pilihan";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -330,7 +331,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
                 <label htmlFor="payment-method" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>
                   Metode Pembayaran
                 </label>
-                <select id="payment-method" aria-label="Metode pembayaran"
+                <Pilihan id="payment-method" aria-label="Metode pembayaran"
                   value={paymentMethod}
                   onChange={e => setPaymentMethod(e.target.value)}
                   style={{ ...inputStyle, background: "var(--surface)" }}
@@ -340,7 +341,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
                   <option value="qris">QRIS</option>
                   <option value="cek">Cek</option>
                   <option value="giro">Giro</option>
-                </select>
+                </Pilihan>
               </div>
 
               {/* Ref number + bank */}

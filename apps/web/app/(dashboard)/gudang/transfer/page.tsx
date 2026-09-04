@@ -27,6 +27,7 @@ import { useData, invalidasi } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, KepalaHalaman } from "@/components/dasar";
+import { Pilihan } from "@/components/pilihan";
 
 type Proyek = { id: string; name: string };
 type Material = { id: string; name: string; unit: string | null };
@@ -221,10 +222,10 @@ export default function TransferStokPage() {
             }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 240px", minWidth: 200 }}>
                 <label htmlFor="tr-asal" style={labelGaya}>Dari proyek</label>
-                <select id="tr-asal" value={asal} onChange={(e) => { setAsal(e.target.value); setMaterialId(""); }} style={isianGaya}>
+                <Pilihan id="tr-asal" value={asal} onChange={(e) => { setAsal(e.target.value); setMaterialId(""); }} style={isianGaya}>
                   <option value="">— pilih —</option>
                   {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
+                </Pilihan>
               </div>
 
               <ArrowRight
@@ -234,10 +235,10 @@ export default function TransferStokPage() {
 
               <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 240px", minWidth: 200 }}>
                 <label htmlFor="tr-tujuan" style={labelGaya}>Ke proyek</label>
-                <select id="tr-tujuan" value={tujuan} onChange={(e) => setTujuan(e.target.value)} style={isianGaya}>
+                <Pilihan id="tr-tujuan" value={tujuan} onChange={(e) => setTujuan(e.target.value)} style={isianGaya}>
                   <option value="">— pilih —</option>
                   {proyek.filter((p) => p.id !== asal).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
+                </Pilihan>
               </div>
 
             </div>
@@ -248,7 +249,7 @@ export default function TransferStokPage() {
             }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label htmlFor="tr-material" style={labelGaya}>Material</label>
-                <select id="tr-material" value={materialId} onChange={(e) => setMaterialId(e.target.value)} disabled={!asal} style={{ ...isianGaya, opacity: asal ? 1 : 0.6 }}>
+                <Pilihan id="tr-material" value={materialId} onChange={(e) => setMaterialId(e.target.value)} disabled={!asal} style={{ ...isianGaya, opacity: asal ? 1 : 0.6 }}>
                   <option value="">{asal ? "— pilih —" : "pilih proyek asal dulu"}</option>
                   {stok.filter((s) => idMaterial(s)).map((s) => (
                     <option key={idMaterial(s)} value={idMaterial(s)}>
@@ -256,7 +257,7 @@ export default function TransferStokPage() {
                       {s.material?.unit ? ` ${s.material.unit}` : ""}
                     </option>
                   ))}
-                </select>
+                </Pilihan>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>

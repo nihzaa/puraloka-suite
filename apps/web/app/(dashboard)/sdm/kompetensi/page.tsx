@@ -52,6 +52,7 @@ import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
 import { TabBagian } from "@/components/tab-bagian";
 import { Saklar } from "@/components/saklar";
+import { Pilihan } from "@/components/pilihan";
 
 type StatusSertifikat = "berlaku" | "akan_habis" | "kedaluwarsa";
 type TahapLamaran = "masuk" | "seleksi_berkas" | "wawancara" | "tawaran" | "diterima" | "ditolak";
@@ -448,7 +449,7 @@ export default function KompetensiPage() {
             fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
             marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
           }}>Pegawai</label>
-          <select
+          <Pilihan
             id="km-pegawai" value={pegawaiId} onChange={(e) => setPegawaiId(e.target.value)}
             style={{
               padding: "8px 10px", borderRadius: 6, border: `1px solid ${C.border}`,
@@ -462,7 +463,7 @@ export default function KompetensiPage() {
                 {p.jabatan ? ` — ${p.jabatan}` : ""}
               </option>
             ))}
-          </select>
+          </Pilihan>
         </div>
       )}
 
@@ -838,7 +839,7 @@ export default function KompetensiPage() {
               fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Tahap baru</label>
-            <select id="km-tahap" value={lTahap}
+            <Pilihan id="km-tahap" value={lTahap}
               onChange={(e) => setLTahap(e.target.value as TahapLamaran)}
               style={{
                 width: "100%", padding: "8px 10px", borderRadius: 6, fontSize: 13,
@@ -847,7 +848,7 @@ export default function KompetensiPage() {
             >
               {(["seleksi_berkas", "wawancara", "tawaran", "diterima", "ditolak"] as TahapLamaran[])
                 .map((t) => <option key={t} value={t}>{TAHAP[t].label}</option>)}
-            </select>
+            </Pilihan>
             <p style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
               Tahap boleh melompat maju, tapi <strong>tak bisa mundur</strong> —
               mundur menghapus jejak bahwa pelamar pernah sampai sejauh itu.
@@ -860,7 +861,7 @@ export default function KompetensiPage() {
                 fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
                 marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
               }}>Tautkan ke data pegawai <span style={{ color: "var(--danger)" }}>· wajib</span></label>
-              <select id="km-lpegawai" value={lPegawai}
+              <Pilihan id="km-lpegawai" value={lPegawai}
                 onChange={(e) => setLPegawai(e.target.value)}
                 style={{
                   width: "100%", padding: "8px 10px", borderRadius: 6, fontSize: 13,
@@ -873,7 +874,7 @@ export default function KompetensiPage() {
                     {p.nomor_induk ? `${p.nomor_induk} · ` : ""}{p.orang?.name ?? "(tanpa nama)"}
                   </option>
                 ))}
-              </select>
+              </Pilihan>
               <p style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
                 Buat dulu data kepegawaiannya, lalu tautkan di sini — lamaran
                 “diterima” tanpa pegawai tak bisa ditelusuri: siapa yang masuk?

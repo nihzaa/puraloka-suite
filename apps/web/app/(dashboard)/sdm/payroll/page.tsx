@@ -47,6 +47,7 @@ import { C } from "@/lib/warna-ui";
 import { KepalaHalaman, Tabel } from "@/components/dasar";
 import { Kosong } from "@/components/ui-dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
+import { Pilihan } from "@/components/pilihan";
 
 type StatusPeriode = "draf" | "dihitung" | "dikunci" | "dibatalkan";
 type JenisKomponen = "penghasilan" | "potongan" | "informasi";
@@ -280,7 +281,7 @@ export default function PayrollPage() {
               fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Periode</label>
-            <select
+            <Pilihan
               id="pr-periode" value={periodeId} onChange={(e) => setPeriodeId(e.target.value)}
               style={{
                 padding: "8px 10px", borderRadius: 6, border: `1px solid ${C.border}`,
@@ -292,7 +293,7 @@ export default function PayrollPage() {
                   {namaBulan(d.bulan)} — {STATUS[d.status].label}
                 </option>
               ))}
-            </select>
+            </Pilihan>
           </div>
         )}
 

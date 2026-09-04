@@ -38,6 +38,7 @@ import { C } from "@/lib/warna-ui";
 import {
   ModalDasar, TombolModal, KakiModal, gayaLabel, gayaInput, gayaGalat, pesanGalat,
 } from "@/components/modal-dasar";
+import { Pilihan } from "@/components/pilihan";
 
 export type AkunRingkas = {
   id: string; code: string; name: string; type: string;
@@ -134,12 +135,12 @@ export function ModalAkunBaru({ akun, onClose, onSukses }: {
 
       <div>
         <label htmlFor="ab-tipe" style={gayaLabel}>Tipe</label>
-        <select id="ab-tipe" value={tipe} style={gayaInput}
+        <Pilihan id="ab-tipe" value={tipe} style={gayaInput}
           onChange={(e) => gantiTipe(e.target.value)}>
           {TIPE.map((t) => (
             <option key={t.nilai} value={t.nilai}>{t.teks} — {t.jelas}</option>
           ))}
-        </select>
+        </Pilihan>
         <p style={{ fontSize: 11, color: C.muted, margin: "4px 0 0", lineHeight: 1.45 }}>
           <strong>Tipe tak bisa diubah sesudah akun dipakai.</strong> Ia menentukan
           akun ini muncul di neraca atau laba-rugi — menggesernya belakangan berarti
@@ -149,13 +150,13 @@ export function ModalAkunBaru({ akun, onClose, onSukses }: {
 
       <div>
         <label htmlFor="ab-induk" style={gayaLabel}>Induk (opsional)</label>
-        <select id="ab-induk" value={induk} style={gayaInput}
+        <Pilihan id="ab-induk" value={induk} style={gayaInput}
           onChange={(e) => setInduk(e.target.value)}>
           <option value="">— tanpa induk —</option>
           {indukTersedia.map((a) => (
             <option key={a.id} value={a.id}>{a.code} — {a.name}</option>
           ))}
-        </select>
+        </Pilihan>
         <p style={{ fontSize: 11, color: C.muted, margin: "4px 0 0", lineHeight: 1.45 }}>
           Hanya akun bertipe sama yang bisa jadi induk. Induk bertipe beda membuat
           laporan menjumlahkan aset ke dalam beban.
@@ -258,12 +259,12 @@ export function ModalStatusInvoice({ invoice, onClose, onSukses }: {
       judul={`Status ${invoice.invoice_number}`}>
       <div>
         <label htmlFor="si-status" style={gayaLabel}>Status</label>
-        <select id="si-status" value={status} style={gayaInput}
+        <Pilihan id="si-status" value={status} style={gayaInput}
           onChange={(e) => setStatus(e.target.value)}>
           {STATUS_INVOICE.map((s) => (
             <option key={s.nilai} value={s.nilai}>{s.teks} — {s.jelas}</option>
           ))}
-        </select>
+        </Pilihan>
       </div>
 
       <p style={{ margin: 0, fontSize: 11.5, color: C.muted, lineHeight: 1.5 }}>

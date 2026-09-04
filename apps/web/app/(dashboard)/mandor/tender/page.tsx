@@ -47,6 +47,7 @@ import { DialogBersama } from "@/components/dialog-bersama";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
+import { Pilihan } from "@/components/pilihan";
 
 type Proyek = { id: string; name: string };
 
@@ -564,7 +565,7 @@ export default function TenderSubkonPage() {
               <label htmlFor="tnd-pilih" style={{ fontSize: 12, fontWeight: 600, color: C.mid }}>
                 Tender
               </label>
-              <select
+              <Pilihan
                 id="tnd-pilih" value={idEfektif}
                 onChange={(e) => setTerpilih(e.target.value)}
                 style={{
@@ -581,7 +582,7 @@ export default function TenderSubkonPage() {
                       : `${jumlahPenawaran(t)} penawaran`}
                   </option>
                 ))}
-              </select>
+              </Pilihan>
             </div>
 
             <button

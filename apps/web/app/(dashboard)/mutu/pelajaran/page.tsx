@@ -42,6 +42,7 @@ import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { Tabel, type Kolom, KepalaHalaman } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
 import { formatRupiah } from "@/lib/format";
+import { Pilihan } from "@/components/pilihan";
 
 type Proyek = { id: string; name: string };
 
@@ -445,10 +446,10 @@ export default function PelajaranPage() {
         <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 4, gridColumn: "1 / -1" }}>
             <label htmlFor="pl-proyek" style={labelGaya}>Proyek</label>
-            <select id="pl-proyek" value={fProyek} onChange={(e) => setFProyek(e.target.value)} style={isianGaya}>
+            <Pilihan id="pl-proyek" value={fProyek} onChange={(e) => setFProyek(e.target.value)} style={isianGaya}>
               <option value="">— pilih —</option>
               {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            </Pilihan>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 4, gridColumn: "1 / -1" }}>
@@ -515,7 +516,7 @@ export default function PelajaranPage() {
 
             <div style={{ display: "flex", flexDirection: "column", gap: 4, gridColumn: "1 / -1" }}>
               <label htmlFor="pl-resource" style={labelGaya}>Resource yang harganya perlu diubah</label>
-              <select id="pl-resource" value={fResource}
+              <Pilihan id="pl-resource" value={fResource}
                 onChange={(e) => setFResource(e.target.value)} style={isianGaya}>
                 <option value="">— pilih —</option>
                 {resources.map((r) => (
@@ -523,7 +524,7 @@ export default function PelajaranPage() {
                     {r.name}{r.unit_code ? ` (${r.unit_code})` : ""} · {r.code}
                   </option>
                 ))}
-              </select>
+              </Pilihan>
               {galatResource ? (
                 <span role="alert" style={{ fontSize: 11, color: "var(--danger)", lineHeight: 1.45 }}>
                   {galatResource}

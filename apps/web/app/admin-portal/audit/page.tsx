@@ -41,6 +41,7 @@ import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import type { RespAudit, RespAuditMeta, GalatApi } from "../_bersama/tipe";
 import { pesanGalat } from "../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 const LABEL_AKSI: Record<string, string> = {
   INSERT: "Dibuat", UPDATE: "Diubah", DELETE: "Dihapus",
@@ -100,10 +101,10 @@ export default function AdminAuditPage() {
           <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>
             Tabel
           </span>
-          <select value={tabel} onChange={(e) => setTabel(e.target.value)} style={isian}>
+          <Pilihan value={tabel} onChange={(e) => setTabel(e.target.value)} style={isian}>
             <option value="">Semua tabel</option>
             {dataMeta!.tables.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
+          </Pilihan>
         </label>
       )}
 

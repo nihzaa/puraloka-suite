@@ -38,6 +38,7 @@ import { C } from "@/lib/warna-ui";
 import {
   ModalDasar, TombolModal, KakiModal, gayaLabel, gayaInput, gayaGalat, pesanGalat,
 } from "@/components/modal-dasar";
+import { Pilihan } from "@/components/pilihan";
 
 export type Hitung = {
   subtotal: number; diskon: number; dpp: number; ppn: number;
@@ -513,12 +514,12 @@ export function ModalStatusPenawaran({ penawaran, onClose, onSukses }: {
       judul={`Status ${penawaran.nomor}`}>
       <div>
         <label htmlFor="stp-status" style={gayaLabel}>Status</label>
-        <select id="stp-status" value={status} style={gayaInput}
+        <Pilihan id="stp-status" value={status} style={gayaInput}
           onChange={(e) => setStatus(e.target.value)}>
           {STATUS.map((s) => (
             <option key={s.nilai} value={s.nilai}>{s.teks} — {s.jelas}</option>
           ))}
-        </select>
+        </Pilihan>
       </div>
 
       {status === "terkirim" && penawaran.status === "draft" && (

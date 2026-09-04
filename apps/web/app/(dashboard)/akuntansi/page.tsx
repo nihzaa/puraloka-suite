@@ -43,6 +43,7 @@ import { Kosong } from "@/components/ui-dasar";
 import { GAYA_ISIAN } from "@/components/isian";
 import { formatRupiah } from "@/lib/format";
 import { minta } from "@/components/tanya";
+import { Pilihan } from "@/components/pilihan";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: `1px solid ${C.border}`,
@@ -731,7 +732,7 @@ function ModalJurnal({
               }}>
                 <div>
                   {i === 0 && <label htmlFor={`jv-akun-${i}`} style={labelStyle}>Akun</label>}
-                  <select className="isian-fokus"
+                  <Pilihan className="isian-fokus"
                     id={`jv-akun-${i}`}
                     aria-label={`Akun baris ${i + 1}`}
                     value={b.account_id}
@@ -742,11 +743,11 @@ function ModalJurnal({
                     {akunPosting.map(a => (
                       <option key={a.id} value={a.id}>{a.code} · {a.name}</option>
                     ))}
-                  </select>
+                  </Pilihan>
                 </div>
                 <div>
                   {i === 0 && <label htmlFor={`jv-sisi-${i}`} style={labelStyle}>Sisi</label>}
-                  <select className="isian-fokus"
+                  <Pilihan className="isian-fokus"
                     id={`jv-sisi-${i}`}
                     aria-label={`Sisi baris ${i + 1}`}
                     value={b.sisi}
@@ -755,7 +756,7 @@ function ModalJurnal({
                   >
                     <option value="debit">Debit</option>
                     <option value="credit">Kredit</option>
-                  </select>
+                  </Pilihan>
                 </div>
                 <div>
                   {i === 0 && <label htmlFor={`jv-jml-${i}`} style={labelStyle}>Jumlah</label>}

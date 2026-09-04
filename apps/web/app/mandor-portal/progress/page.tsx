@@ -43,6 +43,7 @@ import KepalaPortal from "@/components/portal/KepalaPortal";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import { antrekan as antrekanFoto, tautkanKeLog, companyAktif } from "@/lib/antrean-foto";
+import { Pilihan } from "@/components/pilihan";
 
 function fmtDate(s: string | null) {
   if (!s) return "—";
@@ -398,7 +399,7 @@ export default function MandorProgressPage() {
       {/* Project selector for log history */}
       <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Riwayat proyek</span>
-        <select
+        <Pilihan
           aria-label="Proyek"
           value={projectId}
           onChange={(e) => { setProjectId(e.target.value); loadLogs(e.target.value); }}
@@ -409,7 +410,7 @@ export default function MandorProgressPage() {
         >
           <option value="">Pilih proyek untuk lihat history</option>
           {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
+        </Pilihan>
       </label>
 
       {loading && (
@@ -471,7 +472,7 @@ export default function MandorProgressPage() {
             <label htmlFor="project-id" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
               Proyek *
             </label>
-            <select
+            <Pilihan
               id="project-id"
               aria-label="Proyek"
               value={projectId}
@@ -485,7 +486,7 @@ export default function MandorProgressPage() {
             >
               <option value="">Pilih proyek...</option>
               {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            </Pilihan>
           </div>
 
           {projectScopes.length > 0 && (
@@ -493,7 +494,7 @@ export default function MandorProgressPage() {
               <label htmlFor="scope-id" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
                 Scope (opsional)
               </label>
-              <select
+              <Pilihan
                 id="scope-id"
                 aria-label="Pilih lingkup pekerjaan"
                 value={scopeId}
@@ -506,7 +507,7 @@ export default function MandorProgressPage() {
               >
                 <option value="">Semua scope</option>
                 {projectScopes.map((s) => <option key={s.id} value={s.id}>{s.scope_name}</option>)}
-              </select>
+              </Pilihan>
             </div>
           )}
 
@@ -531,7 +532,7 @@ export default function MandorProgressPage() {
               <label htmlFor="weather" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
                 Cuaca
               </label>
-              <select
+              <Pilihan
                 id="weather"
                 aria-label="Cuaca hari ini"
                 value={weather}
@@ -543,7 +544,7 @@ export default function MandorProgressPage() {
                 }}
               >
                 {WEATHER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+              </Pilihan>
             </div>
           </div>
 

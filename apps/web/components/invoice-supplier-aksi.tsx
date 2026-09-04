@@ -31,6 +31,7 @@ import { C } from "@/lib/warna-ui";
 import {
   ModalDasar, TombolModal, KakiModal, gayaLabel, gayaInput, gayaGalat, pesanGalat,
 } from "@/components/modal-dasar";
+import { Pilihan } from "@/components/pilihan";
 
 const rupiah = (n: number) => "Rp " + Math.round(n).toLocaleString("id-ID");
 
@@ -100,7 +101,7 @@ export function ModalInvoiceSupplier({ onClose, onSukses }: {
     <ModalDasar judulId="judul-inv-sup" judul="Catat Invoice Supplier" lebar={560} onClose={onClose}>
       <div>
         <label htmlFor="is-gr" style={gayaLabel}>Penerimaan barang (GR)</label>
-        <select id="is-gr" value={grId} style={gayaInput} disabled={memuat}
+        <Pilihan id="is-gr" value={grId} style={gayaInput} disabled={memuat}
           onChange={(e) => setGrId(e.target.value)}>
           <option value="">{memuat ? "memuat…" : "— pilih penerimaan barang —"}</option>
           {gr.map((g) => (
@@ -109,7 +110,7 @@ export function ModalInvoiceSupplier({ onClose, onSukses }: {
               {g.project?.name ? ` · ${g.project.name}` : ""}
             </option>
           ))}
-        </select>
+        </Pilihan>
         <p style={{ margin: "5px 0 0", fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
           <strong>Wajib.</strong> Invoice tanpa penerimaan barang adalah tagihan atas
           barang yang tak pernah tercatat diterima — 3-way match PO–GR–Invoice.

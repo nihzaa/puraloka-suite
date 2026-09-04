@@ -57,6 +57,7 @@ import {
   Halaman, KepalaHalaman, Kartu, Rangka, Galat, gayaInput,
 } from "@/components/dasar";
 import { TombolUnduh } from "@/components/tombol-unduh";
+import { Pilihan } from "@/components/pilihan";
 
 interface Proyek { id: string; name: string }
 
@@ -140,7 +141,7 @@ export default function HalamanRk3k() {
               fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Proyek</label>
-            <select
+            <Pilihan
               id="rk3k-pilih-proyek" value={proyekId}
               onChange={(e) => setProyekId(e.target.value)}
               style={{ ...gayaInput, maxWidth: 420 }}
@@ -150,7 +151,7 @@ export default function HalamanRk3k() {
               {proyekList.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
-            </select>
+            </Pilihan>
           </div>
 
           <TombolUnduh

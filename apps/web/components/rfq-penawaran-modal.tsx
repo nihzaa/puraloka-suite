@@ -44,6 +44,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { DialogBersama } from "@/components/dialog-bersama";
+import { Pilihan } from "@/components/pilihan";
 
 type Supplier = { id: string; name: string };
 type Material = { id: string; name: string; unit: string | null };
@@ -233,11 +234,11 @@ export function RfqPenawaranModal({
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 260, flex: 1 }}>
           <label htmlFor="pen-vendor" style={label}>Vendor</label>
-          <select id="pen-vendor" value={vendorId} style={isian}
+          <Pilihan id="pen-vendor" value={vendorId} style={isian}
             onChange={(e) => { setVendorId(e.target.value); setGalat(null); }}>
             <option value="">— pilih vendor —</option>
             {supplier.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
+          </Pilihan>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 4, width: 170 }}>
@@ -281,7 +282,7 @@ export function RfqPenawaranModal({
             return (
               <tr key={b.kunci}>
                 <td style={{ padding: "3px 6px 3px 0" }}>
-                  <select
+                  <Pilihan
                     value={b.material_id} style={isian}
                     aria-label={`Material baris ${i + 1}`}
                     onChange={(e) => { ubah(b.kunci, { material_id: e.target.value }); setGalat(null); }}
@@ -292,7 +293,7 @@ export function RfqPenawaranModal({
                         {m.name}{m.unit ? ` (${m.unit})` : ""}
                       </option>
                     ))}
-                  </select>
+                  </Pilihan>
                 </td>
                 <td style={{ padding: "3px 6px" }}>
                   <input

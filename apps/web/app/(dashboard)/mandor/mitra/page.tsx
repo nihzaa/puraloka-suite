@@ -42,6 +42,7 @@ import { LayarKosong } from "@/components/layar-kosong";
 import { Plus, RefreshCw, Search, Ban, ShieldCheck, Building2, User } from "lucide-react";
 import { C } from "@/lib/warna-ui";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
+import { Pilihan } from "@/components/pilihan";
 
 interface Mitra {
   id: string;
@@ -255,19 +256,19 @@ export default function MitraPage() {
 
         <label>
           <span className="sr-only">Saring bentuk mitra</span>
-          <select aria-label="Saring bentuk mitra" value={bentuk} onChange={(e) => setBentuk(e.target.value)} style={{
+          <Pilihan aria-label="Saring bentuk mitra" value={bentuk} onChange={(e) => setBentuk(e.target.value)} style={{
             padding: "7px 10px", fontSize: 13, border: `1px solid ${C.border}`,
             borderRadius: 7, background: C.surface, color: C.text,
           }}>
             <option value="">Semua bentuk</option>
             <option value="orang">Orang</option>
             <option value="badan_usaha">Badan usaha</option>
-          </select>
+          </Pilihan>
         </label>
 
         <label>
           <span className="sr-only">Saring status mitra</span>
-          <select aria-label="Saring status mitra" value={status} onChange={(e) => setStatus(e.target.value)} style={{
+          <Pilihan aria-label="Saring status mitra" value={status} onChange={(e) => setStatus(e.target.value)} style={{
             padding: "7px 10px", fontSize: 13, border: `1px solid ${C.border}`,
             borderRadius: 7, background: C.surface, color: C.text,
           }}>
@@ -275,7 +276,7 @@ export default function MitraPage() {
             <option value="aktif">Aktif</option>
             <option value="nonaktif">Nonaktif</option>
             <option value="hitam">Daftar hitam</option>
-          </select>
+          </Pilihan>
         </label>
 
         <button type="button" onClick={() => muatUlang()} style={{
@@ -433,7 +434,7 @@ function FormMitra({ awal, menyimpan, tutup, simpan }: {
 
         <label style={{ display: "block", marginBottom: 10 }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: C.mid }}>Bentuk</span>
-          <select
+          <Pilihan
             aria-label="Bentuk mitra"
             value={isi.bentuk ?? "orang"}
             // Bentuk TIDAK bisa diubah sesudah tersimpan: mengubahnya berarti
@@ -449,7 +450,7 @@ function FormMitra({ awal, menyimpan, tutup, simpan }: {
           >
             <option value="orang">Orang — mandor borongan, tukang</option>
             <option value="badan_usaha">Badan usaha — PT / CV / UD</option>
-          </select>
+          </Pilihan>
           {awal.id && (
             <span style={{ fontSize: 11, color: C.muted, display: "block", marginTop: 3 }}>
               Bentuk tak bisa diubah — kontrak yang sudah terbit menyebutnya.

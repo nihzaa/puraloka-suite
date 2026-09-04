@@ -48,6 +48,7 @@ import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
+import { Pilihan } from "@/components/pilihan";
 import {
   Halaman, KepalaHalaman, Kartu, JudulKartu, KartuAngka, BarisAngka,
   Tabel, Kosong, Rangka, Galat, Tombol, Lencana, Medan, gayaInput,
@@ -403,7 +404,7 @@ function IsiSengketa() {
           fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
           marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
         }}>Proyek</label>
-        <select
+        <Pilihan
           id="sg-proyek" value={proyekId} onChange={(e) => setProyekId(e.target.value)}
           style={{ ...gayaInput, maxWidth: 420 }}
         >
@@ -411,7 +412,7 @@ function IsiSengketa() {
           {proyekList.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
-        </select>
+        </Pilihan>
       </Kartu>
 
       {r && r.total > 0 && (
@@ -549,7 +550,7 @@ function IsiSengketa() {
             ? "Belum ada klaim yang ditolak atau gugur di proyek ini — sengketa boleh dicatat tanpa klaim (mis. sengketa lahan)."
             : "Menautkan klaim membuat nilai dan tanggal kejadiannya tak perlu diketik ulang."}
           anak={
-            <select id="sg-klaim" value={fKlaim}
+            <Pilihan id="sg-klaim" value={fKlaim}
               onChange={(e) => setFKlaim(e.target.value)} style={gayaInput}
               disabled={klaim.length === 0}>
               <option value="">— tanpa klaim —</option>
@@ -558,7 +559,7 @@ function IsiSengketa() {
                   {k.claim_number} — {k.title} ({k.status})
                 </option>
               ))}
-            </select>
+            </Pilihan>
           }
         />
         <Medan id="sg-dasar" label="Dasar hukum"
@@ -624,7 +625,7 @@ function IsiSengketa() {
 
         <Medan id="sg-tahap" label="Tahap berikutnya"
           anak={
-            <select id="sg-tahap" value={pTahap}
+            <Pilihan id="sg-tahap" value={pTahap}
               onChange={(e) => setPTahap(e.target.value as StatusSengketa)}
               style={gayaInput}>
               {/* Hanya tahap MAJU yang ditawarkan. Menawarkan yang mundur lalu
@@ -633,7 +634,7 @@ function IsiSengketa() {
               {lanjutan.map((t) => (
                 <option key={t} value={t}>{TAHAP[t].label}</option>
               ))}
-            </select>
+            </Pilihan>
           }
         />
         <p style={{ fontSize: 12, color: C.mid, margin: "-4px 0 12px", lineHeight: 1.5 }}>

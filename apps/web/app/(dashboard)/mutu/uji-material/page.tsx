@@ -40,6 +40,7 @@ import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
+import { Pilihan } from "@/components/pilihan";
 
 type Kesimpulan = "memenuhi" | "tidak_memenuhi" | "perlu_uji_ulang";
 
@@ -263,7 +264,7 @@ export default function UjiMaterialPage() {
           fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
           marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
         }}>Proyek</label>
-        <select
+        <Pilihan
           id="uji-proyek" value={projectId} onChange={(e) => setProjectId(e.target.value)}
           style={{
             padding: "8px 10px", borderRadius: 6, border: `1px solid ${C.border}`,
@@ -272,7 +273,7 @@ export default function UjiMaterialPage() {
         >
           <option value="">— pilih proyek —</option>
           {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
+        </Pilihan>
       </div>
 
       {!projectId ? (

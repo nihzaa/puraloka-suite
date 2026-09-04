@@ -38,6 +38,7 @@ import type {
   RespMaterialDaftar, RespSupplierDaftar, MaterialRingkas,
 } from "../_bersama/tipe";
 import { pesanGalat } from "../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 interface RespProyek { projects: ProyekPM[] }
 
@@ -108,10 +109,10 @@ export default function PmProcurementPage() {
       {daftarProyek.length > 1 && (
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek</span>
-          <select value={proyekAktif} onChange={(e) => setProyekId(e.target.value)}
+          <Pilihan value={proyekAktif} onChange={(e) => setProyekId(e.target.value)}
             style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}>
             {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          </Pilihan>
         </label>
       )}
 
@@ -247,12 +248,12 @@ function SheetBuatMr({ terbuka, onTutup, proyekId, material }: { terbuka: boolea
         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Item</div>
         {items.map((it, i) => (
           <div key={i} style={{ display: "flex", flexDirection: "column", gap: 8, padding: 10, borderRadius: 12, background: "var(--surface-subtle)" }}>
-            <select value={it.material_id} onChange={(e) => ubahBaris(i, { material_id: e.target.value })}
+            <Pilihan value={it.material_id} onChange={(e) => ubahBaris(i, { material_id: e.target.value })}
               aria-label={`Material item ${i + 1}`}
               style={{ minHeight: 44, padding: "0 10px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13, background: "var(--surface)" }}>
               <option value="">Pilih material…</option>
               {material.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>)}
-            </select>
+            </Pilihan>
             <div style={{ display: "flex", gap: 8 }}>
               <input type="number" min="0" step="0.01" value={it.qty} onChange={(e) => ubahBaris(i, { qty: e.target.value })}
                 placeholder="Qty" aria-label={`Kuantitas item ${i + 1}`}
@@ -336,11 +337,11 @@ function SheetBuatPo({ terbuka, onTutup, proyekId, supplier }: { terbuka: boolea
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
           Supplier
-          <select value={supplierId} onChange={(e) => setSupplierId(e.target.value)}
+          <Pilihan value={supplierId} onChange={(e) => setSupplierId(e.target.value)}
             style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 10px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13, background: "var(--surface)" }}>
             <option value="">Pilih supplier…</option>
             {supplier.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
+          </Pilihan>
         </label>
         <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
           Estimasi kirim
@@ -351,12 +352,12 @@ function SheetBuatPo({ terbuka, onTutup, proyekId, supplier }: { terbuka: boolea
         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Item</div>
         {items.map((it, i) => (
           <div key={i} style={{ display: "flex", flexDirection: "column", gap: 8, padding: 10, borderRadius: 12, background: "var(--surface-subtle)" }}>
-            <select value={it.material_id} onChange={(e) => ubahBaris(i, { material_id: e.target.value })}
+            <Pilihan value={it.material_id} onChange={(e) => ubahBaris(i, { material_id: e.target.value })}
               aria-label={`Material item ${i + 1}`}
               style={{ minHeight: 44, padding: "0 10px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13, background: "var(--surface)" }}>
               <option value="">Pilih material…</option>
               {material.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>)}
-            </select>
+            </Pilihan>
             <div style={{ display: "flex", gap: 8 }}>
               <input type="number" min="0" step="0.01" value={it.qty} onChange={(e) => ubahBaris(i, { qty: e.target.value })}
                 placeholder="Qty" aria-label={`Kuantitas item ${i + 1}`}

@@ -46,6 +46,7 @@ import { useKasbonPurposes } from "@/lib/use-kasbon-purposes";
 import { uploadKasbonPhoto } from "@/lib/storage";
 import { C } from "@/lib/warna-ui";
 import { Tabel } from "@/components/dasar";
+import { Pilihan } from "@/components/pilihan";
 import {
   type Assignment, type Worker, type WorkerKasbon, type WageItem,
   type WageReportDetail, type MandorScope, type ScopeDetail,
@@ -295,12 +296,12 @@ export function CreateWageReportModal({ onClose, onSuccess }: {
                   Belum ada assignment mandor aktif. Assign mandor ke proyek terlebih dahulu di halaman detail proyek.
                 </div>
               ) : (
-                <select className="isian-fokus" aria-label="Pilih penugasan proyek" value={assignmentId} onChange={e => { setAssignmentId(e.target.value); setScopeId(""); }} style={GAYA_ISIAN}>
+                <Pilihan className="isian-fokus" aria-label="Pilih penugasan proyek" value={assignmentId} onChange={e => { setAssignmentId(e.target.value); setScopeId(""); }} style={GAYA_ISIAN}>
                   <option value="">-- Pilih mandor & proyek --</option>
                   {assignments.map(a => (
                     <option key={a.id} value={a.id}>{a.mandor?.name} — {a.project?.name}</option>
                   ))}
-                </select>
+                </Pilihan>
               )}
           </div>
 
@@ -314,12 +315,12 @@ export function CreateWageReportModal({ onClose, onSuccess }: {
                   Belum ada scope — tambahkan di detail proyek.
                 </div>
               ) : (
-                <select className="isian-fokus" aria-label="Pilih lingkup pekerjaan" value={scopeId} onChange={e => setScopeId(e.target.value)} style={GAYA_ISIAN}>
+                <Pilihan className="isian-fokus" aria-label="Pilih lingkup pekerjaan" value={scopeId} onChange={e => setScopeId(e.target.value)} style={GAYA_ISIAN}>
                   <option value="">-- Pilih scope --</option>
                   {availableScopes.map(s => (
                     <option key={s.id} value={s.id}>{s.scope_name} ({PAYMENT_SYSTEM[s.payment_system]})</option>
                   ))}
-                </select>
+                </Pilihan>
               )}
             </div>
             <div>
@@ -428,19 +429,19 @@ export function CreateWageReportModal({ onClose, onSuccess }: {
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
                         {/* Nama: search dari pekerja di baris items */}
-                        <select className="isian-fokus" aria-label="Pilih tukang" value={d.worker_name} onChange={e => updateDeduction(i, "worker_name", e.target.value)} style={{ ...GAYA_ISIAN, background: "var(--surface)" }}>
+                        <Pilihan className="isian-fokus" aria-label="Pilih tukang" value={d.worker_name} onChange={e => updateDeduction(i, "worker_name", e.target.value)} style={{ ...GAYA_ISIAN, background: "var(--surface)" }}>
                           <option value="">-- Pilih pekerja --</option>
                           {items.filter(it => it.worker_name.trim()).map((it, idx) => (
                             <option key={idx} value={it.worker_name}>{it.worker_name}</option>
                           ))}
-                        </select>
+                        </Pilihan>
                         {/* Kasbon aktif (opsional) */}
-                        <select className="isian-fokus" aria-label="Pilih kasbon yang dipotong" value={d.worker_kasbon_id} onChange={e => onKasbonSelect(i, e.target.value)} style={{ ...GAYA_ISIAN, background: "var(--surface)" }}>
+                        <Pilihan className="isian-fokus" aria-label="Pilih kasbon yang dipotong" value={d.worker_kasbon_id} onChange={e => onKasbonSelect(i, e.target.value)} style={{ ...GAYA_ISIAN, background: "var(--surface)" }}>
                           <option value="">-- Link kasbon (opsional) --</option>
                           {projectKasbons.filter(k => !k.is_settled).map(k => (
                             <option key={k.id} value={k.id}>{k.worker?.name} — sisa {fmt(k.amount - k.amount_settled)}</option>
                           ))}
-                        </select>
+                        </Pilihan>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 6 }}>
                         <input className="isian-fokus" placeholder="Keterangan (mis: Cicilan kasbon Ade)" value={d.label} onChange={e => updateDeduction(i, "label", e.target.value)} style={{ ...GAYA_ISIAN, background: "var(--surface)" }} />
@@ -739,13 +740,13 @@ export function WageReportDetailModal({ data, onClose, onApprove }: {
                     </div>
                     <div>
                       <label htmlFor="cash-account-id" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Sumber Kas <span style={{ color: C.red }}>*</span></label>
-                      <select id="cash-account-id" aria-label="Sumber kas pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)}
+                      <Pilihan id="cash-account-id" aria-label="Sumber kas pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)}
                         style={{ width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                         <option value="">— Tidak dari kas —</option>
                         {cashAccounts.map(a => (
                           <option key={a.id} value={a.id}>{a.name} (Rp {Number(a.balance).toLocaleString("id-ID")})</option>
                         ))}
-                      </select>
+                      </Pilihan>
                     </div>
                   </div>
                   {cashAccountId && (() => {
@@ -866,10 +867,10 @@ export function WorkerFormModal({ mandorId: initialMandorId, mandorName: initial
           {!initialMandorId && !isEdit && (
             <div>
               <label htmlFor="mandor-id" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Mandor <span style={{ color: C.red }}>*</span></label>
-              <select className="isian-fokus" id="mandor-id" aria-label="Mandor" value={mandorId} onChange={e => setMandorId(e.target.value)} style={GAYA_ISIAN}>
+              <Pilihan className="isian-fokus" id="mandor-id" aria-label="Mandor" value={mandorId} onChange={e => setMandorId(e.target.value)} style={GAYA_ISIAN}>
                 <option value="">-- Pilih mandor --</option>
                 {mandorOptions.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </select>
+              </Pilihan>
             </div>
           )}
 
@@ -880,12 +881,12 @@ export function WorkerFormModal({ mandorId: initialMandorId, mandorName: initial
 
           <div>
             <label htmlFor="tipe" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tipe (opsional)</label>
-            <select className="isian-fokus" id="tipe" aria-label="Tipe pekerja" value={tipe} onChange={e => setTipe(e.target.value)} style={GAYA_ISIAN}>
+            <Pilihan className="isian-fokus" id="tipe" aria-label="Tipe pekerja" value={tipe} onChange={e => setTipe(e.target.value)} style={GAYA_ISIAN}>
               <option value="">-- Tidak ditentukan --</option>
               <option value="tukang">Tukang</option>
               <option value="laden">Laden</option>
               <option value="kenek">Kenek</option>
-            </select>
+            </Pilihan>
           </div>
 
           <div>
@@ -1041,17 +1042,17 @@ export function AddKasbonModal({ assignments, onClose, onSuccess }: {
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <label htmlFor="assignment-id" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Mandor / Proyek <span style={{ color: C.red }}>*</span></label>
-            <select className="isian-fokus" id="assignment-id" aria-label="Pilih penugasan proyek" value={assignmentId} onChange={e => setAssignmentId(e.target.value)} style={GAYA_ISIAN}>
+            <Pilihan className="isian-fokus" id="assignment-id" aria-label="Pilih penugasan proyek" value={assignmentId} onChange={e => setAssignmentId(e.target.value)} style={GAYA_ISIAN}>
               <option value="">-- Pilih mandor --</option>
               {assignments.map(a => <option key={a.id} value={a.id}>{a.mandor?.name} — {a.project?.name}</option>)}
-            </select>
+            </Pilihan>
           </div>
           <div>
             <label htmlFor="worker-id" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tukang <span style={{ color: C.red }}>*</span></label>
-            <select className="isian-fokus" id="worker-id" aria-label="Tukang penerima kasbon" value={workerId} onChange={e => setWorkerId(e.target.value)} style={GAYA_ISIAN} disabled={!assignmentId}>
+            <Pilihan className="isian-fokus" id="worker-id" aria-label="Tukang penerima kasbon" value={workerId} onChange={e => setWorkerId(e.target.value)} style={GAYA_ISIAN} disabled={!assignmentId}>
               <option value="">-- Pilih tukang --</option>
               {workers.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-            </select>
+            </Pilihan>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
@@ -1065,11 +1066,11 @@ export function AddKasbonModal({ assignments, onClose, onSuccess }: {
           </div>
           <div>
             <label htmlFor="purpose" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tujuan</label>
-            <select className="isian-fokus" id="purpose" aria-label="Tujuan kasbon tukang" value={purpose} onChange={e => setPurpose(e.target.value)} style={GAYA_ISIAN}>
+            <Pilihan className="isian-fokus" id="purpose" aria-label="Tujuan kasbon tukang" value={purpose} onChange={e => setPurpose(e.target.value)} style={GAYA_ISIAN}>
               <option value="gaji_tukang">Gaji Tukang</option>
               <option value="uang_makan">Uang Makan</option>
               <option value="lain_lain">Lain-lain</option>
-            </select>
+            </Pilihan>
           </div>
           <div>
             <label htmlFor="notes-2" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Catatan</label>
@@ -1228,12 +1229,12 @@ export function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () =>
             {projects.length === 0 ? (
               <div style={{ ...GAYA_ISIAN, color: C.muted }}>Memuat...</div>
             ) : (
-              <select className="isian-fokus" aria-label="Proyek" value={projectId} onChange={e => { setProjectId(e.target.value); setScopeId(""); }} style={GAYA_ISIAN} required>
+              <Pilihan className="isian-fokus" aria-label="Proyek" value={projectId} onChange={e => { setProjectId(e.target.value); setScopeId(""); }} style={GAYA_ISIAN} required>
                 <option value="">-- Pilih proyek --</option>
                 {projects.map(p => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
-              </select>
+              </Pilihan>
             )}
           </div>
 
@@ -1246,7 +1247,7 @@ export function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () =>
             <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>
               Kosongkan jika kasbon bersifat umum dan tidak terikat scope tertentu.
             </div>
-            <select className="isian-fokus"
+            <Pilihan className="isian-fokus"
               aria-label="Work scope yang dibebani kasbon (opsional)"
               value={scopeId}
               onChange={e => setScopeId(e.target.value)}
@@ -1257,7 +1258,7 @@ export function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () =>
               {filteredScopes.map(s => (
                 <option key={s.id} value={s.id}>{s.scope_name}</option>
               ))}
-            </select>
+            </Pilihan>
           </div>
 
           {/* Nominal + Tanggal */}
@@ -1287,19 +1288,19 @@ export function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () =>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
               <label htmlFor="purpose-2" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Keperluan <span style={{ color: C.red }}>*</span></label>
-              <select className="isian-fokus" id="purpose-2" aria-label="Keperluan kasbon mandor" value={purpose} onChange={e => setPurpose(e.target.value)} style={GAYA_ISIAN}>
+              <Pilihan className="isian-fokus" id="purpose-2" aria-label="Keperluan kasbon mandor" value={purpose} onChange={e => setPurpose(e.target.value)} style={GAYA_ISIAN}>
                 {(kasbonPurposes.length > 0
                   ? kasbonPurposes.map(p => [p.code, p.label] as [string, string])
                   : [["gaji_tukang", "Gaji Tukang"], ["uang_makan", "Uang Makan"], ["pembelian_alat", "Pembelian Alat"], ["operasional", "Operasional"], ["lain_lain", "Lain-lain"]] as [string, string][]
                 ).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
-              </select>
+              </Pilihan>
             </div>
             <div>
               <label htmlFor="sumber-dana-kasbon" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Sumber Dana <span style={{ color: C.red }}>*</span></label>
-              <select className="isian-fokus" id="sumber-dana-kasbon" value={fundSource} onChange={e => setFundSource(e.target.value)} style={GAYA_ISIAN}>
+              <Pilihan className="isian-fokus" id="sumber-dana-kasbon" value={fundSource} onChange={e => setFundSource(e.target.value)} style={GAYA_ISIAN}>
                 <option value="owner_advance">Dana Owner</option>
                 <option value="client_fund">Dana Klien</option>
-              </select>
+              </Pilihan>
             </div>
           </div>
 
@@ -1404,17 +1405,17 @@ export function AddAssignmentModal({ mandors, onClose, onSuccess }: {
           {error && <div style={{ padding: "8px 12px", borderRadius: 6, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
           <div>
             <label htmlFor="project-id" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Proyek</label>
-            <select className="isian-fokus" id="project-id" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={GAYA_ISIAN} required>
+            <Pilihan className="isian-fokus" id="project-id" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={GAYA_ISIAN} required>
               <option value="">-- Pilih proyek --</option>
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            </Pilihan>
           </div>
           <div>
             <label htmlFor="mandor-id-2" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Mandor</label>
-            <select className="isian-fokus" id="mandor-id-2" aria-label="Mandor" value={mandorId} onChange={e => setMandorId(e.target.value)} style={GAYA_ISIAN} required>
+            <Pilihan className="isian-fokus" id="mandor-id-2" aria-label="Mandor" value={mandorId} onChange={e => setMandorId(e.target.value)} style={GAYA_ISIAN} required>
               <option value="">-- Pilih mandor --</option>
               {mandors.map(m => <option key={m.id} value={m.id}>{m.name}{m.phone ? ` (${m.phone})` : ""}</option>)}
-            </select>
+            </Pilihan>
           </div>
           <div>
             <label htmlFor="assigned-at" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Tanggal Mulai Tugas</label>
@@ -1788,22 +1789,22 @@ export function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <div>
               <label htmlFor="category" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Kategori</label>
-              <select className="isian-fokus" id="category" aria-label="Kategori" value={category} onChange={e => setCategory(e.target.value)} style={GAYA_ISIAN}>
+              <Pilihan className="isian-fokus" id="category" aria-label="Kategori" value={category} onChange={e => setCategory(e.target.value)} style={GAYA_ISIAN}>
                 {(workCategories.length > 0
                   ? workCategories.map(c => [c.code, c.label] as [string, string])
                   : Object.entries(CATEGORY_LABELS)
                 ).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
+              </Pilihan>
             </div>
             <div>
               <label htmlFor="unit" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Satuan</label>
-              <select className="isian-fokus" id="unit" aria-label="Satuan" value={unit} onChange={e => setUnit(e.target.value)} style={GAYA_ISIAN}>
+              <Pilihan className="isian-fokus" id="unit" aria-label="Satuan" value={unit} onChange={e => setUnit(e.target.value)} style={GAYA_ISIAN}>
                 {UNITS_GROUPED.map(g => (
                   <optgroup key={g.group} label={g.group}>
                     {g.opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                   </optgroup>
                 ))}
-              </select>
+              </Pilihan>
             </div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -1953,12 +1954,12 @@ export function SettlementBoronganModal({ data, cashAccounts, onClose, onSuccess
           </div>
           <div>
             <label htmlFor="cash-account-id-2" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Akun Kas *</label>
-            <select className="isian-fokus" id="cash-account-id-2" aria-label="Sumber kas pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} style={GAYA_ISIAN}>
+            <Pilihan className="isian-fokus" id="cash-account-id-2" aria-label="Sumber kas pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} style={GAYA_ISIAN}>
               <option value="">Pilih akun kas...</option>
               {cashAccounts.map(a => (
                 <option key={a.id} value={a.id}>{a.name} -- {fmtLocal(a.balance)}</option>
               ))}
-            </select>
+            </Pilihan>
           </div>
           <div>
             <label htmlFor="notes-5" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Catatan</label>
@@ -2035,10 +2036,10 @@ export function PPConfirmModal({ payment, cashAccounts, loading, onClose, onActi
           {mode === "approve" && (
             <div>
               <label htmlFor="cash-account-id-3" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Akun Kas *</label>
-              <select className="isian-fokus" id="cash-account-id-3" aria-label="Sumber kas pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} style={GAYA_ISIAN}>
+              <Pilihan className="isian-fokus" id="cash-account-id-3" aria-label="Sumber kas pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} style={GAYA_ISIAN}>
                 <option value="">Pilih akun kas...</option>
                 {cashAccounts.map(a => <option key={a.id} value={a.id}>{a.name} -- {fmtLocal(a.balance)}</option>)}
-              </select>
+              </Pilihan>
             </div>
           )}
           <div>

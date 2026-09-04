@@ -32,6 +32,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { BookOpen, Download, Loader2 } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
+import { Pilihan } from "@/components/pilihan";
 
 export interface AkunRingkas {
   id: string;
@@ -157,13 +158,13 @@ export function BukuBesar({ akun }: { akun: AkunRingkas[] }) {
             fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
             marginBottom: 5, textTransform: "uppercase", letterSpacing: ".05em",
           }}>Akun</label>
-          <select id="bb-akun" value={akunId} onChange={(e) => setAkunId(e.target.value)}
+          <Pilihan id="bb-akun" value={akunId} onChange={(e) => setAkunId(e.target.value)}
             style={{ ...gayaInput, width: "100%" }}>
             <option value="">— pilih akun —</option>
             {akun.map((a) => (
               <option key={a.id} value={a.id}>{a.code} · {a.name}</option>
             ))}
-          </select>
+          </Pilihan>
         </div>
         <div>
           <label htmlFor="bb-dari" style={{

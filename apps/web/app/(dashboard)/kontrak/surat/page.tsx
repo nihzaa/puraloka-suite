@@ -53,6 +53,7 @@ import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel, type Kolom, Galat, Rangka } from "@/components/dasar";
+import { Pilihan } from "@/components/pilihan";
 
 type KeadaanBatas = "lewat" | "mendesak" | "aman" | "tak_perlu";
 
@@ -341,23 +342,23 @@ export default function SuratPage() {
           marginBottom: "var(--gap-grid)",
         }}>
           <label htmlFor="saring-proyek" style={{ fontSize: 12, color: C.mid }}>Proyek</label>
-          <select
+          <Pilihan
             id="saring-proyek" value={proyekPilih} style={gayaPilih}
             onChange={(e) => setProyekPilih(e.target.value)}
           >
             <option value="">Semua proyek</option>
             {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          </Pilihan>
 
           <label htmlFor="saring-arah" style={{ fontSize: 12, color: C.mid, marginLeft: 8 }}>Arah</label>
-          <select
+          <Pilihan
             id="saring-arah" value={arahPilih} style={gayaPilih}
             onChange={(e) => setArahPilih(e.target.value)}
           >
             <option value="">Masuk &amp; keluar</option>
             <option value="masuk">Masuk saja</option>
             <option value="keluar">Keluar saja</option>
-          </select>
+          </Pilihan>
         </div>
 
         {memuat ? (

@@ -30,6 +30,7 @@ import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import type { Penugasan, Inspeksi, Rfi, GalatApi } from "../_bersama/tipe";
 import { pesanGalat } from "../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 interface RespAssignments { assignments: Penugasan[] }
 interface RespInspeksi { data: Inspeksi[]; meta: { menunggu: number; terlambat: number } }
@@ -138,7 +139,7 @@ export default function InspeksiRfiPage() {
       {daftarProyek.length > 1 && (
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek</span>
-          <select
+          <Pilihan
             value={proyekAktif}
             onChange={(e) => setProyekId(e.target.value)}
             style={{
@@ -150,7 +151,7 @@ export default function InspeksiRfiPage() {
             {daftarProyek.map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
-          </select>
+          </Pilihan>
         </label>
       )}
 

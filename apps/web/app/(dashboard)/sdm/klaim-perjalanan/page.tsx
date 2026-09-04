@@ -33,6 +33,7 @@ import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
+import { Pilihan } from "@/components/pilihan";
 
 type StatusKlaim = "diajukan" | "disetujui" | "ditolak" | "dibayar";
 type JenisBiaya = "transport" | "penginapan" | "konsumsi" | "bbm" | "tol_parkir" | "lain";
@@ -711,7 +712,7 @@ function FormAjukan({ onTutup, onSelesai }: {
                 }}>
                   <div>
                     <Label htmlFor={`it-jenis-${i}`}>Jenis</Label>
-                    <select
+                    <Pilihan
                       id={`it-jenis-${i}`} value={x.jenis}
                       onChange={(e) => ubahItem(i, "jenis", e.target.value)}
                       style={GAYA_ISIAN}
@@ -719,7 +720,7 @@ function FormAjukan({ onTutup, onSelesai }: {
                       {(Object.keys(LABEL_JENIS) as JenisBiaya[]).map((j) => (
                         <option key={j} value={j}>{LABEL_JENIS[j]}</option>
                       ))}
-                    </select>
+                    </Pilihan>
                   </div>
                   <div>
                     <Label htmlFor={`it-tgl-${i}`}>Tanggal</Label>
@@ -975,7 +976,7 @@ function FormBayar({ klaim, akunKas, onTutup, onSelesai }: {
       )}
 
       <Label htmlFor="bayar-akun" wajib>Akun kas</Label>
-      <select
+      <Pilihan
         id="bayar-akun" value={akun} onChange={(e) => setAkun(e.target.value)}
         style={GAYA_ISIAN}
       >
@@ -983,7 +984,7 @@ function FormBayar({ klaim, akunKas, onTutup, onSelesai }: {
         {akunKas.map((a) => (
           <option key={a.id} value={a.id}>{a.name}</option>
         ))}
-      </select>
+      </Pilihan>
       <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6, lineHeight: 1.5 }}>
         Pembayaran tanpa sumber dana tak bisa direkonsiliasi — akun kas wajib dipilih.
       </div>

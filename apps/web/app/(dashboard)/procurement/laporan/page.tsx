@@ -28,6 +28,7 @@ import { C } from "@/lib/warna-ui";
 import { KartuKPI, Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom, type SelTotal } from "@/components/dasar";
 import { Badge, Btn, Input, Memuat, STATUS_BADGE, fmt, fmtDate, fmtRingkas } from "../_bersama/ui";
+import { Pilihan } from "@/components/pilihan";
 
 interface PoLaporan {
   id: string;
@@ -222,22 +223,22 @@ export default function LaporanPage() {
           <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
             <Input label="Dari tanggal" type="date" value={filters.from} onChange={e => setFilters(f => ({ ...f, from: e.target.value }))} style={{ width: 150 }} />
             <Input label="Sampai tanggal" type="date" value={filters.to} onChange={e => setFilters(f => ({ ...f, to: e.target.value }))} style={{ width: 150 }} />
-            <select
+            <Pilihan
               aria-label="Saring supplier" value={filters.supplier_id}
               onChange={e => setFilters(f => ({ ...f, supplier_id: e.target.value }))}
               style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, minWidth: 160, background: C.surface, color: C.text }}
             >
               <option value="">Semua Supplier</option>
               {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-            <select
+            </Pilihan>
+            <Pilihan
               aria-label="Saring proyek" value={filters.project_id}
               onChange={e => setFilters(f => ({ ...f, project_id: e.target.value }))}
               style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, minWidth: 160, background: C.surface, color: C.text }}
             >
               <option value="">Semua Proyek</option>
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            </Pilihan>
             <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
               <Btn variant="secondary" onClick={() => void loadData()}><RefreshCw size={13} aria-hidden="true" /> Refresh</Btn>
               <Btn variant="secondary" onClick={() => void exportExcel()}><Download size={13} aria-hidden="true" /> Export Excel</Btn>

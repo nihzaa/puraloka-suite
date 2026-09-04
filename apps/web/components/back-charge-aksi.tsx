@@ -30,6 +30,7 @@ import { C } from "@/lib/warna-ui";
 import {
   ModalDasar, TombolModal, KakiModal, gayaLabel, gayaInput, gayaGalat, pesanGalat,
 } from "@/components/modal-dasar";
+import { Pilihan } from "@/components/pilihan";
 
 const rupiah = (n: number) => "Rp " + n.toLocaleString("id-ID", { maximumFractionDigits: 0 });
 
@@ -79,13 +80,13 @@ export function ModalBackChargeBaru({ lingkup, onClose, onSukses }: {
     <ModalDasar judulId="judul-bc" judul="Catat Back-charge" lebar={520} onClose={onClose}>
       <div>
         <label htmlFor="bc-scope" style={gayaLabel}>Lingkup kerja</label>
-        <select id="bc-scope" value={scopeId} style={gayaInput}
+        <Pilihan id="bc-scope" value={scopeId} style={gayaInput}
           onChange={(e) => setScopeId(e.target.value)}>
           <option value="">— pilih lingkup —</option>
           {lingkup.map((l) => (
             <option key={l.work_scope_id} value={l.work_scope_id}>{l.scope_name}</option>
           ))}
-        </select>
+        </Pilihan>
         <p style={{ margin: "5px 0 0", fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
           Potongan menempel pada lingkup kerja, bukan pada mandornya — satu mandor
           bisa memegang beberapa lingkup, dan potongan yang salah lingkup memotong
@@ -101,10 +102,10 @@ export function ModalBackChargeBaru({ lingkup, onClose, onSukses }: {
         </div>
         <div>
           <label htmlFor="bc-kategori" style={gayaLabel}>Kategori</label>
-          <select id="bc-kategori" value={kategori} style={gayaInput}
+          <Pilihan id="bc-kategori" value={kategori} style={gayaInput}
             onChange={(e) => setKategori(e.target.value)}>
             {KATEGORI.map((k) => <option key={k.kunci} value={k.kunci}>{k.label}</option>)}
-          </select>
+          </Pilihan>
         </div>
         <div>
           <label htmlFor="bc-nilai" style={gayaLabel}>Nilai (Rp)</label>
@@ -301,11 +302,11 @@ export function ModalPrakualifikasiBaru({ vendor, onClose, onSukses }: {
     <ModalDasar judulId="judul-pra" judul="Nilai Prakualifikasi Vendor" lebar={540} onClose={onClose}>
       <div>
         <label htmlFor="pra-vendor" style={gayaLabel}>Vendor</label>
-        <select id="pra-vendor" value={supplierId} style={gayaInput}
+        <Pilihan id="pra-vendor" value={supplierId} style={gayaInput}
           onChange={(e) => setSupplierId(e.target.value)}>
           <option value="">— pilih vendor —</option>
           {vendor.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
-        </select>
+        </Pilihan>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -354,12 +355,12 @@ export function ModalPrakualifikasiBaru({ vendor, onClose, onSukses }: {
 
       <div>
         <label htmlFor="pra-status" style={gayaLabel}>Keputusan</label>
-        <select id="pra-status" value={status} style={gayaInput}
+        <Pilihan id="pra-status" value={status} style={gayaInput}
           onChange={(e) => setStatus(e.target.value)}>
           <option value="draft">Draft — belum diputuskan</option>
           <option value="lolos">Lolos</option>
           <option value="ditolak">Ditolak</option>
-        </select>
+        </Pilihan>
       </div>
 
       {menolak && (

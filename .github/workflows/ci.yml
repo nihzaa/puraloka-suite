@@ -1157,6 +1157,27 @@ jobs:
       - name: Dialog bukan bawaan peramban
         run: node scripts/audit-dialog-bukan-bawaan.mjs
 
+      # Dropdown bawaan DILARANG — pakai `Pilihan` yang punya kotak pencarian.
+      #
+      # Diminta founder 2026-09-04: "semua dropdown saya mau searchable juga",
+      # lalu ditegaskan: semua, tanpa kecuali. Diukur sebelum: 418 kemunculan
+      # di 202 berkas.
+      #
+      # Alasannya bukan selera: sebagian memuat RIBUAN pilihan — pemilih
+      # analisa di Komposer 3.040 baris — dan elemen bawaan hanya bisa
+      # diloncati dengan mengetik huruf awal. Orang lapangan yang tahu
+      # barangnya tapi tak hafal urutan katalog praktis tak bisa memakainya.
+      #
+      # Penyebutan dalam KOMENTAR sengaja dibiarkan: beberapa berkas
+      # menjelaskan kenapa mereka tak memakainya lagi, dan penjaga yang
+      # memerahkan dokumentasi tentang dirinya sendiri mengajari orang
+      # menghapus dokumentasi itu.
+      #
+      # Bukti merah: satu tag dikembalikan ke bentuk bawaan → exit 1 dengan
+      # baris yang tepat; dipulihkan → exit 0. (ambang NOL)
+      - name: Dropdown bisa dicari
+        run: node scripts/audit-dropdown-bisa-dicari.mjs
+
       # Keputusan persetujuan hanya lewat SATU pintu (utils/approval.ts).
       # Menulis `approved_by` langsung berarti entitas yang menurut
       # konfigurasi butuh dua level bisa lolos dengan satu ketukan — dan

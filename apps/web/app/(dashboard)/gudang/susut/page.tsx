@@ -41,6 +41,7 @@ import {
   Halaman, KepalaHalaman, Kartu, JudulKartu, Tabel, Rangka, Galat,
   Tombol, Lencana, KartuAngka, gayaInput, type Kolom,
 } from "@/components/dasar";
+import { Pilihan } from "@/components/pilihan";
 
 interface Material { id: string; code: string; name: string; unit: string | null }
 
@@ -339,13 +340,13 @@ export default function SusutPage() {
             <label htmlFor="s-mat" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
               Material
             </label>
-            <select id="s-mat" style={gayaInput} value={rMaterial}
+            <Pilihan id="s-mat" style={gayaInput} value={rMaterial}
               onChange={(e) => setRMaterial(e.target.value)}>
               <option value="">— pilih material —</option>
               {material.map((m) => (
                 <option key={m.id} value={m.id}>{m.code} — {m.name}</option>
               ))}
-            </select>
+            </Pilihan>
           </div>
           <div>
             <label htmlFor="s-pct" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
@@ -483,13 +484,13 @@ export default function SusutPage() {
               <label htmlFor="p-mat" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
                 Material gudang
               </label>
-              <select id="p-mat" style={gayaInput} value={pMaterial}
+              <Pilihan id="p-mat" style={gayaInput} value={pMaterial}
                 onChange={(e) => setPMaterial(e.target.value)}>
                 <option value="">— pilih material —</option>
                 {material.map((m) => (
                   <option key={m.id} value={m.id}>{m.code} — {m.name} ({m.unit ?? "—"})</option>
                 ))}
-              </select>
+              </Pilihan>
             </div>
             <div>
               <label htmlFor="p-faktor" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>

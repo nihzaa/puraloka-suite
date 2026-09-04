@@ -38,6 +38,7 @@ import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { tanya, minta } from "@/components/tanya";
+import { Pilihan } from "@/components/pilihan";
 
 type StatusEOT = "diajukan" | "disetujui" | "ditolak";
 
@@ -598,9 +599,9 @@ function FormBond({ projectId, onSelesai, onBatal }: {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8 }}>
         <div>
           <label htmlFor="bond_type" style={label}>Jenis jaminan *</label>
-          <select id="bond_type" name="bond_type" defaultValue="pelaksanaan" style={input}>
+          <Pilihan id="bond_type" name="bond_type" defaultValue="pelaksanaan" style={input}>
             {Object.entries(JENIS_BOND).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
+          </Pilihan>
         </div>
         <div>
           <label htmlFor="bond_number" style={label}>Nomor jaminan</label>

@@ -40,6 +40,7 @@ import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_KARTU, Kosong } from "@/components/ui-dasar";
 import { Saklar } from "@/components/saklar";
+import { Pilihan } from "@/components/pilihan";
 
 
 const kontrol: React.CSSProperties = {
@@ -389,7 +390,7 @@ export default function JadwalPage() {
                   <label htmlFor={`jenis-${t.tugas}`} style={{ fontSize: 12, color: C.mid }}>
                     Ulang
                   </label>
-                  <select
+                  <Pilihan
                     id={`jenis-${t.tugas}`}
                     disabled={!bolehKelola}
                     value={jenis}
@@ -399,12 +400,12 @@ export default function JadwalPage() {
                     <option value="harian">Harian</option>
                     <option value="mingguan">Mingguan</option>
                     <option value="bulanan">Bulanan</option>
-                  </select>
+                  </Pilihan>
 
                   {jenis === "mingguan" && (
                     <>
                       <label htmlFor={`hp-${t.tugas}`} style={{ fontSize: 12, color: C.mid }}>tiap</label>
-                      <select
+                      <Pilihan
                         id={`hp-${t.tugas}`}
                         disabled={!bolehKelola}
                         value={hariPekan}
@@ -412,14 +413,14 @@ export default function JadwalPage() {
                         style={{ ...kontrol, width: 110 }}
                       >
                         {HARI.map((h, i) => <option key={h} value={i}>{h}</option>)}
-                      </select>
+                      </Pilihan>
                     </>
                   )}
 
                   {jenis === "bulanan" && (
                     <>
                       <label htmlFor={`hb-${t.tugas}`} style={{ fontSize: 12, color: C.mid }}>tanggal</label>
-                      <select
+                      <Pilihan
                         id={`hb-${t.tugas}`}
                         disabled={!bolehKelola}
                         value={hariBulan}
@@ -429,7 +430,7 @@ export default function JadwalPage() {
                         {Array.from({ length: 31 }, (_, i) => i + 1).map((n) => (
                           <option key={n} value={n}>{n}</option>
                         ))}
-                      </select>
+                      </Pilihan>
                     </>
                   )}
 

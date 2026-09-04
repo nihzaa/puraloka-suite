@@ -69,6 +69,7 @@ import { TabBagian } from "@/components/tab-bagian";
 import { KartuKPI, Kosong, Panel } from "@/components/ui-dasar";
 import { Tabel, KepalaHalaman } from "@/components/dasar";
 import { GAYA_ISIAN } from "@/components/isian";
+import { Pilihan } from "@/components/pilihan";
 import {
   hariIniWIB, ringkasAset, sewaPerluDiputuskan,
   type BarisSewaPerhatian,
@@ -744,9 +745,9 @@ function FormBaru({ jenis, onSelesai, onBatal }: {
             </div>
             <div>
               <label htmlFor="category" style={labelStyle}>Kategori</label>
-              <select className="isian-fokus" id="category" name="category" defaultValue="alat_ringan" style={GAYA_ISIAN}>
+              <Pilihan className="isian-fokus" id="category" name="category" defaultValue="alat_ringan" style={GAYA_ISIAN}>
                 {Object.entries(KATEGORI).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
+              </Pilihan>
             </div>
             <div>
               <label htmlFor="brand" style={labelStyle}>Merek</label>
@@ -773,10 +774,10 @@ function FormBaru({ jenis, onSelesai, onBatal }: {
             </div>
             <div>
               <label htmlFor="depreciation_method" style={labelStyle}>Metode penyusutan</label>
-              <select className="isian-fokus" id="depreciation_method" name="depreciation_method" defaultValue="garis_lurus" style={GAYA_ISIAN}>
+              <Pilihan className="isian-fokus" id="depreciation_method" name="depreciation_method" defaultValue="garis_lurus" style={GAYA_ISIAN}>
                 <option value="garis_lurus">Garis lurus</option>
                 <option value="saldo_menurun">Saldo menurun ganda</option>
-              </select>
+              </Pilihan>
             </div>
           </>
         ) : (
@@ -791,11 +792,11 @@ function FormBaru({ jenis, onSelesai, onBatal }: {
             </div>
             <div>
               <label htmlFor="rate_unit" style={labelStyle}>Satuan tarif</label>
-              <select className="isian-fokus" id="rate_unit" name="rate_unit" defaultValue="hari" style={GAYA_ISIAN}>
+              <Pilihan className="isian-fokus" id="rate_unit" name="rate_unit" defaultValue="hari" style={GAYA_ISIAN}>
                 <option value="hari">Per hari</option>
                 <option value="minggu">Per minggu</option>
                 <option value="bulan">Per bulan</option>
-              </select>
+              </Pilihan>
               <span style={{ fontSize: 10, color: C.muted, display: "block", marginTop: 3 }}>
                 Mingguan &amp; bulanan dibulatkan ke atas, seperti tagihan sewa.
               </span>

@@ -43,6 +43,7 @@ import { C } from "@/lib/warna-ui";
 import { GAYA_ISIAN } from "@/components/isian";
 import { formatAngka } from "@/lib/format";
 import { Calculator, Plus, Trash2 } from "lucide-react";
+import { Pilihan } from "@/components/pilihan";
 
 /** Sektor — kembaran `SEKTOR_SAH` di `apps/api/src/lib/takeoff-sektor.ts`. */
 const SEKTOR = [
@@ -330,10 +331,10 @@ export function HitungVolume(
       <label htmlFor="tk-sektor" style={{ fontSize: "var(--teks-delta)", color: C.mid, display: "block", marginBottom: 3 }}>
         Sektor pekerjaan
       </label>
-      <select id="tk-sektor" className="isian-fokus" style={{ ...GAYA_ISIAN, marginBottom: 8 }}
+      <Pilihan id="tk-sektor" className="isian-fokus" style={{ ...GAYA_ISIAN, marginBottom: 8 }}
         value={sektor} onChange={(e) => { setSektor(e.target.value); setBukaan([]); }}>
         {SEKTOR.map((s) => <option key={s.nilai} value={s.nilai}>{s.label}</option>)}
-      </select>
+      </Pilihan>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 8 }}>
         {medan.includes("panjang") && <div>{lbl("Panjang (m)", "tk-panjang")}<input id="tk-panjang" className="isian-fokus" style={GAYA_ISIAN} type="number" step="any" {...isi("panjang")} /></div>}

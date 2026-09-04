@@ -15,6 +15,7 @@ import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_KARTU, Kosong } from "@/components/ui-dasar";
 import { kabari } from "@/components/tanya";
+import { Pilihan } from "@/components/pilihan";
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -304,7 +305,7 @@ export default function NotificationsPage() {
         </div>
 
         {/* Read filter */}
-        <select
+        <Pilihan
           aria-label="Saring status baca"
           value={readFilter}
           onChange={e => setReadFilter(e.target.value as "all" | "unread")}
@@ -316,10 +317,10 @@ export default function NotificationsPage() {
         >
           <option value="all">Semua</option>
           <option value="unread">Belum Dibaca</option>
-        </select>
+        </Pilihan>
 
         {/* Type filter */}
-        <select
+        <Pilihan
           aria-label="Saring jenis notifikasi"
           value={typeFilter}
           onChange={e => setTypeFilter(e.target.value as TypeFilter)}
@@ -336,7 +337,7 @@ export default function NotificationsPage() {
           <option value="progress">Progress</option>
           <option value="proyek">Proyek</option>
           <option value="upah">Upah</option>
-        </select>
+        </Pilihan>
       </div>
 
       {/* Bulk actions bar */}

@@ -24,6 +24,7 @@ import SegmentedTab from "@/components/portal/SegmentedTab";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import type { RespDaftarPegawai, RespKompetensiPegawai, RespDaftarLamaran, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 const VARIAN_SERTIFIKAT: Record<string, VarianStatus> = { berlaku: "approved", akan_habis: "pending", kedaluwarsa: "rejected" };
 const LABEL_SERTIFIKAT: Record<string, string> = { berlaku: "Berlaku", akan_habis: "Akan Habis", kedaluwarsa: "Kedaluwarsa" };
@@ -79,12 +80,12 @@ export default function PmKompetensiSdmPage() {
           {daftarPegawai.length > 0 && (
             <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Pegawai</span>
-              <select value={pegawaiAktif} onChange={(e) => setPegawaiId(e.target.value)}
+              <Pilihan value={pegawaiAktif} onChange={(e) => setPegawaiId(e.target.value)}
                 style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}>
                 {daftarPegawai.map((p) => (
                   <option key={p.id} value={p.id}>{p.orang?.name ?? p.nomor_induk ?? p.id}</option>
                 ))}
-              </select>
+              </Pilihan>
             </label>
           )}
         </>

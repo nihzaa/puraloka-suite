@@ -55,6 +55,7 @@ import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
+import { Pilihan } from "@/components/pilihan";
 import {
   Halaman, KepalaHalaman, Kartu, JudulKartu, KartuAngka, BarisAngka,
   Tabel, Kosong, Rangka, Galat, Tombol, Lencana, Medan, gayaInput,
@@ -440,7 +441,7 @@ function IsiInsiden() {
           fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
           marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
         }}>Proyek</label>
-        <select
+        <Pilihan
           id="k3-proyek" value={proyekId} onChange={(e) => setProyekId(e.target.value)}
           style={{ ...gayaInput, maxWidth: 420 }}
         >
@@ -448,7 +449,7 @@ function IsiInsiden() {
           {proyekList.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
-        </select>
+        </Pilihan>
       </Kartu>
 
       {/* ── SATU aksen: angka evaluasi yang tak cocok (§3d) ───────────────
@@ -579,12 +580,12 @@ function IsiInsiden() {
         <Medan id="in-jenis" label="Jenis insiden" wajib
           keterangan={JENIS[fJenis].arti}
           anak={
-            <select id="in-jenis" value={fJenis}
+            <Pilihan id="in-jenis" value={fJenis}
               onChange={(e) => setFJenis(e.target.value as JenisInsiden)} style={gayaInput}>
               {(Object.keys(JENIS) as JenisInsiden[]).map((k) => (
                 <option key={k} value={k}>{JENIS[k].label}</option>
               ))}
-            </select>
+            </Pilihan>
           }
         />
         <Medan id="in-kronologi" label="Kronologi" wajib
@@ -617,13 +618,13 @@ function IsiInsiden() {
         <Medan id="in-subkon" label="Subkontraktor terkait"
           keterangan="Diisi bila pekerjanya subkon. Angka ini yang masuk ke penilaian subkon — dan sekarang punya barisnya."
           anak={
-            <select id="in-subkon" value={fSubkon}
+            <Pilihan id="in-subkon" value={fSubkon}
               onChange={(e) => setFSubkon(e.target.value)} style={gayaInput}>
               <option value="">— pekerja sendiri / tak terkait subkon —</option>
               {subkon.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
-            </select>
+            </Pilihan>
           }
         />
         {["kecelakaan_ringan", "kecelakaan_berat", "fatal"].includes(fJenis) && (
@@ -631,13 +632,13 @@ function IsiInsiden() {
             <Medan id="in-korban-worker" label="Korban (pekerja terdaftar)"
               keterangan="Pilih dari daftar bila korbannya pekerja terdaftar — nama yang diketik tak bisa dihubungkan ke riwayat orangnya, dan riwayat itulah yang dicari saat menilai apakah kecelakaan berulang pada orang yang sama."
               anak={
-                <select id="in-korban-worker" value={fKorbanWorker}
+                <Pilihan id="in-korban-worker" value={fKorbanWorker}
                   onChange={(e) => setFKorbanWorker(e.target.value)} style={gayaInput}>
                   <option value="">— bukan pekerja terdaftar —</option>
                   {pekerja.map((w) => (
                     <option key={w.id} value={w.id}>{w.name}</option>
                   ))}
-                </select>
+                </Pilihan>
               }
             />
             <Medan id="in-korban" label="Nama korban"

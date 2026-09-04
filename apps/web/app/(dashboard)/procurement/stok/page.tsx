@@ -19,6 +19,7 @@ import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
 import { Btn, Input, KotakGalat, Memuat, Modal, Select, fmtDate, pesanError, tundaSatuTick } from "../_bersama/ui";
+import { Pilihan } from "@/components/pilihan";
 
 interface Proyek { id: string; name: string }
 
@@ -206,13 +207,13 @@ export default function StokPage() {
             style={{ padding: "8px 12px 8px 32px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, width: "100%", boxSizing: "border-box", background: C.surface, color: C.text }}
           />
         </div>
-        <select
+        <Pilihan
           aria-label="Saring proyek" value={projectFilter} onChange={e => setProjectFilter(e.target.value)}
           style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, minWidth: 200, background: C.surface, color: C.text }}
         >
           <option value="">Semua Proyek</option>
           {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
+        </Pilihan>
         <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
           {canEdit && (
             <>
@@ -250,14 +251,14 @@ export default function StokPage() {
         <div style={{ marginTop: 28 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
             <span style={{ fontWeight: 700, fontSize: 13, color: C.text }}>Log Arus Material</span>
-            <select
+            <Pilihan
               aria-label="Pilih proyek untuk log mutasi" value={logProject}
               onChange={e => setLogProject(e.target.value)}
               style={{ padding: "6px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: C.surface, color: C.text }}
             >
               <option value="">— Pilih Proyek —</option>
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            </Pilihan>
             {logProject && (
               <Btn variant="secondary" onClick={() => void loadLog()} aria-label="Muat ulang log mutasi">
                 <RefreshCw size={13} aria-hidden="true" />

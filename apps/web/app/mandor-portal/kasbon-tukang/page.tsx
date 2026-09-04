@@ -9,6 +9,7 @@ import BottomSheet from "@/components/portal/BottomSheet";
 import KepalaPortal from "@/components/portal/KepalaPortal";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
+import { Pilihan } from "@/components/pilihan";
 
 function fmt(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -214,7 +215,7 @@ export default function KasbonTukangPage() {
             <label htmlFor="worker-id" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
               Tukang *
             </label>
-            <select
+            <Pilihan
               id="worker-id"
               aria-label="Pilih tukang"
               value={form.worker_id}
@@ -229,13 +230,13 @@ export default function KasbonTukangPage() {
               {workers.filter((w) => w.is_active).map((w) => (
                 <option key={w.id} value={w.id}>{w.name}</option>
               ))}
-            </select>
+            </Pilihan>
           </div>
           <div>
             <label htmlFor="project-id" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
               Proyek *
             </label>
-            <select
+            <Pilihan
               id="project-id"
               aria-label="Proyek"
               value={form.project_id}
@@ -250,14 +251,14 @@ export default function KasbonTukangPage() {
               {assignments.map((a) => (
                 <option key={a.project?.id} value={a.project?.id ?? ""}>{a.project?.name}</option>
               ))}
-            </select>
+            </Pilihan>
           </div>
           {scopesForProject.length > 0 && (
             <div>
               <label htmlFor="scope-id" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
                 Scope (opsional)
               </label>
-              <select
+              <Pilihan
                 id="scope-id"
                 aria-label="Lingkup"
                 value={form.scope_id}
@@ -272,7 +273,7 @@ export default function KasbonTukangPage() {
                 {scopesForProject.map((s) => (
                   <option key={s.id} value={s.id}>{s.scope_name}</option>
                 ))}
-              </select>
+              </Pilihan>
             </div>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -314,7 +315,7 @@ export default function KasbonTukangPage() {
             <label htmlFor="purpose" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
               Tujuan
             </label>
-            <select
+            <Pilihan
               id="purpose"
               aria-label="Tujuan kasbon"
               value={form.purpose}
@@ -326,7 +327,7 @@ export default function KasbonTukangPage() {
               }}
             >
               {Object.entries(PURPOSE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
+            </Pilihan>
           </div>
           <div>
             <label htmlFor="notes" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>

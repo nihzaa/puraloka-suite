@@ -64,6 +64,7 @@ import type {
   RespPengadaanLanjutan, RespSupplierDaftar, HasilNotaKreditPM, GalatApi,
 } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 // `langganan`: pola PERSIS Task 10/15/17 — perubahan permission (login/switch
 // company) tercermin tanpa reload.
@@ -467,7 +468,7 @@ export default function AdminPengadaanLanjutanPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={GAYA_LABEL}>Pemasok *</span>
-            <select
+            <Pilihan
               value={formPayung.supplier_id}
               onChange={(e) => setFormPayung((f) => ({ ...f, supplier_id: e.target.value }))}
               style={GAYA_INPUT}
@@ -476,7 +477,7 @@ export default function AdminPengadaanLanjutanPage() {
               {suppliers.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}{s.code ? ` (${s.code})` : ""}</option>
               ))}
-            </select>
+            </Pilihan>
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={GAYA_LABEL}>Nomor *</span>
@@ -592,7 +593,7 @@ export default function AdminPengadaanLanjutanPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={GAYA_LABEL}>Pemasok *</span>
-            <select
+            <Pilihan
               value={formNota.supplier_id}
               onChange={(e) => setFormNota((f) => ({ ...f, supplier_id: e.target.value }))}
               style={GAYA_INPUT}
@@ -601,7 +602,7 @@ export default function AdminPengadaanLanjutanPage() {
               {suppliers.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}{s.code ? ` (${s.code})` : ""}</option>
               ))}
-            </select>
+            </Pilihan>
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={GAYA_LABEL}>Nomor *</span>

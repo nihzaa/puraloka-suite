@@ -29,6 +29,7 @@ import { TombolUnduh } from "@/components/tombol-unduh";
 import { Tabel, KepalaHalaman } from "@/components/dasar";
 import { formatRupiah } from "@/lib/format";
 import { GAYA_KARTU } from "@/components/ui-dasar";
+import { Pilihan } from "@/components/pilihan";
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -418,13 +419,13 @@ function LaporanContent() {
         <div>
           <label htmlFor="project-id" style={{ fontSize: 10, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>Proyek</label>
           <div style={{ position: "relative" }}>
-            <select id="project-id" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)}
+            <Pilihan id="project-id" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)}
               style={{ padding: "8px 32px 8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)", minWidth: 220, appearance: "none" }}>
               {(tab === "keuangan" || tab === "cashflow" || tab === "mandor" || tab === "pengeluaran") && (
                 <option value="">Semua Proyek</option>
               )}
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            </Pilihan>
             <ChevronDown size={12} color={C.muted} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
           </div>
         </div>

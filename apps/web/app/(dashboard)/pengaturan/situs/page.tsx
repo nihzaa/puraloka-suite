@@ -9,6 +9,7 @@ import { Globe, Save, Check, X, AlertTriangle, Eye, EyeOff, RefreshCw } from "lu
 import { C } from "@/lib/warna-ui";
 import { GAYA_KARTU } from "@/components/ui-dasar";
 import { GAYA_ISIAN } from "@/components/isian";
+import { Pilihan } from "@/components/pilihan";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pengaturan konten situs publik (compro) — migrasi 205/206/207.
@@ -277,7 +278,7 @@ export default function SitusContent() {
                 {LABEL_SEKSI[s.kunci] ?? s.kunci}
               </span>
               <span style={{ fontSize: 12, color: C.muted }}>urutan {s.urutan}</span>
-              <select className="isian-fokus"
+              <Pilihan className="isian-fokus"
                 value={s.varian}
                 disabled={!canManage || simpan === s.kunci}
                 onChange={(e) => ubahSeksi(s.kunci, { varian: e.target.value })}
@@ -285,7 +286,7 @@ export default function SitusContent() {
                 style={{ ...GAYA_ISIAN, width: "auto", fontSize: 12, padding: "5px 8px" }}
               >
                 {VARIAN.map((v) => <option key={v} value={v}>{v}</option>)}
-              </select>
+              </Pilihan>
               <button
                 onClick={() => ubahSeksi(s.kunci, { aktif: !s.aktif })}
                 disabled={!canManage || simpan === s.kunci}

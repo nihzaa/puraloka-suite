@@ -67,6 +67,7 @@ import {
 import {
   ProjectCardGrid, ProjectCardList, Skeleton, fmtCompact, kartu, type Project,
 } from "./_bersama/kartu-proyek";
+import { Pilihan } from "@/components/pilihan";
 
 type SortKey = "newest" | "value_desc" | "progress_desc" | "deadline_asc";
 type StatusFilter = "all" | "active" | "completed" | "on_hold" | "draft";
@@ -457,7 +458,7 @@ function ProyekRingkasan() {
               onBlur={e => { e.target.style.borderColor = "var(--border)"; e.target.style.boxShadow = "none"; }}
             />
           </div>
-          <select aria-label="Urutan"
+          <Pilihan aria-label="Urutan"
             value={sort}
             onChange={e => setSort(e.target.value as SortKey)}
             style={{
@@ -470,7 +471,7 @@ function ProyekRingkasan() {
             <option value="value_desc">Nilai Tertinggi</option>
             <option value="progress_desc">Serapan Tertinggi</option>
             <option value="deadline_asc">Tenggat Terdekat</option>
-          </select>
+          </Pilihan>
           <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: 6, overflow: "hidden" }}>
             {(["grid", "list"] as ViewMode[]).map(v => (
               <button aria-label={v === "grid" ? "Tampilan grid" : "Tampilan daftar"}

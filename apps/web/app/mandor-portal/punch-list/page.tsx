@@ -26,6 +26,7 @@ import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import type { Penugasan, PunchItem, Tukang, GalatApi } from "../_bersama/tipe";
 import { pesanGalat } from "../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 interface RespAssignments { assignments: Penugasan[] }
 interface RespPunch { data: PunchItem[]; meta: { belum_selesai: number; total: number } }
@@ -135,7 +136,7 @@ export default function PunchListPage() {
       {daftarProyek.length > 1 && (
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek</span>
-          <select
+          <Pilihan
             value={proyekAktif}
             onChange={(e) => setProyekId(e.target.value)}
             style={{
@@ -147,7 +148,7 @@ export default function PunchListPage() {
             {daftarProyek.map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
-          </select>
+          </Pilihan>
         </label>
       )}
 
@@ -272,7 +273,7 @@ export default function PunchListPage() {
 
           <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
             Tingkat keparahan
-            <select
+            <Pilihan
               value={severity}
               onChange={(e) => setSeverity(e.target.value)}
               style={{
@@ -285,12 +286,12 @@ export default function PunchListPage() {
               <option value="sedang">Sedang</option>
               <option value="berat">Berat</option>
               <option value="kritis">Kritis</option>
-            </select>
+            </Pilihan>
           </label>
 
           <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
             Tugaskan ke tukang (opsional)
-            <select
+            <Pilihan
               value={ditugaskanKe}
               onChange={(e) => setDitugaskanKe(e.target.value)}
               style={{
@@ -303,7 +304,7 @@ export default function PunchListPage() {
               {(dataWorkers?.workers ?? []).map((w) => (
                 <option key={w.id} value={w.id}>{w.name}</option>
               ))}
-            </select>
+            </Pilihan>
           </label>
 
           <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>

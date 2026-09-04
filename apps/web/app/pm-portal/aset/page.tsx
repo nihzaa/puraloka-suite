@@ -40,6 +40,7 @@ import BottomSheet from "@/components/portal/BottomSheet";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import type { RespDaftarAset, RespDaftarSewa, RespAlatOperasional, GalatApi } from "../_bersama/tipe";
 import { pesanGalat } from "../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 const VARIAN_STATUS: Record<string, VarianStatus> = {
   tersedia: "approved", dipakai: "info", perawatan: "pending", dilepas: "netral",
 };
@@ -222,11 +223,11 @@ function IsiAsetPage() {
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Kepemilikan</span>
-            <select value={form.ownership} onChange={(e) => setForm((f) => ({ ...f, ownership: e.target.value as "milik" | "sewa" }))}
+            <Pilihan value={form.ownership} onChange={(e) => setForm((f) => ({ ...f, ownership: e.target.value as "milik" | "sewa" }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
               <option value="milik">Milik</option>
               <option value="sewa">Sewa</option>
-            </select>
+            </Pilihan>
           </label>
           {galatForm && <div role="alert" style={{ fontSize: 12, color: "var(--on-danger-bg)", padding: 10, borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>{galatForm}</div>}
           <button type="button" onClick={() => void buatAset()} disabled={mengirim}

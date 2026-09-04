@@ -24,6 +24,7 @@ import SkeletonCard from "@/components/portal/SkeletonCard";
 import BottomSheet from "@/components/portal/BottomSheet";
 import type { ProyekPM, RespTransferDaftar, RespStokDaftar, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 interface RespProyek { projects: ProyekPM[] }
 
@@ -92,27 +93,27 @@ function SheetTransferBaru({ terbuka, onTutup, proyek }: { terbuka: boolean; onT
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
           Dari proyek
-          <select value={asalId} onChange={(e) => { setAsalId(e.target.value); setMaterialId(""); }}
+          <Pilihan value={asalId} onChange={(e) => { setAsalId(e.target.value); setMaterialId(""); }}
             style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 10px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13, background: "var(--surface)" }}>
             <option value="">Pilih…</option>
             {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          </Pilihan>
         </label>
         <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
           Ke proyek
-          <select value={tujuanId} onChange={(e) => setTujuanId(e.target.value)}
+          <Pilihan value={tujuanId} onChange={(e) => setTujuanId(e.target.value)}
             style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 10px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13, background: "var(--surface)" }}>
             <option value="">Pilih…</option>
             {proyek.filter((p) => p.id !== asalId).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          </Pilihan>
         </label>
         <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
           Material
-          <select value={materialId} onChange={(e) => setMaterialId(e.target.value)} disabled={!asalId}
+          <Pilihan value={materialId} onChange={(e) => setMaterialId(e.target.value)} disabled={!asalId}
             style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 10px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13, background: "var(--surface)" }}>
             <option value="">{asalId ? "Pilih material…" : "Pilih proyek asal dulu"}</option>
             {(dataStokAsal?.stocks ?? []).map((s) => <option key={s.id} value={s.material?.id}>{s.material?.name} (tersedia {s.qty_on_hand})</option>)}
-          </select>
+          </Pilihan>
         </label>
         <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
           Qty

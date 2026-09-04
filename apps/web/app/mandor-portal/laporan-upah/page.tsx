@@ -32,6 +32,7 @@ import KepalaPortal from "@/components/portal/KepalaPortal";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
+import { Pilihan } from "@/components/pilihan";
 
 function fmt(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -375,7 +376,7 @@ export default function LaporanUpahPage() {
               <label htmlFor="selected-assignment" style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
                 Proyek *
               </label>
-              <select
+              <Pilihan
                 id="selected-assignment"
                 aria-label="Pilih proyek"
                 value={selectedAssignment}
@@ -390,13 +391,13 @@ export default function LaporanUpahPage() {
                 {assignments.map((a) => (
                   <option key={a.id} value={a.id}>{a.project.name}</option>
                 ))}
-              </select>
+              </Pilihan>
             </div>
             <div>
               <label htmlFor="selected-scope" style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
                 Scope Pekerjaan *
               </label>
-              <select
+              <Pilihan
                 id="selected-scope"
                 aria-label="Pilih lingkup pekerjaan"
                 value={selectedScope}
@@ -413,7 +414,7 @@ export default function LaporanUpahPage() {
                 {scopesForAssignment.map((s) => (
                   <option key={s.id} value={s.id}>{s.scope_name}</option>
                 ))}
-              </select>
+              </Pilihan>
             </div>
             <div>
               <label htmlFor="week-start" style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>

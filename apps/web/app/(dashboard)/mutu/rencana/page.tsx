@@ -48,6 +48,7 @@ import { Kosong } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
 import { PilihanKartu } from "@/components/pilihan-kartu";
+import { Pilihan } from "@/components/pilihan";
 
 type JenisTitik = "hold" | "witness" | "review";
 type StatusRmp = "draf" | "diajukan" | "disetujui" | "kedaluwarsa";
@@ -455,7 +456,7 @@ export default function RencanaMutuPage() {
             fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
             marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
           }}>Proyek</label>
-          <select
+          <Pilihan
             id="rmp-proyek" value={projectId} onChange={(e) => setProjectId(e.target.value)}
             style={{
               padding: "8px 10px", borderRadius: 6, border: `1px solid ${C.border}`,
@@ -464,7 +465,7 @@ export default function RencanaMutuPage() {
           >
             <option value="">— pilih proyek —</option>
             {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          </Pilihan>
         </div>
 
         {daftar.length > 0 && (
@@ -473,7 +474,7 @@ export default function RencanaMutuPage() {
               fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Dokumen</label>
-            <select
+            <Pilihan
               id="rmp-dokumen" value={rmpId} onChange={(e) => setRmpId(e.target.value)}
               style={{
                 padding: "8px 10px", borderRadius: 6, border: `1px solid ${C.border}`,
@@ -485,7 +486,7 @@ export default function RencanaMutuPage() {
                   {d.nomor} · rev {d.revisi} — {d.judul}
                 </option>
               ))}
-            </select>
+            </Pilihan>
           </div>
         )}
       </div>
@@ -774,7 +775,7 @@ export default function RencanaMutuPage() {
                 fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
                 marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
               }}>Tautkan ke inspeksi</label>
-              <select
+              <Pilihan
                 id="itp-inspeksi" value={fInspeksi}
                 onChange={(e) => setFInspeksi(e.target.value)}
                 style={{
@@ -786,7 +787,7 @@ export default function RencanaMutuPage() {
                 {inspeksi.map((i) => (
                   <option key={i.id} value={i.id}>{i.nomor} — {i.judul}</option>
                 ))}
-              </select>
+              </Pilihan>
               <p style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
                 Menautkan membuat rencana dan pelaksanaannya bisa ditelusuri dua
                 arah — dari titik ke inspeksi yang menjawabnya, dan sebaliknya.

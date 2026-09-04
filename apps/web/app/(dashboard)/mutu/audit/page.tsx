@@ -53,6 +53,7 @@ import { Kosong } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
 import { Saklar } from "@/components/saklar";
+import { Pilihan } from "@/components/pilihan";
 
 type Klasifikasi = "major" | "minor" | "observasi";
 type StatusAudit = "rencana" | "berjalan" | "selesai" | "dibatalkan";
@@ -426,7 +427,7 @@ export default function AuditMutuPage() {
             fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
             marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
           }}>Proyek</label>
-          <select
+          <Pilihan
             id="am-proyek" value={projectId} onChange={(e) => setProjectId(e.target.value)}
             style={{
               padding: "8px 10px", borderRadius: 6, border: `1px solid ${C.border}`,
@@ -435,7 +436,7 @@ export default function AuditMutuPage() {
           >
             <option value="">— pilih proyek —</option>
             {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          </Pilihan>
         </div>
 
         {daftar.length > 0 && (
@@ -444,7 +445,7 @@ export default function AuditMutuPage() {
               fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Audit</label>
-            <select
+            <Pilihan
               id="am-audit" value={auditId} onChange={(e) => setAuditId(e.target.value)}
               style={{
                 padding: "8px 10px", borderRadius: 6, border: `1px solid ${C.border}`,
@@ -454,7 +455,7 @@ export default function AuditMutuPage() {
               {daftar.map((d) => (
                 <option key={d.id} value={d.id}>{d.nomor} — {d.judul}</option>
               ))}
-            </select>
+            </Pilihan>
           </div>
         )}
       </div>
@@ -685,7 +686,7 @@ export default function AuditMutuPage() {
                 fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
                 marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
               }}>Tautkan ke NCR</label>
-              <select
+              <Pilihan
                 id="am-ncr" value={fNcr} onChange={(e) => setFNcr(e.target.value)}
                 style={{
                   width: "100%", padding: "8px 10px", borderRadius: 6, fontSize: 13,
@@ -696,7 +697,7 @@ export default function AuditMutuPage() {
                 {ncrList.map((n) => (
                   <option key={n.id} value={n.id}>{n.nomor} — {n.judul}</option>
                 ))}
-              </select>
+              </Pilihan>
               <p style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
                 NCR memberi temuan ini penanggung jawab, target selesai, dan
                 verifikasi penutupan — tiga hal yang tak dimiliki catatan audit

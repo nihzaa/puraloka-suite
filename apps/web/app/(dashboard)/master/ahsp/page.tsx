@@ -29,6 +29,7 @@ import {
   ChevronDown, ChevronRight, Pencil, Plus, X,
   AlertTriangle, BookOpen, CheckCircle2, PlayCircle, CircleOff,
 } from "lucide-react";
+import { Pilihan } from "@/components/pilihan";
 import {
   btnGhost,
   type Edition, type Assembly, type AsmComponent,
@@ -231,7 +232,7 @@ function KatalogTab() {
             mematikan yang lain — pemakai harus memahami hubungan keduanya
             sebelum bisa menyaring. Di sini tiap pilihan menyebutkan sendiri apa
             yang akan tampil, beserta jumlahnya. */}
-        <select className="isian-fokus" value={saring} onChange={e => setSaring(e.target.value)}
+        <Pilihan className="isian-fokus" value={saring} onChange={e => setSaring(e.target.value)}
           aria-label="Saring katalog" style={{ ...GAYA_ISIAN, minWidth: 300 }}>
           <option value="">Semua ({formatAngka(jumlahPerSaring.semua ?? 0)})</option>
           <option value="company">
@@ -253,7 +254,7 @@ function KatalogTab() {
               Edisi {e.code} — belum ada analisa
             </option>
           ))}
-        </select>
+        </Pilihan>
         {/* Jujur soal pemotongan: label lama menulis "N analisa" seolah itu
             seluruhnya, padahal respons dibatasi 200 dari 3.043. Pemakai yang
             tak menemukan analisanya perlu tahu bahwa daftarnya memang dipotong,

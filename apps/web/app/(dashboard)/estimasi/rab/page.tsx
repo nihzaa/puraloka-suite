@@ -45,6 +45,7 @@ import { LayarKosong } from "@/components/layar-kosong";
 import { AddItemModal } from "../_bersama/modal-item";
 import { JelaskanModal } from "../_bersama/modal-jelaskan";
 import { TerapkanKeRabModal } from "../_bersama/modal-terapkan";
+import { Pilihan } from "@/components/pilihan";
 import {
   angka,
   rp,
@@ -501,7 +502,7 @@ function PemilihProyek({ proyek, nilai, onPilih }: {
 }) {
   return (
     <div style={{ marginBottom: 14 }}>
-      <select
+      <Pilihan
         className="isian-fokus"
         aria-label="Proyek"
         value={nilai}
@@ -519,7 +520,7 @@ function PemilihProyek({ proyek, nilai, onPilih }: {
       >
         <option value="">— Pilih proyek —</option>
         {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-      </select>
+      </Pilihan>
     </div>
   );
 }

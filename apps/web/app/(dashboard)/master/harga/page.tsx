@@ -35,6 +35,7 @@ import {
   th, td, 
 } from "../_cecep/dasar";
 import { tanya } from "@/components/tanya";
+import { Pilihan } from "@/components/pilihan";
 
 const fmtRp = formatRupiah;
 
@@ -111,19 +112,19 @@ function HargaTab() {
         {/* Upah / bahan / alat sudah terpisah di `resources.category` — tinggal
             disaring. Berguna karena keduanya diperlakukan berbeda: upah berubah
             per kesepakatan mandor, harga bahan per supplier. */}
-        <select className="isian-fokus" value={kategori} onChange={e => setKategori(e.target.value)}
+        <Pilihan className="isian-fokus" value={kategori} onChange={e => setKategori(e.target.value)}
           aria-label="Saring jenis harga pokok" style={{ ...GAYA_ISIAN, width: 170 }}>
           <option value="">Semua jenis</option>
           <option value="labor">Upah (tenaga kerja)</option>
           <option value="material">Bahan / material</option>
           <option value="equipment">Alat / peralatan</option>
-        </select>
-        <select className="isian-fokus" value={status} onChange={e => setStatus(e.target.value)}
+        </Pilihan>
+        <Pilihan className="isian-fokus" value={status} onChange={e => setStatus(e.target.value)}
           aria-label="Saring status harga" style={{ ...GAYA_ISIAN, width: 160 }}>
           <option value="">Semua status</option>
           <option value="draft">draft</option><option value="verified">verified</option>
           <option value="active">active</option><option value="expired">expired</option>
-        </select>
+        </Pilihan>
         <label htmlFor="harga-cari" style={{ position: "absolute", width: 1, height: 1,
           overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" }}>
           Cari nama atau kode resource
@@ -332,7 +333,7 @@ function OverrideProyek() {
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <select
+          <Pilihan
             aria-label="Pilih proyek untuk harga khusus"
             value={proyekId}
             onChange={(e) => setProyekId(e.target.value)}
@@ -341,7 +342,7 @@ function OverrideProyek() {
               maxWidth: 220, fontFamily: "inherit" }}
           >
             {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          </Pilihan>
           <button style={btnGhost} onClick={() => setFormBuka(true)} disabled={!proyekId}>
             <Plus size={13} /> Harga khusus
           </button>
@@ -830,12 +831,12 @@ function NewPriceModal({ initial, onClose, onDone }: {
         <div>{label("Lokasi (kosong = umum)")}
           <input className="isian-fokus" style={GAYA_ISIAN} value={location} onChange={e => setLocation(e.target.value)} placeholder="mis. Bandung" /></div>
         <div>{label("Tingkat keyakinan")}
-          <select className="isian-fokus" aria-label="Tingkat keyakinan harga" style={GAYA_ISIAN} value={confidence} onChange={e => setConfidence(e.target.value as typeof confidence)}>
+          <Pilihan className="isian-fokus" aria-label="Tingkat keyakinan harga" style={GAYA_ISIAN} value={confidence} onChange={e => setConfidence(e.target.value as typeof confidence)}>
             <option value="">— tak ditentukan —</option>
             <option value="high">Tinggi (mis. penawaran resmi supplier)</option>
             <option value="medium">Sedang (mis. survei pasar)</option>
             <option value="low">Rendah (mis. perkiraan/estimasi)</option>
-          </select></div>
+          </Pilihan></div>
       </div>
       {label("Supplier (opsional)")}
       <input className="isian-fokus" style={GAYA_ISIAN} value={supplier} onChange={e => setSupplier(e.target.value)} />

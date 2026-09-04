@@ -31,6 +31,7 @@ import SkeletonCard from "@/components/portal/SkeletonCard";
 import SegmentedTab from "@/components/portal/SegmentedTab";
 import type { Worker, ResponsWorker, GalatApi } from "../../_bersama/tipe";
 import { TIPE_WORKER_LABELS, pesanGalat } from "../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 const TIPE_WARNA: Record<string, string> = {
   tukang: "var(--info)", laden: "var(--aksen)", kenek: "var(--info)",
@@ -347,7 +348,7 @@ export default function PmTukangPage() {
               <label htmlFor="pm-tukang-tipe" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
                 Tipe
               </label>
-              <select
+              <Pilihan
                 id="pm-tukang-tipe"
                 value={form.tipe}
                 onChange={(e) => setForm((f) => ({ ...f, tipe: e.target.value }))}
@@ -361,7 +362,7 @@ export default function PmTukangPage() {
                 <option value="tukang">Tukang</option>
                 <option value="laden">Laden</option>
                 <option value="kenek">Kenek</option>
-              </select>
+              </Pilihan>
             </div>
             <div>
               <label htmlFor="pm-tukang-hp" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>

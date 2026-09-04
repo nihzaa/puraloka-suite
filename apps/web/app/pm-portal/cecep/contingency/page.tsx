@@ -53,6 +53,7 @@ import type {
   GalatApi,
 } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 interface RespProyek {
   projects: ProyekPM[];
@@ -195,7 +196,7 @@ export default function PmContingencyPage() {
       {daftarProyek.length > 1 && (
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek</span>
-          <select
+          <Pilihan
             value={proyekAktif}
             onChange={(e) => setProyekId(e.target.value)}
             style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
@@ -205,7 +206,7 @@ export default function PmContingencyPage() {
                 {p.name}
               </option>
             ))}
-          </select>
+          </Pilihan>
         </label>
       )}
 
@@ -394,7 +395,7 @@ export default function PmContingencyPage() {
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Dasar change order (opsional)</span>
-            <select
+            <Pilihan
               value={coIdTarik}
               onChange={(e) => setCoIdTarik(e.target.value)}
               disabled={!coSumber || coSumber.layak.length === 0}
@@ -406,7 +407,7 @@ export default function PmContingencyPage() {
                   {c.co_number}{c.judul ? ` · ${c.judul}` : ""}
                 </option>
               ))}
-            </select>
+            </Pilihan>
             <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
               {!coSumber
                 ? "Memuat change order…"

@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { PilihanKartu } from "@/components/pilihan-kartu";
+import { Pilihan } from "@/components/pilihan";
 
 const C = {
   navy: "var(--navy)", text: "var(--text-primary)", mid: "var(--text-secondary)",
@@ -467,10 +468,10 @@ function FormInstruksi({
             required placeholder="SI-001" style={gayaInput} />
         </Medan>
         <Medan label="Bentuk perintah" petunjuk="Menentukan batas konfirmasi">
-          <select value={bentuk} onChange={(e) => setBentuk(e.target.value as Bentuk)}
+          <Pilihan value={bentuk} onChange={(e) => setBentuk(e.target.value as Bentuk)}
             aria-label="Bentuk perintah" style={gayaInput}>
             {Object.entries(BENTUK).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
+          </Pilihan>
         </Medan>
         <Medan label="Waktu diterima">
           <input type="datetime-local" value={waktu}

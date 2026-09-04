@@ -29,6 +29,7 @@ import { X, RefreshCw } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
+import { Pilihan, type PropsPilihan } from "@/components/pilihan";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FORMAT
@@ -191,14 +192,26 @@ export function Input({ label, ...props }: { label: string } & React.InputHTMLAt
   );
 }
 
-export function Select({ label, children, ...props }: { label: string } & React.SelectHTMLAttributes<HTMLSelectElement>) {
+/*
+  Pembungkus label + dropdown.
+
+  Tipe props diubah dari `React.SelectHTMLAttributes<HTMLSelectElement>` ke
+  `PropsPilihan` saat 209 select diganti: isinya kini komponen React, bukan
+  elemen DOM, jadi meneruskan seluruh handler bertipe HTMLSelectElement tak
+  lagi benar — dan tsc menolaknya, dengan alasan yang tepat.
+
+  Nama fungsinya SENGAJA tetap `Select`: ia diimpor di banyak tempat, dan
+  mengganti nama akan menyeret perubahan yang tak ada hubungannya dengan
+  permintaan founder.
+*/
+export function Select({ label, children, ...props }: { label: string } & PropsPilihan) {
   return (
     <div>
       <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: C.mid, marginBottom: 4 }}>
         {label}
-        <select {...props} style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, boxSizing: "border-box", marginTop: 4, background: C.surface }}>
+        <Pilihan {...props} style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, boxSizing: "border-box", marginTop: 4, background: C.surface }}>
           {children}
-        </select>
+        </Pilihan>
       </label>
     </div>
   );

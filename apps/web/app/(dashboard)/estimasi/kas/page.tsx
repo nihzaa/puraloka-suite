@@ -21,6 +21,7 @@ import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { LayarKosong } from "@/components/layar-kosong";
 import { angka, rp, type ProyekRingkas } from "../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 interface VersiRingkas {
   id: string;
@@ -129,7 +130,7 @@ function IsiProyeksiKas() {
 
         {semuaVersi.length > 0 && (
           <>
-            <select
+            <Pilihan
               className="isian-fokus"
               aria-label="RAB sumber proyeksi"
               value={versiId}
@@ -142,9 +143,9 @@ function IsiProyeksiKas() {
                   {v.namaSkenario} · Revisi {v.version_number}
                 </option>
               ))}
-            </select>
+            </Pilihan>
 
-            <select
+            <Pilihan
               className="isian-fokus"
               aria-label="Jumlah periode"
               value={periode}
@@ -152,7 +153,7 @@ function IsiProyeksiKas() {
               style={{ ...gayaIsian, width: 150 }}
             >
               {PERIODE.map((n) => <option key={n} value={n}>{n} periode</option>)}
-            </select>
+            </Pilihan>
           </>
         )}
       </div>
@@ -248,7 +249,7 @@ function Pemilih({ proyek, nilai, onPilih }: {
   proyek: ProyekRingkas[]; nilai: string; onPilih: (id: string) => void;
 }) {
   return (
-    <select
+    <Pilihan
       className="isian-fokus"
       aria-label="Proyek"
       value={nilai}
@@ -257,7 +258,7 @@ function Pemilih({ proyek, nilai, onPilih }: {
     >
       <option value="">— Pilih proyek —</option>
       {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-    </select>
+    </Pilihan>
   );
 }
 

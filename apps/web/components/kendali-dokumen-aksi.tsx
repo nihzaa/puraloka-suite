@@ -30,6 +30,7 @@ import { Plus, Trash2 } from "lucide-react";
 import {
   ModalDasar, TombolModal, KakiModal, gayaLabel, gayaInput, gayaGalat, pesanGalat,
 } from "@/components/modal-dasar";
+import { Pilihan } from "@/components/pilihan";
 
 type Proyek = { id: string; name: string };
 
@@ -51,10 +52,10 @@ function PilihProyek({ id, nilai, onUbah, daftar }: {
   return (
     <div>
       <label htmlFor={id} style={gayaLabel}>Proyek</label>
-      <select id={id} value={nilai} style={gayaInput} onChange={(e) => onUbah(e.target.value)}>
+      <Pilihan id={id} value={nilai} style={gayaInput} onChange={(e) => onUbah(e.target.value)}>
         <option value="">— pilih proyek —</option>
         {daftar.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-      </select>
+      </Pilihan>
     </div>
   );
 }
@@ -143,21 +144,21 @@ export function ModalGambarBaru({ onClose, onSukses }: {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
         <div>
           <label htmlFor="gb-disiplin" style={gayaLabel}>Disiplin</label>
-          <select id="gb-disiplin" value={disiplin} style={gayaInput}
+          <Pilihan id="gb-disiplin" value={disiplin} style={gayaInput}
             onChange={(e) => setDisiplin(e.target.value)}>
             {DISIPLIN.map((d) => (
               <option key={d} value={d}>{d.charAt(0).toUpperCase() + d.slice(1)}</option>
             ))}
-          </select>
+          </Pilihan>
         </div>
         <div>
           <label htmlFor="gb-tahap" style={gayaLabel}>Tahap</label>
-          <select id="gb-tahap" value={tahap} style={gayaInput}
+          <Pilihan id="gb-tahap" value={tahap} style={gayaInput}
             onChange={(e) => setTahap(e.target.value)}>
             {TAHAP.map((t) => (
               <option key={t} value={t}>{t.replace("_", " ")}</option>
             ))}
-          </select>
+          </Pilihan>
         </div>
         <div>
           <label htmlFor="gb-terbit" style={gayaLabel}>Tanggal terbit</label>
@@ -259,13 +260,13 @@ export function ModalTransmittalBaru({ onClose, onSukses }: {
         </div>
         <div>
           <label htmlFor="tm-maksud" style={gayaLabel}>Maksud</label>
-          <select id="tm-maksud" value={maksud} style={gayaInput}
+          <Pilihan id="tm-maksud" value={maksud} style={gayaInput}
             onChange={(e) => setMaksud(e.target.value)}>
             <option value="untuk_persetujuan">Untuk persetujuan</option>
             <option value="untuk_pelaksanaan">Untuk pelaksanaan</option>
             <option value="untuk_informasi">Untuk informasi</option>
             <option value="untuk_tinjauan">Untuk tinjauan</option>
-          </select>
+          </Pilihan>
         </div>
       </div>
 
@@ -506,14 +507,14 @@ export function ModalNotulenBaru({ onClose, onSukses }: {
         </div>
         <div>
           <label htmlFor="nt-jenis" style={gayaLabel}>Jenis</label>
-          <select id="nt-jenis" value={jenis} style={gayaInput}
+          <Pilihan id="nt-jenis" value={jenis} style={gayaInput}
             onChange={(e) => setJenis(e.target.value)}>
             <option value="mingguan">Mingguan</option>
             <option value="bulanan">Bulanan</option>
             <option value="koordinasi">Koordinasi</option>
             <option value="teknis">Teknis</option>
             <option value="khusus">Khusus</option>
-          </select>
+          </Pilihan>
         </div>
       </div>
 

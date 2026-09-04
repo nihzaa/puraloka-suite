@@ -50,6 +50,7 @@ import SkeletonCard from "@/components/portal/SkeletonCard";
 import BottomSheet from "@/components/portal/BottomSheet";
 import type { RespRekonsiliasiDetail, GalatApi } from "../../../_bersama/tipe";
 import { pesanGalat } from "../../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 function fmtRupiah(v: number | string | null | undefined): string {
   if (v === null || v === undefined) return "—";
@@ -337,7 +338,7 @@ export default function PmDetailRekonsiliasiBankPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jenis</span>
-            <select
+            <Pilihan
               value={formPenyesuaian.jenis}
               onChange={(e) => setFormPenyesuaian((f) => ({ ...f, jenis: e.target.value }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}
@@ -347,7 +348,7 @@ export default function PmDetailRekonsiliasiBankPage() {
                   {label}
                 </option>
               ))}
-            </select>
+            </Pilihan>
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>

@@ -28,6 +28,7 @@ import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
 import { RfqPenawaranModal } from "@/components/rfq-penawaran-modal";
 import { formatRupiah } from "@/lib/format";
+import { Pilihan } from "@/components/pilihan";
 
 type Proyek = { id: string; name: string };
 
@@ -552,10 +553,10 @@ export default function RfqPage() {
           }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 220 }}>
               <label htmlFor="rq-proyek" style={labelGaya}>Proyek</label>
-              <select id="rq-proyek" value={buatProyek} onChange={(e) => setBuatProyek(e.target.value)} style={isianGaya}>
+              <Pilihan id="rq-proyek" value={buatProyek} onChange={(e) => setBuatProyek(e.target.value)} style={isianGaya}>
                 <option value="">— pilih —</option>
                 {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
+              </Pilihan>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 200 }}>
@@ -578,7 +579,7 @@ export default function RfqPage() {
                   Untuk kebutuhan (MR){" "}
                   <span style={{ fontWeight: 400, color: C.mid }}>— opsional</span>
                 </label>
-                <select
+                <Pilihan
                   id="rq-mr" value={buatMr} onChange={(e) => setBuatMr(e.target.value)}
                   style={isianGaya}
                   disabled={!mrLayak || mrLayak.layak.length === 0}
@@ -590,7 +591,7 @@ export default function RfqPage() {
                       {m.mr_number} · {m.item.length} bahan, sisa {m.total_sisa}
                     </option>
                   ))}
-                </select>
+                </Pilihan>
                 <span id="rq-mr-ket" style={{ fontSize: 11, color: C.mid, lineHeight: 1.5 }}>
                   {!mrLayak
                     ? "Memuat kebutuhan…"
@@ -653,7 +654,7 @@ export default function RfqPage() {
                   <label htmlFor="rq-pilih" style={{ ...labelGaya, marginBottom: 0, whiteSpace: "nowrap" }}>
                     Lihat RFQ
                   </label>
-                  <select
+                  <Pilihan
                     id="rq-pilih" value={idEfektif} onChange={(e) => setTerpilih(e.target.value)}
                     style={{ ...isianGaya, minWidth: 260 }}
                   >
@@ -662,7 +663,7 @@ export default function RfqPage() {
                         {r.nomor} — {r.proyek?.name ?? "—"}
                       </option>
                     ))}
-                  </select>
+                  </Pilihan>
                 </div>
               </div>
             )}
@@ -948,7 +949,7 @@ export default function RfqPage() {
                       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 240 }}>
                           <label htmlFor="rq-vendor" style={labelGaya}>Vendor yang menang</label>
-                          <select
+                          <Pilihan
                             id="rq-vendor" value={vendorPilihan}
                             onChange={(e) => { setVendorPilihan(e.target.value); setGalatPutusan(null); }}
                             style={isianGaya}
@@ -962,7 +963,7 @@ export default function RfqPage() {
                                   : ` — menawar ${v.jumlah_ditawar} item`}
                               </option>
                             ))}
-                          </select>
+                          </Pilihan>
                         </div>
 
                         {vendorPilihan && (

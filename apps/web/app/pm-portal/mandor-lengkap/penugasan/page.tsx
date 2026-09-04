@@ -28,6 +28,7 @@ import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import type { ResponsPenugasanMandor, ProyekPM, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 interface MandorOpsi { id: string; name: string; phone: string | null }
 interface RespMandorList { mandors: MandorOpsi[] }
@@ -221,24 +222,24 @@ function FormAssign({ onBatal, onSukses }: { onBatal: () => void; onSukses: () =
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
         Proyek
-        <select
+        <Pilihan
           value={projectId} onChange={(e) => setProjectId(e.target.value)}
           style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
         >
           <option value="">-- Pilih proyek --</option>
           {proyekList.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
+        </Pilihan>
       </label>
 
       <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
         Mandor
-        <select
+        <Pilihan
           value={mandorId} onChange={(e) => setMandorId(e.target.value)}
           style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
         >
           <option value="">-- Pilih mandor --</option>
           {mandorList.map((m) => <option key={m.id} value={m.id}>{m.name}{m.phone ? ` (${m.phone})` : ""}</option>)}
-        </select>
+        </Pilihan>
       </label>
 
       <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>

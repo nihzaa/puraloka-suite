@@ -30,6 +30,7 @@ import SkeletonCard from "@/components/portal/SkeletonCard";
 import BottomSheet from "@/components/portal/BottomSheet";
 import type { RespDaftarPegawai, RespTimesheetPegawai, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 function bulanIni(): string {
   return new Date().toISOString().slice(0, 7);
@@ -110,12 +111,12 @@ export default function PmTimesheetPage() {
         <div style={{ display: "flex", gap: 8 }}>
           <label style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Pegawai</span>
-            <select value={pegawaiAktif} onChange={(e) => setPegawaiId(e.target.value)}
+            <Pilihan value={pegawaiAktif} onChange={(e) => setPegawaiId(e.target.value)}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}>
               {daftarPegawai.map((p) => (
                 <option key={p.id} value={p.id}>{p.orang?.name ?? p.nomor_induk ?? p.id}</option>
               ))}
-            </select>
+            </Pilihan>
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6, width: 130 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Bulan</span>

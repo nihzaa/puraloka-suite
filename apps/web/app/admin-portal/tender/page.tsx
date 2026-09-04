@@ -41,6 +41,7 @@ import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import type { ProyekPM, RespTenderSubkon, GalatApi } from "../_bersama/tipe";
 import { pesanGalat } from "../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 interface RespProyek { projects: ProyekPM[] }
 
@@ -118,10 +119,10 @@ export default function AdminTenderPage() {
       {daftarProyek.length > 1 && (
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <span style={labelKecil}>Proyek</span>
-          <select value={proyekId} onChange={(e) => setProyekId(e.target.value)} style={isian}>
+          <Pilihan value={proyekId} onChange={(e) => setProyekId(e.target.value)} style={isian}>
             <option value={SEMUA}>Semua Proyek</option>
             {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          </Pilihan>
         </label>
       )}
 

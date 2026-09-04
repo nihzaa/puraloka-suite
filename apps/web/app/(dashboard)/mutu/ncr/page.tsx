@@ -30,6 +30,7 @@ import { C } from "@/lib/warna-ui";
 import { Tabel, KepalaHalaman } from "@/components/dasar";
 import { formatRupiah } from "@/lib/format";
 import { PilihanKartu } from "@/components/pilihan-kartu";
+import { Pilihan } from "@/components/pilihan";
 
 interface Ncr {
   id: string; nomor: string; judul: string; deskripsi: string | null;
@@ -233,7 +234,7 @@ function NcrInner() {
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <select
+          <Pilihan
             aria-label="Pilih proyek"
             value={proyekId}
             onChange={(e) => router.replace(`/mutu/ncr?proyek=${e.target.value}`, { scroll: false })}
@@ -251,7 +252,7 @@ function NcrInner() {
               </option>
             )}
             {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          </Pilihan>
           <button onClick={() => muat()} style={{
             display: "flex", alignItems: "center", gap: 6, padding: "8px 12px",
             border: `1px solid ${C.border}`, borderRadius: 6,
@@ -736,12 +737,12 @@ function ModalCatat({ proyekId, awal, onClose, onSukses }: {
           </div>
           <div>
             <label htmlFor="ncr-severity" style={gayaLabel}>Tingkat</label>
-            <select id="ncr-severity" value={severity}
+            <Pilihan id="ncr-severity" value={severity}
               onChange={(e) => setSeverity(e.target.value)} style={gayaInput}>
               <option value="minor">Minor</option>
               <option value="major">Major</option>
               <option value="kritis">Kritis</option>
-            </select>
+            </Pilihan>
           </div>
         </div>
 
@@ -1042,11 +1043,11 @@ function ModalTindakLanjut({ ncr, pengguna, onClose, onSukses }: {
 
         <div>
           <label htmlFor="nc-petugas" style={label}>Penanggung jawab</label>
-          <select id="nc-petugas" value={petugas} onChange={(e) => setPetugas(e.target.value)}
+          <Pilihan id="nc-petugas" value={petugas} onChange={(e) => setPetugas(e.target.value)}
             style={isian} aria-describedby="nc-petugas-ket">
             <option value="">— belum ditugaskan —</option>
             {pengguna.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-          </select>
+          </Pilihan>
           <span id="nc-petugas-ket" style={{ fontSize: 11, color: C.mid, lineHeight: 1.5, display: "block", marginTop: 4 }}>
             Yang ditugaskan menerima notifikasi. Tanpa penanggung jawab,
             ketidaksesuaian menumpuk sampai serah terima tanpa ada yang merasa

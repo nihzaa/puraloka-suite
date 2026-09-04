@@ -12,6 +12,7 @@ import {
   ChevronDown, Loader2, RotateCcw, Ban, Paperclip,
 } from "lucide-react";
 import { minta } from "@/components/tanya";
+import { Pilihan } from "@/components/pilihan";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SUBMITTAL REGISTER — pengajuan material & gambar untuk disetujui.
@@ -247,7 +248,7 @@ export default function SubmittalPage() {
         />
         <div className="sb-kepala-aksi">
           <label className="sb-pilih-bungkus">
-            <select
+            <Pilihan
               className="sb-pilih"
               aria-label="Pilih proyek yang pengajuannya ditampilkan"
               value={proyekId}
@@ -262,7 +263,7 @@ export default function SubmittalPage() {
                 </option>
               )}
               {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            </Pilihan>
             <ChevronDown size={16} className="sb-pilih-ikon" aria-hidden />
           </label>
           <button className="sb-tombol-utama" onClick={() => bukaForm(true)} disabled={!proyekId}>
@@ -753,7 +754,7 @@ function FormSubmittal({
 
           <label className="fs-baris">
             <span className="fs-label">Jenis</span>
-            <select
+            <Pilihan
               className="fs-input"
               aria-label="Jenis pengajuan"
               value={jenis}
@@ -762,7 +763,7 @@ function FormSubmittal({
               {(Object.keys(JENIS_LABEL) as Submittal["jenis"][]).map((j) => (
                 <option key={j} value={j}>{JENIS_LABEL[j]}</option>
               ))}
-            </select>
+            </Pilihan>
           </label>
 
           <label className="fs-baris">

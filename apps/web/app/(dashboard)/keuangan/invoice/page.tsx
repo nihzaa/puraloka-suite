@@ -27,6 +27,7 @@ import {
 import { Kosong } from "@/components/ui-dasar";
 import type { Invoice } from "../_bersama/tipe";
 import { ModalTagihanCo } from "@/components/tagihan-co";
+import { Pilihan } from "@/components/pilihan";
 
 const STATUS = [
   { v: "all", l: "Semua Status" },
@@ -190,7 +191,7 @@ function InvoicePageInner() {
             onBlur={(e) => { e.target.style.borderColor = C.border; }}
           />
         </div>
-        <select
+        <Pilihan
           aria-label="Saring invoice menurut status"
           value={status}
           onChange={(e) => setSaring({ status: e.target.value })}
@@ -201,7 +202,7 @@ function InvoicePageInner() {
           }}
         >
           {STATUS.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}
-        </select>
+        </Pilihan>
         <button onClick={() => muat()} style={{
           display: "flex", alignItems: "center", gap: 4, padding: "8px 12px",
           border: `1px solid ${C.border}`, borderRadius: 6,

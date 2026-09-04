@@ -53,6 +53,7 @@ import { BarisRail, KartuRail } from "@/components/shell/rail-kartu";
 import { RailIsi } from "@/components/shell/rail-isi";
 import { usePasangRail } from "@/lib/rail-context";
 import { Saklar } from "@/components/saklar";
+import { Pilihan } from "@/components/pilihan";
 
 interface Penyedia {
   id: string;
@@ -479,7 +480,7 @@ export default function PenyediaPage() {
             */}
             <label htmlFor="penyedia-jenis" style={{ display: "grid", gap: 4 }}>
               <span style={{ fontSize: 13, color: C.muted }}>Jenis</span>
-              <select
+              <Pilihan
                 id="penyedia-jenis"
                 aria-label="Jenis penyedia layanan"
                 style={input}
@@ -493,12 +494,12 @@ export default function PenyediaPage() {
               >
                 <option value="wa">WhatsApp</option>
                 <option value="ai">AI</option>
-              </select>
+              </Pilihan>
             </label>
 
             <label htmlFor="penyedia-adaptor" style={{ display: "grid", gap: 4 }}>
               <span style={{ fontSize: 13, color: C.muted }}>Adaptor</span>
-              <select
+              <Pilihan
                 id="penyedia-adaptor"
                 aria-label="Adaptor penyedia layanan"
                 style={input}
@@ -511,7 +512,7 @@ export default function PenyediaPage() {
                     {a.label}
                   </option>
                 ))}
-              </select>
+              </Pilihan>
               {adaptorTerpilih && (
                 <span style={{ fontSize: 12, color: C.muted }}>{adaptorTerpilih.keterangan}</span>
               )}

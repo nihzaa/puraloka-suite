@@ -14,6 +14,7 @@ import { PieChart, X } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { marginPerluDicurigai, keandalanMargin, alasanMarginRagu } from "@/lib/margin-tepercaya";
+import { Pilihan } from "@/components/pilihan";
 
 interface ProfitProject {
   id: string; name: string; contract_model: string; contract_value: number;
@@ -122,12 +123,12 @@ export default function ProfitabilitasPage() {
         </div>
         <div>
           <label htmlFor="profit-proyek" style={gaya.label}>Proyek</label>
-          <select id="profit-proyek" value={filterProyek}
+          <Pilihan id="profit-proyek" value={filterProyek}
             onChange={(e) => setFilterProyek(e.target.value)}
             style={{ ...gaya.input, minWidth: 160 }}>
             <option value="">Semua Proyek</option>
             {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          </Pilihan>
         </div>
         {adaFilter && (
           <button onClick={() => { setDari(""); setSampai(""); setFilterProyek(""); }}

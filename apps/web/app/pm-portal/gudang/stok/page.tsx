@@ -43,6 +43,7 @@ import SkeletonCard from "@/components/portal/SkeletonCard";
 import BottomSheet from "@/components/portal/BottomSheet";
 import type { ProyekPM, RespStokDaftar, StokRingkas, RespMutasiDaftar, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 interface RespProyek { projects: ProyekPM[] }
 
@@ -97,10 +98,10 @@ export default function PmStokPage() {
       {daftarProyek.length > 1 && (
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek</span>
-          <select value={proyekAktif} onChange={(e) => setProyekId(e.target.value)}
+          <Pilihan value={proyekAktif} onChange={(e) => setProyekId(e.target.value)}
             style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}>
             {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          </Pilihan>
         </label>
       )}
 
@@ -203,20 +204,20 @@ function SheetCatatPemakaian({ terbuka, onTutup, proyekId, stok }: { terbuka: bo
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
           Material
-          <select value={materialId} onChange={(e) => setMaterialId(e.target.value)}
+          <Pilihan value={materialId} onChange={(e) => setMaterialId(e.target.value)}
             style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 10px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13, background: "var(--surface)" }}>
             <option value="">Pilih material…</option>
             {stok.map((s) => <option key={s.id} value={s.material?.id}>{s.material?.name} (tersedia {s.qty_on_hand})</option>)}
-          </select>
+          </Pilihan>
         </label>
         <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
           Jenis
-          <select value={jenis} onChange={(e) => setJenis(e.target.value as typeof jenis)}
+          <Pilihan value={jenis} onChange={(e) => setJenis(e.target.value as typeof jenis)}
             style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 10px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13, background: "var(--surface)" }}>
             <option value="usage">Pemakaian</option>
             <option value="return">Retur (masuk kembali)</option>
             <option value="adjustment">Penyesuaian (qty absolut baru)</option>
-          </select>
+          </Pilihan>
         </label>
         <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
           Qty

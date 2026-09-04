@@ -26,6 +26,7 @@ import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { Tabel, type Kolom, KepalaHalaman } from "@/components/dasar";
 import { formatRupiah } from "@/lib/format";
+import { Pilihan } from "@/components/pilihan";
 
 type Proyek = { id: string; name: string };
 
@@ -311,17 +312,17 @@ export default function AsuransiPage() {
             }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label htmlFor="as-proyek" style={labelGaya}>Proyek</label>
-                <select id="as-proyek" value={fProyek} onChange={(e) => setFProyek(e.target.value)} style={isianGaya}>
+                <Pilihan id="as-proyek" value={fProyek} onChange={(e) => setFProyek(e.target.value)} style={isianGaya}>
                   <option value="">— pilih —</option>
                   {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
+                </Pilihan>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label htmlFor="as-jenis" style={labelGaya}>Jenis</label>
-                <select id="as-jenis" value={fJenis} onChange={(e) => setFJenis(e.target.value)} style={isianGaya}>
+                <Pilihan id="as-jenis" value={fJenis} onChange={(e) => setFJenis(e.target.value)} style={isianGaya}>
                   {JENIS_PILIHAN.map((j) => <option key={j.nilai} value={j.nilai}>{j.label}</option>)}
-                </select>
+                </Pilihan>
               </div>
 
               {fJenis === "lainnya" && (

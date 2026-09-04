@@ -29,6 +29,7 @@ import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
 import { ContingencyTarikModal } from "@/components/contingency-tarik-modal";
 import { formatRupiah } from "@/lib/format";
+import { Pilihan } from "@/components/pilihan";
 
 type Proyek = { id: string; name: string };
 
@@ -360,10 +361,10 @@ export default function ContingencyPage() {
             }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label htmlFor="cg-proyek" style={labelGaya}>Proyek</label>
-                <select id="cg-proyek" value={fProyek} onChange={(e) => setFProyek(e.target.value)} style={isianGaya}>
+                <Pilihan id="cg-proyek" value={fProyek} onChange={(e) => setFProyek(e.target.value)} style={isianGaya}>
                   <option value="">— pilih —</option>
                   {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
+                </Pilihan>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label htmlFor="cg-nama" style={labelGaya}>Nama pos</label>

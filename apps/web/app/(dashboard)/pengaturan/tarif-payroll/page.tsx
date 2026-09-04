@@ -39,6 +39,7 @@ import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman, Tabel } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
+import { Pilihan } from "@/components/pilihan";
 
 type Jenis = "ptkp" | "ter_pph21" | "bpjs";
 
@@ -501,7 +502,7 @@ export default function TarifPayrollPage() {
               fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Jenis tarif</label>
-            <select id="tp-jenis" value={fJenis} onChange={(e) => setFJenis(e.target.value as Jenis)}
+            <Pilihan id="tp-jenis" value={fJenis} onChange={(e) => setFJenis(e.target.value as Jenis)}
               style={{
                 width: "100%", padding: "8px 10px", borderRadius: 6, fontSize: 13,
                 border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text,
@@ -509,7 +510,7 @@ export default function TarifPayrollPage() {
               {(Object.keys(JENIS) as Jenis[]).map((k) => (
                 <option key={k} value={k}>{JENIS[k].label}</option>
               ))}
-            </select>
+            </Pilihan>
             <p style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
               {JENIS[fJenis].guna} Kuncinya: {JENIS[fJenis].contohKunci}.
             </p>

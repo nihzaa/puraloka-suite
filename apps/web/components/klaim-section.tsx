@@ -35,6 +35,7 @@ import {
   Scale, Plus, AlertTriangle, Clock, CheckCircle2, XCircle, Ban,
 } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
+import { Pilihan } from "@/components/pilihan";
 
 const C = {
   navy: "var(--navy)", text: "var(--text-primary)", mid: "var(--text-secondary)",
@@ -457,14 +458,14 @@ function FormKlaim({
               a11y memeriksa secara statis dan tak bisa menelusuri pembungkus,
               dan nama yang tertulis di elemennya sendiri lebih tahan terhadap
               perubahan struktur di kemudian hari. */}
-          <select
+          <Pilihan
             value={jenis}
             onChange={(e) => setJenis(e.target.value)}
             aria-label="Jenis klaim"
             style={gayaInput}
           >
             {Object.entries(JENIS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
+          </Pilihan>
         </Medan>
       </div>
 

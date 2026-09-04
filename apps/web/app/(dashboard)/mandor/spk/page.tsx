@@ -44,6 +44,7 @@ import { KepalaHalaman } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
 import { TombolUnduh } from "@/components/tombol-unduh";
 import { AddendumSpk } from "@/components/addendum-spk";
+import { Pilihan } from "@/components/pilihan";
 
 type StatusSpk = "draf" | "diterbitkan" | "ditandatangani" | "dibatalkan";
 
@@ -731,7 +732,7 @@ function FormTerbitSpk({ onTutup, onSelesai }: {
 
       <div style={{ marginBottom: 14 }}>
         <Label htmlFor="spk-tender">Tender asal</Label>
-        <select
+        <Pilihan
           id="spk-tender" value={tenderId} onChange={(e) => setTenderId(e.target.value)}
           style={GAYA_ISIAN}
         >
@@ -741,7 +742,7 @@ function FormTerbitSpk({ onTutup, onSelesai }: {
               {t.nomor} — {t.judul}{t.proyek?.name ? ` · ${t.proyek.name}` : ""}
             </option>
           ))}
-        </select>
+        </Pilihan>
         {tenderId === "" && (
           <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
             Tanpa tender, lingkup kerjanya belum ditentukan — pilih tender yang
@@ -753,7 +754,7 @@ function FormTerbitSpk({ onTutup, onSelesai }: {
       {tenderId !== "" && (
         <div style={{ marginBottom: 14 }}>
           <Label htmlFor="spk-penawaran">Penawaran yang dipakai</Label>
-          <select
+          <Pilihan
             id="spk-penawaran" value={penawaranId}
             onChange={(e) => {
               setPenawaranId(e.target.value);
@@ -769,7 +770,7 @@ function FormTerbitSpk({ onTutup, onSelesai }: {
                 {p.status === "menang" ? " · PEMENANG" : ""}
               </option>
             ))}
-          </select>
+          </Pilihan>
           {penawaran.length === 0 && (
             <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>
               Tender ini belum punya penawaran. SPK tetap bisa dibuat tanpa merujuk penawaran.

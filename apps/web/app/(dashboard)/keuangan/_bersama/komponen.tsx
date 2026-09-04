@@ -26,6 +26,7 @@ import { api } from "@/lib/api";
 import { urlVerifikasi } from "@/lib/url-dokumen";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { C } from "@/lib/warna-ui";
+import { Pilihan } from "@/components/pilihan";
 import {
   type Invoice, type CashAccount, type Project, type ProjectDetail,
   type MandorScope, 
@@ -499,10 +500,10 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
           {/* ── Proyek ── */}
           <div>
             <label htmlFor="project-id" style={labelStyle}>Proyek <span style={{ color: C.red }}>*</span></label>
-            <select id="project-id" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} required style={inputStyle}>
+            <Pilihan id="project-id" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} required style={inputStyle}>
               <option value="">-- Pilih proyek --</option>
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            </Pilihan>
           </div>
 
           {loadingProject && <div style={{ fontSize: 12, color: C.muted }}>Memuat data proyek...</div>}
@@ -529,14 +530,14 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
             {isTermin && (
               <div>
                 <label htmlFor="termin-id" style={labelStyle}>Pilih Termin yang Ditagih <span style={{ color: C.red }}>*</span></label>
-                <select id="termin-id" aria-label="Pilih termin yang ditagih" value={terminId} onChange={e => setTerminId(e.target.value)} required style={inputStyle}>
+                <Pilihan id="termin-id" aria-label="Pilih termin yang ditagih" value={terminId} onChange={e => setTerminId(e.target.value)} required style={inputStyle}>
                   <option value="">-- Pilih termin --</option>
                   {projectDetail.termin_schedules.map(t => (
                     <option key={t.id} value={t.id} disabled={t.status === "billed" || t.status === "paid"}>
                       {t.label} — {fmt(t.amount)} {t.status === "billed" ? "✓ Sudah ditagih" : t.status === "paid" ? "✓ Lunas" : ""}
                     </option>
                   ))}
-                </select>
+                </Pilihan>
                 {projectDetail.termin_schedules.length === 0 && (
                   <div style={{ fontSize: 11, color: C.red, marginTop: 4 }}>Proyek ini belum memiliki jadwal termin</div>
                 )}
@@ -955,7 +956,7 @@ export function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; on
           {/* Work scope (mandor + proyek) */}
           <div>
             <label htmlFor="scope-id" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Work Scope Mandor <span style={{ color: C.red }}>*</span></label>
-            <select id="scope-id" aria-label="Work scope mandor yang mengajukan kasbon" value={scopeId} onChange={e => setScopeId(e.target.value)} required
+            <Pilihan id="scope-id" aria-label="Work scope mandor yang mengajukan kasbon" value={scopeId} onChange={e => setScopeId(e.target.value)} required
               style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, color: C.text, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
               <option value="">-- Pilih mandor & scope --</option>
               {scopes.map(s => (
@@ -963,7 +964,7 @@ export function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; on
                   {s.assignment?.mandor?.name ?? "?"} — {s.scope_name} ({s.assignment?.project?.name ?? "?"})
                 </option>
               ))}
-            </select>
+            </Pilihan>
             {selectedScope && (
               <div style={{ marginTop: 6, fontSize: 11, color: C.muted }}>
                 Mandor: <strong style={{ color: C.text }}>{selectedScope.assignment?.mandor?.name}</strong>
@@ -994,22 +995,22 @@ export function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; on
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
               <label htmlFor="purpose" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Keperluan <span style={{ color: C.red }}>*</span></label>
-              <select id="purpose" aria-label="Keperluan kasbon" value={purpose} onChange={e => setPurpose(e.target.value)}
+              <Pilihan id="purpose" aria-label="Keperluan kasbon" value={purpose} onChange={e => setPurpose(e.target.value)}
                 style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="gaji_tukang">Gaji Tukang</option>
                 <option value="uang_makan">Uang Makan</option>
                 <option value="pembelian_alat">Pembelian Alat</option>
                 <option value="operasional">Operasional</option>
                 <option value="lain_lain">Lain-lain</option>
-              </select>
+              </Pilihan>
             </div>
             <div>
               <label htmlFor="fund-source" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Sumber Dana</label>
-              <select id="fund-source" aria-label="Sumber dana kasbon" value={fundSource} onChange={e => setFundSource(e.target.value)}
+              <Pilihan id="fund-source" aria-label="Sumber dana kasbon" value={fundSource} onChange={e => setFundSource(e.target.value)}
                 style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                 <option value="owner_advance">Dana Owner</option>
                 <option value="client_fund">Dana Klien</option>
-              </select>
+              </Pilihan>
             </div>
           </div>
 
@@ -1043,7 +1044,7 @@ export function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; on
             {autoApprove && (
               <div style={{ marginTop: 12 }}>
                 <label htmlFor="cash-account-id" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Potong dari akun kas:</label>
-                <select id="cash-account-id" aria-label="Akun kas yang dipotong untuk kasbon ini" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)}
+                <Pilihan id="cash-account-id" aria-label="Akun kas yang dipotong untuk kasbon ini" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)}
                   style={{ width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                   <option value="">-- Pilih akun kas --</option>
                   {cashAccounts.map(a => (
@@ -1051,7 +1052,7 @@ export function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; on
                       {a.name} · Saldo {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(a.balance))}
                     </option>
                   ))}
-                </select>
+                </Pilihan>
                 {selectedAccount && amount && (
                   <div style={{ marginTop: 6, fontSize: 11, color: Number(selectedAccount.balance) >= parseFloat(amount || "0") ? C.green : C.red }}>
                     Saldo setelah: {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(selectedAccount.balance) - (parseFloat(amount) || 0))}
@@ -1317,7 +1318,7 @@ export function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invo
                 {cashAccounts.length === 0 ? (
                   <div style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, color: C.muted }}>Memuat...</div>
                 ) : (
-                  <select aria-label="Akun kas penerima pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)}
+                  <Pilihan aria-label="Akun kas penerima pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)}
                     style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                     <option value="">— Tidak masuk ke kas —</option>
                     {cashAccounts.map(a => (
@@ -1325,20 +1326,20 @@ export function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invo
                         {a.name} ({ACCOUNT_TYPE_LABEL[a.type] ?? a.type}) · Saldo {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(a.balance)}
                       </option>
                     ))}
-                  </select>
+                  </Pilihan>
                 )}
               </div>
 
               <div>
                 <label htmlFor="payment-method" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Metode Pembayaran</label>
-                <select id="payment-method" aria-label="Metode pembayaran" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
+                <Pilihan id="payment-method" aria-label="Metode pembayaran" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
                   style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                   <option value="transfer_bank">Transfer Bank</option>
                   <option value="cash">Tunai</option>
                   <option value="qris">QRIS</option>
                   <option value="cek">Cek</option>
                   <option value="giro">Giro</option>
-                </select>
+                </Pilihan>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

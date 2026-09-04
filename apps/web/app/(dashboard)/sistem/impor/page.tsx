@@ -45,6 +45,7 @@ import {
   Halaman, KepalaHalaman, Kartu, JudulKartu, Tabel, Rangka, Galat,
   Tombol, Lencana, gayaInput, type Kolom,
 } from "@/components/dasar";
+import { Pilihan } from "@/components/pilihan";
 
 interface KolomSkema {
   kunci: string; label: string;
@@ -274,11 +275,11 @@ export default function ImporPage() {
               <label htmlFor="im-skema" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
                 Jenis data
               </label>
-              <select id="im-skema" style={gayaInput} value={pilihSkema}
+              <Pilihan id="im-skema" style={gayaInput} value={pilihSkema}
                 onChange={(e) => { setPilihSkema(e.target.value); ulangi(); }}>
                 <option value="">— pilih —</option>
                 {skema.map((s) => <option key={s.kunci} value={s.kunci}>{s.label}</option>)}
-              </select>
+              </Pilihan>
               {aktif && (
                 <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 4, lineHeight: 1.45 }}>
                   {aktif.keterangan}
@@ -401,7 +402,7 @@ export default function ImporPage() {
                   )}
                 </span>
                 <ArrowRight size={13} aria-hidden="true" style={{ color: C.muted }} />
-                <select
+                <Pilihan
                   aria-label={`Petakan kolom ${u.kolomBerkas}`}
                   style={{ ...gayaInput, fontSize: 12.5 }}
                   value={pemetaan[u.kolomBerkas] ?? ""}
@@ -417,7 +418,7 @@ export default function ImporPage() {
                       {k.label}{k.wajib ? " *" : ""}
                     </option>
                   ))}
-                </select>
+                </Pilihan>
               </div>
             ))}
           </div>

@@ -25,6 +25,7 @@ import { Tabel, type Kolom, type SelTotal } from "@/components/dasar";
 import { Badge, Btn, Card, Input, Memuat, Modal, STATUS_BADGE, fmt, fmtDate } from "../_bersama/ui";
 import { CreatePoModal, KirimPoModal } from "../_bersama/modal-po";
 import type { PoRingkas, PurchaseOrder } from "../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 /** Item PO pada modal detail — `/purchase-orders/:id` mengirim lebih lengkap. */
 interface ItemPo {
@@ -119,14 +120,14 @@ export default function PesananPage() {
   return (
     <div style={{ width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
       <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", justifyContent: "space-between" }}>
-        <select
+        <Pilihan
           aria-label="Saring status Purchase Order" value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
           style={{ padding: "var(--pad-tombol)", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: C.surface, color: C.text }}
         >
           <option value="">Semua Status</option>
           {STATUS_PO.map(s => <option key={s} value={s}>{STATUS_BADGE[s]?.label ?? s}</option>)}
-        </select>
+        </Pilihan>
         {canManage && <Btn onClick={() => setShowCreate(true)}><Plus size={14} aria-hidden="true" /> Buat Purchase Order</Btn>}
       </div>
 

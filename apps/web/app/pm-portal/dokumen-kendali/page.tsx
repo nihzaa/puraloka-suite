@@ -70,6 +70,7 @@ import BottomSheet from "@/components/portal/BottomSheet";
 import StatusBadge from "@/components/portal/StatusBadge";
 import type { ProyekPM, RespKendaliDokumen, RespVerifikasiTtd, GalatApi } from "../_bersama/tipe";
 import { pesanGalat } from "../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 interface RespProyek { projects: ProyekPM[] }
 
@@ -235,13 +236,13 @@ export default function PmDokumenKendaliPage() {
       {daftarProyek.length > 1 && (
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek</span>
-          <select
+          <Pilihan
             value={proyekAktif}
             onChange={(e) => setProyekId(e.target.value)}
             style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
           >
             {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          </Pilihan>
         </label>
       )}
 
@@ -478,7 +479,7 @@ export default function PmDokumenKendaliPage() {
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Disiplin</span>
-            <select
+            <Pilihan
               value={formGambar.disiplin}
               onChange={(e) => setFormGambar((f) => ({ ...f, disiplin: e.target.value }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}
@@ -487,7 +488,7 @@ export default function PmDokumenKendaliPage() {
               <option value="struktur">Struktur</option>
               <option value="mep">MEP</option>
               <option value="lansekap">Lansekap</option>
-            </select>
+            </Pilihan>
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Revisi</span>
@@ -586,7 +587,7 @@ export default function PmDokumenKendaliPage() {
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jenis</span>
-            <select
+            <Pilihan
               value={formNotulen.jenis}
               onChange={(e) => setFormNotulen((f) => ({ ...f, jenis: e.target.value }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}
@@ -594,7 +595,7 @@ export default function PmDokumenKendaliPage() {
               <option value="mingguan">Mingguan</option>
               <option value="koordinasi">Koordinasi</option>
               <option value="khusus">Khusus</option>
-            </select>
+            </Pilihan>
           </label>
           <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
             Butir tindakan ditambahkan lewat versi web (Dokumen → Kendali) — form
@@ -620,7 +621,7 @@ export default function PmDokumenKendaliPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jenis Objek</span>
-            <select
+            <Pilihan
               value={formTtd.jenis_objek}
               onChange={(e) => setFormTtd((f) => ({ ...f, jenis_objek: e.target.value }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}
@@ -629,7 +630,7 @@ export default function PmDokumenKendaliPage() {
               <option value="transmittal">Transmittal</option>
               <option value="berita_acara">Berita Acara</option>
               <option value="kontrak">Kontrak</option>
-            </select>
+            </Pilihan>
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>ID Objek *</span>
@@ -668,7 +669,7 @@ export default function PmDokumenKendaliPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jenis Objek</span>
-            <select
+            <Pilihan
               value={formTtd.jenis_objek}
               onChange={(e) => setFormTtd((f) => ({ ...f, jenis_objek: e.target.value }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}
@@ -677,7 +678,7 @@ export default function PmDokumenKendaliPage() {
               <option value="transmittal">Transmittal</option>
               <option value="berita_acara">Berita Acara</option>
               <option value="kontrak">Kontrak</option>
-            </select>
+            </Pilihan>
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>ID Objek *</span>

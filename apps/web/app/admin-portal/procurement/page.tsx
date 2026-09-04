@@ -54,6 +54,7 @@ import type {
   RespMaterialDaftar, RespSupplierDaftar,
 } from "../_bersama/tipe";
 import { pesanGalat } from "../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 interface RespProyek { projects: ProyekPM[] }
 
@@ -130,14 +131,14 @@ export default function AdminProcurementPage() {
       {daftarProyek.length > 1 && (
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek</span>
-          <select
+          <Pilihan
             value={proyekId}
             onChange={(e) => setProyekId(e.target.value)}
             style={isian}
           >
             <option value={SEMUA}>Semua Proyek</option>
             {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          </Pilihan>
         </label>
       )}
 
@@ -303,19 +304,19 @@ function SheetBuatMr({
     <BottomSheet terbuka judul="Material Request baru" onTutup={tutup}>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <Isian label="Proyek">
-          <select value={projectId} onChange={(e) => setProjectId(e.target.value)} style={isian}>
+          <Pilihan value={projectId} onChange={(e) => setProjectId(e.target.value)} style={isian}>
             <option value="">— pilih proyek —</option>
             {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          </Pilihan>
         </Isian>
 
         <Isian label="Material">
-          <select value={materialId} onChange={(e) => setMaterialId(e.target.value)} style={isian}>
+          <Pilihan value={materialId} onChange={(e) => setMaterialId(e.target.value)} style={isian}>
             <option value="">— pilih material —</option>
             {material.map((m) => (
               <option key={m.id} value={m.id}>{m.name}{m.unit ? ` (${m.unit})` : ""}</option>
             ))}
-          </select>
+          </Pilihan>
         </Isian>
 
         <Isian label={`Jumlah${mat?.unit ? ` (${mat.unit})` : ""}`}>
@@ -426,17 +427,17 @@ function SheetBuatPo({
     <BottomSheet terbuka judul="Purchase Order baru" onTutup={tutup}>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <Isian label="Proyek">
-          <select value={projectId} onChange={(e) => setProjectId(e.target.value)} style={isian}>
+          <Pilihan value={projectId} onChange={(e) => setProjectId(e.target.value)} style={isian}>
             <option value="">— pilih proyek —</option>
             {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          </Pilihan>
         </Isian>
 
         <Isian label="Supplier">
-          <select value={supplierId} onChange={(e) => setSupplierId(e.target.value)} style={isian}>
+          <Pilihan value={supplierId} onChange={(e) => setSupplierId(e.target.value)} style={isian}>
             <option value="">— pilih supplier —</option>
             {supplier.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
+          </Pilihan>
         </Isian>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -445,11 +446,11 @@ function SheetBuatPo({
           </span>
           {items.map((it, i) => (
             <div key={i} style={kotakBaris}>
-              <select value={it.material_id} onChange={(e) => ubahBaris(i, { material_id: e.target.value })}
+              <Pilihan value={it.material_id} onChange={(e) => ubahBaris(i, { material_id: e.target.value })}
                 aria-label={`Material baris ${i + 1}`} style={isian}>
                 <option value="">— pilih material —</option>
                 {material.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </select>
+              </Pilihan>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 <input type="number" min={0} step="any" inputMode="decimal" placeholder="Jumlah"
                   aria-label={`Jumlah baris ${i + 1}`}
