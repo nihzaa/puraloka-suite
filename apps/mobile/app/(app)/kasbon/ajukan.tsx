@@ -15,6 +15,8 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { api } from '@/lib/api';
 import { antrekan } from '@/lib/antrean';
+import { useTema } from '@/hooks/useTema';
+import { FONT, HURUF, RADIUS, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
 
 interface Project { id: string; name: string }
 interface WorkScope { id: string; scope_name: string; project_id: string; assignment?: { project?: { id: string; name: string } } }
@@ -33,6 +35,13 @@ const FUND_SOURCES = [
 ];
 
 export default function AjukanKasbonScreen() {
+  /*
+    Gaya dirakit di dalam komponen — `StyleSheet.create` di lingkup
+    modul berjalan sebelum satu hook pun, jadi ia tak bisa membaca
+    `useTema()`. Lihat catatan panjangnya di `pekerjaan.tsx`.
+  */
+  const { c } = useTema();
+  const styles = React.useMemo(() => gaya(c), [c]);
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>('');
@@ -138,7 +147,7 @@ export default function AjukanKasbonScreen() {
   if (loadingData) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color="#003366" />
+        <ActivityIndicator size="large" color={c.navy} />
       </SafeAreaView>
     );
   }
@@ -210,7 +219,7 @@ export default function AjukanKasbonScreen() {
             onChangeText={setAmount}
             keyboardType="number-pad"
             placeholder="0"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={c.textMuted}
           />
         </Card>
 
@@ -256,7 +265,7 @@ export default function AjukanKasbonScreen() {
             value={notes}
             onChangeText={setNotes}
             placeholder="Keterangan tambahan..."
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={c.textMuted}
             multiline
             numberOfLines={3}
             textAlignVertical="top"
@@ -269,31 +278,33 @@ export default function AjukanKasbonScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F8F9FA' },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8F9FA' },
-  topBar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
-  backBtn: { fontSize: 15, color: '#003366', fontWeight: '500' },
-  title: { fontSize: 18, fontWeight: '700', color: '#111827' },
-  container: { padding: 16, gap: 16 },
-  section: { gap: 8 },
-  label: { fontSize: 13, fontWeight: '600', color: '#374151' },
-  helperText: { fontSize: 12, color: '#6B7280', marginTop: 2 },
-  emptyText: { fontSize: 13, color: '#6B7280', paddingVertical: 8 },
-  chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: '#E5E7EB', marginRight: 8, backgroundColor: '#fff' },
-  chipActive: { backgroundColor: '#003366', borderColor: '#003366' },
-  chipText: { fontSize: 13, color: '#374151' },
-  chipTextActive: { color: '#fff', fontWeight: '600' },
-  amountInput: { fontSize: 32, fontWeight: '700', color: '#003366', borderBottomWidth: 2, borderColor: '#003366', paddingVertical: 8, textAlign: 'center' },
-  optionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  option: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#fff' },
-  optionActive: { backgroundColor: '#003366', borderColor: '#003366' },
-  optionText: { fontSize: 13, color: '#374151' },
-  optionTextActive: { color: '#fff', fontWeight: '600' },
-  fundRow: { flexDirection: 'row', gap: 10 },
-  fundBtn: { paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center' },
-  fundBtnActive: { backgroundColor: '#003366', borderColor: '#003366' },
-  fundBtnText: { fontSize: 13, color: '#374151', fontWeight: '500' },
-  fundBtnTextActive: { color: '#fff', fontWeight: '600' },
-  textarea: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, padding: 12, fontSize: 14, color: '#111827', minHeight: 80 },
-});
+function gaya(c: Palet) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: c.surfaceSubtle },
+    centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surfaceSubtle },
+    topBar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
+    backBtn: { fontSize: 15, color: c.navy, fontFamily: FONT.isiTebal },
+    title: { fontSize: 18, fontFamily: FONT.judul, color: c.textPrimary },
+    container: { padding: 16, gap: 16 },
+    section: { gap: 8 },
+    label: { fontSize: 13, fontFamily: FONT.isiTebal, color: c.textPrimary },
+    helperText: { fontSize: 12, color: c.textSecondary, marginTop: 2 },
+    emptyText: { fontSize: 13, color: c.textSecondary, paddingVertical: 8 },
+    chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: c.border, marginRight: 8, backgroundColor: c.surfaceRaised },
+    chipActive: { backgroundColor: c.navy, borderColor: c.navy },
+    chipText: { fontSize: 13, color: c.textPrimary },
+    chipTextActive: { color: c.surfaceRaised, fontFamily: FONT.isiTebal },
+    amountInput: { fontSize: 32, fontFamily: FONT.judul, color: c.navy, borderBottomWidth: 2, borderColor: c.navy, paddingVertical: 8, textAlign: 'center' },
+    optionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    option: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },
+    optionActive: { backgroundColor: c.navy, borderColor: c.navy },
+    optionText: { fontSize: 13, color: c.textPrimary },
+    optionTextActive: { color: c.surfaceRaised, fontFamily: FONT.isiTebal },
+    fundRow: { flexDirection: 'row', gap: 10 },
+    fundBtn: { paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: c.border, alignItems: 'center' },
+    fundBtnActive: { backgroundColor: c.navy, borderColor: c.navy },
+    fundBtnText: { fontSize: 13, color: c.textPrimary, fontFamily: FONT.isiTebal },
+    fundBtnTextActive: { color: c.surfaceRaised, fontFamily: FONT.isiTebal },
+    textarea: { borderWidth: 1, borderColor: c.border, borderRadius: 10, padding: 12, fontSize: 14, color: c.textPrimary, minHeight: 80 },
+  });
+}

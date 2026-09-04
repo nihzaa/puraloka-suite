@@ -3,6 +3,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { Tekan } from '@/components/ui/Tekan';
 import { storage } from '@/lib/storage';
+import { useTema } from '@/hooks/useTema';
+import { FONT, HURUF, RADIUS, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
 
 /*
   ══════════════════════════════════════════════════════════════════════════
@@ -129,6 +131,13 @@ function alamatWeb(): string {
 }
 
 export default function LayarWeb() {
+  /*
+    Gaya dirakit di dalam komponen — `StyleSheet.create` di lingkup
+    modul berjalan sebelum satu hook pun, jadi ia tak bisa membaca
+    `useTema()`. Lihat catatan panjangnya di `pekerjaan.tsx`.
+  */
+  const { c } = useTema();
+  const s = React.useMemo(() => gaya(c), [c]);
   const { modul } = useLocalSearchParams<{ modul: string }>();
   const entri = MODUL[String(modul)];
   const [token, setToken] = useState<string | null>(null);
@@ -173,7 +182,7 @@ export default function LayarWeb() {
   if (!siap) {
     return (
       <View style={s.tengah}>
-        <ActivityIndicator size="large" color="#003366" />
+        <ActivityIndicator size="large" color={c.navy} />
       </View>
     );
   }
@@ -244,7 +253,7 @@ export default function LayarWeb() {
         startInLoadingState
         renderLoading={() => (
           <View style={s.tengah}>
-            <ActivityIndicator size="large" color="#003366" />
+            <ActivityIndicator size="large" color={c.navy} />
           </View>
         )}
         /*
@@ -283,7 +292,22 @@ export default function LayarWeb() {
   );
 }
 
+/**
+ * Layar pesan (galat, tak ada izin, modul belum siap).
+ *
+ * Memanggil `useTema()` SENDIRI, bukan menerima gaya lewat prop.
+ *
+ * Ia komponen di lingkup modul dan dipanggil dari empat tempat di dalam
+ * `LayarWeb` — meneruskan `s` lewat prop berarti empat pemanggil yang
+ * harus diubah bersamaan, dan satu yang terlewat jadi galat runtime,
+ * bukan galat tipe.
+ *
+ * `useTema()` murah (`useColorScheme` sudah reaktif) dan komponen ini
+ * hanya dirender satu per layar.
+ */
 function Pesan({ judul, isi }: { judul: string; isi: string }) {
+  const { c } = useTema();
+  const s = React.useMemo(() => gaya(c), [c]);
   return (
     <View style={s.tengah}>
       <Text style={s.judul}>{judul}</Text>
@@ -295,10 +319,12 @@ function Pesan({ judul, isi }: { judul: string; isi: string }) {
   );
 }
 
-const s = StyleSheet.create({
-  tengah: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#F8FAFC' },
-  judul: { fontSize: 17, fontWeight: '700', color: '#111827', marginBottom: 8, textAlign: 'center' },
-  isi: { fontSize: 14, color: '#5A616B', textAlign: 'center', lineHeight: 20 },
-  tombol: { marginTop: 20, paddingVertical: 11, paddingHorizontal: 22, backgroundColor: '#003366', borderRadius: 10 },
-  tombolTeks: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
-});
+function gaya(c: Palet) {
+  return StyleSheet.create({
+    tengah: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: c.surfaceSubtle },
+    judul: { fontSize: 17, fontFamily: FONT.judul, color: c.textPrimary, marginBottom: 8, textAlign: 'center' },
+    isi: { fontSize: 14, color: c.textSecondary, textAlign: 'center', lineHeight: 20 },
+    tombol: { marginTop: 20, paddingVertical: 11, paddingHorizontal: 22, backgroundColor: c.navy, borderRadius: 10 },
+    tombolTeks: { color: c.surfaceRaised, fontSize: 14, fontFamily: FONT.isiTebal },
+  });
+}

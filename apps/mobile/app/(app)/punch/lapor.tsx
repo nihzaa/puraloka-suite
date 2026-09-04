@@ -7,6 +7,8 @@ import { router } from 'expo-router';
 import { api } from '@/lib/api';
 import { antrekan } from '@/lib/antrean';
 import { useAuth } from '@/hooks/useAuth';
+import { useTema } from '@/hooks/useTema';
+import { FONT, HURUF, RADIUS, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
 
 /*
   ══════════════════════════════════════════════════════════════════════════
@@ -62,6 +64,13 @@ const SEVERITY = [
 ];
 
 export default function LaporTemuan() {
+  /*
+    Gaya dirakit di dalam komponen — `StyleSheet.create` di lingkup
+    modul berjalan sebelum satu hook pun, jadi ia tak bisa membaca
+    `useTema()`. Lihat catatan panjangnya di `pekerjaan.tsx`.
+  */
+  const { c } = useTema();
+  const s = React.useMemo(() => gaya(c), [c]);
   const { punyaIzin } = useAuth();
   const [proyek, setProyek] = useState<Proyek[]>([]);
   const [proyekId, setProyekId] = useState<string | null>(null);
@@ -150,7 +159,7 @@ export default function LaporTemuan() {
   if (memuat) {
     return (
       <View style={s.tengah}>
-        <ActivityIndicator size="large" color="#003366" />
+        <ActivityIndicator size="large" color={c.navy} />
       </View>
     );
   }
@@ -189,7 +198,7 @@ export default function LaporTemuan() {
         value={judul}
         onChangeText={setJudul}
         placeholder="mis. Retak rambut di kolom K3 lantai 2"
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor={c.textMuted}
         style={s.input}
         accessibilityLabel="Judul temuan"
       />
@@ -199,7 +208,7 @@ export default function LaporTemuan() {
         value={lokasi}
         onChangeText={setLokasi}
         placeholder="mis. Lantai 2, grid C-4"
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor={c.textMuted}
         style={s.input}
         accessibilityLabel="Lokasi temuan"
       />
@@ -227,7 +236,7 @@ export default function LaporTemuan() {
         value={deskripsi}
         onChangeText={setDeskripsi}
         placeholder="Rincian yang membantu yang memperbaiki"
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor={c.textMuted}
         multiline
         style={[s.input, s.inputPanjang]}
         accessibilityLabel="Keterangan temuan"
@@ -255,41 +264,43 @@ export default function LaporTemuan() {
   );
 }
 
-const s = StyleSheet.create({
-  wadah: { flex: 1, backgroundColor: '#F8FAFC' },
-  isi: { padding: 16, paddingBottom: 40 },
-  tengah: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#F8FAFC' },
-  judulHalaman: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 14 },
-  label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 },
-  spasiAtas: { marginTop: 16 },
-  pilihanBaris: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    paddingVertical: 9, paddingHorizontal: 14, borderRadius: 10,
-    borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#FFFFFF',
-  },
-  /* Yang terpilih dibedakan LATAR + border, bukan warna teks saja — WCAG
-     1.4.1: informasi tak boleh disampaikan lewat warna semata. */
-  chipAktif: { backgroundColor: '#003366', borderColor: '#003366' },
-  chipTeks: { fontSize: 13, color: '#374151', fontWeight: '500' },
-  chipTeksAktif: { color: '#FFFFFF' },
-  input: {
-    borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10,
-    paddingVertical: 12, paddingHorizontal: 13, fontSize: 15,
-    color: '#111827', backgroundColor: '#FFFFFF',
-  },
-  inputPanjang: { minHeight: 88, textAlignVertical: 'top' },
-  simpan: {
-    marginTop: 22, backgroundColor: '#003366', borderRadius: 12,
-    paddingVertical: 15, alignItems: 'center',
-  },
-  simpanMati: { backgroundColor: '#9CA3AF' },
-  simpanTeks: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
-  catatan: { fontSize: 12, color: '#6B7280', textAlign: 'center', marginTop: 12, lineHeight: 18 },
-  galat: {
-    backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA',
-    borderRadius: 10, padding: 12, marginBottom: 14,
-  },
-  galatTeks: { fontSize: 13, color: '#991B1B', lineHeight: 19 },
-  kosongJudul: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 6 },
-  kosongIsi: { fontSize: 13, color: '#5A616B', lineHeight: 19, textAlign: 'center' },
-});
+function gaya(c: Palet) {
+  return StyleSheet.create({
+    wadah: { flex: 1, backgroundColor: c.surfaceSubtle },
+    isi: { padding: 16, paddingBottom: 40 },
+    tengah: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: c.surfaceSubtle },
+    judulHalaman: { fontSize: 20, fontFamily: FONT.judul, color: c.textPrimary, marginBottom: 14 },
+    label: { fontSize: 13, fontFamily: FONT.isiTebal, color: c.textPrimary, marginBottom: 8 },
+    spasiAtas: { marginTop: 16 },
+    pilihanBaris: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    chip: {
+      paddingVertical: 9, paddingHorizontal: 14, borderRadius: 10,
+      borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised,
+    },
+    /* Yang terpilih dibedakan LATAR + border, bukan warna teks saja — WCAG
+       1.4.1: informasi tak boleh disampaikan lewat warna semata. */
+    chipAktif: { backgroundColor: c.navy, borderColor: c.navy },
+    chipTeks: { fontSize: 13, color: c.textPrimary, fontFamily: FONT.isiTebal },
+    chipTeksAktif: { color: c.surfaceRaised },
+    input: {
+      borderWidth: 1, borderColor: c.border, borderRadius: 10,
+      paddingVertical: 12, paddingHorizontal: 13, fontSize: 15,
+      color: c.textPrimary, backgroundColor: c.surfaceRaised,
+    },
+    inputPanjang: { minHeight: 88, textAlignVertical: 'top' },
+    simpan: {
+      marginTop: 22, backgroundColor: c.navy, borderRadius: 12,
+      paddingVertical: 15, alignItems: 'center',
+    },
+    simpanMati: { backgroundColor: c.borderStrong },
+    simpanTeks: { color: c.surfaceRaised, fontSize: 15, fontFamily: FONT.judul },
+    catatan: { fontSize: 12, color: c.textSecondary, textAlign: 'center', marginTop: 12, lineHeight: 18 },
+    galat: {
+      backgroundColor: c.dangerBg, borderWidth: 1, borderColor: c.dangerBorder,
+      borderRadius: 10, padding: 12, marginBottom: 14,
+    },
+    galatTeks: { fontSize: 13, color: c.danger, lineHeight: 19 },
+    kosongJudul: { fontSize: 16, fontFamily: FONT.judul, color: c.textPrimary, marginBottom: 6 },
+    kosongIsi: { fontSize: 13, color: c.textSecondary, lineHeight: 19, textAlign: 'center' },
+  });
+}

@@ -2,6 +2,8 @@ import { router, type Href } from 'expo-router';
 import React from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { useAuth } from '@/hooks/useAuth';
+import { useTema } from '@/hooks/useTema';
+import { FONT, HURUF, RADIUS, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
 import { PenandaAntrean } from '@/components/PenandaAntrean';
 
 /*
@@ -187,6 +189,13 @@ const MODUL: Modul[] = [
 ];
 
 export default function Lainnya() {
+  /*
+    Gaya dirakit di dalam komponen — `StyleSheet.create` di lingkup
+    modul berjalan sebelum satu hook pun, jadi ia tak bisa membaca
+    `useTema()`. Lihat catatan panjangnya di `pekerjaan.tsx`.
+  */
+  const { c } = useTema();
+  const s = React.useMemo(() => gaya(c), [c]);
   const { izin } = useAuth();
 
   const boleh = (m: Modul) => {
@@ -257,33 +266,35 @@ export default function Lainnya() {
   );
 }
 
-const s = StyleSheet.create({
-  wadah: { flex: 1, backgroundColor: '#F8FAFC' },
-  isi: { padding: 16, paddingBottom: 32 },
-  judulHalaman: { fontSize: 22, fontWeight: '700', color: '#111827', marginBottom: 4 },
-  keterangan: { fontSize: 13, color: '#5A616B', marginBottom: 18, lineHeight: 19 },
-  baris: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingVertical: 13,
-    paddingHorizontal: 14,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  barisTekan: { backgroundColor: '#F3F4F6' },
-  emoji: { fontSize: 22, marginRight: 12 },
-  teks: { flex: 1 },
-  barisJudul: { fontSize: 15, fontWeight: '600', color: '#111827' },
-  barisRingkas: { fontSize: 12, color: '#5A616B', marginTop: 2 },
-  /* Bukan merah: ini bukan galat melainkan keadaan yang wajar pada build
-     tertentu. Merah di dua belas baris sekaligus membuat layar terbaca
-     seperti rusak. */
-  barisBelumSiap: { fontSize: 12, color: '#92400E', marginTop: 2 },
-  panah: { fontSize: 22, color: '#6B7280', marginLeft: 8 },
-  kosong: { paddingVertical: 40, alignItems: 'center' },
-  kosongJudul: { fontSize: 15, fontWeight: '600', color: '#111827', marginBottom: 6 },
-  kosongIsi: { fontSize: 13, color: '#5A616B', textAlign: 'center', lineHeight: 19 },
-});
+function gaya(c: Palet) {
+  return StyleSheet.create({
+    wadah: { flex: 1, backgroundColor: c.surfaceSubtle },
+    isi: { padding: 16, paddingBottom: 32 },
+    judulHalaman: { fontSize: 22, fontFamily: FONT.judul, color: c.textPrimary, marginBottom: 4 },
+    keterangan: { fontSize: 13, color: c.textSecondary, marginBottom: 18, lineHeight: 19 },
+    baris: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: c.surfaceRaised,
+      borderRadius: 12,
+      paddingVertical: 13,
+      paddingHorizontal: 14,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    barisTekan: { backgroundColor: c.surfaceHover },
+    emoji: { fontSize: 22, marginRight: 12 },
+    teks: { flex: 1 },
+    barisJudul: { fontSize: 15, fontFamily: FONT.isiTebal, color: c.textPrimary },
+    barisRingkas: { fontSize: 12, color: c.textSecondary, marginTop: 2 },
+    /* Bukan merah: ini bukan galat melainkan keadaan yang wajar pada build
+       tertentu. Merah di dua belas baris sekaligus membuat layar terbaca
+       seperti rusak. */
+    barisBelumSiap: { fontSize: 12, color: '#92400E', marginTop: 2 },
+    panah: { fontSize: 22, color: c.textSecondary, marginLeft: 8 },
+    kosong: { paddingVertical: 40, alignItems: 'center' },
+    kosongJudul: { fontSize: 15, fontFamily: FONT.isiTebal, color: c.textPrimary, marginBottom: 6 },
+    kosongIsi: { fontSize: 13, color: c.textSecondary, textAlign: 'center', lineHeight: 19 },
+  });
+}

@@ -44,11 +44,20 @@
  */
 import React, { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { useTema } from '@/hooks/useTema'
+import { FONT, HURUF, RADIUS, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema'
 import {
   daftarAntrean, prosesAntrean, perluPerhatian, hapusDariAntrean, type Kiriman,
 } from '@/lib/antrean'
 
 export function PenandaAntrean() {
+  /*
+    Gaya dirakit di dalam komponen — `StyleSheet.create` di lingkup modul
+    berjalan sebelum satu hook pun, jadi ia tak bisa membaca `useTema()`.
+    Lihat catatan panjangnya di `pekerjaan.tsx`.
+  */
+  const { c } = useTema()
+  const styles = React.useMemo(() => gaya(c), [c])
   const [isi, setIsi] = useState<Kiriman[]>([])
   const [sedangKirim, setSedangKirim] = useState(false)
 
@@ -181,55 +190,57 @@ export function PenandaAntrean() {
   )
 }
 
-const styles = StyleSheet.create({
-  kotak: {
-    gap: 10,
-    backgroundColor: '#FFFBEB',
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-  },
-  kotakMacet: { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
-  // #92400E di atas #FFFBEB = 7,1:1 — lolos WCAG AA dengan lapang.
-  judul: { fontSize: 13, fontWeight: '700', color: '#92400E' },
-  judulMacet: { color: '#B91C1C' },
-  rinci: { fontSize: 12, color: '#78716C', marginTop: 2 },
-  tombol: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    // 44x44 adalah batas sasaran sentuh WCAG 2.5.5; tinggi minimum dijaga di
-    // sini supaya tombol tak menyusut mengikuti teksnya.
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  tombolTeks: { fontSize: 12, fontWeight: '600', color: '#92400E' },
-  baris: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  barisMacet: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#FECACA',
-  },
-  macetRingkas: { fontSize: 12, fontWeight: '600', color: '#7F1D1D' },
-  // #B91C1C di atas #FEF2F2 = 6,4:1 — lolos WCAG AA.
-  macetGalat: { fontSize: 12, color: '#B91C1C', marginTop: 1 },
-  tombolBuang: {
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    // 44x44 — WCAG 2.5.5, sama seperti tombol "Coba kirim" di atasnya.
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  tombolBuangTeks: { fontSize: 12, fontWeight: '700', color: '#B91C1C' },
-})
+function gaya(c: Palet) {
+  return StyleSheet.create({
+    kotak: {
+      gap: 10,
+      backgroundColor: c.warningBg,
+      borderWidth: 1,
+      borderColor: c.warningBorder,
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 12,
+    },
+    kotakMacet: { backgroundColor: c.dangerBg, borderColor: c.dangerBorder },
+    // #92400E di atas #FFFBEB = 7,1:1 — lolos WCAG AA dengan lapang.
+    judul: { fontSize: 13, fontFamily: FONT.judul, color: c.warning },
+    judulMacet: { color: c.danger },
+    rinci: { fontSize: 12, color: c.textSecondary, marginTop: 2 },
+    tombol: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 8,
+      backgroundColor: c.surfaceRaised,
+      borderWidth: 1,
+      borderColor: c.warningBorder,
+      // 44x44 adalah batas sasaran sentuh WCAG 2.5.5; tinggi minimum dijaga di
+      // sini supaya tombol tak menyusut mengikuti teksnya.
+      minHeight: 44,
+      justifyContent: 'center',
+    },
+    tombolTeks: { fontSize: 12, fontFamily: FONT.isiTebal, color: c.warning },
+    baris: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    barisMacet: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: c.dangerBorder,
+    },
+    macetRingkas: { fontSize: 12, fontFamily: FONT.isiTebal, color: '#7F1D1D' },
+    // #B91C1C di atas #FEF2F2 = 6,4:1 — lolos WCAG AA.
+    macetGalat: { fontSize: 12, color: c.danger, marginTop: 1 },
+    tombolBuang: {
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      backgroundColor: c.surfaceRaised,
+      borderWidth: 1,
+      borderColor: c.dangerBorder,
+      // 44x44 — WCAG 2.5.5, sama seperti tombol "Coba kirim" di atasnya.
+      minHeight: 44,
+      justifyContent: 'center',
+    },
+    tombolBuangTeks: { fontSize: 12, fontFamily: FONT.judul, color: c.danger },
+  })
+}
