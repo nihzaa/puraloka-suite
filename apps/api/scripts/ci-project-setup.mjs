@@ -1032,6 +1032,44 @@ await seed('worker x2 (bahan uji tukang & beban mandor)', async () => {
 })
 
 /*
+  Mitra + satu tukang yang TERTAUT padanya.
+
+  `mitra.test.ts` menolak berjalan tanpa itu, dengan pesan yang menuduh
+  migrasi:
+
+      nol tukang tertaut mitra — migrasi 461 belum jalan?
+
+  Migrasi 461 SUDAH jalan (replay bersih lolos seluruh rantai). Yang tak ada
+  adalah DATANYA — tak satu pun seed membuat `mitra`, dan seed `workers` di
+  bawah tak pernah mengisi `mitra_id`.
+
+  Pesan yang menuduh migrasi untuk keadaan yang sebenarnya kekurangan data
+  mengirim pembacanya ke arah yang salah — dan saya sempat memeriksa migrasi
+  461 lebih dulu karenanya.
+
+  `bentuk = 'orang'` dipilih karena CHECK-nya paling sederhana: `badan_usaha`
+  menuntut `bentuk_badan` terisi, sementara `orang` menuntut kolom itu NULL.
+*/
+await seed('mitra + tukang tertaut (bahan uji mitra)', async () => {
+  await c.query(
+    `INSERT INTO mitra (company_id, bentuk, nama, daftar_hitam, aktif)
+     SELECT (SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1),
+            'orang', 'CI Seed Mitra', false, true
+      WHERE NOT EXISTS (SELECT 1 FROM mitra WHERE nama = 'CI Seed Mitra')
+        AND EXISTS (SELECT 1 FROM companies WHERE parent_company_id IS NULL)`)
+
+  // Tautkan SATU tukang yang sudah ada. Kalau seed worker di bawah belum
+  // jalan, ini tak menautkan apa pun — dan pemeriksaannya menangkap itu.
+  await c.query(
+    `UPDATE workers SET mitra_id = (SELECT id FROM mitra WHERE nama = 'CI Seed Mitra' LIMIT 1)
+      WHERE name = 'CI Seed Tukang A' AND mitra_id IS NULL`)
+
+  const { rows } = await c.query(
+    `SELECT count(*)::int n FROM workers WHERE mitra_id IS NOT NULL`)
+  if (rows[0].n === 0) throw new Error('nol tukang tertaut mitra sesudah seed')
+})
+
+/*
   Kasbon DUA STATUS, sengaja.
 
   Satu test menuntut "kasbon approved" dan test LAIN menuntut "tak semua
