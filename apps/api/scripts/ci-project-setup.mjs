@@ -1119,6 +1119,59 @@ await seed('worker x2 (bahan uji tukang & beban mandor)', async () => {
 })
 
 /*
+  Rantai persetujuan SUBMITTAL untuk tiap company aktif.
+
+      AssertionError: ada company tanpa rantai submittal —
+                      pengajuannya tak bisa diputuskan
+
+  Diukur di dev: 22 dari 25 company aktif tak punya rantai. Hampir semuanya
+  company UJI sisa test lama (`[UJI-GERBANG]`, `PT Cek RPC`), tetapi test
+  menuntut SEMUA yang aktif — dan alasannya sah: company aktif tanpa rantai
+  berarti pengajuannya tak bisa diputuskan siapa pun.
+
+  ⚠ DUA syarat, bukan satu. Test kedua menuntut rantai BERLANGKAH:
+  `steps.length === 0` berarti nol orang bisa approve (ADR-007, fail-closed),
+  dan gejalanya "403 Akses ditolak" untuk semua. Menyemai rantai KOSONG akan
+  menukar satu merah dengan merah lain.
+
+  ⚠ Di SEED CI, bukan migrasi. Komentar di `submittal-aturan.test.ts`
+  mencatat: perbaikan lewat migrasi (2026-08-07) membuat test itu hijau dan
+  MERUSAK dua test lain yang menghitung level lintas company dengan asumsi
+  hanya ada satu rantai. Seed CI tak menyentuh produksi.
+
+  Bentuk rantai & langkahnya ditiru dari baris yang SUDAH ADA di basis
+  (`entity_type='submittal'`, `level=1`, `required_permission='submittal:decide'`),
+  bukan dikarang.
+*/
+await seed('rantai submittal per company aktif', async () => {
+  await c.query(
+    `INSERT INTO approval_chains (company_id, entity_type, label, is_active)
+     SELECT c2.id, 'submittal', 'Persetujuan Submittal', true
+       FROM companies c2
+      WHERE c2.is_active
+        AND NOT EXISTS (
+          SELECT 1 FROM approval_chains a
+           WHERE a.company_id = c2.id AND a.entity_type = 'submittal')`)
+
+  // Langkah: rantai tanpa langkah = fail-closed, nol orang bisa approve.
+  await c.query(
+    `INSERT INTO approval_steps (chain_id, company_id, level, required_permission, label)
+     SELECT a.id, a.company_id, 1, 'submittal:decide', 'Keputusan konsultan/pemberi kerja'
+       FROM approval_chains a
+      WHERE a.entity_type = 'submittal'
+        AND NOT EXISTS (SELECT 1 FROM approval_steps s WHERE s.chain_id = a.id)`)
+
+  const { rows } = await c.query(
+    `SELECT count(*)::int n FROM companies c
+      WHERE c.is_active
+        AND NOT EXISTS (
+          SELECT 1 FROM approval_chains a
+            JOIN approval_steps s ON s.chain_id = a.id
+           WHERE a.company_id = c.id AND a.entity_type = 'submittal')`)
+  if (rows[0].n > 0) throw new Error(`masih ${rows[0].n} company aktif tanpa rantai submittal berlangkah`)
+})
+
+/*
   Temuan K3 BERAT yang MENGGANTUNG — bahan uji otomasi sertifikat/K3.
 
       AssertionError: temuan berat menggantung tak terbentuk
