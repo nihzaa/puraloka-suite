@@ -89,18 +89,87 @@ function processQueue(error: unknown) {
   failedQueue = [];
 }
 
-function clearAuthAndRedirect() {
-  // Minta server hapus cookie HttpOnly (client tidak bisa hapus sendiri)
-  axios.post(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/logout`,
-    {},
-    { withCredentials: true }
-  ).catch(() => {});
+/*
+  ══════════════════════════════════════════════════════════════════════════
+  PUTARAN MUAT-ULANG TANPA AKHIR — kenapa fungsi ini menunggu, dan menahan
+  ══════════════════════════════════════════════════════════════════════════
 
-  if (typeof window !== "undefined") {
-    localStorage.removeItem("puraloka_user");
-    window.location.href = "/login";
+  Dilaporkan founder 2026-09-04: `/dashboard` "reload terus". Direproduksi
+  dengan merusak `puraloka_token` (meniru token yang KEDALUWARSA sesudah ~1
+  jam, sementara cookie-nya sendiri berumur 7 hari):
+
+      120 navigasi dalam 20 detik — kira-kira 3x per detik, tanpa henti.
+
+  Urutannya terekam utuh dari browser sungguhan:
+
+      200 GET  /dashboard
+      401 GET  /api/v1/menu          (dan 6 endpoint lain)
+      400 POST /api/v1/auth/refresh  ← refresh token juga tak sah lagi
+      200 POST /api/v1/auth/logout   ← DIKIRIM, tapi tak ditunggu
+      307 GET  /login                ← middleware melempar BALIK ke /dashboard
+      200 GET  /dashboard            ← mulai lagi dari atas
+
+  Simpul putarannya baris `307`. `middleware.ts` hanya memeriksa cookie ADA
+  atau tidak — bukan apakah tokennya masih sah — jadi selama cookie belum
+  terhapus, `/login` selalu dilempar balik ke home. Dan cookie belum terhapus
+  karena `logout` dipanggil TANPA `await`: `window.location.href` menang
+  balapan, halaman berpindah sebelum balasan `Set-Cookie` sempat diterapkan.
+
+  Tiga hal yang diperbaiki di sini, dan ketiganya perlu:
+
+  1. `await` logout — supaya cookie benar-benar hilang SEBELUM pindah halaman.
+     Ini yang memutus simpulnya.
+  2. `puraloka_role` dihapus dari sisi klien. Ia BUKAN HttpOnly (dipasang
+     `login()` lewat `document.cookie`), jadi server tak menghapusnya, dan
+     middleware membacanya untuk menentukan home. Tertinggal, ia ikut
+     menghidupkan pelemparan balik.
+  3. Penahan `sudahDialihkan` + pemeriksaan "sudah di /login?". Tujuh
+     permintaan gagal berbarengan; tanpa penahan, ketujuhnya masing-masing
+     memanggil `window.location.href` — dan kalau satu saja lolos setelah
+     halaman `/login` termuat, putarannya lahir kembali dari ujung yang lain.
+
+  Yang SENGAJA tidak dilakukan: menaruh verifikasi masa berlaku token di
+  middleware. Itu memindahkan pemeriksaan kripto ke edge runtime tiap
+  permintaan, dan tetap tak menolong bila jam server dan klien berbeda.
+  Sumber kebenaran masa berlaku tetap API — yang harus benar cuma reaksinya
+  saat API bilang "tidak".
+*/
+let sudahDialihkan = false;
+
+async function clearAuthAndRedirect() {
+  if (typeof window === "undefined") return;
+
+  // Tujuh permintaan bisa gagal berbarengan; cukup satu yang mengalihkan.
+  if (sudahDialihkan) return;
+  sudahDialihkan = true;
+
+  localStorage.removeItem("puraloka_user");
+  localStorage.removeItem("puraloka_permissions");
+
+  // `puraloka_role` dipasang JS (bukan HttpOnly), jadi server tak bisa
+  // menghapusnya — dan middleware memakainya untuk memilih home.
+  document.cookie = "puraloka_role=;path=/;max-age=0;SameSite=Lax";
+
+  /*
+    DITUNGGU, bukan fire-and-forget. Cookie HttpOnly hanya bisa dihapus
+    server, dan selama ia masih ada middleware melempar `/login` balik ke
+    home — itulah putarannya. `catch` tetap ada: logout yang gagal tak boleh
+    menahan orang di halaman yang sudah tak bisa memuat apa pun.
+  */
+  try {
+    await axios.post(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/logout`,
+      {},
+      { withCredentials: true }
+    );
+  } catch {
+    /* diabaikan sengaja — lihat komentar di atas */
   }
+
+  // Sudah di /login? Memuat ulang halaman yang sama hanya mengulang putaran.
+  if (window.location.pathname.startsWith("/login")) return;
+
+  window.location.href = "/login";
 }
 
 api.interceptors.response.use(
@@ -148,7 +217,10 @@ api.interceptors.response.use(
       return api(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError);
-      clearAuthAndRedirect();
+      // DITUNGGU: fungsinya kini async karena harus memastikan cookie
+      // HttpOnly terhapus SEBELUM pindah halaman. Tanpa `await`, kita kembali
+      // ke balapan yang melahirkan putaran muat-ulang itu.
+      await clearAuthAndRedirect();
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;

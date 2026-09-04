@@ -1070,6 +1070,30 @@ jobs:
       - name: Rute [id] tak menampilkan data basi
         run: cd ../web && node scripts/uji-rute-id-tak-basi.mjs
 
+      # Sesi habis TIDAK boleh melahirkan putaran muat-ulang.
+      #
+      # Dilaporkan founder 2026-09-04: /dashboard "reload terus". Sebabnya
+      # token akses kedaluwarsa (~1 jam) sementara cookie-nya berumur 7 hari.
+      # `middleware.ts` hanya memeriksa cookie ADA atau tidak — bukan sah
+      # atau tidak — jadi selama cookie belum terhapus, /login selalu
+      # dilempar balik ke home:
+      #
+      #   401 semua API → 400 refresh → 200 logout (TAK ditunggu)
+      #   → 307 /login → 200 /dashboard → ulang, ~3x per detik
+      #
+      # Diukur dari browser sungguhan:
+      #   cookie dibiarkan   : 64 navigasi / 12 detik → /dashboard
+      #   cookie dibersihkan :  2 navigasi / 12 detik → /login
+      #
+      # Tak satu pun dari 200+ penjaga, tsc, maupun seluruh test menangkapnya:
+      # kodenya SAH di tiap lapisan, yang salah cuma urutan dua operasi async
+      # — dan akibatnya baru muncul sejam sesudah login, di browser pengguna.
+      #
+      # Bukti merah: keempat syarat dibuang satu per satu → exit 1 semuanya;
+      # dipulihkan → exit 0. (ambang NOL)
+      - name: Alih keluar saat sesi habis tak berputar
+        run: node scripts/audit-alih-auth-tak-berputar.mjs
+
       # Keputusan persetujuan hanya lewat SATU pintu (utils/approval.ts).
       # Menulis `approved_by` langsung berarti entitas yang menurut
       # konfigurasi butuh dua level bisa lolos dengan satu ketukan — dan
