@@ -2057,6 +2057,7 @@ items:
     status: done
 
   - id: T5A-PERMISSIVE
+    status: SELESAI            # 2026-09-04 — kedua kriteria diverifikasi hijau
     fase: 2
     judul: "RLS: 30 tabel ber-restrictive TANPA permissive = mati total (dulu: '6 tabel permissive')"
     blokir_oleh: []
@@ -2079,6 +2080,28 @@ items:
       Kriteria PERTAMA sudah LUNAS: `tenant_isolation` yang permissive kini
       NOL (diukur ke `pg_policy`). Keenam tabel itu sudah diperbaiki entah
       kapan tanpa item ini ditutup.
+
+      ── DITUTUP 2026-09-04 ───────────────────────────────────────────────
+      Kedua kriteria kini HIJAU: 10/10 test lulus (t5a-policy-tenant +
+      f2-3-batch3-tenancy-turunan).
+
+      Sebab merahnya BUKAN celah keamanan. Test menyaring policy lewat NAMA
+      (`policyname='tenant_isolation'`, cocok persis), dan dua tabel yang
+      lahir belakangan memakai nama lain:
+
+        entitlement_baca_tenant / entitlement_pagar_tenant
+        tagihan_tenant_baca     / tagihan_tenant_pagar
+
+      Keempatnya berpredikat `company_id = auth_company_id()`, permissive +
+      restrictive — persis pola yang dituntut. Yang salah cuma sebutannya.
+
+      Diperbaiki dengan menyaring lewat PREDIKAT, bukan nama. Selain
+      berhenti menuduh tabel yang benar, ia juga menutup arah sebaliknya:
+      versi lama akan MELOLOSKAN tabel bernama `tenant_isolation` yang
+      predikatnya salah.
+
+      Dibuktikan bisa merah: predikat diganti fungsi yang tak ada → 260
+      tabel tertuduh, exit merah → dipulihkan → hijau.
 
       Tetapi test-nya MASIH MERAH, dan sebabnya HAL LAIN — bukan yang ditulis
       judul item ini. Assertion yang gagal: "tiap tabel ber-policy-restriktif
@@ -3663,7 +3686,11 @@ items:
     judul: "trg_protect_builtin_roles (migrasi 050) menolak DELETE atas role is_builtin=true TANPA memandang company_id — tenant asli tak bisa hapus role hasil salinan"
     blokir_oleh: []
     kriteria_selesai:
-      - "trigger fn_protect_builtin_roles hanya menolak DELETE saat company_id IS NULL (baris template global), bukan salinan per-tenant"
+      # ⚠ Nama fungsi sebenarnya `protect_builtin_roles` TANPA awalan `fn_`.
+      # Diverifikasi ke basis 2026-09-04: mencari `fn_protect_builtin_roles`
+      # memulangkan "fungsi TIDAK ADA" — yang terbaca seperti pekerjaan belum
+      # dikerjakan, padahal cuma namanya salah tulis di sini.
+      - "trigger protect_builtin_roles hanya menolak DELETE saat company_id IS NULL (baris template global), bukan salinan per-tenant"
       - "tenant admin bisa DELETE role miliknya sendiri yang is_builtin=true (hasil salinan provisioning), role TEMPLATE global tetap terlindungi seperti semula"
     cara_verifikasi: "sebagai admin tenant, coba hapus salah satu role bawaan hasil provisioning (mis. 'mandor') — harus berhasil; coba hapus role TEMPLATE (company_id NULL) — harus tetap ditolak"
     bobot: S

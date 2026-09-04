@@ -98,6 +98,29 @@ BEGIN
 
   SELECT company_id INTO v_id FROM ai_provider_config LIMIT 1;
 
+  /*
+    ⚠ SELURUH pembuktian di bawah butuh SATU baris `ai_provider_config` —
+    dan tanpa penjaga ini, ketiadaannya dilaporkan sebagai CHECK yang bocor.
+
+    `ai_provider_config` di-seed migrasi 250 dengan saringan
+    `WHERE EXISTS (company_members)`. Di schema BERSIH nol user → nol anggota
+    → tabel kosong → `v_id` NULL. Lalu tiap `UPDATE … WHERE company_id = NULL`
+    mengenai NOL baris, tak melanggar CHECK apa pun, dan `RAISE EXCEPTION` di
+    bawahnya menyala:
+
+        254 gagal: maks_ronde 99 tidak ditolak
+
+    Kalimat itu menuduh CHECK-nya tidak bekerja. Yang sebenarnya terjadi:
+    tak ada baris untuk diuji. Kelas cacat yang sama dengan blok "retensi 0"
+    di migrasi 252 dan pembuktian C-5-nya — sebuah pembuktian yang kehilangan
+    bahannya melapor sebagai pembuktian yang GAGAL.
+
+    Di dev, staging, dan produksi (yang punya anggota) keempat pembuktian
+    tetap berjalan penuh. Pola `IF … IS NOT NULL THEN` yang setara sudah
+    dipakai migrasi 270.
+  */
+  IF v_id IS NOT NULL THEN
+
   -- Ronde tak wajar DITOLAK. Batas yang cuma divalidasi UI bisa dilewati lewat
   -- API, dan ronde 999 berarti satu pertanyaan menghabiskan kuota sebulan.
   BEGIN
@@ -126,4 +149,6 @@ BEGIN
     RAISE EXCEPTION '254 gagal: array kosong tersimpan sebagai NULL';
   END IF;
   UPDATE ai_provider_config SET tool_aktif = NULL WHERE company_id = v_id;
+
+  END IF;   -- v_id IS NOT NULL
 END $$;

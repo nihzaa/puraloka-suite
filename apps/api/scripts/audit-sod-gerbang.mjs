@@ -139,14 +139,31 @@ if (yatim.length > 0) {
 //
 // Butuh basis. Tanpa DATABASE_URL (mis. lint lokal cepat), pemeriksaan ini
 // DILEWATI DENGAN SUARA — bukan dilaporkan sebagai lulus.
-const punyaDb = !!(process.env.DATABASE_URL || process.env.DIRECT_URL)
+/*
+  ⚠ Kredensial dibaca dari `.env` JUGA, bukan `process.env` saja — 2026-09-04.
+
+  Penjaga ini melewati DIRINYA SENDIRI di mesin yang punya basis: ia
+  menanyakan `process.env`, sementara kredensial repo ini di `apps/api/.env`.
+  Salah satu dari SEBELAS yang ditemukan sekaligus.
+
+  Dua tempat wajib diperbaiki bersama — pemeriksaan `punyaDb` DAN
+  `connectionString`. Kalau hanya yang pertama, ia melapor "punya basis" lalu
+  gagal menyambung dengan galat yang menuduh jaringan.
+*/
+const { bacaEnv: _bacaEnv } = await import('../../../scripts/db/_koneksi.mjs')
+const _envBerkas = _bacaEnv()
+const _DB =
+  process.env.DATABASE_URL || process.env.DIRECT_URL
+  || _envBerkas.DATABASE_URL || _envBerkas.DIRECT_URL
+
+const punyaDb = !!(_DB)
 if (!punyaDb) {
   console.log('\n  ⏭  kolom pengaju vs schema: DILEWATI (tak ada DATABASE_URL)')
   console.log('     Ini pemeriksaan yang menangkap `kolomPengaju` salah —')
   console.log('     CI menjalankannya dengan basis, lokal boleh tanpa.')
 } else {
   const { default: pg } = await import('pg')
-  const c = new pg.Client({ connectionString: process.env.DATABASE_URL || process.env.DIRECT_URL })
+  const c = new pg.Client({ connectionString: _DB })
   await c.connect()
   const entri = [...isiSod.matchAll(/jenis: '([a-z_]+)',\s*tabel: '([a-z_]+)',\s*kolomPengaju: '([a-z_]+)'/g)]
   const salah = []

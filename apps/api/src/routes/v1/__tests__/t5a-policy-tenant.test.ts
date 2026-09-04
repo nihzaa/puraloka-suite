@@ -50,18 +50,50 @@ afterAll(async () => {
 })
 
 describe('T5a — kelengkapan policy tenant', () => {
-  it('setiap tabel ANCHOR/B/AB/C punya policy tenant_isolation', async () => {
+  it('setiap tabel ANCHOR/B/AB/C punya policy yang menyaring company', async () => {
+    /*
+     * ⚠ Disaring lewat PREDIKAT, bukan lewat NAMA policy.
+     *
+     * Versi sebelumnya mencari `policyname='tenant_isolation'` — cocok
+     * PERSIS. Diukur 2026-09-04: ia merah atas `entitlement_snapshot` dan
+     * `tagihan_tenant`, dan pesannya berbunyi "data terbaca LINTAS company".
+     *
+     * Kedua tabel itu SEBENARNYA TERLINDUNGI, masing-masing dengan dua
+     * policy yang predikatnya persis benar:
+     *
+     *   entitlement_baca_tenant    PERMISSIVE   company_id = auth_company_id()
+     *   entitlement_pagar_tenant   RESTRICTIVE  company_id = auth_company_id()
+     *   tagihan_tenant_baca        PERMISSIVE   company_id = auth_company_id()
+     *   tagihan_tenant_pagar       RESTRICTIVE  company_id = auth_company_id()
+     *
+     * Yang salah cuma NAMANYA. Test yang menyaring lewat nama menuduh tabel
+     * yang benar, dan — lebih berbahaya — akan MELOLOSKAN tabel bernama
+     * `tenant_isolation` yang predikatnya salah.
+     *
+     * Ini pengulangan pelajaran yang sudah tercatat: saring lewat STRUKTUR,
+     * bukan nama. Yang menentukan aman-tidaknya sebuah tabel adalah apa yang
+     * dilakukan predikatnya, bukan apa sebutannya.
+     *
+     * `auth_company_id()` dipakai sebagai penanda karena ia SATU-SATUNYA
+     * sumber identitas tenant di RLS repo ini — policy yang menyaring tenant
+     * tanpa memanggilnya menyaring sesuatu yang lain.
+     */
     const { rows } = await c.query(
-      `SELECT tablename FROM pg_policies
-        WHERE schemaname='public' AND policyname='tenant_isolation'`
+      `SELECT DISTINCT c.relname AS tablename
+         FROM pg_policy p
+         JOIN pg_class c ON c.oid = p.polrelid
+         JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'public'
+          AND pg_get_expr(p.polqual, p.polrelid) LIKE '%auth_company_id()%'`
     )
     const punya = new Set(rows.map((r) => r.tablename))
     const kurang = BER_TENANT.filter((t) => !punya.has(t))
 
     expect(
       kurang,
-      `Tabel ber-tenant tanpa policy tenant_isolation = data terbaca LINTAS company. ` +
-        `Kalau ini tabel baru, tambahkan policy-nya (pola: migration 131).`
+      `Tabel ber-tenant tanpa policy yang menyaring auth_company_id() = data ` +
+        `terbaca LINTAS company. Kalau ini tabel baru, tambahkan policy-nya ` +
+        `(pola: migration 131).`
     ).toEqual([])
   }, 30_000)
 

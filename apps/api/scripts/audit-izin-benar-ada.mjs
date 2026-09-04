@@ -50,7 +50,24 @@ import { createRequire } from 'node:module'
 
 const AKAR_API = join(dirname(fileURLToPath(import.meta.url)), '..')
 
-const DB = process.env.DATABASE_URL || process.env.DIRECT_URL
+/*
+  ⚠ Kredensial dibaca dari `.env` JUGA, bukan `process.env` saja.
+
+  Diukur 2026-09-04: SEBELAS penjaga di direktori ini melewati DIRINYA SENDIRI
+  di mesin yang jelas punya basis — mereka menanyakan `process.env`, sementara
+  kredensial repo ini tinggal di `apps/api/.env`.
+
+  Akibatnya "223 penjaga hijau" memuat sebelas yang tak pernah memeriksa apa
+  pun. Penjaga berambang NOL yang selalu dilewati memberi rasa aman yang
+  salah — lebih buruk daripada tak ada penjaga.
+
+  `bacaEnv()` membaca sumber yang SAMA dengan `buatClient()`.
+*/
+const { bacaEnv: _bacaEnv } = await import('../../../scripts/db/_koneksi.mjs')
+const _envBerkas = _bacaEnv()
+const DB =
+  process.env.DATABASE_URL || process.env.DIRECT_URL
+  || _envBerkas.DATABASE_URL || _envBerkas.DIRECT_URL
 if (!DB) {
   console.log('  ⏭  izin benar ada: DILEWATI (tak ada DATABASE_URL)')
   process.exit(0)

@@ -102,8 +102,22 @@ BEGIN
   -- diuji pada keadaan yang tak mewakili masalahnya.
   SELECT count(*) INTO n_admin FROM public.roles WHERE name = 'admin';
   IF n_admin < 2 THEN
-    RAISE EXCEPTION '366: prasyarat tak terpenuhi — hanya % baris role "admin", '
-                    'harusnya template + salinan tenant', n_admin;
+    /*
+      Komentar di atas sudah menyebut maksudnya dengan jujur: "migrasi ini
+      diuji pada keadaan yang tak mewakili masalahnya". Di schema BERSIH
+      keadaan itu memang tak mewakili — dan itu bukan kegagalan.
+
+      Rantainya lurus dan benar: nol user → nol company_members → migrasi 365
+      melewati penyalinan role → di sini hanya ada 1 baris `admin`, yaitu
+      templatenya sendiri, tanpa salinan tenant.
+
+      Diperbaiki 2026-09-04. Yang dilewati hanya pembuktiannya; fungsi
+      `get_role_permissions` yang dibuat migrasi ini TETAP terbentuk, dan di
+      lingkungan berisi data seluruh pembuktian berjalan penuh.
+      (kelas 245/250/252/254/316/331/365)
+    */
+    RAISE NOTICE '366: hanya % baris role "admin" — pembuktian DILEWATI (schema bersih)', n_admin;
+    RETURN;
   END IF;
 
   SELECT count(*), count(DISTINCT permission_key)

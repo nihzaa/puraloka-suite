@@ -327,10 +327,64 @@ export default async function situsRoutes(app: FastifyInstance) {
     '/api/v1/public/situs',
     { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } },
     async (request, reply) => {
-      const companyId = process.env.SITUS_COMPANY_ID
+      /*
+       * ── TENANT DARI HOSTNAME (migrasi 564) ────────────────────────────
+       *
+       * Dibuka sesudah Gerbang Mutlak dicabut founder 2026-09-04. Sebelumnya
+       * satu env `SITUS_COMPANY_ID` melayani satu-satunya company.
+       *
+       * Dua jalur alamat, permintaan founder:
+       *   default   `porto.<slug>.duckdns.org`  diberikan saat provisioning
+       *   opsional  `ptmakmur.co.id`            dibawa pelanggan sendiri
+       *
+       * Keduanya baris `situs_domain`; yang membedakan cuma `jenis` dan
+       * apakah kepemilikannya perlu dibuktikan.
+       *
+       * ⚠ Pemetaan host → company terjadi DI SINI, bukan di situs publik.
+       * Satu tempat yang boleh memetakannya adalah tempat yang juga
+       * menyaring datanya — memisahkan keduanya berarti dua sumber
+       * kebenaran yang pelan-pelan berbeda.
+       */
+      const host = String(request.headers['x-situs-host'] ?? '')
+        .split(',')[0]
+        .trim()
+        .toLowerCase()
+        .replace(/:\d+$/, '')
+
+      let companyId: string | null = null
+
+      if (host) {
+        const { data, error } = await supabase.rpc('situs_company_dari_host', {
+          p_host: host,
+        })
+        if (error) {
+          // Gagal MEMETAKAN tak boleh diam-diam jatuh ke company mana pun —
+          // itu persis bentuk kebocoran yang paling sulit terlihat.
+          request.log.error({ err: error, host }, 'gagal memetakan host situs')
+          return reply.status(503).send({ error: 'Situs sedang tidak bisa dibuka' })
+        }
+        companyId = (data as string | null) ?? null
+      }
+
+      /*
+       * ⚠ CADANGAN HANYA DI LUAR PRODUKSI.
+       *
+       * Di pengembangan hostnya `localhost` dan belum tentu terdaftar. Di
+       * produksi, host tak terdaftar HARUS gagal: situs yang menyajikan
+       * profil perusahaan A di alamat perusahaan B adalah kebocoran, dan
+       * jatuhan env adalah cara paling mudah membuatnya terjadi tanpa
+       * satu pun gejala.
+       */
+      if (!companyId && process.env.NODE_ENV !== 'production') {
+        companyId =
+          String(request.headers['x-situs-company-cadangan'] ?? '').trim() ||
+          process.env.SITUS_COMPANY_ID ||
+          null
+      }
+
       if (!companyId) {
-        request.log.error('SITUS_COMPANY_ID belum diset — situs publik mati')
-        return reply.status(503).send({ error: 'Situs belum dikonfigurasi' })
+        request.log.warn({ host }, 'host situs tak terdaftar di situs_domain')
+        return reply.status(404).send({ error: 'Situs tidak ditemukan' })
       }
 
       // SATU pembacaan, bukan tujuh — lewat `v_situs_publik` (migrasi 210).

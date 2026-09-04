@@ -6,6 +6,8 @@ import {
 import { router, useFocusEffect } from 'expo-router';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
+import { useTema } from '@/hooks/useTema';
+import { FONT, HURUF, RADIUS, SPASI, type Palet } from '@/lib/tema';
 
 /*
   ══════════════════════════════════════════════════════════════════════════
@@ -119,12 +121,51 @@ const STATUS_IZIN: Record<string, string> = {
   tak_berlaku: 'Tidak berlaku',
 };
 
-const WARNA_SEVERITY: Record<string, string> = {
-  ringan: '#059669', minor: '#059669',
-  sedang: '#D97706', major: '#D97706',
-  berat: '#DC2626',
-  kritis: '#B91C1C',
-};
+/**
+ * Warna keparahan temuan, diambil dari palet aktif.
+ *
+ * ⚠ Dulu peta hex tetap, dipilih untuk latar TERANG dan tanpa padanan
+ * gelap. DIHITUNG terhadap `surface` gelap `#1A1D27` (bukan ditaksir —
+ * CLAUDE.md mewajibkan dihitung):
+ *
+ *     #059669 ringan/minor   4.46:1   nyaris — lolos tipis
+ *     #D97706 sedang/major   5.28:1   lolos
+ *     #DC2626 berat          3.48:1   ❌ GAGAL AA
+ *     #B91C1C kritis         2.60:1   ❌ GAGAL AA, terburuk
+ *
+ * Yang gagal justru dua keparahan TERTINGGI — dan urutannya terbalik dari
+ * dugaan: makin parah temuannya, makin sulit dibaca labelnya. `#B91C1C`
+ * dipilih karena merah tua terbaca "gawat" di latar putih; di latar gelap
+ * merah tua justru melebur ke dalamnya.
+ *
+ * Token gelap yang menggantikan, terhitung di latar yang sama:
+ * success `#22C55E` 7.38:1 · warning `#F59E0B` 7.83:1 · danger `#FB8585`
+ * 7.04:1 — ketiganya lewat AA dengan margin.
+ *
+ * Kenapa `audit-kontras-mobile.mjs` tak menangkapnya: ia memindai nilai
+ * `color:` di dalam gaya; warna ini masuk lewat `Record` lalu dipasang
+ * saat render. Benar di satu lapis, patah di lapis yang sesungguhnya
+ * dipakai.
+ *
+ * `ringan`/`minor` sengaja memakai `success` dan bukan hijau tersendiri:
+ * satu tangga warna semantik untuk seluruh aplikasi lebih mudah dijaga
+ * daripada dua yang mirip.
+ */
+function warnaKeparahan(c: Palet, sev: string): string | undefined {
+  switch (sev) {
+    case 'ringan':
+    case 'minor':
+      return c.success;
+    case 'sedang':
+    case 'major':
+      return c.warning;
+    case 'berat':
+    case 'kritis':
+      return c.danger;
+    default:
+      return undefined;
+  }
+}
 
 /*
   Proyek yang dimuat GELOMBANG PERTAMA — bukan batas, melainkan urutan.
@@ -167,6 +208,22 @@ function usia(iso?: string) {
 
 export default function PekerjaanSaya() {
   const { punyaIzin } = useAuth();
+  const { c } = useTema();
+  /*
+    Gaya dirakit di dalam komponen, bukan di lingkup modul.
+
+    `StyleSheet.create` di lingkup modul dievaluasi SEKALI saat impor —
+    sebelum satu hook pun berjalan — jadi ia tak bisa membaca `useTema()`.
+    Warna yang terkunci di sana tetap warna mode terang selamanya, dan
+    gejalanya di mode gelap adalah teks gelap di atas latar gelap: terbaca
+    seperti bug render, bukan seperti gaya yang tak pernah diperbarui.
+
+    `useMemo` sengaja TIDAK dipakai: `gaya()` merakit satu objek datar dan
+    hanya berubah saat palet berubah (dua kali seumur sesi, saat pengguna
+    mengganti tema HP). Memoisasi di sini menambah satu hook untuk
+    menghemat pekerjaan yang tak pernah jadi beban.
+  */
+  const s = gaya(c);
   const [baris, setBaris] = useState<Baris[]>([]);
   const [memuat, setMemuat] = useState(true);
   const [galatMuat, setGalatMuat] = useState<string | null>(null);
@@ -380,7 +437,7 @@ export default function PekerjaanSaya() {
   if (memuat) {
     return (
       <View style={s.tengah}>
-        <ActivityIndicator size="large" color="#003366" />
+        <ActivityIndicator size="large" color={c.navy} />
       </View>
     );
   }
@@ -458,7 +515,7 @@ export default function PekerjaanSaya() {
           {terlihat.map((b) => {
             const petaStatus =
               b.jenis === 'punch' ? STATUS_PUNCH : b.jenis === 'ncr' ? STATUS_NCR : STATUS_IZIN;
-            const warnaSev = b.severity ? WARNA_SEVERITY[b.severity] : undefined;
+            const warnaSev = b.severity ? warnaKeparahan(c, b.severity) : undefined;
             return (
               <View
                 key={b.kunci}
@@ -540,60 +597,115 @@ export default function PekerjaanSaya() {
   );
 }
 
-const s = StyleSheet.create({
-  wadah: { flex: 1, backgroundColor: '#F8FAFC' },
-  isi: { padding: 16, paddingBottom: 40 },
-  tengah: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#F8FAFC' },
-  judulHalaman: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 14 },
-  ringkas: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB',
-    borderRadius: 12, paddingVertical: 14, marginBottom: 16,
-  },
-  ringkasSel: { flex: 1, alignItems: 'center' },
-  ringkasGaris: { width: 1, height: 28, backgroundColor: '#E5E7EB' },
-  ringkasAngka: { fontSize: 22, fontWeight: '700', color: '#111827' },
-  ringkasAngkaMerah: { color: '#B91C1C' },
-  ringkasLabel: { fontSize: 12, color: '#6B7280', marginTop: 2 },
-  kartu: {
-    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB',
-    borderRadius: 12, padding: 13, marginBottom: 10,
-  },
-  /* Garis kiri tebal, bukan latar merah penuh: kartunya masih harus terbaca,
-     dan latar jenuh membuat teks di atasnya melelahkan di bawah matahari. */
-  kartuMendesak: { borderColor: '#FECACA', borderLeftWidth: 4, borderLeftColor: '#DC2626' },
-  kartuBeres: { backgroundColor: '#FAFAFA', borderColor: '#F0F1F3' },
-  kartuKepala: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  jenisTag: { fontSize: 11, fontWeight: '700', color: '#003366', letterSpacing: 0.4, textTransform: 'uppercase' },
-  usia: { fontSize: 11, color: '#6B7280' },
-  judul: { fontSize: 14, color: '#111827', lineHeight: 20, fontWeight: '500' },
-  judulBeres: { color: '#6B7280' },
-  tempat: { fontSize: 12, color: '#6B7280', marginTop: 4 },
-  kaki: { flexDirection: 'row', gap: 6, marginTop: 10, flexWrap: 'wrap' },
-  pil: { paddingVertical: 4, paddingHorizontal: 9, borderRadius: 7 },
-  pilTeks: { fontSize: 11, fontWeight: '700', color: '#FFFFFF', textTransform: 'capitalize' },
-  pilStatus: { backgroundColor: '#F3F4F6' },
-  pilStatusTeks: { color: '#374151', textTransform: 'none' },
-  pilStatusMendesak: { backgroundColor: '#DC2626' },
-  tombolSelesai: {
-    marginTop: 6, paddingVertical: 12, alignItems: 'center',
-    borderRadius: 10, borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#FFFFFF',
-  },
-  tombolSelesaiTeks: { fontSize: 13, fontWeight: '600', color: '#374151' },
-  catatan: { fontSize: 12, color: '#6B7280', textAlign: 'center', marginTop: 18, lineHeight: 18 },
-  tautan: { marginTop: 12, paddingVertical: 12, alignItems: 'center' },
-  tautanTeks: { fontSize: 14, fontWeight: '600', color: '#003366' },
-  kosong: { paddingVertical: 40, alignItems: 'center' },
-  kosongJudul: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 6 },
-  kosongIsi: { fontSize: 13, color: '#5A616B', lineHeight: 19, textAlign: 'center' },
-  galat: {
-    backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA',
-    borderRadius: 10, padding: 12, marginBottom: 14,
-  },
-  galatTeks: { fontSize: 13, color: '#991B1B', lineHeight: 19 },
-  peringatan: {
-    backgroundColor: '#FFFBEB', borderWidth: 1, borderColor: '#FDE68A',
-    borderRadius: 10, padding: 12, marginBottom: 14,
-  },
-  peringatanTeks: { fontSize: 13, color: '#78350F', lineHeight: 19 },
-});
+/**
+ * Gaya layar ini, dirakit dari palet aktif.
+ *
+ * Menerima `Palet` alih-alih memanggil `useTema()` sendiri: fungsi ini
+ * BUKAN komponen, dan hook di dalamnya akan melanggar aturan hook tanpa
+ * galat yang menyebut sebabnya.
+ */
+function gaya(c: Palet) {
+  return StyleSheet.create({
+    wadah: { flex: 1, backgroundColor: c.surfaceSubtle },
+    isi: { padding: SPASI.lg, paddingBottom: 40 },
+    tengah: {
+      flex: 1, alignItems: 'center', justifyContent: 'center',
+      padding: SPASI.xxl, backgroundColor: c.surfaceSubtle,
+    },
+    judulHalaman: {
+      fontSize: HURUF.xl, fontFamily: FONT.judul, color: c.textPrimary,
+      marginBottom: 14,
+    },
+    ringkas: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: c.surfaceRaised, borderWidth: 1, borderColor: c.border,
+      borderRadius: RADIUS.md, paddingVertical: 14, marginBottom: SPASI.lg,
+    },
+    ringkasSel: { flex: 1, alignItems: 'center' },
+    ringkasGaris: { width: 1, height: 28, backgroundColor: c.border },
+    /*
+      Angka ringkasan memakai `FONT.judul` (Bricolage Grotesque) — bukan
+      font isi yang ditebalkan. Angka adalah hal pertama yang dicari mata
+      di layar ini, dan keluarga display memberi tinggi-x serta lebar yang
+      lebih tegas pada digit besar.
+    */
+    ringkasAngka: { fontSize: 22, fontFamily: FONT.judul, color: c.textPrimary },
+    ringkasAngkaMerah: { color: c.danger },
+    ringkasLabel: {
+      fontSize: HURUF.xs, fontFamily: FONT.isi, color: c.textSecondary, marginTop: 2,
+    },
+    kartu: {
+      backgroundColor: c.surfaceRaised, borderWidth: 1, borderColor: c.border,
+      borderRadius: RADIUS.md, padding: 13, marginBottom: 10,
+    },
+    /* Garis kiri tebal, bukan latar merah penuh: kartunya masih harus terbaca,
+       dan latar jenuh membuat teks di atasnya melelahkan di bawah matahari. */
+    kartuMendesak: {
+      borderColor: c.dangerBorder, borderLeftWidth: 4, borderLeftColor: c.danger,
+    },
+    kartuBeres: { backgroundColor: c.surfaceHover, borderColor: c.border },
+    kartuKepala: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', marginBottom: 6,
+    },
+    jenisTag: {
+      fontSize: 11, fontFamily: FONT.isiTebal, color: c.navy,
+      letterSpacing: 0.4, textTransform: 'uppercase',
+    },
+    usia: { fontSize: 11, fontFamily: FONT.isi, color: c.textSecondary },
+    judul: {
+      fontSize: HURUF.sm + 1, fontFamily: FONT.isiTebal,
+      color: c.textPrimary, lineHeight: 20,
+    },
+    judulBeres: { color: c.textSecondary },
+    tempat: {
+      fontSize: HURUF.xs, fontFamily: FONT.isi, color: c.textSecondary, marginTop: 4,
+    },
+    kaki: { flexDirection: 'row', gap: 6, marginTop: 10, flexWrap: 'wrap' },
+    pil: { paddingVertical: 4, paddingHorizontal: 9, borderRadius: 7 },
+    pilTeks: {
+      fontSize: 11, fontFamily: FONT.isiTebal, color: c.onNavy,
+      textTransform: 'capitalize',
+    },
+    pilStatus: { backgroundColor: c.surfaceHover },
+    pilStatusTeks: { color: c.textPrimary, textTransform: 'none' },
+    pilStatusMendesak: { backgroundColor: c.danger },
+    tombolSelesai: {
+      marginTop: 6, paddingVertical: SPASI.md, alignItems: 'center',
+      borderRadius: 10, borderWidth: 1, borderColor: c.border,
+      backgroundColor: c.surfaceRaised,
+    },
+    tombolSelesaiTeks: {
+      fontSize: HURUF.sm, fontFamily: FONT.isiTebal, color: c.textPrimary,
+    },
+    catatan: {
+      fontSize: HURUF.xs, fontFamily: FONT.isi, color: c.textSecondary,
+      textAlign: 'center', marginTop: 18, lineHeight: 18,
+    },
+    tautan: { marginTop: SPASI.md, paddingVertical: SPASI.md, alignItems: 'center' },
+    tautanTeks: {
+      fontSize: HURUF.sm + 1, fontFamily: FONT.isiTebal, color: c.navy,
+    },
+    kosong: { paddingVertical: 40, alignItems: 'center' },
+    kosongJudul: {
+      fontSize: HURUF.lg - 1, fontFamily: FONT.judul,
+      color: c.textPrimary, marginBottom: 6,
+    },
+    kosongIsi: {
+      fontSize: HURUF.sm, fontFamily: FONT.isi, color: c.textSecondary,
+      lineHeight: 19, textAlign: 'center',
+    },
+    galat: {
+      backgroundColor: c.dangerBg, borderWidth: 1, borderColor: c.dangerBorder,
+      borderRadius: 10, padding: SPASI.md, marginBottom: 14,
+    },
+    galatTeks: { fontSize: HURUF.sm, fontFamily: FONT.isi, color: c.danger, lineHeight: 19 },
+    peringatan: {
+      backgroundColor: c.warningBg, borderWidth: 1, borderColor: c.warningBorder,
+      borderRadius: 10, padding: SPASI.md, marginBottom: 14,
+    },
+    peringatanTeks: {
+      fontSize: HURUF.sm, fontFamily: FONT.isi, color: c.warning, lineHeight: 19,
+    },
+  });
+}

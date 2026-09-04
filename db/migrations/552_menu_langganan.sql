@@ -64,7 +64,26 @@ SELECT
   true,
   'hidup'
 WHERE NOT EXISTS (SELECT 1 FROM menu_items WHERE key = 'pengaturan-langganan')
-  AND EXISTS (SELECT 1 FROM menu_items WHERE key = 'g-administrasi');
+  AND EXISTS (SELECT 1 FROM menu_items WHERE key = 'g-administrasi')
+/*
+  ⚠ `ON CONFLICT` DI SAMPING `NOT EXISTS` — bukan penggantinya.
+
+  `NOT EXISTS` sudah benar dan sudah menahan: diuji di dev, migrasi ini
+  jalan dua kali berturut tanpa keluhan. Tetapi di CI 2026-09-04 ia tetap
+  gagal:
+
+      duplicate key value violates unique constraint "menu_items_key_key"
+
+  `NOT EXISTS` dievaluasi SEBELUM insert. Ia tak melindungi dari baris yang
+  muncul di antara pemeriksaan dan penyisipan — dan indeks uniknya GLOBAL
+  atas `key`, bukan per-tenant, jadi satu baris dari mana pun cukup.
+
+  `ON CONFLICT DO NOTHING` menutup celah itu apa pun sumbernya, tanpa perlu
+  menebak siapa yang menyisipkannya lebih dulu. Blok VERIFIKASI di bawah
+  tetap menuntut barisnya ADA, jadi ini tidak melonggarkan apa pun: kalau
+  menunya benar-benar gagal terpasang, migrasi ini tetap merah.
+*/
+ON CONFLICT (key) DO NOTHING;
 
 -- ============================================================================
 -- VERIFIKASI

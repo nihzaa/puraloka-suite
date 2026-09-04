@@ -48,8 +48,9 @@ WHERE NOT EXISTS (
 -- ------------------------------------------------------------
 DO $$
 DECLARE
-  v_yatim INT;
-  v_sisa  INT;
+  v_yatim   INT;
+  v_sisa    INT;
+  v_anggota INT;
 BEGIN
   SELECT count(*) INTO v_yatim
   FROM jadwal_tugas jt
@@ -62,9 +63,37 @@ BEGIN
   END IF;
 
   SELECT count(*) INTO v_sisa FROM jadwal_tugas;
+
+  /*
+    ⚠ "Semua terhapus" HANYA salah bila memang ADA anggota — diperbaiki
+    2026-09-04 (preseden 212 & 016).
+
+    Versi pertama menggagalkan migrasi begitu `jadwal_tugas` kosong, dengan
+    alasan yang benar untuk basis berisi data: kalau masih ada tenant
+    beranggota tetapi jadwalnya habis, predikatnya pasti keliru.
+
+    Di schema BERSIH alasan itu tak berlaku. Rantai diputar dari nol tanpa
+    satu pun `users`, dan migrasi 126 mengisi `company_members` DARI tabel
+    users (`SELECT … FROM users WHERE role_id IS NOT NULL`) — jadi nol user
+    berarti nol anggota, dan menghapus SEMUA jadwal adalah hasil yang BENAR.
+
+    Diukur di CI 2026-09-04: 244 migrasi lolos, lalu 245 menggagalkan replay
+    dengan pesan yang menuduh predikatnya. Predikatnya tak pernah salah;
+    yang salah adalah pagar yang membaca "kosong" sebagai "rusak".
+
+    Syaratnya kini menyebut sebabnya: gagal bila jadwal habis PADAHAL ada
+    anggota. Di basis berisi data perlindungannya persis sama — di sana
+    `company_members` tak pernah kosong.
+  */
+  SELECT count(*) INTO v_anggota FROM company_members;
+  IF v_sisa = 0 AND v_anggota > 0 THEN
+    RAISE EXCEPTION
+      '245 gagal: seluruh jadwal terhapus padahal ada % anggota — predikat keanggotaan keliru',
+      v_anggota;
+  END IF;
+
   IF v_sisa = 0 THEN
-    -- Menghapus SEMUANYA berarti predikatnya salah, bukan datanya bersih.
-    RAISE EXCEPTION '245 gagal: seluruh jadwal terhapus — predikat keanggotaan keliru';
+    RAISE NOTICE '245: nol jadwal tersisa — basis belum punya anggota (schema bersih), ini benar';
   END IF;
 
   RAISE NOTICE '245: % jadwal tersisa (hanya tenant beranggota)', v_sisa;

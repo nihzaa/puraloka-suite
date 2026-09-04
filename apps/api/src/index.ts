@@ -229,7 +229,31 @@ await app.register(cors, {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  /*
+    `X-Client` WAJIB ada di sini, dan ketiadaannya tersembunyi rapat.
+
+    Header itu yang membuat `/auth/login` memulangkan `access_token` di
+    badan (aplikasi native tak bisa memakai cookie HttpOnly). Ditambahkan
+    2026-09-01, tetapi tak pernah didaftarkan ke CORS.
+
+    Kenapa tak ada yang tahu selama itu: aplikasi native TIDAK mengirim
+    preflight — tak ada Origin, jadi tak ada CORS sama sekali. Cacat ini
+    hanya muncul dari peramban, dan sampai 2026-09-04 tak seorang pun
+    pernah membuka aplikasi mobile lewat peramban.
+
+    Ketahuan pada jalan pertama `potret-mobile.mjs`:
+
+        Request header field x-client is not allowed by
+        Access-Control-Allow-Headers in preflight response
+
+    ⚠ Gejalanya menipu ke arah yang paling mahal: preflight OPTIONS
+    menjawab 204 dengan `access-control-allow-origin` yang BENAR, dan
+    `curl` POST menjawab 200. Dua pengukuran yang keduanya benar untuk
+    dirinya sendiri, dan keduanya melewatkan sebabnya — `curl` tak
+    menegakkan CORS, dan OPTIONS yang lolos origin masih bisa menolak
+    header.
+  */
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Client'],
 })
 await app.register(helmet, {
   crossOriginResourcePolicy: { policy: 'same-site' },

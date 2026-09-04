@@ -350,7 +350,32 @@ sebelum menyentuh kode terkait** — bukan sekadar daftar isi.
 | `audit-modul-mobile-nyata.mjs` | tiap modul WebView mobile wajib menunjuk halaman web yang ADA — jalur tanpa `page.tsx` membuka 404 di dalam bingkai aplikasi, tanpa tombol kembali. Peta di `web/[modul].tsx`, halaman di `apps/web/app/(dashboard)/`: dua tempat, tak ada yang menghubungkan. Pada jalan pertamanya menemukan `/sdm` sudah buntu sejak dibuat (ambang NOL) |
 | `audit-antrean-punya-rute.mjs` | tiap kiriman antrean mobile wajib menunjuk rute API yang ADA — mandor mengisi laporan, layar berkata "tersimpan" (benar: tersimpan di HP), server menjawab 404, antrean menahannya, dan tak seorang pun tahu. Lahir dari temuan foto progres yang TAK PERNAH sampai (multipart vs JSON, `project_photos` nol dalam 30 hari). Yang dijaga JALURNYA, bukan bentuk muatannya (ambang NOL) |
 | `audit-auth-mobile-utuh.mjs` | kontrak login mobile wajib utuh di KEDUA sisi — diukur 2026-09-01 aplikasi mobile TAK PERNAH bisa login: token hanya dikirim lewat cookie HttpOnly, mobile menyimpan `undefined`, setiap permintaan 401, dan layar login menuduh kredensial. Ikut menjaga token diberikan HANYA bagi klien ber-`X-Client` — memberikannya ke semua membuang perlindungan XSS (ambang NOL) |
-| `audit-hook-eas-utuh.mjs` | rantai hook build EAS wajib utuh — SEMBILAN build APK gagal karena celah dua versi pnpm (server 9.15.5, lokal 11.8.0): `overrides` di `pnpm-workspace.yaml` adalah fitur pnpm 10+, dan pnpm 9 tak membacanya lalu menolak dengan galat yang menuduh lockfile. Menghapus satu mata rantai tak menggagalkan tsc maupun test; yang gagal cuma build di server 20 menit kemudian (ambang NOL) |
+| `audit-hook-eas-utuh.mjs` | rantai hook build EAS wajib utuh — SEMBILAN build APK gagal karena celah dua versi pnpm (server 9.15.5, lokal 11.11.0): `overrides` di `pnpm-workspace.yaml` adalah fitur pnpm 10+, dan pnpm 9 tak membacanya lalu menolak dengan galat yang menuduh lockfile. Menghapus satu mata rantai tak menggagalkan tsc maupun test; yang gagal cuma build di server 20 menit kemudian (ambang NOL) |
+| `audit-versi-pnpm-satu-suara.mjs` | versi pnpm dideklarasikan di **SEPULUH** tempat — dua di `package.json` (`packageManager` + `devEngines`) dan delapan `version:` di `ci.yml`/`ci-isolation`/`ci-keepalive`. `pnpm/action-setup` membaca dua sumber dan MENOLAK bila berbeda (*"Multiple versions of pnpm specified"*). Diukur 2026-09-04: menaikkan pnpm hanya di `package.json` memerahkan SEPULUH job di langkah setup — termasuk tiga yang tak menyentuh kode. Lokal semuanya hijau; tak satu pun alat di sini membandingkan kesepuluh angka itu (ambang NOL) |
+
+**Host porto yang menyala wajib bisa dibuka — SESUDAH DEPLOY, bukan di CI:**
+
+```bash
+node apps/api/scripts/audit-situs-host-dilayani.mjs   # ambang NOL
+```
+
+Baris `situs_domain` yang `aktif` + `terverifikasi` adalah JANJI bahwa alamat
+itu menyajikan profil perusahaannya. Diukur 2026-09-04:
+`porto.puraloka-suite.duckdns.org` menyala di basis tanpa server block maupun
+sertifikat — TLS ditolak sebelum satu byte HTTP terkirim, dan tak ada di
+sistem ini yang bisa memberi tahu. Tiap lapisan menjawab benar untuk dirinya
+sendiri.
+
+⚠ **Sengaja TIDAK di `ci.yml`**, jadi jangan menabelkannya di §6 —
+`audit-penjaga-tercatat-jalan.mjs` mewajibkan yang tertabel benar-benar
+dijalankan CI, dan penjaga ini justru tak boleh. CI menilai kode yang BELUM
+tayang; ia hanya bisa mengukur server versi lama. Tempatnya
+`infra/perbarui-vps.sh` langkah 7 — sesudah deploy, saat keadaannya bermakna.
+
+⚠ `000` dari curl TIDAK cukup dilaporkan: ia sama untuk DNS gagal, port
+tertutup, TLS ditolak, dan waktu habis — empat sebab, empat perbaikan. Penjaga
+ini membaca EXIT CODE-nya. Dan `-o /dev/null` TAK ADA di Windows (exit 23),
+yang pada jalan pertamanya melaporkan host sehat sebagai MERAH.
 
 **Alur take-off → RAB — MANUAL, butuh API hidup:**
 
@@ -787,6 +812,29 @@ ditemukan dalam satu sesi:
 Yang terakhir punya aturannya sendiri: **selisih yang tak bisa dijelaskan
 adalah temuan yang belum dibuka.** Menutupnya dengan cerita lebih mahal
 daripada membiarkannya terbuka.
+
+**Dan sepupunya: ANGKA TANPA CAKUPAN adalah setengah angka.**
+
+Diukur 2026-09-02, dua sesi menghitung hal yang sama dan mendapat jawaban
+berbeda — keduanya BENAR:
+
+```
+INDUK di antara 12 href dari log CI    : 0
+INDUK ber-href-ganda di SELURUH tabel  : 2
+```
+
+Yang salah bukan pengukurannya, melainkan kalimat yang menyertainya:
+"nol induk" ditulis tanpa menyebut bahwa cakupannya cuma 12 baris dari
+log — dan pembacanya wajar menyimpulkan itu berlaku untuk seluruh tabel.
+
+Ini kelas yang sama dengan `-First 10` dan `git show` yang gagal senyap,
+tetapi lebih halus: di sana alatnya memulangkan hasil yang salah; di sini
+alatnya benar, KALIMATNYA yang kehilangan syarat.
+
+Aturannya: setiap angka yang masuk dokumen atau pesan wajib membawa
+cakupannya — "dari N baris log CI", "di seluruh tabel", "di apps/web
+saja". Kalau cakupannya tak muat dalam kalimat, angkanya belum siap
+ditulis.
 
 ### 8a.3 UI/UX — pedoman WAJIB dibaca sebelum menulis kode visual
 

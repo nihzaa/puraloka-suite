@@ -14,7 +14,34 @@ on:
         default: inventory
         type: choice
         options: [inventory, periksa-gl, setup, setup-clean]
+      paksa_ulang:
+        description: 'Nomor migrasi yang catatannya dihapus supaya DIPUTAR ULANG (mis. "377,398"). Kosongkan bila tak perlu.'
+        required: false
+        default: ''
+        type: string
 
+# ⚠ Group per-run ini menjaga run inventaris dari pembatalan — TETAPI ia juga
+# menempatkan workflow ini DI LUAR barisan `ci-shared-ci-db` milik `ci.yml`.
+#
+# Keduanya menulis ke project CI yang SAMA. Diukur 2026-09-04, tiga run
+# `setup-clean` gagal berturut-turut karena itu:
+#
+#     19:25:24  CI              ← 6 shard menjalankan Prepare CI project
+#     19:25:21  CI Isolation    ← WIPE mengosongkan basis
+#
+# WIPE mengosongkan, shard memutar migrasi ke dalamnya, lalu `setup-clean`
+# mencoba 001 dan gagal `type "project_status" already exists` — galat yang
+# menuduh migrasinya, padahal yang bertabrakan dua workflow.
+#
+# Menyatukan group akan membuat run inventaris bisa dibatalkan CI — persis yang
+# komentar di bawah cegah. Jadi sampai R-009 (isolasi nyata per shard) selesai,
+# yang berlaku aturan operasional, bukan setelan:
+#
+#     JALANKAN `setup-clean` HANYA saat tak ada run CI aktif, dan jangan
+#     mem-push apa pun selama ia berjalan — push memicu CI, CI memicu balapan.
+#
+#     Periksa dulu:  gh run list --limit 5 --json name,status \
+#                      --jq '.[]|select(.status!="completed")|.name'
 concurrency:
   group: ci-isolation-ops-${{ github.run_id }}
   cancel-in-progress: false
@@ -29,7 +56,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 11.8.0
+          version: 11.11.0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -65,6 +92,7 @@ jobs:
         run: node scripts/ci-project-setup.mjs
         env:
           CI_DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+          PAKSA_ULANG: ${{ inputs.paksa_ulang }}
 
       # A2 — setup-clean: WIPE project CI lalu replay BERSIH sekali dari nol (angka jujur).
       - name: A2 Setup CLEAN (wipe + replay + seed)
@@ -72,4 +100,5 @@ jobs:
         run: node scripts/ci-project-setup.mjs
         env:
           CI_DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+          PAKSA_ULANG: ${{ inputs.paksa_ulang }}
           WIPE: '1'

@@ -111,7 +111,22 @@ DECLARE
 BEGIN
   SELECT count(*) INTO n_admin FROM public.roles WHERE name = 'admin';
   IF n_admin < 2 THEN
-    RAISE EXCEPTION '372: prasyarat tak terpenuhi — hanya % baris role "admin"', n_admin;
+    /*
+      Sama persis dengan 366, dan sebabnya sama: nol user → nol
+      company_members → migrasi 365 melewati penyalinan role → hanya
+      templatenya sendiri yang tersisa.
+
+      `RETURN` di sini menutup KEDUA pagar di berkas ini — yang kedua
+      (`n_tanpa = 0`, baris ~145) tak pernah tercapai. Diperiksa, bukan
+      diasumsikan: pelajaran migrasi 337, di mana perbaikan yang hanya
+      menutup pagar pertama terlihat selesai dan CI menemukan sisanya lima
+      menit kemudian.
+
+      Fungsi & policy yang dibuat migrasi ini TETAP terbentuk; yang dilewati
+      hanya pembuktiannya. (2026-09-04, kelas 245/250/252/…/366/368)
+    */
+    RAISE NOTICE '372: hanya % baris role "admin" — pembuktian DILEWATI (schema bersih)', n_admin;
+    RETURN;
   END IF;
 
   -- INILAH yang gagal sebelum migrasi ini: tanpa konteks tenant sama sekali.

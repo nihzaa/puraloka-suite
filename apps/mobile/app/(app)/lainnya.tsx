@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import React from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { useAuth } from '@/hooks/useAuth';
@@ -92,7 +92,18 @@ type Modul = {
    * memuat delapan, dan yang kesembilan membuat tiap ikon menyempit sampai
    * sulit ditekan dengan ibu jari kotor di lapangan.
    */
-  nativeJalur?: string;
+  /*
+    Bertipe `Href`, bukan `string`.
+
+    expo-router menghasilkan gabungan literal dari berkas rute yang
+    BENAR-BENAR ada, dan `router.push()` menuntutnya. `string` membuat
+    `tsc` merah di tempat pakai — bukan di tempat salahnya.
+
+    Yang lebih penting daripada `tsc`: dengan `Href`, jalur ke layar yang
+    dihapus atau di-rename memerahkan tipe SAAT ITU JUGA. Sebagai
+    `string`, ia lolos build dan baru gagal di HP, sebagai layar kosong.
+  */
+  nativeJalur?: Href;
 };
 
 const MODUL: Modul[] = [
@@ -225,7 +236,7 @@ export default function Lainnya() {
           <Pressable
             key={m.kunci}
             style={({ pressed }) => [s.baris, pressed && s.barisTekan]}
-            onPress={() => router.push(m.nativeJalur ?? `/web/${m.kunci}`)}
+            onPress={() => router.push(m.nativeJalur ?? (`/web/${m.kunci}` as Href))}
             accessibilityRole="button"
             accessibilityLabel={`Buka ${m.judul}`}
           >

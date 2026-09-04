@@ -69,6 +69,33 @@ let nomor = 0
 const DITOLAK = new Set(['23514', '23502', '23503', '23505', '22003'])
 const nomorUji = () => `UJI-TND-${++nomor}-${PID.slice(0, 8)}`
 
+/*
+  ⚠ BERSIHKAN SISA JALAN SEBELUMNYA — ditambahkan 2026-09-04.
+
+  Penjaga ini menghapus barisnya di AKHIR (baris ~194). Kalau satu jalan
+  terputus di tengah — galat tak terduga, timeout, atau run CI yang dibatalkan
+  push berikutnya — barisnya TERTINGGAL, dan `nomorUji()` yang deterministik
+  membuat jalan berikutnya menabraknya:
+
+      duplicate key value violates unique constraint
+      "tender_subkon_nomor_per_proyek"
+
+  Kelas yang sama dengan `uji-invarian-absensi`, diperbaiki hari ini juga.
+
+  ⚠ Dan penjaga INI termasuk yang saya uji "dua kali berturut" saat menyisir
+  kelas itu — ia LOLOS di dev, karena di sana jalan sebelumnya selesai dan
+  membersihkan diri. Uji dua-kali hanya menemukan yang bentrok dengan jalan
+  yang BERHASIL; ia buta terhadap sisa jalan yang TERPUTUS.
+
+  Awalan `UJI-TND-` cukup spesifik: nomor sungguhan memakai format penomoran
+  dokumen, tak pernah berawalan itu.
+*/
+const { rowCount: sisa } = await db.query(
+  `DELETE FROM tender_subkon WHERE project_id = $1 AND nomor LIKE 'UJI-TND-%'`,
+  [PID],
+)
+if (sisa > 0) console.log(`  (dibersihkan ${sisa} baris sisa jalan sebelumnya)`)
+
 // Tender induk sementara.
 const { rows: induk } = await db.query(
   `INSERT INTO tender_subkon (project_id, nomor, judul, nilai_perkiraan)

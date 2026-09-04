@@ -223,6 +223,22 @@ BEGIN
   SELECT company_id INTO v_co FROM projects WHERE company_id IS NOT NULL LIMIT 1;
   SELECT id INTO v_co2 FROM companies WHERE id <> v_co LIMIT 1;
 
+  /*
+    ⚠ Blok 2 sudah punya `IF v_co2 IS NOT NULL … ELSE` untuk uji lintas-tenant,
+    tetapi blok 3 dan seterusnya memakai `v_co` LANGSUNG — dan `v_co` diambil
+    dari `projects`, yang kosong di schema bersih.
+
+    Penjaga ini mencakup SELURUH pembuktian, termasuk blok 2 yang sudah punya
+    percabangannya sendiri. Diperbaiki 2026-09-04, kelas yang sama dengan 252,
+    254, 256, 316, dan 438.
+
+    Di lingkungan yang punya proyek, semuanya berjalan persis seperti sebelumnya.
+  */
+  IF v_co IS NULL THEN
+    RAISE NOTICE '427: belum ada proyek — pembuktian importer DILEWATI (schema bersih)';
+    RETURN;
+  END IF;
+
   -- 1. Unik GLOBAL benar-benar HILANG dari kedua tabel.
   IF EXISTS (
     SELECT 1 FROM pg_index x

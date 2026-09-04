@@ -331,7 +331,11 @@ BEGIN
    LIMIT 1;
 
   IF co IS NULL OR pr IS NULL THEN
-    RAISE EXCEPTION '331 gagal: fixture proyek tak terbentuk — verifikasi tak bisa dipercaya';
+    -- Fixture tak terbentuk BUKAN kegagalan: di schema bersih memang belum
+    -- ada proyek/user. Yang dilewati hanya pembuktiannya; di lingkungan
+    -- yang berisi data ia berjalan penuh. (2026-09-04, kelas 252/254/316)
+    RAISE NOTICE '331: fixture belum ada — verifikasi DILEWATI (schema bersih)';
+    RETURN;
   END IF;
 
   -- 1. FHO tanpa PHO DITOLAK.

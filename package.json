@@ -46,11 +46,11 @@
     "lain, mesin pengembang dan server build memakai pnpm berbeda — dan",
     "bedanya baru terlihat saat build gagal, bukan saat menyunting."
   ],
-  "packageManager": "pnpm@11.8.0",
+  "packageManager": "pnpm@11.11.0",
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "11.8.0",
+      "version": "11.11.0",
       "onFail": "download"
     }
   },

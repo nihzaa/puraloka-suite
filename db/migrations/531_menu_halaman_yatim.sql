@@ -92,6 +92,38 @@ WITH baru AS (
     ('yt-sdm-timesheet',      'Timesheet',           '/sdm/timesheet',            'g-hr',        ARRAY['sdm:timesheet:view'],    6)
   ) AS t(kunci, label, href, grup, izin, urut)
    WHERE NOT EXISTS (SELECT 1 FROM menu_items m WHERE m.key = t.kunci)
+     -- ⚠ DIPERBAIKI DI TEMPATNYA 2026-09-04 (preseden 212 & 016).
+     --
+     -- Syarat asli hanya memeriksa KUNCI belum ada. Ia tak pernah bertanya
+     -- apakah HREF-nya sudah dipegang menu lain — dan 20 dari 29 baris di
+     -- daftar atas memang sudah punya kembaran bernama:
+     --
+     --     /k3/insiden      yt-k3-insiden     <->  hse-insiden
+     --     /risiko          yt-risiko         <->  rk-register
+     --     /sdm/timesheet   yt-sdm-timesheet  <->  hr-absensi
+     --
+     -- Semuanya disisipkan `is_active = true`, jadi di schema BERSIH lahirlah
+     -- 18 href yang dipegang dua menu aktif: dua baris sidebar berbeda nama
+     -- yang membuka layar sama persis.
+     --
+     -- Ketahuannya baru di CI PR #148, saat migrasi 558 — yang pertama
+     -- memasang pagar "nol href ganda" — menggagalkan SELURUH penyiapan basis.
+     -- Keenam shard test API mati sebelum satu test pun berjalan.
+     --
+     -- Di basis yang sudah menjalankan 531 versi lama, keadaannya sudah
+     -- bersih (diukur: 0 href ganda), jadi suntingan ini tak mengubah
+     -- hasil akhir di sana. Ia MENYEMPITKAN — menyisipkan lebih sedikit,
+     -- tak pernah lebih.
+     --
+     -- Kenapa disunting, bukan ditambal migrasi baru: 558 gagal di blok
+     -- VERIFIKASI, dan tiap migrasi berjalan dalam transaksi. Kegagalan itu
+     -- membuang seluruh 558 — termasuk penyalaan menu yang benar. Penambal
+     -- yang berjalan sesudahnya tak pernah sempat dipanggil. Aturan yang
+     -- sama tertulis di `ci-project-setup.mjs`: untuk migrasi yang gagal di
+     -- tengah transaksi, tak ada penambal yang cukup.
+     AND NOT EXISTS (
+       SELECT 1 FROM menu_items a
+        WHERE a.href = t.href AND a.is_active)
 ),
 -- Celah yang tersedia di tiap grup, diurutkan dari yang terkecil.
 celah AS (

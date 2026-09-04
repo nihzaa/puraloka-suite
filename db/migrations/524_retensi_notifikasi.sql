@@ -145,8 +145,22 @@ BEGIN
     menghapus sebagian notifikasi yang baru saja dibuat pada hari yang sama -
     benar secara aturan, membingungkan bagi yang melihatnya.
   */
+  /*
+    ⚠ Syaratnya memakai `n_ang` yang SUDAH dihitung di baris 86 — jumlah
+    company aktif yang punya anggota, yaitu syarat yang SAMA dengan INSERT
+    jadwal di atas.
+
+    Tanpa itu, `max(jam)` atas nol baris memulangkan NULL dan pagar melapor:
+
+        524 gagal: pembersih berjadwal (tak ada) — harus sebelum 06:00
+
+    Kalimat itu menuduh JADWALNYA salah pasang. Yang sebenarnya: tak ada
+    company beranggota, jadi tak satu pun jadwal dibuat — dan itu benar.
+    Cacat yang sama dengan 250, 252, 377, dan 401: dua syarat berbeda untuk
+    satu hal. (2026-09-04)
+  */
   SELECT max(jam) INTO jam_terakhir FROM jadwal_tugas WHERE tugas = 'bersih-notifikasi';
-  IF jam_terakhir IS NULL OR jam_terakhir >= '06:00' THEN
+  IF n_ang > 0 AND (jam_terakhir IS NULL OR jam_terakhir >= '06:00') THEN
     RAISE EXCEPTION
       '524 gagal: pembersih berjadwal % — harus sebelum 06:00, saat otomasi pagi mulai menulis',
       coalesce(jam_terakhir, '(tak ada)');

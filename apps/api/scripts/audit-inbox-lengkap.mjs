@@ -107,7 +107,24 @@ console.log('  ambang          : 0 (bukan ratchet)\n')
 // bukan dilaporkan lulus. Pola yang sama dengan `audit-sod-gerbang`.
 let gagalKolom = 0
 {
-  const punyaDb = !!(process.env.DATABASE_URL || process.env.DIRECT_URL)
+/*
+  ⚠ Kredensial dibaca dari `.env` JUGA, bukan `process.env` saja — 2026-09-04.
+
+  Penjaga ini melewati DIRINYA SENDIRI di mesin yang punya basis: ia
+  menanyakan `process.env`, sementara kredensial repo ini di `apps/api/.env`.
+  Salah satu dari SEBELAS yang ditemukan sekaligus.
+
+  Dua tempat wajib diperbaiki bersama — pemeriksaan `punyaDb` DAN
+  `connectionString`. Kalau hanya yang pertama, ia melapor "punya basis" lalu
+  gagal menyambung dengan galat yang menuduh jaringan.
+*/
+const { bacaEnv: _bacaEnv } = await import('../../../scripts/db/_koneksi.mjs')
+const _envBerkas = _bacaEnv()
+const _DB =
+  process.env.DATABASE_URL || process.env.DIRECT_URL
+  || _envBerkas.DATABASE_URL || _envBerkas.DIRECT_URL
+
+  const punyaDb = !!(_DB)
   if (!punyaDb) {
     console.log('  ⏭  kolom katalog vs schema: DILEWATI (tak ada DATABASE_URL)')
     console.log('     Ini pemeriksaan yang menangkap kolom salah nama —')
@@ -115,7 +132,7 @@ let gagalKolom = 0
   } else {
     const { default: pg } = await import('pg')
     const c = new pg.Client({
-      connectionString: process.env.DATABASE_URL || process.env.DIRECT_URL,
+      connectionString: _DB,
     })
     await c.connect()
 
