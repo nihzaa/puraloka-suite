@@ -1189,6 +1189,30 @@ jobs:
       # baris yang tepat; dipulihkan → exit 0. (ambang NOL)
       - name: Dropdown bisa dicari
         run: node scripts/audit-dropdown-bisa-dicari.mjs
+      # Sisi SERVER dari putaran yang sama — dan ini yang sebenarnya memutus.
+      #
+      # `clearCookie` dipanggil hanya dengan `{ path: '/' }`, sementara
+      # cookie-nya dipasang `COOKIE_OPTS` (httpOnly + secure + sameSite).
+      # Peramban mencocokkan cookie yang dihapus lewat ATRIBUTNYA; `Secure`
+      # yang hilang membuatnya menganggap itu cookie LAIN — penghapusan tak
+      # mengenai sasaran, balasan tetap 200, nol galat.
+      #
+      #     dipasang : HttpOnly; Secure; SameSite=Lax; Path=/
+      #     dihapus  :           ~~~~~~  SameSite=Lax; Path=/
+      #
+      # Perbaikan di sisi KLIEN saja tak cukup: sesudah `clearAuthAndRedirect`
+      # dibetulkan, produksi MASIH 80 navigasi dalam 12 detik. Cookie HttpOnly
+      # hanya bisa dihapus server.
+      #
+      # DUA jalur, dan yang kedua nyaris terlewat: `/auth/logout` dan
+      # `/auth/refresh` yang gagal — justru jalur kedua yang berjalan saat
+      # sesi habis.
+      #
+      # Bukti merah: tiap jalur dirusak SENDIRI-SENDIRI → exit 1 (penjaga
+      # menilai per-panggilan, bukan per-berkas); dipulihkan → exit 0.
+      # (ambang NOL)
+      - name: clearCookie cocok dengan setCookie
+        run: node scripts/audit-hapus-cookie-cocok-pasang.mjs
 
       # Keputusan persetujuan hanya lewat SATU pintu (utils/approval.ts).
       # Menulis `approved_by` langsung berarti entitas yang menurut
