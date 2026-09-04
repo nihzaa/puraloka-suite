@@ -51,6 +51,14 @@ interface Notification {
 }
 
 /*
+  30 per halaman — sama dengan bawaan rutenya, jadi permintaan pertama
+  tak berubah perilakunya. Maksimum yang diizinkan rute 100, tapi 30 kartu
+  sudah lebih dari satu layar penuh, dan memuat lebih banyak sekaligus
+  memperlama muat pertama tanpa ada yang melihatnya.
+*/
+const UKURAN_HALAMAN = 30;
+
+/*
   `keyExtractor` dari `id` basis, bukan indeks larik.
 
   Pedoman stack `react-native`, severity High. Di layar ini bahayanya
@@ -58,6 +66,10 @@ interface Notification {
   indeks sebagai kunci membuat React memasangkan ulang kartu yang salah —
   tombol "Setujui" pindah ke notifikasi LAIN. Untuk layar yang menyetujui
   uang, itu bukan cacat kosmetik.
+
+  Dengan paginasi ia jadi lebih penting lagi: tiap halaman baru menyambung
+  larik, dan indeks sebagai kunci membuat SELURUH daftar bergeser
+  identitasnya tiap kali 30 baris ditambahkan.
 */
 const ambilKunci = (n: Notification) => n.id;
 
@@ -170,22 +182,97 @@ export default function NotificationsScreen() {
   const [galat, setGalat] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const fetchNotifications = useCallback(async () => {
+  /*
+    ══════════════════════════════════════════════════════════════════════
+    NOTIFIKASI KE-31 DAN SETERUSNYA TAK PERNAH BISA DILIHAT
+    ══════════════════════════════════════════════════════════════════════
+
+    Diukur 2026-09-04 langsung ke basis produksi:
+
+        baris di tabel `notifications`  : 8.947
+        yang bisa dilihat dari HP       : 30
+
+    Rutenya mendukung paginasi (`?limit=&offset=`, bawaan 30, maksimum
+    100 — `notifications.ts:44-47`), tetapi layar ini tak pernah
+    memintanya: satu panggilan tanpa parameter, lalu berhenti.
+
+    Tak ada `onEndReached`, tak ada tombol muat-lebih, tak ada indikasi
+    bahwa masih ada yang lain. Layarnya terlihat LENGKAP — gulir sampai
+    habis, tak ada apa pun yang mengatakan "ini baru 30 dari ribuan".
+
+    Yang hilang bukan riwayat basa-basi: notifikasi memuat kasbon yang
+    menunggu persetujuan, izin kerja yang habis masa berlakunya, dan
+    risiko yang lewat tenggat tinjau. Yang lebih tua dari 30 terbaru
+    hilang dari jangkauan orang yang harus menindaknya.
+
+    ── Kenapa `onEndReached`, bukan tombol
+
+    Tombol "muat lebih banyak" menuntut satu ketukan tepat sasaran di
+    ujung daftar — di layar berdebu dengan sarung tangan itu sasaran yang
+    buruk. `onEndReached` memuat saat penggunanya sudah bergulir ke sana,
+    yang justru sinyal paling jelas bahwa ia ingin lebih.
+
+    ── Kenapa `habis`, bukan menghitung total
+
+    Rutenya tak mengirim jumlah total (hanya `{ notifications: [...] }`),
+    dan menambahkannya berarti query `count` tambahan tiap halaman.
+
+    Yang dipakai: halaman yang memulangkan KURANG dari yang diminta adalah
+    halaman terakhir. Sederhana, dan tak bisa salah ke arah yang berbahaya
+    — paling buruk ia meminta satu halaman kosong sekali.
+  */
+  const [offset, setOffset] = useState(0);
+  const [habis, setHabis] = useState(false);
+  const [memuatLagi, setMemuatLagi] = useState(false);
+
+  const fetchNotifications = useCallback(async (lanjutDari = 0) => {
     try {
-      const res = await api.get('/api/v1/notifications');
-      setNotifications(res.data?.notifications ?? []);
+      const res = await api.get('/api/v1/notifications', {
+        params: { limit: UKURAN_HALAMAN, offset: lanjutDari },
+      });
+      const datang: Notification[] = res.data?.notifications ?? [];
+
+      setNotifications((prev) => (lanjutDari === 0 ? datang : [...prev, ...datang]));
+      setOffset(lanjutDari + datang.length);
+      setHabis(datang.length < UKURAN_HALAMAN);
       setGalat('');
     } catch (err: unknown) {
-      setGalat(pesanGalat(err, 'notifikasi'));
+      /*
+        Galat pada halaman LANJUTAN tak menghapus yang sudah tampil —
+        spanduk galat di atas daftar yang berisi lebih membingungkan
+        daripada membantu. Yang gagal cuma penambahannya.
+      */
+      if (lanjutDari === 0) setGalat(pesanGalat(err, 'notifikasi'));
+      else console.warn('[notifikasi] gagal memuat halaman lanjutan —', pesanGalat(err, 'notifikasi'));
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setMemuatLagi(false);
     }
   }, []);
 
-  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
+  useEffect(() => { fetchNotifications(0); }, [fetchNotifications]);
 
-  const onRefresh = () => { setRefreshing(true); fetchNotifications(); };
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setHabis(false);
+    fetchNotifications(0);
+  }, [fetchNotifications]);
+
+  /*
+    Tiga penjaga sebelum memuat, dan ketiganya perlu:
+
+      `habis`       — jangan meminta halaman yang tak ada
+      `memuatLagi`  — `onEndReached` bisa terpicu BERKALI-KALI dalam satu
+                      gulir; tanpa ini satu gerakan jempol mengirim tiga
+                      permintaan yang sama
+      `loading`     — jangan menumpuk di atas muat pertama yang belum selesai
+  */
+  const muatLagi = useCallback(() => {
+    if (habis || memuatLagi || loading || refreshing) return;
+    setMemuatLagi(true);
+    fetchNotifications(offset);
+  }, [habis, memuatLagi, loading, refreshing, offset, fetchNotifications]);
 
   /*
     ⚠ `useCallback` BUKAN kehalusan di sini — tanpanya `React.memo` pada
@@ -338,6 +425,42 @@ export default function NotificationsScreen() {
 
     Aturannya: SEMUA hook dipanggil sebelum early-return apa pun.
   */
+  /*
+    Kaki daftar mengatakan KEADAANNYA, bukan sekadar berhenti.
+
+    Tiga keadaan, tiga tampilan berbeda:
+
+      sedang memuat  → spinner. Tanpa ini, jeda jaringan terbaca sebagai
+                       "daftarnya habis", dan pengguna berhenti menggulir.
+      habis          → garis penutup. Ia MENJAWAB pertanyaan "apakah masih
+                       ada lagi?" yang sebelumnya tak pernah dijawab —
+                       selama tiga hari layar ini berhenti di 30 dari
+                       8.947 tanpa satu pun tanda.
+      belum habis    → nol tinggi, tak mengganggu.
+
+    `ui-ux-pro-max` §8 `empty-states` dan §3 `progressive-loading`: jeda
+    di atas 1 detik butuh indikator, dan akhir daftar butuh penanda.
+  */
+  const kakiDaftar = useMemo(() => {
+    if (memuatLagi) {
+      return (
+        <View style={styles.kakiMuat}>
+          <ActivityIndicator size="small" color={c.navy} />
+        </View>
+      );
+    }
+    if (habis && notifications.length >= UKURAN_HALAMAN) {
+      return (
+        <View style={styles.kakiHabis}>
+          <Text style={styles.kakiHabisTeks}>
+            Semua {notifications.length} notifikasi sudah ditampilkan
+          </Text>
+        </View>
+      );
+    }
+    return null;
+  }, [memuatLagi, habis, notifications.length, styles, c]);
+
   const renderKartu = useCallback(
     ({ item }: { item: Notification }) => (
       <KartuNotifikasi
@@ -410,6 +533,19 @@ export default function NotificationsScreen() {
             </View>
           )
         }
+        /*
+          `onEndReachedThreshold={0.4}` — mulai memuat saat tersisa 40%
+          layar. Nilai bawaan 0.5 sudah baik, tapi kartu di sini tinggi
+          (judul + keterangan beberapa baris), jadi 0.5 berarti memuat
+          terlalu dini dan menarik data yang mungkin tak pernah dilihat.
+
+          Di bawah 0.2 sebaliknya: pengguna sampai ke dasar sebelum
+          permintaannya selesai, dan melihat daftar berhenti — yang
+          terbaca seperti "habis".
+        */
+        onEndReached={muatLagi}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={kakiDaftar}
         initialNumToRender={8}
         windowSize={7}
       />
@@ -496,6 +632,23 @@ function gaya(c: Palet) {
     actionedLabel: {
       fontSize: HURUF.xs, fontFamily: FONT.isi,
       color: c.textSecondary, fontStyle: 'italic',
+    },
+    kakiMuat: { paddingVertical: SPASI.lg, alignItems: 'center' },
+    /*
+      Penanda habis diberi garis atas, bukan cuma teks: di ujung daftar
+      panjang, teks abu-abu tanpa pembatas terbaca seperti kartu terakhir
+      yang gagal dirender.
+    */
+    kakiHabis: {
+      paddingTop: SPASI.lg,
+      paddingBottom: SPASI.sm,
+      alignItems: 'center',
+      borderTopWidth: 1,
+      borderTopColor: c.border,
+      marginTop: SPASI.sm,
+    },
+    kakiHabisTeks: {
+      fontSize: HURUF.xs, fontFamily: FONT.isi, color: c.textSecondary,
     },
     empty: { alignItems: 'center', paddingTop: 80, gap: SPASI.sm },
     emptyText: { fontSize: HURUF.base, fontFamily: FONT.isi, color: c.textSecondary },
