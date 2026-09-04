@@ -94,6 +94,63 @@ const TINGGI = 150      // tinggi bidang lambang, dp
 const LEBAR_PILAR = 15
 const JARAK = 11
 
+/**
+ * Lambang STATIS — pilar yang sama, tanpa animasi, bisa diskalakan.
+ *
+ * Dipakai di layar login (sebagai lambang dan sebagai tekstur latar) dan
+ * di mana pun lambang dibutuhkan tanpa gerak.
+ *
+ * ⚠ Dipisah dari `SplashMerek`, bukan disalin. Empat angka proporsi di
+ * `PILAR` adalah bentuk mereknya; dua salinan yang bisa menyimpang berarti
+ * dua lambang yang perlahan jadi berbeda, dan tak ada yang akan
+ * memperhatikan sampai keduanya terlihat berdampingan.
+ *
+ * `warna` diterima sebagai prop supaya ia bisa navy di atas putih DAN
+ * putih di atas navy — tanpa mengulang bentuknya.
+ */
+export function LambangPuraloka({
+  ukuran = 56,
+  warna,
+}: {
+  ukuran?: number
+  warna: string
+}) {
+  /* Skala dari TINGGI acuan, jadi seluruh proporsinya ikut. */
+  const k = ukuran / TINGGI
+  const lebarPilar = LEBAR_PILAR * k
+  const jarak = JARAK * k
+
+  return (
+    <View
+      style={{ height: ukuran, flexDirection: 'row', alignItems: 'flex-end', gap: jarak }}
+      accessibilityElementsHidden
+      importantForAccessibility="no"
+    >
+      {PILAR.map((p, i) => (
+        <View key={i} style={{ width: lebarPilar, height: ukuran, justifyContent: 'flex-end' }}>
+          <View
+            style={{
+              width: lebarPilar,
+              height: ukuran * p.atas,
+              backgroundColor: warna,
+              borderRadius: lebarPilar * 0.22,
+            }}
+          />
+          <View style={{ height: ukuran * p.celah }} />
+          <View
+            style={{
+              width: lebarPilar,
+              height: ukuran * p.alas,
+              backgroundColor: warna,
+              borderRadius: lebarPilar * 0.22,
+            }}
+          />
+        </View>
+      ))}
+    </View>
+  )
+}
+
 export function SplashMerek({ selesai }: { selesai?: boolean }) {
   const [kurangiGerak, setKurangiGerak] = useState(false)
   const [siapDicek, setSiapDicek] = useState(false)

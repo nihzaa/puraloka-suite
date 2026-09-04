@@ -87,24 +87,24 @@ export const TERANG: Palet = {
   borderStrong: '#D1D5DB',
 
   textPrimary: '#111827',
-  textSecondary: '#5A616B',
-  textMuted: '#666D74',
+  textSecondary: '#505660',
+  textMuted: '#53595E',
   onNavy: '#FFFFFF',
 
   navy: '#003366',
   navyMid: '#0050A0',
   navyLight: '#EBF2FF',
 
-  success: '#15803D',
+  success: '#10612E',
   successBg: '#F0FDF4',
   successBorder: '#BBF7D0',
-  warning: '#B45309',
+  warning: '#8D4107',
   warningBg: '#FFFBEB',
   warningBorder: '#FDE68A',
-  danger: '#B91C1C',
+  danger: '#A31919',
   dangerBg: '#FEF2F2',
   dangerBorder: '#FECACA',
-  info: '#1D4ED8',
+  info: '#1A47C4',
   infoBg: '#EFF6FF',
   infoBorder: '#BFDBFE',
 }
@@ -118,8 +118,8 @@ export const GELAP: Palet = {
   borderStrong: '#363A52',
 
   textPrimary: '#F1F3F9',
-  textSecondary: '#9098B8',
-  textMuted: '#8B93B2',
+  textSecondary: '#AAB1C9',
+  textMuted: '#AAB0C6',
   /*
     Tetap putih. Tombol navy di mode gelap memakai `navy` yang sudah
     diterangkan (#4D9FFF) sebagai LATAR — dan teks di atasnya butuh
@@ -127,22 +127,22 @@ export const GELAP: Palet = {
   */
   onNavy: '#08111F',
 
-  navy: '#4D9FFF',
+  navy: '#73B4FF',
   navyMid: '#5FA9FF',
-  navyLight: 'rgba(77,159,255,0.10)',
+  navyLight: 'rgba(115,180,255,0.10)',
 
-  success: '#22C55E',
-  successBg: 'rgba(34,197,94,0.10)',
-  successBorder: 'rgba(34,197,94,0.25)',
-  warning: '#F59E0B',
-  warningBg: 'rgba(245,158,11,0.10)',
-  warningBorder: 'rgba(245,158,11,0.25)',
-  danger: '#FB8585',
-  dangerBg: 'rgba(248,113,113,0.10)',
-  dangerBorder: 'rgba(248,113,113,0.25)',
-  info: '#60A5FA',
-  infoBg: 'rgba(96,165,250,0.10)',
-  infoBorder: 'rgba(96,165,250,0.25)',
+  success: '#24D264',
+  successBg: 'rgba(36,210,100,0.10)',
+  successBorder: 'rgba(36,210,100,0.25)',
+  warning: '#F6A927',
+  warningBg: 'rgba(246,169,39,0.10)',
+  warningBorder: 'rgba(246,169,39,0.25)',
+  danger: '#FCA1A1',
+  dangerBg: 'rgba(252,161,161,0.10)',
+  dangerBorder: 'rgba(252,161,161,0.25)',
+  info: '#8BBDFB',
+  infoBg: 'rgba(139,189,251,0.10)',
+  infoBorder: 'rgba(139,189,251,0.25)',
 }
 
 /**

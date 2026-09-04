@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { api } from '@/lib/api';
 import { antrekan } from '@/lib/antrean';
+import { pesanGalat } from '@/lib/galat';
 import { useTema } from '@/hooks/useTema';
 import { FONT, HURUF, RADIUS, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
 
@@ -53,39 +54,91 @@ export default function AjukanKasbonScreen() {
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+  const [galatMuat, setGalatMuat] = useState('');
+
+  /*
+    ══════════════════════════════════════════════════════════════════════
+    LAYAR INI CRASH — dan penugasannya tak pernah terbaca
+    ══════════════════════════════════════════════════════════════════════
+
+    Diukur 2026-09-05 lewat potret:
+
+        assignments.forEach is not a function
+
+    `/api/v1/mandor/assignments` memulangkan `{ assignments: [...] }` —
+    **18 baris**. Layar membaca `res.data ?? []`, jadi ia menyimpan OBJEK
+    pembungkus ke variabel yang lalu dipanggil `.forEach()`.
+
+    Kelas yang sama dengan dashboard, notifikasi, mandor, dan detail
+    proyek: nama kunci yang meleset. Bedanya di sini ia CRASH alih-alih
+    diam — dan crash itu justru lebih baik, karena terlihat.
+
+    ⚠ Dan crash-nya tak terlihat di potret sebelum hari ini, karena layar
+    tulis tak pernah ikut dipotret sama sekali.
+
+    ── Dua permintaan jadi SATU
+
+    Versi sebelumnya memanggil rute yang SAMA dua kali: sekali untuk
+    daftar proyek, sekali untuk lingkup kerja — dan yang kedua diulang
+    tiap kali proyek diganti.
+
+    Datanya identik; yang berbeda cuma cara memilahnya. Di HP dengan
+    sinyal lapangan, satu permintaan yang tak perlu berarti satu jeda yang
+    tak perlu — dan mandor yang mengganti proyek tiga kali menunggu tiga
+    kali.
+
+    Sekarang: satu permintaan, hasilnya disimpan, lingkup kerja dipilah
+    dari yang sudah ada.
+  */
+  const [penugasan, setPenugasan] = useState<any[]>([]);
 
   useEffect(() => {
-    // Load daftar proyek yang di-assign ke mandor ini dari work scopes
-    api.get('/api/v1/mandor/assignments').then((res) => {
-      const assignments = res.data ?? [];
-      // Extract unique projects dari assignments
-      const projectMap = new Map<string, Project>();
-      assignments.forEach((a: any) => {
-        const proj = a.projects ?? a.project;
-        if (proj?.id) projectMap.set(proj.id, { id: proj.id, name: proj.name });
-      });
-      const projectList = Array.from(projectMap.values());
-      setProjects(projectList);
-      if (projectList.length > 0) setSelectedProject(projectList[0].id);
-    }).finally(() => setLoadingData(false));
+    api
+      .get('/api/v1/mandor/assignments')
+      .then((res) => {
+        const daftar: any[] = res.data?.assignments ?? [];
+        setPenugasan(daftar);
+
+        const petaProyek = new Map<string, Project>();
+        for (const a of daftar) {
+          const proj = a.project ?? a.projects;
+          if (proj?.id) petaProyek.set(proj.id, { id: proj.id, name: proj.name });
+        }
+        const daftarProyek = Array.from(petaProyek.values());
+        setProjects(daftarProyek);
+        if (daftarProyek.length > 0) setSelectedProject(daftarProyek[0].id);
+      })
+      .catch((err: unknown) => {
+        /*
+          Galat tak lagi ditelan. `.finally()` sendirian membiarkan
+          kegagalan jaringan tampil sebagai "Belum ada proyek yang
+          di-assign" — kalimat yang terbaca seperti keadaan wajar bagi
+          mandor baru, dan menghentikannya mengajukan kasbon yang sah.
+        */
+        setGalatMuat(pesanGalat(err, 'daftar proyek'));
+      })
+      .finally(() => setLoadingData(false));
   }, []);
 
+  /*
+    Lingkup kerja dipilah dari penugasan yang SUDAH dimuat — tanpa
+    permintaan baru.
+  */
   useEffect(() => {
-    if (!selectedProject) { setScopes([]); return; }
-    // Load work scopes untuk proyek yang dipilih
-    api.get('/api/v1/mandor/assignments').then((res) => {
-      const assignments = res.data ?? [];
-      const allScopes: WorkScope[] = [];
-      assignments.forEach((a: any) => {
-        const proj = a.projects ?? a.project;
-        if (proj?.id === selectedProject && a.work_scopes) {
-          a.work_scopes.forEach((s: any) => allScopes.push({ ...s, project_id: selectedProject }));
-        }
-      });
-      setScopes(allScopes);
-      setSelectedScope('');  // reset scope saat ganti proyek
-    }).catch(() => setScopes([]));
-  }, [selectedProject]);
+    if (!selectedProject) {
+      setScopes([]);
+      return;
+    }
+    const kumpul: WorkScope[] = [];
+    for (const a of penugasan) {
+      const proj = a.project ?? a.projects;
+      if (proj?.id === selectedProject && Array.isArray(a.work_scopes)) {
+        for (const sc of a.work_scopes) kumpul.push({ ...sc, project_id: selectedProject });
+      }
+    }
+    setScopes(kumpul);
+    setSelectedScope(''); // reset lingkup saat ganti proyek
+  }, [selectedProject, penugasan]);
 
   const handleSubmit = async () => {
     const amt = parseFloat(amount.replace(/\D/g, ''));
@@ -165,7 +218,18 @@ export default function AjukanKasbonScreen() {
         {/* Proyek — wajib */}
         <Card>
           <Text style={styles.label}>Proyek *</Text>
-          {projects.length === 0 ? (
+          {/*
+            GAGAL MUAT dan KOSONG dipisah — disiplin yang sama dengan
+            `uji-galat-muat-terpisah.mjs` di apps/web.
+
+            "Belum ada proyek yang di-assign" pada layar yang sebenarnya
+            GAGAL MEMUAT adalah kebohongan yang tenang: mandor
+            menyimpulkan ia memang belum ditugaskan, lalu berhenti — dan
+            kasbon yang sah tak pernah diajukan.
+          */}
+          {galatMuat ? (
+            <Text style={styles.galatTeks}>{galatMuat}</Text>
+          ) : projects.length === 0 ? (
             <Text style={styles.emptyText}>Belum ada proyek yang di-assign</Text>
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 6 }}>
@@ -290,6 +354,10 @@ function gaya(c: Palet) {
     label: { fontSize: 13, fontFamily: FONT.isiTebal, color: c.textPrimary },
     helperText: { fontSize: 12, color: c.textSecondary, marginTop: 2 },
     emptyText: { fontSize: 13, color: c.textSecondary, paddingVertical: 8 },
+    galatTeks: {
+      fontSize: 13, fontFamily: FONT.isi, color: c.danger,
+      paddingVertical: 8, lineHeight: 19,
+    },
     chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: c.border, marginRight: 8, backgroundColor: c.surfaceRaised },
     chipActive: { backgroundColor: c.navy, borderColor: c.navy },
     chipText: { fontSize: 13, color: c.textPrimary },

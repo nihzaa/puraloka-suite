@@ -122,6 +122,28 @@ const LAYAR = [
   */
   ['mandor', '/mandor'],
   ['lainnya', '/lainnya'],
+
+  /*
+    ── Layar TULIS ─────────────────────────────────────────────────────
+
+    Ditambahkan 2026-09-05. Kelima layar ini tak pernah dipotret sama
+    sekali, dan justru inilah yang dipakai mandor di lapangan — layar
+    baca hanya menampilkan hasilnya.
+
+    Sengaja dipotret dalam keadaan KOSONG (belum diisi). Itu keadaan yang
+    dilihat pertama kali, dan tempat cacat paling mahal muncul: label yang
+    tak terbaca, chip pilihan yang berdesakan, tombol simpan yang terlihat
+    hidup padahal isian wajib masih kosong.
+
+    ⚠ NOL kiriman dibuat. Skrip ini memotret, bukan mengisi — satu
+    pengisian yang terkirim berarti satu NCR atau izin kerja palsu di
+    basis produksi, dan itu tak bisa ditarik dari sini.
+  */
+  ['ncr-lapor', '/ncr/lapor'],
+  ['punch-lapor', '/punch/lapor'],
+  ['izin-ajukan', '/izin-kerja/ajukan'],
+  ['kasbon-ajukan', '/kasbon/ajukan'],
+  ['absensi-input', '/absensi/input'],
 ]
 
 /**
