@@ -72,6 +72,36 @@ if (!scope.length || !worker.length) {
 const SID = scope[0].id
 const WID = worker[0].id
 
+/*
+  ⚠ BERSIHKAN SISA JALAN SEBELUMNYA — ditambahkan 2026-09-04.
+
+  Tiap uji menghapus barisnya sendiri SESUDAH berhasil (baris ~116, ~145,
+  ~181). Tetapi kalau satu jalan terputus di tengah — galat tak terduga,
+  timeout, atau run CI yang dibatalkan push berikutnya — barisnya TERTINGGAL.
+
+  Jalan berikutnya lalu menabraknya, dan gejalanya menuduh invariannya:
+
+      ✗ DITOLAK PADAHAL SAH  porsi 0.5 (setengah hari):
+        duplicate key value violates unique constraint
+        "uq_absensi_scope_worker_tanggal"
+
+  Kalimat "DITOLAK PADAHAL SAH" terbaca seperti CHECK yang terlalu ketat —
+  padahal yang menolak justru keunikan, dan barisnya milik penjaga ini
+  sendiri. Penjaga yang terhalang sisa dirinya sendiri akan merah selamanya
+  sampai seseorang membersihkan basis dengan tangan.
+
+  Tanggal ujinya deterministik (2021-01-02 dan seterusnya, lihat
+  `tanggalUji()`), jadi rentangnya bisa disapu tanpa menyentuh data lain:
+  tahun 2021 tak dipakai data uji mana pun di repo ini.
+*/
+const { rowCount: sisa } = await db.query(
+  `DELETE FROM absensi_harian
+    WHERE scope_id = $1 AND worker_id = $2
+      AND tanggal >= DATE '2021-01-01' AND tanggal < DATE '2022-01-01'`,
+  [SID, WID],
+)
+if (sisa > 0) console.log(`  (dibersihkan ${sisa} baris sisa jalan sebelumnya)`)
+
 let lolos = 0
 let bocor = 0
 let nomor = 0
