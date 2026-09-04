@@ -578,6 +578,45 @@ await seed('company kedua + keanggotaan ganda (bahan uji portofolio grup)', asyn
   if (cek[0].n < 2) throw new Error(`admin CI masih anggota ${cek[0].n} company, butuh >=2`)
 })
 
+/*
+  Konfigurasi AI per tenant — bahan uji gerbang gratis.
+
+  Migrasi 250 menyemai `ai_provider_config` dengan syarat
+  `WHERE EXISTS (company_members)`. Di replay bersih, saat migrasi itu berjalan
+  belum ada satu pun anggota — jadi NOL config. Company baru punya anggota
+  BELAKANGAN, lewat seed ini, dan konfigurasinya tak pernah menyusul.
+
+  Akibatnya di CI: `ai-chat`, `ai-ingatan`, dan `ai-isolasi-tenant` merah dengan
+
+      expected 503 to be 402   ("AI dimatikan → 402 nonaktif")
+      expected 503 to be 402   ("batas biaya terlampaui")
+
+  Gerbang GRATIS (saklar mati per tenant, batas biaya) tak pernah tercapai
+  karena kode berhenti lebih dulu di "kunci tak ada" — jadi yang diuji bukan
+  gerbangnya, melainkan ketiadaan config.
+
+  ⚠ Ini BUKAN soal kunci API. Komentar di `ai-chat.test.ts` mencatat
+  kebalikannya: versi pertama test itu berasumsi lingkungan TAK punya
+  `ANTHROPIC_API_KEY`, dan asumsinya salah — kuncinya ada, lalu terjadi
+  panggilan berbayar sungguhan. Yang kurang di CI adalah BARIS CONFIG-nya.
+
+  Keempat asisten disemai supaya test mana pun menemukan bahannya.
+*/
+await seed('config AI per tenant (bahan uji gerbang gratis)', async () => {
+  const { rowCount } = await c.query(
+    `INSERT INTO ai_provider_config (company_id, asisten, penyedia, model, max_token, aktif)
+     SELECT c2.id, a.asisten, 'anthropic', 'claude-haiku-4-5', 3000, true
+       FROM companies c2
+       CROSS JOIN (VALUES ('web'), ('owner'), ('staff'), ('insight')) AS a(asisten)
+      WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c2.id)
+     ON CONFLICT (company_id, asisten) DO NOTHING`)
+
+  const { rows: cek } = await c.query(
+    `SELECT count(*)::int n FROM ai_provider_config WHERE asisten = 'web'`)
+  if (cek[0].n === 0) throw new Error('nol config asisten `web` sesudah seed')
+  console.log(`     ${rowCount} baris config AI disemai`)
+})
+
 await seed('cost_code', async () => {
   await c.query(
     /*
