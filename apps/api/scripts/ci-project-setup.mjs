@@ -579,6 +579,44 @@ await seed('company kedua + keanggotaan ganda (bahan uji portofolio grup)', asyn
 })
 
 /*
+  Role tenant + izinnya — disalin ULANG sesudah keanggotaan ada.
+
+  Migrasi 365 menyalin role template ke tiap tenant, dengan syarat
+  `JOIN company_members`. Di replay bersih syarat itu nol saat ia berjalan —
+  company baru punya anggota BELAKANGAN, lewat seed di atas.
+
+  Akibatnya admin CI tak memegang izin apa pun, dan rute yang berpagar
+  `requirePermission` menolak dengan 403. Test menuntut 409 (aturan bisnis)
+  tetapi tak pernah sampai ke sana:
+
+      klaim-perjalanan "menolak WAJIB beralasan"      expected 403 to be 409
+      klaim-perjalanan "menyetujui MELEBIHI ditolak"  expected 403 to be 409
+
+  Pola yang SAMA PERSIS dengan config AI di bawah, dan dengan `jadwal_tugas`,
+  `ai_provider_config`, `notification_rules` sebelumnya: seed migrasi bersyarat
+  keanggotaan, sementara keanggotaan lahir belakangan.
+
+  ⚠ Menjalankan MIGRASINYA, bukan menyalin statement-nya ke sini. Salinan akan
+  menyimpang diam-diam begitu 365 disunting — dan penyimpangan seperti itu
+  hanya ketahuan lewat test yang gagal berbulan-bulan kemudian.
+
+  Kedua statement 365 idempoten (`ON CONFLICT DO NOTHING`), jadi menjalankannya
+  ulang aman.
+*/
+await seed('role tenant + izin (salin ulang sesudah keanggotaan ada)', async () => {
+  const sql = fs.readFileSync(path.join(dir, '365_salin_role_ke_tenant.sql'), 'utf8')
+  await c.query(sql)
+
+  const { rows } = await c.query(
+    `SELECT count(*)::int n FROM role_permissions rp
+       JOIN roles r ON r.id = rp.role_id
+       JOIN permissions p ON p.id = rp.permission_id
+      WHERE r.company_id IS NOT NULL AND p.key = 'klaim:setujui'`)
+  if (rows[0].n === 0) throw new Error('role tenant belum memegang klaim:setujui sesudah salin')
+  console.log(`     ${rows[0].n} role tenant memegang klaim:setujui`)
+})
+
+/*
   Konfigurasi AI per tenant — bahan uji gerbang gratis.
 
   Migrasi 250 menyemai `ai_provider_config` dengan syarat
