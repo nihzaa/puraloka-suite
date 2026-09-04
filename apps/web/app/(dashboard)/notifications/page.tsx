@@ -14,6 +14,7 @@ import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_KARTU, Kosong } from "@/components/ui-dasar";
+import { kabari } from "@/components/tanya";
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -213,7 +214,7 @@ export default function NotificationsPage() {
       // kegagalannya ditelan, notifikasi itu muncul lagi saat halaman dimuat
       // ulang — orang mengira ada yang rusak, bukan mengira penghapusannya
       // gagal.
-      alert((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Gagal menghapus notifikasi");
+      void kabari("Tidak berhasil", (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Gagal menghapus notifikasi");
     }
   }, []);
 
@@ -229,7 +230,7 @@ export default function NotificationsPage() {
       // Approve/reject KASBON — uang. Jalur kedua dari tombol yang sama di
       // `notification-panel`, dan sama-sama menandai barisnya "sudah ditindak"
       // sebelum tahu servernya menerima.
-      alert((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Gagal memproses tindakan");
+      void kabari("Tidak berhasil", (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Gagal memproses tindakan");
     }
     setActioningId(null);
   }, []);

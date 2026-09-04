@@ -34,6 +34,7 @@ import {
   type PriceEntry, 
   th, td, 
 } from "../_cecep/dasar";
+import { tanya } from "@/components/tanya";
 
 const fmtRp = formatRupiah;
 
@@ -301,10 +302,12 @@ function OverrideProyek() {
   }, [proyekId, muat]);
 
   const hapus = async (o: OverrideHarga) => {
-    if (!window.confirm(
-      `Hapus harga khusus untuk ${o.resource?.code ?? "resource ini"}?\n\n` +
-      "Estimasi yang belum dikunci akan kembali memakai harga price book."
-    )) return;
+    if (!(await tanya({
+      judul: `Hapus harga khusus untuk ${o.resource?.code ?? "resource ini"}?`,
+      pesan: "Estimasi yang belum dikunci akan kembali memakai harga price book.",
+      labelYa: "Hapus",
+      nada: "bahaya",
+    }))) return;
     try {
       await api.delete(`/api/v1/price-overrides/${o.id}`);
       await muat(proyekId);

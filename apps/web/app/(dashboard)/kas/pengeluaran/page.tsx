@@ -33,6 +33,7 @@ import {
   type Expense, type RingkasKategori,
   TYPE_COLOR, TYPE_LABEL, fmt, fmtCompact, fmtDate, pesanGalat,
 } from "../_bersama/tipe";
+import { kabari } from "@/components/tanya";
 
 const STATUS_SAH = ["submitted", "approved", "rejected", "draft"] as const;
 
@@ -117,7 +118,7 @@ function PengeluaranIsi() {
       await api.patch(`/api/v1/cash/expenses/${id}/status`, { status: "approved" });
       await muat();
     } catch (err: unknown) {
-      alert(pesanGalat(err, "Gagal approve"));
+      void kabari("Tidak berhasil", pesanGalat(err, "Gagal approve"));
     }
   }
 
@@ -129,7 +130,7 @@ function PengeluaranIsi() {
       // Kembarannya (`setujui`) sudah memberi tahu sejak awal; yang menolak
       // justru diam. Inkonsistensi itu berarti PENOLAKAN yang gagal terlihat
       // berhasil — pengeluaran tetap menunggu persetujuan tanpa ada yang tahu.
-      alert(pesanGalat(err, "Gagal menolak pengeluaran"));
+      void kabari("Tidak berhasil", pesanGalat(err, "Gagal menolak pengeluaran"));
     }
   }
 

@@ -44,6 +44,7 @@ import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { Tabel, type Kolom, KepalaHalaman } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
 import { formatRupiah } from "@/lib/format";
+import { minta } from "@/components/tanya";
 
 type Proyek = { id: string; name: string };
 
@@ -332,11 +333,15 @@ export default function RegisterKontrakPage() {
   async function ubahStatus(k: Kontrak, status: StatusKontrak) {
     let alasan: string | undefined;
     if (status === "dibatalkan") {
-      const jawab = window.prompt(
-        `Alasan pembatalan kontrak ${k.nomor}?\n\n`
-        + "Alasan wajib diisi — kontrak yang batal tanpa keterangan tak bisa "
-        + "dipertanggungjawabkan saat diaudit.",
-      );
+      const jawab = await minta({
+        judul: `Alasan pembatalan kontrak ${k.nomor}?`,
+        pesan:
+          "Alasan wajib diisi — kontrak yang batal tanpa keterangan tak bisa " +
+          "dipertanggungjawabkan saat diaudit.",
+        panjang: true,
+        labelYa: "Batalkan kontrak",
+        nada: "bahaya",
+      });
       if (!jawab || !jawab.trim()) return;
       alasan = jawab.trim();
     }

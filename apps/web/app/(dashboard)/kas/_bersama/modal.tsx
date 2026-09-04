@@ -21,6 +21,7 @@ import {
   type CashAccount, type Category, type Project,
   ACCOUNT_TYPE_LABEL, SOURCE_LABEL, fmt, pesanGalat,
 } from "./tipe";
+import { kabari } from "@/components/tanya";
 
 const gayaInput: React.CSSProperties = {
   width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`,
@@ -622,7 +623,10 @@ export function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccount
             <span id="foto-nota" style={gayaLabel}>Foto Nota</span>
             <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" style={{ display: "none" }} onChange={e => {
               const f = e.target.files?.[0] ?? null;
-              if (f && f.size > 5 * 1024 * 1024) { alert("Ukuran file maksimal 5 MB"); e.target.value = ""; return; }
+              if (f && f.size > 5 * 1024 * 1024) {
+                void kabari("Berkas terlalu besar", "Ukuran file maksimal 5 MB.");
+                e.target.value = ""; return;
+              }
               setReceiptFile(f);
             }} />
             <div role="group" aria-labelledby="foto-nota">

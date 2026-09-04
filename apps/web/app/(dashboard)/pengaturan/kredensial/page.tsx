@@ -44,6 +44,7 @@ import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_KARTU } from "@/components/ui-dasar";
 import { KotakIsian } from "@/components/isian";
+import { tanya } from "@/components/tanya";
 
 
 
@@ -139,7 +140,7 @@ export default function KredensialPage() {
   }
 
   async function hapus(kunci: string, label: string) {
-    if (!confirm(`Hapus kredensial "${label}"?\n\nIntegrasi yang memakainya akan berhenti bekerja kecuali server punya nilai cadangan.`)) return;
+    if (!(await tanya({ judul: `Hapus kredensial "${label}"?\n\nIntegrasi yang memakainya akan berhenti bekerja kecuali server punya nilai cadangan.` }))) return;
     try {
       const r = await api.delete<{ jatuh_ke_env: boolean }>(`/api/v1/kredensial/${kunci}`);
       setToast({

@@ -29,6 +29,7 @@ import {
   kartu as card,
 } from "../_bersama/tipe";
 import { WorkerFormModal } from "../_bersama/komponen";
+import { kabari } from "@/components/tanya";
 
 function tautanWa(phone: string) {
   const digits = phone.replace(/\D/g, "");
@@ -75,7 +76,7 @@ export default function DaftarTukangPage() {
       setDeleteWorkerConfirm(null);
       loadWorkers();
     } catch (err: unknown) {
-      alert((err as any)?.response?.data?.error ?? "Gagal menghapus tukang");
+      void kabari("Tidak berhasil", (err as any)?.response?.data?.error ?? "Gagal menghapus tukang");
     } finally { setDeletingWorkerId(null); }
   }
 

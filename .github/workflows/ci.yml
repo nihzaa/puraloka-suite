@@ -1136,6 +1136,27 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # Dialog bawaan peramban DILARANG di web.
+      #
+      # Diminta founder 2026-09-04. Diukur saat itu: 32 confirm/alert + 13
+      # prompt di 22 berkas, termasuk pada keputusan uang.
+      #
+      # Alasannya bukan selera: tombolnya berbahasa SISTEM OPERASI (pengguna
+      # Indonesia membaca "OK / Cancel"), ia tak bisa membedakan tindakan
+      # merusak dari yang biasa, ia MEMBEKUKAN seluruh tab, dan peramban
+      # MENEKAN dialog yang muncul berkali-kali — confirm() yang ditekan
+      # memulangkan false DIAM-DIAM, jadi tindakannya tak pernah berjalan
+      # tanpa satu pun gejala.
+      #
+      # Penggantinya `tanya()` / `minta()` / `kabari()` di components/tanya.
+      # Fungsi LOKAL bernama confirm (mis. `void confirm(gr.id)` di halaman
+      # penerimaan) sengaja tak dituduh.
+      #
+      # Bukti merah: ketiga jenis disuntik sendiri-sendiri → exit 1 dengan
+      # baris yang tepat; dipulihkan → exit 0. (ambang NOL)
+      - name: Dialog bukan bawaan peramban
+        run: node scripts/audit-dialog-bukan-bawaan.mjs
+
       # Keputusan persetujuan hanya lewat SATU pintu (utils/approval.ts).
       # Menulis `approved_by` langsung berarti entitas yang menurut
       # konfigurasi butuh dua level bisa lolos dengan satu ketukan — dan

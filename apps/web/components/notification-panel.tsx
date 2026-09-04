@@ -13,6 +13,7 @@ import { api } from "@/lib/api";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 import { C } from "@/lib/warna-ui";
+import { kabari } from "@/components/tanya";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -359,7 +360,7 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
       // baris notifikasinya tetap berubah jadi "sudah ditindak" sementara
       // kasbonnya tak berubah sama sekali; mandor menunggu pencairan yang
       // tak pernah disetujui, dan yang menyetujui yakin sudah melakukannya.
-      alert((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Gagal memproses tindakan");
+      void kabari("Tidak berhasil", (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Gagal memproses tindakan");
     }
     setActioningId(null);
   }, [unreadCount, onCountChange]);
