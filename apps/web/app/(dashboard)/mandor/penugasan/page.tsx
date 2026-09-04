@@ -146,7 +146,7 @@ export default function PenugasanPage() {
                     {totalNilai > 0 && (
                       <div style={{ textAlign: "right" }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>{fmt(totalNilai)}</div>
-                        <div style={{ fontSize: 11, color: C.muted }}>total nilai</div>
+                        <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>total nilai</div>
                       </div>
                     )}
                     <button
@@ -174,17 +174,17 @@ export default function PenugasanPage() {
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5, flexWrap: "wrap" }}>
                               <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{sc.scope_name}</span>
-                              <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 6px", borderRadius: 10, background: sc.status === "active" ? C.greenBg : "var(--surface-hover)", color: sc.status === "active" ? C.green : C.mid, border: `1px solid ${sc.status === "active" ? C.greenBorder : C.border}` }}>
+                              <span style={{ fontSize: "var(--t-mikro)", fontWeight: 600, padding: "2px 6px", borderRadius: 10, background: sc.status === "active" ? C.greenBg : "var(--surface-hover)", color: sc.status === "active" ? C.green : C.mid, border: `1px solid ${sc.status === "active" ? C.greenBorder : C.border}` }}>
                                 {sc.status === "active" ? "Aktif" : sc.status === "completed" ? "Selesai" : sc.status}
                               </span>
                               {(() => { const b = getPaymentSystemBadge(sc.payment_system); return (
-                                <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 10, background: b.bg, color: b.color, border: `1px solid ${b.border}`, fontWeight: 600 }}>{b.label}</span>
+                                <span style={{ fontSize: "var(--t-mikro)", padding: "2px 6px", borderRadius: 10, background: b.bg, color: b.color, border: `1px solid ${b.border}`, fontWeight: 600 }}>{b.label}</span>
                               ); })()}
                               {contractValue > 0 && (
-                                <span style={{ fontSize: 10, color: C.mid }}>{fmt(contractValue)}</span>
+                                <span style={{ fontSize: "var(--t-mikro)", color: C.mid }}>{fmt(contractValue)}</span>
                               )}
                               {sc.settlement && (
-                                <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 6px", borderRadius: 10, background: C.greenBg, color: C.green, border: `1px solid ${C.greenBorder}` }}>
+                                <span style={{ fontSize: "var(--t-mikro)", fontWeight: 600, padding: "2px 6px", borderRadius: 10, background: C.greenBg, color: C.green, border: `1px solid ${C.greenBorder}` }}>
                                   ✓ Settled
                                 </span>
                               )}
@@ -192,8 +192,8 @@ export default function PenugasanPage() {
                             {/* Progress fisik */}
                             <div style={{ marginBottom: isBorongan || isProgressPct ? 5 : 0 }}>
                               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                                <span style={{ fontSize: 10, color: C.muted }}>Progress Fisik</span>
-                                <span style={{ fontSize: 10, fontWeight: 600, color: pctColor }}>{sc.progress_pct_done.toFixed(0)}%</span>
+                                <span style={{ fontSize: "var(--t-mikro)", color: C.muted }}>Progress Fisik</span>
+                                <span style={{ fontSize: "var(--t-mikro)", fontWeight: 600, color: pctColor }}>{sc.progress_pct_done.toFixed(0)}%</span>
                               </div>
                               <div style={{ height: 5, borderRadius: 0, background: C.border, overflow: "hidden" }}>
                                 <div style={{ height: "100%", borderRadius: 0, background: pctColor, width: `${sc.progress_pct_done}%` }} />
@@ -203,8 +203,8 @@ export default function PenugasanPage() {
                             {isBorongan && contractValue > 0 && (
                               <div>
                                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                                  <span style={{ fontSize: 10, color: C.muted }}>Kasbon / Kontrak</span>
-                                  <span style={{ fontSize: 10, fontWeight: 600, color: C.yellow }}>
+                                  <span style={{ fontSize: "var(--t-mikro)", color: C.muted }}>Kasbon / Kontrak</span>
+                                  <span style={{ fontSize: "var(--t-mikro)", fontWeight: 600, color: C.yellow }}>
                                     {fmt(sc.total_kasbon ?? 0)} / {fmt(contractValue)} ({sc.financial_pct ?? 0}%)
                                   </span>
                                 </div>
@@ -217,8 +217,8 @@ export default function PenugasanPage() {
                             {isProgressPct && contractValue > 0 && (
                               <div>
                                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                                  <span style={{ fontSize: 10, color: C.muted }}>Sudah Dibayar</span>
-                                  <span style={{ fontSize: 10, fontWeight: 600, color: C.green }}>
+                                  <span style={{ fontSize: "var(--t-mikro)", color: C.muted }}>Sudah Dibayar</span>
+                                  <span style={{ fontSize: "var(--t-mikro)", fontWeight: 600, color: C.green }}>
                                     {fmt(sc.total_progress_paid ?? 0)} ({sc.paid_pct ?? 0}%)
                                   </span>
                                 </div>
@@ -241,7 +241,7 @@ export default function PenugasanPage() {
                                     totalKasbon: 0,
                                   });
                                 }}
-                                style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.green}`, background: C.greenBg, color: C.green, cursor: "pointer", fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+                                style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.green}`, background: C.greenBg, color: C.green, cursor: "pointer", fontSize: "var(--t-kecil)", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
                                 Cairkan
                               </button>
                             )}

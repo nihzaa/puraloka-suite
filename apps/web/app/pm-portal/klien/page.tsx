@@ -95,17 +95,17 @@ export default function PmKlienPage() {
                 <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
                   {c.company_name ?? c.contact_person}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
                   {c.contact_person} · {c.phone}
                 </div>
                 {kurang.length > 0 && (
-                  <div style={{ fontSize: 11, color: "var(--on-warning-bg)", marginTop: 2 }}>
+                  <div style={{ fontSize: "var(--t-kecil)", color: "var(--on-warning-bg)", marginTop: 2 }}>
                     Data kurang: {kurang.join(", ")}
                   </div>
                 )}
               </div>
               {!c.is_active && (
-                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", flexShrink: 0 }}>
+                <span style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: "var(--text-muted)", flexShrink: 0 }}>
                   Nonaktif
                 </span>
               )}

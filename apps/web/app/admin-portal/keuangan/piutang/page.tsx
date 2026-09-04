@@ -129,7 +129,7 @@ export default function AdminPiutangPage() {
                       <span style={{ fontWeight: 700, color: "var(--on-warning-bg)", fontVariantNumeric: "tabular-nums" }}>{formatRupiah(r.outstanding)}</span>
                     </div>
                     {r.is_due_estimate && (
-                      <div style={{ fontSize: 11, color: "var(--on-warning-bg)", marginTop: 4 }}>
+                      <div style={{ fontSize: "var(--t-kecil)", color: "var(--on-warning-bg)", marginTop: 4 }}>
                         Estimasi jatuh tempo pencairan: {formatTanggal(r.estimated_release_due)} (BAST formal belum ada di sistem)
                       </div>
                     )}

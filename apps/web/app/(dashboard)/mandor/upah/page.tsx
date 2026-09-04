@@ -316,9 +316,9 @@ function LaporanUpahInner() {
                       <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
                         {r.assignment?.mandor?.name ?? "—"} · {r.scope?.scope_name ?? "—"}
                       </span>
-                      <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 10, background: st.bg, color: st.color, border: `1px solid ${st.border}` }}>{st.label}</span>
+                      <span style={{ fontSize: "var(--t-kecil)", fontWeight: 600, padding: "2px 8px", borderRadius: 10, background: st.bg, color: st.color, border: `1px solid ${st.border}` }}>{st.label}</span>
                       {(() => { const b = getPaymentSystemBadge(r.scope?.payment_system ?? ""); return (
-                        <span style={{ fontSize: 11, padding: "2px 6px", borderRadius: 10, background: b.bg, color: b.color, border: `1px solid ${b.border}`, fontWeight: 600 }}>{b.label}</span>
+                        <span style={{ fontSize: "var(--t-kecil)", padding: "2px 6px", borderRadius: 10, background: b.bg, color: b.color, border: `1px solid ${b.border}`, fontWeight: 600 }}>{b.label}</span>
                       ); })()}
                     </div>
                     <div style={{ fontSize: 12, color: C.muted }}>
@@ -327,7 +327,7 @@ function LaporanUpahInner() {
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
                     <div style={{ fontSize: 15, fontWeight: 700, color: C.navy }}>{fmt(r.net_amount)}</div>
-                    <div style={{ fontSize: 11, color: C.muted }}>
+                    <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
                       {r.total_deduction > 0 && <span style={{ color: C.red }}>−{fmt(r.total_deduction)} potongan</span>}
                       {r.total_deduction === 0 && <span>Subtotal {fmt(r.subtotal)}</span>}
                     </div>
@@ -423,7 +423,7 @@ function LaporanUpahInner() {
                   <label htmlFor="alasan-tolak" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Alasan Penolakan <span style={{ color: C.red }}>*</span></label>
                   <textarea id="alasan-tolak" value={inlineNotes} onChange={e => setInlineNotes(e.target.value)} rows={3} placeholder="Jelaskan alasan penolakan..."
                     style={{ width: "100%", padding: "8px 8px", border: `1px solid ${inlineNotes.trim() ? C.border : C.redBorder}`, borderRadius: 6, fontSize: 13, outline: "none", resize: "none", boxSizing: "border-box" }} />
-                  {!inlineNotes.trim() && <div style={{ fontSize: 11, color: C.red, marginTop: 4 }}>Alasan wajib diisi</div>}
+                  {!inlineNotes.trim() && <div style={{ fontSize: "var(--t-kecil)", color: C.red, marginTop: 4 }}>Alasan wajib diisi</div>}
                 </div>
                 <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                   <button onClick={() => setInlineAction(null)} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>

@@ -71,7 +71,7 @@ export default function PmDokumenPage() {
           <FileText size={20} color="var(--navy)" aria-hidden="true" />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{doc.title ?? "Dokumen"}</div>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
               {doc.doc_type ?? "—"}{doc.revisi ? ` · Rev.${doc.revisi}` : ""}
             </div>
           </div>

@@ -95,7 +95,7 @@ const isian: React.CSSProperties = {
   fontFamily: "inherit", boxSizing: "border-box",
 };
 const bantu: React.CSSProperties = {
-  fontSize: 11.5, color: C.muted, margin: "4px 0 0", lineHeight: 1.5,
+  fontSize: "var(--t-kecil)", color: C.muted, margin: "4px 0 0", lineHeight: 1.5,
 };
 
 export function AlurFormModal({

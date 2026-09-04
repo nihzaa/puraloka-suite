@@ -103,7 +103,7 @@ const tanggalTerbaca = (iso: string) =>
   new Date(iso + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 
 const labelGaya: React.CSSProperties = {
-  fontSize: 11, fontWeight: 700, color: C.muted,
+  fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
   textTransform: "uppercase", letterSpacing: "0.05em",
 };
 const isianGaya: React.CSSProperties = {
@@ -139,7 +139,7 @@ function kolomKontrak(
             {takik && <span aria-hidden="true" style={{ color: C.muted, marginRight: 6 }}>↳</span>}
             {k.nomor}
           </span>
-          <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 2 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2 }}>
             {takik && <span className="sr-only">Addendum atas kontrak di atasnya. </span>}
             {k.judul}
           </span>
@@ -177,7 +177,7 @@ function kolomKontrak(
         return (
           <span title={meta.arti} style={{
             display: "inline-block", padding: "2px 8px", borderRadius: 20,
-            fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+            fontSize: "var(--t-kecil)", fontWeight: 600, whiteSpace: "nowrap",
             color: meta.warna, background: meta.bg, border: `1px solid ${meta.border}`,
           }}>{meta.label}</span>
         );
@@ -187,7 +187,7 @@ function kolomKontrak(
       kunci: "tindakan", judul: "Tindakan", rata: "kanan",
       render: ({ k }) => {
         if (k.status === "selesai" || k.status === "dibatalkan") {
-          return <span style={{ fontSize: 11.5, color: C.muted }}>—</span>;
+          return <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>—</span>;
         }
         return (
           <span style={{ whiteSpace: "nowrap" }}>
@@ -456,7 +456,7 @@ export default function RegisterKontrakPage() {
                 rusak. */}
             {indukTersedia.length === 0 && (
               <p style={{
-                fontSize: 11.5, color: C.muted, margin: 0, flexBasis: "100%",
+                fontSize: "var(--t-kecil)", color: C.muted, margin: 0, flexBasis: "100%",
                 lineHeight: 1.45, maxWidth: "62ch",
               }}>
                 Addendum baru bisa dicatat setelah ada kontrak induk di proyek ini —
@@ -614,7 +614,7 @@ export default function RegisterKontrakPage() {
               aria-describedby={fJenis === "addendum" ? "kt-nilai-bantu" : undefined}
               style={isianGaya} />
             {fJenis === "addendum" && (
-              <span id="kt-nilai-bantu" style={{ fontSize: 11, color: C.muted, lineHeight: 1.45 }}>
+              <span id="kt-nilai-bantu" style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.45 }}>
                 Isi negatif bila lingkup pekerjaan berkurang. Yang dicatat adalah
                 perubahannya, bukan nilai kontrak yang baru.
               </span>

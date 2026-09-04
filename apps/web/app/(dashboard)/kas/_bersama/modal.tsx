@@ -176,7 +176,7 @@ export function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void
                   border: `2px solid ${type === t ? m.color : C.border}`,
                   background: type === t ? m.bg : "var(--surface)",
                   color: type === t ? m.color : C.mid,
-                  fontSize: 11, fontWeight: 600, cursor: "pointer",
+                  fontSize: "var(--t-kecil)", fontWeight: 600, cursor: "pointer",
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
                   transition: "all 0.15s",
                 }}>
@@ -289,7 +289,7 @@ export function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccoun
               <option value="">-- Pilih --</option>
               {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
             </Pilihan>
-            {fromAcc && <div style={{ fontSize: 11, color: fromAcc.balance < parseFloat(amount || "0") ? C.red : C.green, marginTop: 4 }}>Saldo: {fmt(fromAcc.balance)}</div>}
+            {fromAcc && <div style={{ fontSize: "var(--t-kecil)", color: fromAcc.balance < parseFloat(amount || "0") ? C.red : C.green, marginTop: 4 }}>Saldo: {fmt(fromAcc.balance)}</div>}
           </div>
           <div style={{ display: "flex", justifyContent: "center", paddingBottom: 10 }}><ArrowRightLeft size={16} color={C.mid} /></div>
           <div>
@@ -298,7 +298,7 @@ export function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccoun
               <option value="">-- Pilih --</option>
               {accounts.filter(a => a.id !== fromId).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
             </Pilihan>
-            {toAcc && <div style={{ fontSize: 11, color: C.mid, marginTop: 4 }}>Saldo saat ini: {fmt(toAcc.balance)}</div>}
+            {toAcc && <div style={{ fontSize: "var(--t-kecil)", color: C.mid, marginTop: 4 }}>Saldo saat ini: {fmt(toAcc.balance)}</div>}
           </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -324,7 +324,7 @@ export function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccoun
               background: status === "confirmed" ? C.greenBg : "var(--surface)",
               color: status === "confirmed" ? C.green : C.mid, fontSize: 12, fontWeight: 600, cursor: "pointer",
             }}>
-              ✓ Langsung Konfirmasi<br /><span style={{ fontSize: 10, fontWeight: 400 }}>Saldo berubah sekarang</span>
+              ✓ Langsung Konfirmasi<br /><span style={{ fontSize: "var(--t-mikro)", fontWeight: 400 }}>Saldo berubah sekarang</span>
             </button>
             <button type="button" onClick={() => setStatus("pending")} style={{
               padding: "8px", borderRadius: 10,
@@ -332,7 +332,7 @@ export function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccoun
               background: status === "pending" ? C.yellowBg : "var(--surface)",
               color: status === "pending" ? C.yellow : C.mid, fontSize: 12, fontWeight: 600, cursor: "pointer",
             }}>
-              ⏳ Simpan Pending<br /><span style={{ fontSize: 10, fontWeight: 400 }}>Konfirmasi setelah diterima</span>
+              ⏳ Simpan Pending<br /><span style={{ fontSize: "var(--t-mikro)", fontWeight: 400 }}>Konfirmasi setelah diterima</span>
             </button>
           </div>
         </div>
@@ -478,19 +478,19 @@ export function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccount
                 padding: "8px 6px", borderRadius: 6,
                 border: `2px solid ${expenseSource === s ? C.navy : C.border}`,
                 background: expenseSource === s ? C.navyLight : "var(--surface)",
-                color: expenseSource === s ? C.navy : C.mid, fontSize: 11, fontWeight: 600, cursor: "pointer",
+                color: expenseSource === s ? C.navy : C.mid, fontSize: "var(--t-kecil)", fontWeight: 600, cursor: "pointer",
               }}>
                 {SOURCE_LABEL[s]}
               </button>
             ))}
           </div>
           {expenseSource === "client_fund" && (
-            <div style={{ marginTop: 6, padding: "6px 8px", borderRadius: 6, background: "var(--info-bg)", border: "1px solid var(--info-border)", fontSize: 11, color: "var(--info)" }}>
+            <div style={{ marginTop: 6, padding: "6px 8px", borderRadius: 6, background: "var(--info-bg)", border: "1px solid var(--info-border)", fontSize: "var(--t-kecil)", color: "var(--info)" }}>
               Pengeluaran ini dibayar dari dana klien — tidak mengurangi saldo kas internal.
             </div>
           )}
           {expenseSource === "personal" && (
-            <div style={{ marginTop: 6, padding: "6px 8px", borderRadius: 6, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", fontSize: 11, color: "var(--on-warning-bg)" }}>
+            <div style={{ marginTop: 6, padding: "6px 8px", borderRadius: 6, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", fontSize: "var(--t-kecil)", color: "var(--on-warning-bg)" }}>
               Talangan pribadi — perlu di-reimburse dari kas proyek.
             </div>
           )}
@@ -506,7 +506,7 @@ export function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccount
               ))}
             </Pilihan>
             {selectedPettyCash && total > 0 && (
-              <div style={{ fontSize: 11, marginTop: 4, color: selectedPettyCash.balance < total ? C.red : C.green }}>
+              <div style={{ fontSize: "var(--t-kecil)", marginTop: 4, color: selectedPettyCash.balance < total ? C.red : C.green }}>
                 Saldo: {fmt(selectedPettyCash.balance)} {selectedPettyCash.balance < total ? "⚠ tidak cukup" : "✓ cukup"}
               </div>
             )}
@@ -549,7 +549,7 @@ export function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccount
               const acc = mainCashAccounts.find(a => a.id === mainCashId);
               if (!acc || total === 0) return null;
               return (
-                <div style={{ fontSize: 11, marginTop: 4, color: acc.balance < total ? C.red : C.green }}>
+                <div style={{ fontSize: "var(--t-kecil)", marginTop: 4, color: acc.balance < total ? C.red : C.green }}>
                   Saldo: {fmt(acc.balance)} {acc.balance < total ? "⚠ tidak cukup" : "✓ cukup"}
                 </div>
               );
@@ -589,7 +589,7 @@ export function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccount
           <div>
             <label htmlFor="unit-price" style={gayaLabel}>Harga Satuan <span style={{ color: C.red }}>*</span></label>
             <div style={{ position: "relative" }}>
-              <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: C.muted }}>Rp</span>
+              <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: "var(--t-kecil)", color: C.muted }}>Rp</span>
               <input id="unit-price" type="number" min={0} value={unitPrice} onChange={e => setUnitPrice(e.target.value)} required
                 style={{ ...gayaInput, padding: "8px 12px 8px 32px" }} />
             </div>
@@ -634,12 +634,12 @@ export function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccount
             {receiptFile ? (
               <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 6, background: C.greenBg, border: `1px solid ${C.greenBorder}` }}>
                 <FileText size={14} color={C.green} />
-                <span style={{ fontSize: 11, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{receiptFile.name}</span>
+                <span style={{ fontSize: "var(--t-kecil)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{receiptFile.name}</span>
                 <button type="button" aria-label="Buang nota yang dipilih" onClick={() => setReceiptFile(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.red, flexShrink: 0 }}><X size={12} /></button>
               </div>
             ) : (
               <button type="button" onClick={() => fileRef.current?.click()}
-                style={{ width: "100%", padding: "8px 12px", border: `2px dashed ${C.border}`, borderRadius: 6, background: "var(--surface-subtle)", color: C.mid, fontSize: 11, cursor: "pointer", textAlign: "center", boxSizing: "border-box" }}>
+                style={{ width: "100%", padding: "8px 12px", border: `2px dashed ${C.border}`, borderRadius: 6, background: "var(--surface-subtle)", color: C.mid, fontSize: "var(--t-kecil)", cursor: "pointer", textAlign: "center", boxSizing: "border-box" }}>
                 Upload nota
               </button>
             )}

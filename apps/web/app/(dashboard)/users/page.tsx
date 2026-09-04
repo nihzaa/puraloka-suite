@@ -243,7 +243,7 @@ export default function UsersPage() {
               style={{ padding: "12px 16px", borderRadius: 10, border: `2px solid ${filterRole === r.key ? r.color : C.border}`, background: filterRole === r.key ? r.bg : "var(--surface)", cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                 <Icon size={14} color={r.color} />
-                <span style={{ fontSize: 11, fontWeight: 600, color: r.color }}>{r.label}</span>
+                <span style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: r.color }}>{r.label}</span>
               </div>
               <div style={{ fontSize: 22, fontWeight: 700, color: C.text }}>{r.count}</div>
             </button>
@@ -296,8 +296,8 @@ export default function UsersPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{u.name}</span>
-                    {isSelf && <span style={{ fontSize: 10, padding: "0px 6px", borderRadius: 6, background: C.navyLight, color: C.navy, fontWeight: 600 }}>Anda</span>}
-                    {!u.is_active && <span style={{ fontSize: 10, padding: "0px 6px", borderRadius: 6, background: C.redBg, color: C.red, fontWeight: 600 }}>Nonaktif</span>}
+                    {isSelf && <span style={{ fontSize: "var(--t-mikro)", padding: "0px 6px", borderRadius: 6, background: C.navyLight, color: C.navy, fontWeight: 600 }}>Anda</span>}
+                    {!u.is_active && <span style={{ fontSize: "var(--t-mikro)", padding: "0px 6px", borderRadius: 6, background: C.redBg, color: C.red, fontWeight: 600 }}>Nonaktif</span>}
                   </div>
                   <div style={{ display: "flex", gap: 12, marginTop: 3, flexWrap: "wrap" }}>
                     <span style={{ fontSize: 12, color: C.muted, display: "flex", alignItems: "center", gap: 4 }}>
@@ -314,7 +314,7 @@ export default function UsersPage() {
                 {/* Role badge */}
                 <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 20, background: ri.bg, border: `1px solid ${ri.border}` }}>
                   <Icon size={11} color={ri.color} />
-                  <span style={{ fontSize: 11, fontWeight: 600, color: ri.color }}>{ri.label}</span>
+                  <span style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: ri.color }}>{ri.label}</span>
                 </div>
 
                 {/* Actions */}
@@ -409,7 +409,7 @@ function PemilihRole({
     >
       {kelompok.map(g => (
         <div key={g.judul} style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>
+          <div style={{ fontSize: "var(--t-mikro)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>
             {g.judul}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>

@@ -170,10 +170,10 @@ const KOLOM_SERTIFIKAT: Array<Kolom<Sertifikat>> = [
             ? `3px solid ${a.warna}` : "3px solid transparent",
         }}>
           <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 11, color: C.muted, fontWeight: 700 }}>{s.jenis}</span>
+            <span style={{ fontSize: "var(--t-kecil)", color: C.muted, fontWeight: 700 }}>{s.jenis}</span>
             <strong style={{ fontSize: 13, color: C.text }}>{s.nama}</strong>
           </span>
-          <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 1 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 1 }}>
             {[s.kualifikasi, s.klasifikasi, s.penerbit].filter(Boolean).join(" · ") || "—"}
           </span>
         </span>
@@ -192,7 +192,7 @@ const KOLOM_SERTIFIKAT: Array<Kolom<Sertifikat>> = [
           <>
             <span style={{ color: C.text }}>{tanggal(s.berlaku_sampai)}</span>
             {s.sisa_hari !== null && (
-              <span style={{ display: "block", fontSize: 11, color: C.muted }}>
+              <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>
                 {s.sisa_hari < 0
                   ? `lewat ${Math.abs(s.sisa_hari)} hari`
                   : `${s.sisa_hari} hari lagi`}
@@ -212,7 +212,7 @@ const KOLOM_SERTIFIKAT: Array<Kolom<Sertifikat>> = [
           title={a.arti}
           style={{
             display: "inline-flex", alignItems: "center", gap: 4,
-            padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700,
+            padding: "2px 8px", borderRadius: 999, fontSize: "var(--t-kecil)", fontWeight: 700,
             color: a.warna, background: a.bg, border: `1px solid ${a.border}`,
           }}
         >
@@ -232,11 +232,11 @@ const KOLOM_LAMARAN = (onPindah: (l: Lamaran) => void): Array<Kolom<Lamaran>> =>
     render: (l) => (
       <span style={{ display: "block" }}>
         <strong style={{ fontSize: 13, color: C.text }}>{l.nama}</strong>
-        <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 1 }}>
+        <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 1 }}>
           {l.posisi}{l.sumber ? ` · ${l.sumber}` : ""}
         </span>
         {l.tahap === "ditolak" && l.catatan_tahap && (
-          <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 2, maxWidth: "40ch" }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2, maxWidth: "40ch" }}>
             {l.catatan_tahap}
           </span>
         )}
@@ -250,7 +250,7 @@ const KOLOM_LAMARAN = (onPindah: (l: Lamaran) => void): Array<Kolom<Lamaran>> =>
       return (
         <span style={{
           display: "inline-block", padding: "2px 8px", borderRadius: 999,
-          fontSize: 11, fontWeight: 700,
+          fontSize: "var(--t-kecil)", fontWeight: 700,
           color: t.warna, background: t.bg, border: `1px solid ${t.border}`,
         }}>{t.label}</span>
       );
@@ -262,7 +262,7 @@ const KOLOM_LAMARAN = (onPindah: (l: Lamaran) => void): Array<Kolom<Lamaran>> =>
       l.tahap === "diterima" || l.tahap === "ditolak"
         // Keduanya akhir — tombolnya dihilangkan supaya tak menjanjikan
         // sesuatu yang akan ditolak server.
-        ? <span style={{ fontSize: 11, color: C.muted }}>selesai</span>
+        ? <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>selesai</span>
         : (
           <button
             type="button" onClick={() => onPindah(l)}
@@ -446,7 +446,7 @@ export default function KompetensiPage() {
       {tab !== "rekrutmen" && (
         <div className="rise" style={{ ...kartu, padding: "12px 16px", marginBottom: 16, maxWidth: 420 }}>
           <label htmlFor="km-pegawai" style={{
-            fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+            fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
             marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
           }}>Pegawai</label>
           <Pilihan
@@ -516,14 +516,14 @@ export default function KompetensiPage() {
                   ...kartu, padding: "12px var(--pad-kartu-lega)",
                   borderColor: k.bahaya && s.kedaluwarsa > 0 ? "var(--danger-border)" : C.border,
                 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                  <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
                     textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.l}</div>
                   <div style={{
                     fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1,
                     color: k.bahaya && s.kedaluwarsa > 0 ? "var(--danger)" : C.text,
                     fontVariantNumeric: "tabular-nums",
                   }}>{k.v}</div>
-                  <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{k.sub}</div>
+                  <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>{k.sub}</div>
                 </div>
               ))}
             </div>
@@ -589,18 +589,18 @@ export default function KompetensiPage() {
                   { l: "Draf", v: detail.kinerja.jumlah_draf, sub: "masih bisa berubah" },
                 ].map((k) => (
                   <div key={k.l} style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                    <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
                       textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.l}</div>
                     <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text,
                       fontVariantNumeric: "tabular-nums" }}>{k.v}</div>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{k.sub}</div>
+                    <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>{k.sub}</div>
                   </div>
                 ))}
               </div>
 
               <div className="rise" style={{ ...kartu, padding: "14px 18px" }}>
                 <div style={{
-                  fontSize: 11, fontWeight: 700, color: C.muted, marginBottom: 10,
+                  fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, marginBottom: 10,
                   textTransform: "uppercase", letterSpacing: "0.05em",
                 }}>Riwayat penilaian</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -619,17 +619,17 @@ export default function KompetensiPage() {
                         {/* Skor MENTAH beserta skalanya — dinormalkan untuk
                             perbandingan, tapi angka aslinya tetap terlihat
                             supaya cocok dengan lembar penilaian di kertas. */}
-                        <span style={{ fontSize: 11.5, color: C.muted, minWidth: 90 }}>
+                        <span style={{ fontSize: "var(--t-kecil)", color: C.muted, minWidth: 90 }}>
                           {p.skor ?? "—"} dari {p.skala_maks}
                         </span>
                         <span style={{
-                          padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700,
+                          padding: "2px 8px", borderRadius: 999, fontSize: "var(--t-kecil)", fontWeight: 700,
                           color: p.status === "final" ? "var(--success)" : C.mid,
                           background: p.status === "final" ? "var(--success-bg)" : "var(--surface-2)",
                           border: `1px solid ${p.status === "final" ? "var(--success-border)" : C.border}`,
                         }}>{p.status === "final" ? "Final" : "Draf"}</span>
                         {p.yang_menilai && (
-                          <span style={{ fontSize: 11, color: C.muted }}>{p.yang_menilai.name}</span>
+                          <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>{p.yang_menilai.name}</span>
                         )}
                         {p.kekuatan && (
                           <span style={{ fontSize: 12, color: C.mid, flex: "1 1 100%", marginTop: 2 }}>
@@ -660,7 +660,7 @@ export default function KompetensiPage() {
               gap: 8, marginBottom: 14 }}>
               {(["masuk", "seleksi_berkas", "wawancara", "tawaran"] as TahapLamaran[]).map((t) => (
                 <div key={t} style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                  <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
                     textTransform: "uppercase", letterSpacing: "0.05em" }}>{TAHAP[t].label}</div>
                   <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text,
                     fontVariantNumeric: "tabular-nums" }}>
@@ -712,7 +712,7 @@ export default function KompetensiPage() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10 }}>
             <div>
               <label htmlFor="km-jenis" style={{
-                fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+                fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
                 marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
               }}>Jenis</label>
               <input id="km-jenis" value={sJenis} onChange={(e) => setSJenis(e.target.value)}
@@ -724,7 +724,7 @@ export default function KompetensiPage() {
             </div>
             <div>
               <label htmlFor="km-nama" style={{
-                fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+                fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
                 marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
               }}>Nama <span style={{ color: "var(--danger)" }}>· wajib</span></label>
               <input id="km-nama" value={sNama} onChange={(e) => setSNama(e.target.value)}
@@ -736,7 +736,7 @@ export default function KompetensiPage() {
             </div>
             <div>
               <label htmlFor="km-kualifikasi" style={{
-                fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+                fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
                 marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
               }}>Kualifikasi</label>
               <input id="km-kualifikasi" value={sKualifikasi}
@@ -748,7 +748,7 @@ export default function KompetensiPage() {
             </div>
             <div>
               <label htmlFor="km-klasifikasi" style={{
-                fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+                fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
                 marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
               }}>Klasifikasi</label>
               <input id="km-klasifikasi" value={sKlasifikasi}
@@ -773,7 +773,7 @@ export default function KompetensiPage() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
               <label htmlFor="km-terbit" style={{
-                fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+                fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
                 marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
               }}>Tanggal terbit</label>
               <input id="km-terbit" type="date" value={sTerbit}
@@ -786,7 +786,7 @@ export default function KompetensiPage() {
             {sBerjangka && (
               <div>
                 <label htmlFor="km-sampai" style={{
-                  fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+                  fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
                   marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
                 }}>Berlaku sampai <span style={{ color: "var(--danger)" }}>· wajib</span></label>
                 <input id="km-sampai" type="date" value={sSampai}
@@ -836,7 +836,7 @@ export default function KompetensiPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <label htmlFor="km-tahap" style={{
-              fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Tahap baru</label>
             <Pilihan id="km-tahap" value={lTahap}
@@ -849,7 +849,7 @@ export default function KompetensiPage() {
               {(["seleksi_berkas", "wawancara", "tawaran", "diterima", "ditolak"] as TahapLamaran[])
                 .map((t) => <option key={t} value={t}>{TAHAP[t].label}</option>)}
             </Pilihan>
-            <p style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
+            <p style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
               Tahap boleh melompat maju, tapi <strong>tak bisa mundur</strong> —
               mundur menghapus jejak bahwa pelamar pernah sampai sejauh itu.
             </p>
@@ -858,7 +858,7 @@ export default function KompetensiPage() {
           {lTahap === "diterima" && (
             <div>
               <label htmlFor="km-lpegawai" style={{
-                fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+                fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
                 marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
               }}>Tautkan ke data pegawai <span style={{ color: "var(--danger)" }}>· wajib</span></label>
               <Pilihan id="km-lpegawai" value={lPegawai}
@@ -875,7 +875,7 @@ export default function KompetensiPage() {
                   </option>
                 ))}
               </Pilihan>
-              <p style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
+              <p style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
                 Buat dulu data kepegawaiannya, lalu tautkan di sini — lamaran
                 “diterima” tanpa pegawai tak bisa ditelusuri: siapa yang masuk?
               </p>
@@ -884,7 +884,7 @@ export default function KompetensiPage() {
 
           <div>
             <label htmlFor="km-lcatatan" style={{
-              fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>
               Catatan
@@ -901,7 +901,7 @@ export default function KompetensiPage() {
                 color: C.text, resize: "vertical", fontFamily: "inherit",
               }} />
             {lTahap === "ditolak" && (
-              <p style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
+              <p style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
                 Tanpa catatan, pelamar yang sama akan dihubungi lagi untuk
                 lowongan yang sama.
               </p>

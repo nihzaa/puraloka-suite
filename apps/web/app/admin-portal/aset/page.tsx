@@ -257,7 +257,7 @@ function Angka({
       }}>
         {nilai}
       </div>
-      {sub && <div style={{ ...metaKecil, fontSize: 11 }}>{sub}</div>}
+      {sub && <div style={{ ...metaKecil, fontSize: "var(--t-kecil)" }}>{sub}</div>}
     </div>
   );
 }
@@ -272,7 +272,7 @@ const metaKecil: React.CSSProperties = {
   fontSize: 12, color: "var(--text-secondary)",
 };
 const pil: React.CSSProperties = {
-  fontSize: 11, fontWeight: 700, padding: "3px 8px",
+  fontSize: "var(--t-kecil)", fontWeight: 700, padding: "3px 8px",
   borderRadius: "var(--portal-radius-pill)", flexShrink: 0,
 };
 const kotakGagal: React.CSSProperties = {

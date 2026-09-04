@@ -154,7 +154,7 @@ export default function AdminAsuransiPage() {
           ].map((k) => (
             <div key={k.label} style={{ flex: "1 1 45%", padding: "var(--pad-kartu)", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
               <div style={{ fontSize: 20, fontWeight: 700, color: k.warna }}>{k.value}</div>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{k.label}</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{k.label}</div>
             </div>
           ))}
         </div>
@@ -182,7 +182,7 @@ export default function AdminAsuransiPage() {
             {p.status === "aktif" && ` · sisa ${p.sisa_hari} hari`}
           </div>
           {(p.celah_awal > 0 || p.celah_akhir > 0) && (
-            <div role="alert" style={{ fontSize: 11, color: "var(--on-warning-bg)", background: "var(--warning-bg)", padding: "6px 10px", borderRadius: 8 }}>
+            <div role="alert" style={{ fontSize: "var(--t-kecil)", color: "var(--on-warning-bg)", background: "var(--warning-bg)", padding: "6px 10px", borderRadius: 8 }}>
               Ada celah {p.celah_hari ?? "—"} hari masa proyek tanpa pertanggungan.
             </div>
           )}

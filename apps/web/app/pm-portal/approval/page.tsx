@@ -573,7 +573,7 @@ export default function PmApprovalPage() {
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--navy)", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+              <span style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: "var(--navy)", textTransform: "uppercase", letterSpacing: "0.03em" }}>
                 {baris.label}
               </span>
               <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
@@ -595,7 +595,7 @@ export default function PmApprovalPage() {
                 </span>
               )}
               {baris.level_selesai > 0 && (
-                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)" }}>
                   Level {baris.level_selesai} selesai
                 </span>
               )}
@@ -678,7 +678,7 @@ export default function PmApprovalPage() {
                   nilai={dipilih.nominal !== null ? `Rp ${dipilih.nominal.toLocaleString("id-ID")}` : "—"}
                 />
                 <Baris label="Diajukan" nilai={fmtTanggal(dipilih.dibuat_pada)} />
-                <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 4 }}>
                   Rincian lengkap (nama pemohon, item/kategori) tidak tersedia dari layar ini —
                   keputusan didasarkan pada ringkasan di atas.
                 </div>

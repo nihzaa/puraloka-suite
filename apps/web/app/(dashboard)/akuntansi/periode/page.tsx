@@ -251,11 +251,11 @@ export default function PeriodeAkuntansiPage() {
             ? "3px solid var(--warning-border)" : "3px solid transparent",
         }}>
           <strong style={{ fontSize: 13, color: C.text }}>{p.nama}</strong>
-          <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 1 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 1 }}>
             {tanggal(p.tanggal_mulai)} – {tanggal(p.tanggal_akhir)}
           </span>
           {p.dibuka_ulang > 0 && (
-            <span style={{ display: "block", fontSize: 11, color: "var(--warning-teks)", marginTop: 2 }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: "var(--warning-teks)", marginTop: 2 }}>
               pernah dibuka kembali {p.dibuka_ulang}×
             </span>
           )}
@@ -275,7 +275,7 @@ export default function PeriodeAkuntansiPage() {
               * tetapi yang terbaca adalah status. Pada halaman yang seluruh
               * gunanya membedakan terkunci dari tidak, itu bukan salah kata —
               * itu berbohong tentang hal yang justru sedang ditanyakan. */}
-          <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 1 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 1 }}>
             {[
               p.status === "tertutup" ? "terkunci" : "posted",
               // Draft dinyatakan di sini juga, bukan hanya saat menutup —
@@ -291,7 +291,7 @@ export default function PeriodeAkuntansiPage() {
       render: (p) => (
         <span style={{ display: "block", fontSize: 12, color: C.mid, fontVariantNumeric: "tabular-nums" }}>
           {rupiah(p.isi.total_debit)}
-          <span style={{ display: "block", fontSize: 11, color: C.muted }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>
             {p.selisih === null
               // `null` berarti angkanya TAK TERBACA — dan itu tak boleh
               // disamarkan jadi "seimbang".
@@ -312,7 +312,7 @@ export default function PeriodeAkuntansiPage() {
               : <LockOpen size={11} aria-hidden="true" />}
           >{p.status === "tertutup" ? "Terkunci" : "Terbuka"}</Lencana>
           {p.ditutup_pada && (
-            <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 2 }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>
               {tanggal(p.ditutup_pada)}{p.penutup ? ` · ${p.penutup.name}` : ""}
             </span>
           )}
@@ -583,7 +583,7 @@ export default function PeriodeAkuntansiPage() {
               >
                 {/* Beratnya disebut, bukan hanya diwarnai — WCAG 1.4.1
                     melarang bergantung warna saja. */}
-                <strong style={{ display: "block", fontSize: 11, textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 2 }}>
+                <strong style={{ display: "block", fontSize: "var(--t-kecil)", textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 2 }}>
                   {m.berat === "penghalang" ? "Penghalang"
                     : m.berat === "peringatan" ? "Peringatan" : "Catatan"}
                 </strong>
@@ -683,7 +683,7 @@ export default function PeriodeAkuntansiPage() {
                   <Lencana nada={TINDAKAN[h.tindakan].nada}>
                     {TINDAKAN[h.tindakan].label}
                   </Lencana>
-                  <span style={{ fontSize: 11.5, color: C.mid }}>
+                  <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}>
                     {tanggal(h.pada)}
                     {h.pelaku ? ` · ${h.pelaku.name}` : ""}
                     {h.jurnal_posted != null ? ` · ${h.jurnal_posted} jurnal posted` : ""}

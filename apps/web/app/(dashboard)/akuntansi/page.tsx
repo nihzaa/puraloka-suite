@@ -342,7 +342,7 @@ function TabJurnal({
         <>
           {j.description}
           {j.notes && (
-            <span style={{ display: "block", fontSize: 11, color: C.mid, marginTop: 2 }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2 }}>
               {j.notes}
             </span>
           )}
@@ -356,7 +356,7 @@ function TabJurnal({
         return (
           <span style={{
             display: "inline-block", padding: "2px 8px", borderRadius: 20,
-            fontSize: 11, fontWeight: 700,
+            fontSize: "var(--t-kecil)", fontWeight: 700,
             color: st.warna, background: st.bg, border: `1px solid ${st.border}`,
             whiteSpace: "nowrap",
           }}>{st.label}</span>
@@ -416,7 +416,7 @@ function TabJurnal({
 const tombolKecil = (warna: string, bg: string, border: string): React.CSSProperties => ({
   display: "inline-flex", alignItems: "center", gap: 4,
   padding: "4px 12px", borderRadius: 6, cursor: "pointer",
-  fontSize: 11, fontWeight: 700, fontFamily: "inherit",
+  fontSize: "var(--t-kecil)", fontWeight: 700, fontFamily: "inherit",
   color: warna, background: bg, border: `1px solid ${border}`,
 });
 
@@ -447,7 +447,7 @@ function TabAkun({ akun }: { akun: Akun[] }) {
             <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
               {TIPE_LABEL[tipe] ?? tipe}
             </span>
-            <span style={{ fontSize: 11, color: C.mid }}>
+            <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}>
               {perTipe.get(tipe)!.length} akun
             </span>
           </div>
@@ -504,7 +504,7 @@ function TabNeraca({
       render: b => (
         <>
           {b.name}
-          <span style={{ fontSize: 11, color: C.muted, marginLeft: 7 }}>
+          <span style={{ fontSize: "var(--t-kecil)", color: C.muted, marginLeft: 7 }}>
             {TIPE_LABEL[b.type] ?? b.type}
           </span>
         </>
@@ -869,7 +869,7 @@ function ModalJurnal({
 }
 
 const labelStyle: React.CSSProperties = {
-  display: "block", fontSize: 11, fontWeight: 700, color: C.mid,
+  display: "block", fontSize: "var(--t-kecil)", fontWeight: 700, color: C.mid,
   marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.3,
 };
 

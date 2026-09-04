@@ -229,7 +229,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
           <div style={{ padding: "12px 12px", borderRadius: 10, background: "var(--surface-subtle)", border: `1px solid ${C.border}` }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
               <CalendarClock size={13} color={C.mid} aria-hidden="true" />
-              <span style={{ fontSize: 10, fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: 0.4 }}>
+              <span style={{ fontSize: "var(--t-mikro)", fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: 0.4 }}>
                 Tanggal selesai
               </span>
             </div>
@@ -237,11 +237,11 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
               {fmtTgl(metaEot.tanggalEfektif)}
             </div>
             {metaEot.totalHariEOT > 0 ? (
-              <div style={{ fontSize: 11, color: C.mid, marginTop: 3 }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.mid, marginTop: 3 }}>
                 kontrak {fmtTgl(metaEot.tanggalAsli)} + <strong>{metaEot.totalHariEOT} hari</strong> EOT disetujui
               </div>
             ) : (
-              <div style={{ fontSize: 11, color: C.muted, marginTop: 3 }}>sesuai kontrak, belum ada EOT disetujui</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 3 }}>sesuai kontrak, belum ada EOT disetujui</div>
             )}
           </div>
 
@@ -252,7 +252,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
               <AlertTriangle size={13} color={ld.adaDenda ? C.red : C.mid} aria-hidden="true" />
-              <span style={{ fontSize: 10, fontWeight: 700, color: ld.adaDenda ? C.red : C.mid, textTransform: "uppercase", letterSpacing: 0.4 }}>
+              <span style={{ fontSize: "var(--t-mikro)", fontWeight: 700, color: ld.adaDenda ? C.red : C.mid, textTransform: "uppercase", letterSpacing: 0.4 }}>
                 Denda keterlambatan
               </span>
             </div>
@@ -261,7 +261,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
             </div>
             {ld.adaDenda ? (
               <>
-                <div style={{ fontSize: 11, color: C.mid, marginTop: 3 }}>
+                <div style={{ fontSize: "var(--t-kecil)", color: C.mid, marginTop: 3 }}>
                   {ld.hariTelat} hari telat
                   {ld.kenaBatas && <> · <strong>sudah menyentuh batas {fmtRp(ld.batasNominal)}</strong></>}
                 </div>
@@ -270,7 +270,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
                 {!ld.otoritatif && (
                   <div style={{
                     display: "inline-flex", alignItems: "center", gap: 4, marginTop: 6,
-                    padding: "2px 6px", borderRadius: 20, fontSize: 10,
+                    padding: "2px 6px", borderRadius: 20, fontSize: "var(--t-mikro)",
                     fontWeight: 700, color: C.yellow, background: C.yellowBg,
                     border: `1px solid ${C.yellowBorder}`,
                   }}>
@@ -280,7 +280,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
               </>
             ) : (
               // "Rp 0" ambigu: tak telat? tak aktif? diputihkan? Alasannya wajib.
-              <div style={{ fontSize: 11, color: C.mid, marginTop: 3 }}>{ld.alasan}</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.mid, marginTop: 3 }}>{ld.alasan}</div>
             )}
           </div>
 
@@ -288,12 +288,12 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
             <div style={{ padding: "12px 12px", borderRadius: 10, background: "var(--surface-subtle)", border: `1px solid ${C.border}` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
                 <ShieldCheck size={13} color={C.mid} aria-hidden="true" />
-                <span style={{ fontSize: 10, fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: 0.4 }}>
+                <span style={{ fontSize: "var(--t-mikro)", fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: 0.4 }}>
                   Jaminan aktif
                 </span>
               </div>
               <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{fmtRp(metaBond.totalAktif)}</div>
-              <div style={{ fontSize: 11, color: C.mid, marginTop: 3 }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.mid, marginTop: 3 }}>
                 {metaBond.jumlahAktif} jaminan berlaku
               </div>
             </div>
@@ -364,7 +364,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
               <tr style={{ background: "var(--surface-subtle)" }}>
                 {["Nomor", "Diajukan", "Hari", "Alasan", "Status", ""].map((h, i) => (
                   <th key={i} scope="col" style={{
-                    padding: "8px 12px", textAlign: "left", fontSize: 10, fontWeight: 700,
+                    padding: "8px 12px", textAlign: "left", fontSize: "var(--t-mikro)", fontWeight: 700,
                     color: C.mid, textTransform: "uppercase", letterSpacing: 0.4,
                     borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap",
                   }}>{h}</th>
@@ -389,7 +389,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
                             {e.days_approved !== e.days_requested && (
                               // Perbedaan diajukan vs disetujui adalah informasi
                               // penting: pemberi kerja sering menyetujui lebih sedikit.
-                              <span style={{ color: C.muted, fontSize: 11 }}> (diajukan {e.days_requested})</span>
+                              <span style={{ color: C.muted, fontSize: "var(--t-kecil)" }}> (diajukan {e.days_requested})</span>
                             )}
                           </>
                         : <span style={{ color: C.mid }}>{e.days_requested} hari diajukan</span>}
@@ -397,7 +397,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
                     <td style={{ padding: "8px 12px", color: C.mid, maxWidth: 220 }}>{e.reason}</td>
                     <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
                       <span style={{
-                        padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 600,
+                        padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-mikro)", fontWeight: 600,
                         color: s.warna, background: s.bg, border: `1px solid ${s.border}`,
                       }}>{s.teks}</span>
                     </td>
@@ -408,7 +408,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
                             aria-label={`Setujui EOT ${e.eot_number ?? e.reason.slice(0, 24)}`}
                             style={{
                               display: "inline-flex", alignItems: "center", gap: 2,
-                              padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                              padding: "2px 8px", borderRadius: 6, fontSize: "var(--t-kecil)", fontWeight: 600,
                               border: `1px solid ${C.greenBorder}`, background: C.greenBg,
                               color: C.green, cursor: "pointer",
                             }}>
@@ -418,7 +418,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
                             aria-label={`Tolak EOT ${e.eot_number ?? e.reason.slice(0, 24)}`}
                             style={{
                               display: "inline-flex", alignItems: "center", gap: 2,
-                              padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                              padding: "2px 8px", borderRadius: 6, fontSize: "var(--t-kecil)", fontWeight: 600,
                               border: `1px solid ${C.border}`, background: C.surface,
                               color: C.mid, cursor: "pointer",
                             }}>
@@ -478,7 +478,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
                 {["Jenis", "Nomor", "Penerbit", "Nilai", "Berlaku s.d.", "Status", ""].map((h, i) => (
                   <th key={i} scope="col" style={{
                     padding: "8px 12px", textAlign: i === 3 ? "right" : "left",
-                    fontSize: 10, fontWeight: 700, color: C.mid,
+                    fontSize: "var(--t-mikro)", fontWeight: 700, color: C.mid,
                     textTransform: "uppercase", letterSpacing: 0.4,
                     borderBottom: `1px solid ${C.border}`, whiteSpace: "nowrap",
                   }}>{h}</th>
@@ -497,7 +497,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
                   <td style={{ padding: "8px 12px", color: C.mid, whiteSpace: "nowrap" }}>{fmtTgl(b.expiry_date)}</td>
                   <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
                     <span style={{
-                      padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 600,
+                      padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-mikro)", fontWeight: 600,
                       color: b.status === "aktif" ? C.green : C.mid,
                       background: b.status === "aktif" ? C.greenBg : "var(--surface-subtle)",
                       border: `1px solid ${b.status === "aktif" ? C.greenBorder : C.border}`,
@@ -514,7 +514,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
                           onClick={() => ubahStatusBond(b, "dikembalikan")}
                           aria-label={`Tandai ${JENIS_BOND[b.bond_type] ?? b.bond_type} ${b.bond_number ?? ""} sebagai dikembalikan`}
                           style={{
-                            padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                            padding: "2px 8px", borderRadius: 6, fontSize: "var(--t-kecil)", fontWeight: 600,
                             border: `1px solid ${C.border}`, background: C.surface,
                             color: C.mid, cursor: "pointer",
                           }}>
@@ -524,7 +524,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
                           onClick={() => ubahStatusBond(b, "dicairkan")}
                           aria-label={`Tandai ${JENIS_BOND[b.bond_type] ?? b.bond_type} ${b.bond_number ?? ""} sebagai dicairkan`}
                           style={{
-                            padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                            padding: "2px 8px", borderRadius: 6, fontSize: "var(--t-kecil)", fontWeight: 600,
                             border: `1px solid ${C.redBorder}`, background: C.redBg,
                             color: C.red, cursor: "pointer",
                           }}>
@@ -541,7 +541,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
       )}
 
       {labelLd && (
-        <p style={{ margin: "12px 0 0", fontSize: 11, color: C.muted }}>{labelLd}</p>
+        <p style={{ margin: "12px 0 0", fontSize: "var(--t-kecil)", color: C.muted }}>{labelLd}</p>
       )}
     </section>
   );
@@ -582,7 +582,7 @@ function FormBond({ projectId, onSelesai, onBatal }: {
     color: C.text, boxSizing: "border-box",
   };
   const label: React.CSSProperties = {
-    display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 3,
+    display: "block", fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, marginBottom: 3,
   };
 
   return (
@@ -622,7 +622,7 @@ function FormBond({ projectId, onSelesai, onBatal }: {
         <div>
           <label htmlFor="expiry_date" style={label}>Berlaku sampai *</label>
           <input id="expiry_date" name="expiry_date" type="date" required style={input} />
-          <span style={{ fontSize: 10, color: C.muted, display: "block", marginTop: 3 }}>
+          <span style={{ fontSize: "var(--t-mikro)", color: C.muted, display: "block", marginTop: 3 }}>
             Akan diperingatkan 30 hari sebelum kadaluarsa.
           </span>
         </div>
@@ -673,7 +673,7 @@ function FormEOT({ projectId, onSelesai, onBatal }: {
     color: C.text, boxSizing: "border-box",
   };
   const label: React.CSSProperties = {
-    display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 3,
+    display: "block", fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, marginBottom: 3,
   };
 
   return (
@@ -701,7 +701,7 @@ function FormEOT({ projectId, onSelesai, onBatal }: {
         <label htmlFor="reason" style={label}>Alasan perpanjangan * (min. 10 karakter)</label>
         <input id="reason" name="reason" required minLength={10}
           placeholder="mis. curah hujan ekstrem 12 hari berturut-turut" style={input} />
-        <span style={{ fontSize: 10, color: C.muted, display: "block", marginTop: 3 }}>
+        <span style={{ fontSize: "var(--t-mikro)", color: C.muted, display: "block", marginTop: 3 }}>
           Ini yang menjadi dasar saat denda keterlambatan dibatalkan — akan diperiksa pemberi kerja.
         </span>
       </div>

@@ -148,7 +148,7 @@ export default function MandorProfilePage() {
                   pembaca layar kehilangan tingkatan yang menuntunnya. */}
               <h2 style={{ fontSize: 22, fontWeight: 800, color: C.text, margin: 0 }}>{mandor.name}</h2>
               {!mandor.is_active && (
-                <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, background: "var(--surface-hover)", color: C.muted }}>Nonaktif</span>
+                <span style={{ fontSize: "var(--t-kecil)", fontWeight: 700, padding: "2px 8px", borderRadius: 6, background: "var(--surface-hover)", color: C.muted }}>Nonaktif</span>
               )}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4 }}>
@@ -174,14 +174,14 @@ export default function MandorProfilePage() {
         ].map((s, i) => (
           <div key={i} style={{ ...card, padding: "12px 16px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-              <span style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{s.label}</span>
+              <span style={{ fontSize: "var(--t-kecil)", color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{s.label}</span>
               <div style={{ width: 30, height: 30, borderRadius: 6, background: s.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>{s.icon}</div>
             </div>
             <div style={{ fontSize: 20, fontWeight: 700, color: s.color }}>
               {s.value}
               {(s as any).suffix && <span style={{ fontSize: 12, fontWeight: 400, color: C.muted, marginLeft: 4 }}>{(s as any).suffix}</span>}
             </div>
-            {(s as any).sub && <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{(s as any).sub}</div>}
+            {(s as any).sub && <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>{(s as any).sub}</div>}
           </div>
         ))}
       </div>
@@ -215,9 +215,9 @@ export default function MandorProfilePage() {
                           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>
                             <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{sc.scope_name}</span>
                             {(() => { const b = getPaymentSystemBadge(sc.payment_system); return (
-                              <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 6px", borderRadius: 10, background: b.bg, color: b.color, border: `1px solid ${b.border}` }}>{b.label}</span>
+                              <span style={{ fontSize: "var(--t-mikro)", fontWeight: 600, padding: "2px 6px", borderRadius: 10, background: b.bg, color: b.color, border: `1px solid ${b.border}` }}>{b.label}</span>
                             ); })()}
-                            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 6px", borderRadius: 10, background: sc.status === "active" ? C.greenBg : "var(--surface-hover)", color: sc.status === "active" ? C.green : C.mid, border: `1px solid ${sc.status === "active" ? C.greenBorder : C.border}` }}>
+                            <span style={{ fontSize: "var(--t-mikro)", fontWeight: 600, padding: "2px 6px", borderRadius: 10, background: sc.status === "active" ? C.greenBg : "var(--surface-hover)", color: sc.status === "active" ? C.green : C.mid, border: `1px solid ${sc.status === "active" ? C.greenBorder : C.border}` }}>
                               {sc.status === "active" ? "Aktif" : "Selesai"}
                             </span>
                           </div>
@@ -226,7 +226,7 @@ export default function MandorProfilePage() {
                         {sc.borongan_value && (
                           <div style={{ textAlign: "right", flexShrink: 0 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>{fmt(sc.borongan_value)}</div>
-                            <div style={{ fontSize: 11, color: C.muted }}>nilai kontrak</div>
+                            <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>nilai kontrak</div>
                           </div>
                         )}
                       </div>
@@ -234,8 +234,8 @@ export default function MandorProfilePage() {
                       {/* Progress fisik */}
                       <div style={{ marginBottom: 8 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                          <span style={{ fontSize: 11, color: C.muted, fontWeight: 500 }}>Progress Fisik</span>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: progressColor }}>{sc.progress_pct_done.toFixed(0)}%</span>
+                          <span style={{ fontSize: "var(--t-kecil)", color: C.muted, fontWeight: 500 }}>Progress Fisik</span>
+                          <span style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: progressColor }}>{sc.progress_pct_done.toFixed(0)}%</span>
                         </div>
                         <div style={{ height: 6, borderRadius: 6, background: C.border, overflow: "hidden" }}>
                           <div style={{ height: "100%", borderRadius: 6, background: progressColor, width: `${sc.progress_pct_done}%`, transition: "width 0.3s" }} />
@@ -246,8 +246,8 @@ export default function MandorProfilePage() {
                       {sc.borongan_value && sc.borongan_value > 0 && (
                         <div>
                           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                            <span style={{ fontSize: 11, color: C.muted, fontWeight: 500 }}>Serapan Anggaran</span>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: budgetColor }}>{budgetPct.toFixed(0)}%</span>
+                            <span style={{ fontSize: "var(--t-kecil)", color: C.muted, fontWeight: 500 }}>Serapan Anggaran</span>
+                            <span style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: budgetColor }}>{budgetPct.toFixed(0)}%</span>
                           </div>
                           <div style={{ height: 6, borderRadius: 6, background: C.border, overflow: "hidden", marginBottom: 6 }}>
                             <div style={{ height: "100%", borderRadius: 6, background: budgetColor, width: `${budgetPct}%`, transition: "width 0.3s" }} />
@@ -259,7 +259,7 @@ export default function MandorProfilePage() {
                               { label: "Status", value: budgetPct > 90 ? "Kritis" : budgetPct > 70 ? "Waspada" : "Aman", color: budgetColor },
                             ].map((b, j) => (
                               <div key={j} style={{ background: "var(--surface)", borderRadius: 6, padding: "6px 8px", border: `1px solid ${C.border}` }}>
-                                <div style={{ fontSize: 10, color: C.muted, marginBottom: 2 }}>{b.label}</div>
+                                <div style={{ fontSize: "var(--t-mikro)", color: C.muted, marginBottom: 2 }}>{b.label}</div>
                                 <div style={{ fontSize: 12, fontWeight: 700, color: b.color }}>{b.value}</div>
                               </div>
                             ))}
@@ -292,18 +292,18 @@ export default function MandorProfilePage() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>
                           <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{r.scope?.scope_name ?? "—"}</span>
-                          <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 6px", borderRadius: 6, background: st.bg, color: st.color, border: `1px solid ${st.border}`, display: "flex", alignItems: "center", gap: 2 }}>
+                          <span style={{ fontSize: "var(--t-mikro)", fontWeight: 600, padding: "2px 6px", borderRadius: 6, background: st.bg, color: st.color, border: `1px solid ${st.border}`, display: "flex", alignItems: "center", gap: 2 }}>
                             {st.icon} {st.label}
                           </span>
                         </div>
-                        <div style={{ fontSize: 11, color: C.muted }}>
+                        <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
                           {r.assignment?.project?.name ?? "—"} · {fmtDateShort(r.week_start)} – {fmtDateShort(r.week_end)}
                           {r.payment_method && <span style={{ marginLeft: 8 }}>· {r.payment_method === "cash" ? "Cash" : "Transfer"}</span>}
                         </div>
                       </div>
                       <div style={{ textAlign: "right", flexShrink: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>{fmt(r.net_amount)}</div>
-                        {r.paid_at && <div style={{ fontSize: 11, color: C.muted }}>{fmtDate(r.paid_at)}</div>}
+                        {r.paid_at && <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>{fmtDate(r.paid_at)}</div>}
                       </div>
                     </div>
                   );
@@ -338,20 +338,20 @@ export default function MandorProfilePage() {
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{k.worker?.name ?? "—"}</div>
-                        <div style={{ fontSize: 11, color: C.muted }}>
+                        <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
                           {purposeLabel[k.purpose] ?? k.purpose} · {fmtDate(k.kasbon_date)}
                         </div>
                       </div>
                       <div style={{ textAlign: "right" }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: C.red }}>{fmt(remaining)}</div>
-                        <div style={{ fontSize: 10, color: C.muted }}>dari {fmt(k.amount)}</div>
+                        <div style={{ fontSize: "var(--t-mikro)", color: C.muted }}>dari {fmt(k.amount)}</div>
                       </div>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <div style={{ flex: 1, height: 3, borderRadius: 0, background: C.border, overflow: "hidden" }}>
                         <div style={{ height: "100%", borderRadius: 0, background: C.yellow, width: `${pct}%` }} />
                       </div>
-                      <span style={{ fontSize: 10, color: C.muted }}>{Math.round(pct)}%</span>
+                      <span style={{ fontSize: "var(--t-mikro)", color: C.muted }}>{Math.round(pct)}%</span>
                     </div>
                   </div>
                 );

@@ -363,7 +363,7 @@ function Angka({ ikon, label, nilai, keterangan, tekan }: {
       }}>
         {nilai}
       </div>
-      <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>{keterangan}</div>
+      <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>{keterangan}</div>
     </div>
   );
 }
@@ -393,7 +393,7 @@ function KartuKlaim({ k, sibuk, bolehSetujui, bolehBayar, onSetujui, onTolak, on
           <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>
             {k.nomor}
             <span style={{
-              marginInlineStart: 10, fontSize: 11.5, fontWeight: 700, color: m.warna,
+              marginInlineStart: 10, fontSize: "var(--t-kecil)", fontWeight: 700, color: m.warna,
               textTransform: "uppercase", letterSpacing: "0.04em",
             }}>
               {m.label}
@@ -418,7 +418,7 @@ function KartuKlaim({ k, sibuk, bolehSetujui, bolehBayar, onSetujui, onTolak, on
           </div>
           {dipangkas > 0 && (
             // Pengaju berhak tahu bagian mana yang tak diganti.
-            <div style={{ fontSize: 11.5, color: "var(--warning-teks)", marginTop: 2 }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--warning-teks)", marginTop: 2 }}>
               dipangkas {rupiah(dipangkas)} dari {rupiah(diajukan)}
             </div>
           )}
@@ -438,7 +438,7 @@ function KartuKlaim({ k, sibuk, bolehSetujui, bolehBayar, onSetujui, onTolak, on
             <div style={{ fontSize: 12.5, color: C.mid, lineHeight: 1.55 }}>{k.catatan}</div>
           )}
           {k.penyetuju?.name && (
-            <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3 }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 3 }}>
               Diputuskan {k.penyetuju.name}
               {k.dibayar_pada && ` · dibayar ${k.dibayar_pada.slice(0, 10)}`}
             </div>
@@ -786,7 +786,7 @@ function FormAjukan({ onTutup, onSelesai }: {
 
                 {kurangBukti && (
                   <div style={{
-                    fontSize: 11.5, color: "var(--warning-teks)", marginTop: 6, lineHeight: 1.5,
+                    fontSize: "var(--t-kecil)", color: "var(--warning-teks)", marginTop: 6, lineHeight: 1.5,
                   }}>
                     Bukti wajib untuk pengeluaran {rupiah(AMBANG_BUKTI)} ke atas.
                   </div>
@@ -985,7 +985,7 @@ function FormBayar({ klaim, akunKas, onTutup, onSelesai }: {
           <option key={a.id} value={a.id}>{a.name}</option>
         ))}
       </Pilihan>
-      <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6, lineHeight: 1.5 }}>
+      <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 6, lineHeight: 1.5 }}>
         Pembayaran tanpa sumber dana tak bisa direkonsiliasi — akun kas wajib dipilih.
       </div>
     </DialogBersama>

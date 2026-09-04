@@ -113,7 +113,7 @@ export default function RiwayatHargaPage() {
     borderRadius: 10, boxShadow: "var(--naik-1)",
   };
   const labelGaya: React.CSSProperties = {
-    fontSize: 11, fontWeight: 700, color: C.muted,
+    fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
     textTransform: "uppercase", letterSpacing: "0.05em",
   };
 
@@ -154,8 +154,8 @@ export default function RiwayatHargaPage() {
             borderLeft: `3px solid ${m.perubahan_pct === 0 ? "transparent" : a.warna}`,
           }}>
             {m.material_name}
-            {m.unit && <span style={{ fontSize: 11, color: C.mid }}> · {m.unit}</span>}
-            <span style={{ display: "block", fontSize: 10, color: C.muted, marginTop: 2 }}>
+            {m.unit && <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}> · {m.unit}</span>}
+            <span style={{ display: "block", fontSize: "var(--t-mikro)", color: C.muted, marginTop: 2 }}>
               {m.titik.length} kali beli · {m.titik.map((t) => tanggalTerbaca(t.tanggal)).join(" → ")}
             </span>
           </span>
@@ -199,7 +199,7 @@ export default function RiwayatHargaPage() {
       // berarti satu pembelian borongan yang kebetulan murah — bukan tren.
       render: (m) => (
         <span style={{
-          fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
+          fontSize: "var(--t-kecil)", fontWeight: 600, padding: "2px 8px", borderRadius: 20,
           color: m.cukup_untuk_tren ? "var(--info)" : "var(--text-secondary)",
           background: m.cukup_untuk_tren ? "var(--info-bg)" : "var(--surface-subtle)",
           border: `1px solid ${m.cukup_untuk_tren ? "var(--info-border)" : "var(--border)"}`,
@@ -218,7 +218,7 @@ export default function RiwayatHargaPage() {
       render: (m) => (
         <>
           {m.material_name}
-          {m.unit && <span style={{ fontSize: 11, color: C.mid }}> · {m.unit}</span>}
+          {m.unit && <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}> · {m.unit}</span>}
         </>
       ),
     },
@@ -327,7 +327,7 @@ export default function RiwayatHargaPage() {
                 }}>
                   {k.nilai}
                 </div>
-                <div style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>{k.sub}</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2 }}>{k.sub}</div>
               </div>
             ))}
           </div>
@@ -358,7 +358,7 @@ export default function RiwayatHargaPage() {
 
               <p style={{
                 margin: 0, padding: "10px 14px", borderTop: `1px solid ${C.border}`,
-                background: "var(--surface-subtle)", fontSize: 11, color: C.mid, lineHeight: 1.55,
+                background: "var(--surface-subtle)", fontSize: "var(--t-kecil)", color: C.mid, lineHeight: 1.55,
               }}>
                 Perubahan dihitung dari harga <strong>pembelian pertama</strong>, bukan
                 dari harga master — harga master ditimpa tiap kali diperbarui, sehingga

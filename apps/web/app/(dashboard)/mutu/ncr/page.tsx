@@ -294,14 +294,14 @@ function NcrInner() {
               borderRadius: 10, padding: "12px 16px",
             }}>
               <div style={{
-                fontSize: 10, fontWeight: 700, letterSpacing: ".05em",
+                fontSize: "var(--t-mikro)", fontWeight: 700, letterSpacing: ".05em",
                 textTransform: "uppercase", color: C.muted, marginBottom: 6,
               }}>{k.l}</div>
               <div style={{
                 fontFamily: "var(--font-display)", fontSize: "var(--teks-kpi)", fontWeight: 700,
                 color: k.w, lineHeight: 1.1, fontVariantNumeric: "tabular-nums",
               }}>{k.v}</div>
-              <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{k.s}</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4 }}>{k.s}</div>
             </div>
           ))}
         </div>
@@ -353,7 +353,7 @@ function NcrInner() {
                 </span>
                 <span style={{ color: C.text }}>{k.judul}</span>
                 {k.lokasi && (
-                  <span style={{ color: C.mid, fontSize: 11 }}>· {k.lokasi}</span>
+                  <span style={{ color: C.mid, fontSize: "var(--t-kecil)" }}>· {k.lokasi}</span>
                 )}
                 {/* `diperiksa_pada` bertipe `timestamptz`, BUKAN `date` —
                     nilainya "2026-08-04T20:11:25.172Z". Versi pertama
@@ -364,7 +364,7 @@ function NcrInner() {
                     Ketahuan dari tangkapan layar, bukan dari test: keduanya
                     lolos tipe TypeScript karena sama-sama `string`. */}
                 {tanggalPeriksa(k.diperiksa_pada) && (
-                  <span style={{ color: C.muted, fontSize: 11 }}>
+                  <span style={{ color: C.muted, fontSize: "var(--t-kecil)" }}>
                     diperiksa {tanggalPeriksa(k.diperiksa_pada)}
                   </span>
                 )}
@@ -468,7 +468,7 @@ function NcrInner() {
                     </div>
                     <div style={{ fontSize: 13, color: C.text, fontWeight: 500 }}>{n.judul}</div>
                     {(n.lokasi || n.acuan) && (
-                      <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                      <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>
                         {n.lokasi}
                         {n.lokasi && n.acuan && " · "}
                         {n.acuan && <span>acuan: {n.acuan}</span>}
@@ -483,7 +483,7 @@ function NcrInner() {
                   const sev = SEVERITY[n.severity] ?? SEVERITY.minor;
                   return (
                     <span style={{
-                      fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6,
+                      fontSize: "var(--t-kecil)", fontWeight: 700, padding: "2px 8px", borderRadius: 6,
                       background: sev.latar, color: sev.warna,
                       border: `1px solid ${sev.tepi}`, whiteSpace: "nowrap",
                     }}>{sev.label}</span>
@@ -496,7 +496,7 @@ function NcrInner() {
                   const st = STATUS[n.status] ?? STATUS.terbuka;
                   return (
                     <span style={{
-                      fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 6,
+                      fontSize: "var(--t-kecil)", fontWeight: 600, padding: "2px 8px", borderRadius: 6,
                       background: st.latar, color: st.warna, whiteSpace: "nowrap",
                     }}>{st.label}</span>
                   );
@@ -510,7 +510,7 @@ function NcrInner() {
                       <span title={n.disposisi_catatan ?? undefined}>
                         {DISPOSISI[n.disposisi]?.label ?? n.disposisi}
                         {n.pemutus && (
-                          <span style={{ color: C.muted, fontSize: 11 }}> · {n.pemutus.name}</span>
+                          <span style={{ color: C.muted, fontSize: "var(--t-kecil)" }}> · {n.pemutus.name}</span>
                         )}
                       </span>
                     ) : (
@@ -543,7 +543,7 @@ function NcrInner() {
                         display: "inline-flex", alignItems: "center", gap: 4,
                         padding: "4px 12px", borderRadius: 6, border: "none",
                         background: "var(--grad-aksen)", color: "var(--on-aksen)",
-                        fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+                        fontSize: "var(--t-kecil)", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
                       }}>
                         <Gavel size={12} aria-hidden="true" /> Putuskan
                       </button>
@@ -572,7 +572,7 @@ function NcrInner() {
                           border: n.petugas ? `1px solid ${C.border}` : `1px solid ${C.navy}`,
                           background: "transparent",
                           color: n.petugas ? C.mid : C.navy,
-                          fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+                          fontSize: "var(--t-kecil)", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
                         }}
                       >
                         <UserPlus size={12} aria-hidden="true" />
@@ -633,7 +633,7 @@ const gayaInput: React.CSSProperties = {
   background: "var(--surface)", color: C.text, fontFamily: "inherit",
 };
 const gayaLabel: React.CSSProperties = {
-  fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+  fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
   marginBottom: 5, textTransform: "uppercase", letterSpacing: ".05em",
 };
 
@@ -723,7 +723,7 @@ function ModalCatat({ proyekId, awal, onClose, onSukses }: {
             style={gayaInput} />
           {/* Ini yang membedakan NCR dari cacat biasa: selalu ada acuan yang
               dilanggar. Diberi penjelasan supaya kolomnya tak dilewati. */}
-          <p style={{ margin: "5px 0 0", fontSize: 11, color: C.muted }}>
+          <p style={{ margin: "5px 0 0", fontSize: "var(--t-kecil)", color: C.muted }}>
             NCR selalu menunjuk sesuatu yang dilanggar — itu yang membedakannya
             dari cacat biasa, dan yang dicari auditor.
           </p>
@@ -1011,7 +1011,7 @@ function ModalTindakLanjut({ ncr, pengguna, onClose, onSukses }: {
     color: C.text, fontSize: 13,
   };
   const label: React.CSSProperties = {
-    display: "block", fontSize: 11, fontWeight: 700, color: C.muted,
+    display: "block", fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
     textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4,
   };
 
@@ -1048,7 +1048,7 @@ function ModalTindakLanjut({ ncr, pengguna, onClose, onSukses }: {
             <option value="">— belum ditugaskan —</option>
             {pengguna.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
           </Pilihan>
-          <span id="nc-petugas-ket" style={{ fontSize: 11, color: C.mid, lineHeight: 1.5, display: "block", marginTop: 4 }}>
+          <span id="nc-petugas-ket" style={{ fontSize: "var(--t-kecil)", color: C.mid, lineHeight: 1.5, display: "block", marginTop: 4 }}>
             Yang ditugaskan menerima notifikasi. Tanpa penanggung jawab,
             ketidaksesuaian menumpuk sampai serah terima tanpa ada yang merasa
             berkewajiban menutupnya.
@@ -1061,7 +1061,7 @@ function ModalTindakLanjut({ ncr, pengguna, onClose, onSukses }: {
             rows={2} style={{ ...isian, resize: "vertical" }}
             placeholder="mis. adukan tidak sesuai takaran; tukang belum diberi contoh"
             aria-describedby="nc-akar-ket" />
-          <span id="nc-akar-ket" style={{ fontSize: 11, color: C.mid, lineHeight: 1.5, display: "block", marginTop: 4 }}>
+          <span id="nc-akar-ket" style={{ fontSize: "var(--t-kecil)", color: C.mid, lineHeight: 1.5, display: "block", marginTop: 4 }}>
             Dipisah dari tindakan dengan sengaja: tindakan tanpa akar masalah
             memperbaiki gejala. Sepuluh NCR berakar sama adalah masalah proses,
             bukan sepuluh kecelakaan.

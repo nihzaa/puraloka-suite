@@ -127,7 +127,7 @@ function Kpi({ label, nilai, keterangan, warna }: {
   return (
     <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", flex: "1 1 190px", minWidth: 175 }}>
       <div style={{
-        fontSize: 11, fontWeight: 600, color: C.mid,
+        fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid,
         textTransform: "uppercase", letterSpacing: "0.04em",
       }}>
         {label}
@@ -163,7 +163,7 @@ function BatangBanding({ kemajuan, tersalur }: { kemajuan: number; tersalur: num
         }}>
           <span style={{ display: "block", height: "100%", width: lebar(kemajuan), background: "var(--navy)" }} />
         </span>
-        <span style={{ fontSize: 11, color: C.mid, fontVariantNumeric: "tabular-nums", minWidth: 34 }}>
+        <span style={{ fontSize: "var(--t-kecil)", color: C.mid, fontVariantNumeric: "tabular-nums", minWidth: 34 }}>
           {persen(kemajuan)}
         </span>
       </span>
@@ -177,7 +177,7 @@ function BatangBanding({ kemajuan, tersalur }: { kemajuan: number; tersalur: num
           }} />
         </span>
         <span style={{
-          fontSize: 11, fontVariantNumeric: "tabular-nums", minWidth: 34,
+          fontSize: "var(--t-kecil)", fontVariantNumeric: "tabular-nums", minWidth: 34,
           color: mendahului ? "var(--danger)" : C.mid,
         }}>
           {persen(tersalur)}
@@ -185,7 +185,7 @@ function BatangBanding({ kemajuan, tersalur }: { kemajuan: number; tersalur: num
       </span>
       {/* Label ditulis, bukan diserahkan ke warna — dua batang abu-abu tanpa
           keterangan tak bisa dibedakan siapa pun. */}
-      <span style={{ fontSize: 10, color: C.muted }}>fisik / uang</span>
+      <span style={{ fontSize: "var(--t-mikro)", color: C.muted }}>fisik / uang</span>
     </span>
   );
 }
@@ -263,7 +263,7 @@ export default function KontrakSubkonPage() {
       render: (k) => (
         <span>
           <span style={{ fontWeight: 600, color: C.text }}>{k.scope_name}</span>
-          <span style={{ display: "block", fontSize: 11, color: C.muted }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>
             {k.pelaksanaNama}
             {k.payment_system && ` · ${k.payment_system}`}
           </span>
@@ -300,7 +300,7 @@ export default function KontrakSubkonPage() {
                 yang dicari adalah arah selisihnya. */}
             {k.selisih > 0 ? "+" : ""}{persen(k.selisih)}
             {mendahului && (
-              <span style={{ display: "block", fontSize: 10, fontWeight: 500 }}>uang mendahului</span>
+              <span style={{ display: "block", fontSize: "var(--t-mikro)", fontWeight: 500 }}>uang mendahului</span>
             )}
           </span>
         );
@@ -318,7 +318,7 @@ export default function KontrakSubkonPage() {
       kunci: "status", judul: "Status",
       render: (k) => (
         <span style={{
-          padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+          padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 600, whiteSpace: "nowrap",
           color: k.status === "active" ? "var(--success)" : "var(--text-secondary)",
           background: k.status === "active" ? "var(--success-bg)" : "var(--surface-subtle)",
         }}>

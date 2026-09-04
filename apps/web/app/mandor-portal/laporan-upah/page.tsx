@@ -284,9 +284,9 @@ export default function LaporanUpahPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={dataMingguan} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
+                    <XAxis dataKey="label" tick={{ fontSize: "var(--t-kecil)", fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
                     <YAxis
-                      tick={{ fontSize: 10, fill: "var(--text-secondary)" }}
+                      tick={{ fontSize: "var(--t-mikro)", fill: "var(--text-secondary)" }}
                       axisLine={false}
                       tickLine={false}
                       tickFormatter={(v) => `${Math.round(v / 1000)}rb`}
@@ -510,7 +510,7 @@ export default function LaporanUpahPage() {
                     </button>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                    <label style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                    <label style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
                       Hari kerja
                       <input
                         type="number" min="0" max="7" step="0.5"
@@ -523,7 +523,7 @@ export default function LaporanUpahPage() {
                         }}
                       />
                     </label>
-                    <label style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                    <label style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
                       Tarif/hari (Rp)
                       <input
                         type="number" min="0"
@@ -536,7 +536,7 @@ export default function LaporanUpahPage() {
                         }}
                       />
                     </label>
-                    <label style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                    <label style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
                       Lembur (jam)
                       <input
                         type="number" min="0"
@@ -549,7 +549,7 @@ export default function LaporanUpahPage() {
                         }}
                       />
                     </label>
-                    <label style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                    <label style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
                       Tarif lembur (Rp)
                       <input
                         type="number" min="0"

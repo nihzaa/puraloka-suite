@@ -158,7 +158,7 @@ export default function MarkupPage() {
           <strong style={{ fontSize: 13, color: C.text }}>
             {formatTanggal(p.berlaku_sejak)}
           </strong>
-          <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 1 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 1 }}>
             {p.jenis_pekerjaan ?? "berlaku umum"}
           </span>
         </span>
@@ -191,7 +191,7 @@ export default function MarkupPage() {
     {
       kunci: "alasan", judul: "Alasan",
       render: (p) => (
-        <span style={{ fontSize: 11.5, color: C.mid, display: "block", maxWidth: "34ch", lineHeight: 1.45 }}>
+        <span style={{ fontSize: "var(--t-kecil)", color: C.mid, display: "block", maxWidth: "34ch", lineHeight: 1.45 }}>
           {p.alasan ?? "—"}
         </span>
       ),
@@ -295,7 +295,7 @@ export default function MarkupPage() {
                 background: i === arr.length - 1 ? "var(--surface-hover)" : "transparent",
                 border: `1px solid ${i === arr.length - 1 ? C.border : "transparent"}`,
               }}>
-                <span style={{ display: "block", fontSize: 11, color: C.muted }}>{l as string}</span>
+                <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>{l as string}</span>
                 <strong style={{
                   display: "block", marginTop: 2, fontSize: 13,
                   color: C.text, fontVariantNumeric: "tabular-nums",
@@ -315,7 +315,7 @@ export default function MarkupPage() {
           gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
         }}>
           <div>
-            <label htmlFor="mk-jenis" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+            <label htmlFor="mk-jenis" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
               Jenis pekerjaan
             </label>
             <input id="mk-jenis" style={gayaInput} value={jenis}
@@ -323,28 +323,28 @@ export default function MarkupPage() {
               placeholder="kosongkan = berlaku umum" />
           </div>
           <div>
-            <label htmlFor="mk-sejak" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+            <label htmlFor="mk-sejak" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
               Berlaku sejak
             </label>
             <input id="mk-sejak" type="date" style={gayaInput} value={sejak}
               onChange={(e) => setSejak(e.target.value)} />
           </div>
           <div>
-            <label htmlFor="mk-oh" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+            <label htmlFor="mk-oh" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
               Overhead (%)
             </label>
             <input id="mk-oh" type="number" min="0" max="100" step="any" style={gayaInput}
               value={overhead} onChange={(e) => setOverhead(e.target.value)} />
           </div>
           <div>
-            <label htmlFor="mk-untung" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+            <label htmlFor="mk-untung" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
               Keuntungan (%)
             </label>
             <input id="mk-untung" type="number" min="0" max="100" step="any" style={gayaInput}
               value={untung} onChange={(e) => setUntung(e.target.value)} />
           </div>
           <div>
-            <label htmlFor="mk-kont" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+            <label htmlFor="mk-kont" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
               Kontinjensi (%)
             </label>
             <input id="mk-kont" type="number" min="0" max="100" step="any" style={gayaInput}
@@ -353,7 +353,7 @@ export default function MarkupPage() {
           </div>
         </div>
         <div style={{ marginTop: 10 }}>
-          <label htmlFor="mk-alasan" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+          <label htmlFor="mk-alasan" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
             Alasan (opsional, tapi dicari orang berikutnya)
           </label>
           <input id="mk-alasan" style={gayaInput} value={alasan}

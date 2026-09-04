@@ -142,7 +142,7 @@ export default function JurnalkanPage() {
       render: (i) => (
         <span style={{ display: "block" }}>
           <strong style={{ fontSize: 13, color: C.text }}>{i.invoice_number}</strong>
-          <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 1 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 1 }}>
             {i.projects?.name ?? "—"}
           </span>
         </span>
@@ -177,7 +177,7 @@ export default function JurnalkanPage() {
                 href={`/akuntansi?jurnal=${i.jurnal.id}`}
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 3,
-                  fontSize: 11.5, color: "var(--aksen)", marginTop: 3,
+                  fontSize: "var(--t-kecil)", color: "var(--aksen)", marginTop: 3,
                   textDecoration: "underline",
                 }}
               >
@@ -192,7 +192,7 @@ export default function JurnalkanPage() {
             <span style={{ display: "block" }}>
               <Lencana nada="peringatan">Terhalang</Lencana>
               <span style={{
-                display: "block", fontSize: 11.5, color: C.mid,
+                display: "block", fontSize: "var(--t-kecil)", color: C.mid,
                 marginTop: 3, maxWidth: "38ch", lineHeight: 1.45,
               }}>
                 {/* Sebab disebut, bukan hanya tombol yang mati. Tombol mati
@@ -219,7 +219,7 @@ export default function JurnalkanPage() {
       // warna untuk menemukan apa pun.
       render: (i) => (
         i.jurnal
-          ? <span style={{ fontSize: 11.5, color: C.muted }}>—</span>
+          ? <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>—</span>
           : (
             <Tombol
               kecil jenis="sekunder"
@@ -314,7 +314,7 @@ export default function JurnalkanPage() {
                     aria-pressed={saring === nilai}
                     onClick={() => setSaring(nilai)}
                     style={{
-                      padding: "4px 10px", borderRadius: 999, fontSize: 11.5,
+                      padding: "4px 10px", borderRadius: 999, fontSize: "var(--t-kecil)",
                       fontWeight: 600, cursor: "pointer",
                       // `--aksen`/`--on-aksen`, BUKAN `--navy` + `#fff`.
                       //

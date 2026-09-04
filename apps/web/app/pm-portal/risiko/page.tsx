@@ -189,17 +189,17 @@ export default function PmRisikoPage() {
                 <>
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
-                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Total</div>
+                      <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Total</div>
                       <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)" }}>{dataRisiko.ringkas.total}</div>
                     </div>
                     <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
-                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Mendesak</div>
+                      <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Mendesak</div>
                       <div style={{ fontSize: 17, fontWeight: 700, color: dataRisiko.ringkas.mendesak > 0 ? "var(--danger)" : "var(--text-primary)" }}>
                         {dataRisiko.ringkas.mendesak}
                       </div>
                     </div>
                     <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
-                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Ekstrem</div>
+                      <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Ekstrem</div>
                       <div style={{ fontSize: 17, fontWeight: 700, color: dataRisiko.ringkas.per_tingkat.ekstrem > 0 ? "var(--danger)" : "var(--text-primary)" }}>
                         {dataRisiko.ringkas.per_tingkat.ekstrem}
                       </div>
@@ -217,17 +217,17 @@ export default function PmRisikoPage() {
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                           <div>
                             <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{r.judul}</div>
-                            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{LABEL_KATEGORI[r.kategori]} · Skor {r.skor}</div>
+                            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{LABEL_KATEGORI[r.kategori]} · Skor {r.skor}</div>
                           </div>
                           <StatusBadge status={VARIAN_TINGKAT[r.tingkat]} label={LABEL_TINGKAT[r.tingkat]} />
                         </div>
                         {r.mendesak && (
-                          <div style={{ fontSize: 11, color: "var(--danger)", marginTop: 6 }}>
+                          <div style={{ fontSize: "var(--t-kecil)", color: "var(--danger)", marginTop: 6 }}>
                             {r.alasan_mendesak.join(" · ")}
                           </div>
                         )}
                         {r.tindakan.length > 0 && (
-                          <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6 }}>
+                          <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 6 }}>
                             {r.tindakan.length} tindakan mitigasi
                           </div>
                         )}
@@ -271,12 +271,12 @@ export default function PmRisikoPage() {
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                           <div>
                             <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{i.jenis}</div>
-                            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{i.nomor ?? "Belum bernomor"}</div>
+                            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{i.nomor ?? "Belum bernomor"}</div>
                           </div>
                           <StatusBadge status={VARIAN_MASA_IZIN[i.masa]} label={LABEL_MASA_IZIN[i.masa]} />
                         </div>
                         {i.sisa_hari !== null && (
-                          <div style={{ fontSize: 11, color: i.sisa_hari < 0 ? "var(--danger)" : "var(--text-secondary)", marginTop: 6 }}>
+                          <div style={{ fontSize: "var(--t-kecil)", color: i.sisa_hari < 0 ? "var(--danger)" : "var(--text-secondary)", marginTop: 6 }}>
                             {i.sisa_hari < 0 ? `Kedaluwarsa ${Math.abs(i.sisa_hari)} hari lalu` : `Sisa ${i.sisa_hari} hari`}
                           </div>
                         )}

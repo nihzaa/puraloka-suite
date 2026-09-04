@@ -150,9 +150,9 @@ export default function KlienPage() {
           </div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{c.contact_person}</div>
-            {c.company_name && <div style={{ fontSize: 11, color: C.mid }}>{c.company_name}</div>}
+            {c.company_name && <div style={{ fontSize: "var(--t-kecil)", color: C.mid }}>{c.company_name}</div>}
             {c.notes && (
-              <div style={{ fontSize: 11, color: C.muted, marginTop: 2, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={c.notes}>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={c.notes}>
                 {c.notes}
               </div>
             )}
@@ -179,7 +179,7 @@ export default function KlienPage() {
           </div>
           {c.email && (
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 11, color: C.mid }}>{c.email}</span>
+              <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}>{c.email}</span>
               <a
                 href={`mailto:${c.email}`}
                 onClick={e => e.stopPropagation()}
@@ -197,7 +197,7 @@ export default function KlienPage() {
     {
       kunci: "tipe", judul: "Tipe",
       render: c => (
-        <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: c.client_type === "perusahaan" ? "var(--info-bg)" : "var(--success-bg)", color: c.client_type === "perusahaan" ? "var(--info)" : C.green, fontWeight: 500 }}>
+        <span style={{ fontSize: "var(--t-kecil)", padding: "2px 8px", borderRadius: 99, background: c.client_type === "perusahaan" ? "var(--info-bg)" : "var(--success-bg)", color: c.client_type === "perusahaan" ? "var(--info)" : C.green, fontWeight: 500 }}>
           {c.client_type === "perusahaan" ? "Perusahaan" : "Perorangan"}
         </span>
       ),
@@ -210,12 +210,12 @@ export default function KlienPage() {
       render: c => {
         const kurang = c.is_active ? medanKurang(c) : [];
         if (kurang.length === 0) {
-          return <span style={{ fontSize: 11, color: C.muted }}>—</span>;
+          return <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>—</span>;
         }
         return (
           <span style={{
             display: "inline-flex", alignItems: "center", gap: 4,
-            fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+            fontSize: "var(--t-kecil)", fontWeight: 600, whiteSpace: "nowrap",
             padding: "2px 8px", borderRadius: 99,
             background: C.yellowBg, color: C.onWarningBg,
             border: `1px solid ${C.yellowBorder}`,
@@ -230,7 +230,7 @@ export default function KlienPage() {
     {
       kunci: "status", judul: "Status",
       render: c => (
-        <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: c.is_active ? C.greenBg : "var(--surface-hover)", color: c.is_active ? C.green : C.mid, fontWeight: 500 }}>
+        <span style={{ fontSize: "var(--t-kecil)", padding: "2px 8px", borderRadius: 99, background: c.is_active ? C.greenBg : "var(--surface-hover)", color: c.is_active ? C.green : C.mid, fontWeight: 500 }}>
           {c.is_active ? "Aktif" : "Nonaktif"}
         </span>
       ),
@@ -375,15 +375,15 @@ export default function KlienPage() {
             background: C.surface, border: `1px dashed ${C.border}`,
             display: "flex", flexDirection: "column", justifyContent: "center",
           }}>
-            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: ".03em", textTransform: "uppercase", color: C.muted, marginBottom: 6 }}>
+            <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, letterSpacing: ".03em", textTransform: "uppercase", color: C.muted, marginBottom: 6 }}>
               Piutang per Klien
             </div>
-            <p style={{ margin: 0, fontSize: 11, color: C.mid, lineHeight: 1.5 }}>
+            <p style={{ margin: 0, fontSize: "var(--t-kecil)", color: C.mid, lineHeight: 1.5 }}>
               Tidak dihitung di sini — datanya butuh izin keuangan, dan angka
               yang kosong karena izin terbaca sama seperti angka nol.
             </p>
             <Link href="/keuangan/piutang" style={{
-              marginTop: 8, fontSize: 11, fontWeight: 700, color: C.navy,
+              marginTop: 8, fontSize: "var(--t-kecil)", fontWeight: 700, color: C.navy,
               textDecoration: "none", whiteSpace: "nowrap",
             }}>
               Buka umur piutang →

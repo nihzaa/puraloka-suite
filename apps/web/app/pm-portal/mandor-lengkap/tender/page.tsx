@@ -161,7 +161,7 @@ export default function PmTenderPage() {
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
                 {jumlahPenawaran(t) === 0 ? "—" : jumlahPenawaran(t)}
               </div>
-              <div style={{ fontSize: 10, color: "var(--text-muted)" }}>penawaran</div>
+              <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-muted)" }}>penawaran</div>
             </div>
           </div>
         </button>
@@ -210,11 +210,11 @@ function DetailTender({ id, bolehKontrak, onUbah }: { id: string; bolehKontrak: 
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div style={{ background: "var(--surface-subtle)", borderRadius: 10, padding: 10 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Perkiraan</div>
+          <div style={{ fontSize: "var(--t-mikro)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Perkiraan</div>
           <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginTop: 2 }}>{rupiah(tender.nilai_perkiraan)}</div>
         </div>
         <div style={{ background: "var(--surface-subtle)", borderRadius: 10, padding: 10 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Termurah</div>
+          <div style={{ fontSize: "var(--t-mikro)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Termurah</div>
           <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginTop: 2 }}>{rupiah(b.nilai_termurah)}</div>
         </div>
       </div>
@@ -248,11 +248,11 @@ function DetailTender({ id, bolehKontrak, onUbah }: { id: string; bolehKontrak: 
                 {p.nilai === null ? "tidak menawar" : rupiah(p.nilai)}
               </span>
             </div>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 3 }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 3 }}>
               {p.waktu_kerja_hari !== null && `${p.waktu_kerja_hari} hari · `}
               {p.selisih_termurah_pct === 0 ? "termurah" : p.selisih_termurah_pct !== null ? `${p.selisih_termurah_pct > 0 ? "+" : ""}${p.selisih_termurah_pct.toFixed(1)}% vs termurah` : ""}
             </div>
-            {p.catatan && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>{p.catatan}</div>}
+            {p.catatan && <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginTop: 3 }}>{p.catatan}</div>}
 
             {bolehKontrak && tender.status === "terkirim" && !p.menang && p.nilai !== null && p.status !== "gugur" && (
               <button
@@ -327,7 +327,7 @@ function DialogPenetapan({ id, calon, bukanTermurah, onTutup, onSukses }: {
             placeholder={bukanTermurah ? "mis. Satu-satunya yang pernah mengerjakan bore pile tanah lunak, sanggup 90 hari." : "mis. Termurah dan memenuhi seluruh syarat teknis."}
             style={{ width: "100%", marginTop: 6, padding: 12, borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", resize: "vertical" }}
           />
-          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>{alasan.trim().length}/{minAlasan} karakter minimum</div>
+          <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginTop: 4 }}>{alasan.trim().length}/{minAlasan} karakter minimum</div>
         </label>
 
         {galat && (

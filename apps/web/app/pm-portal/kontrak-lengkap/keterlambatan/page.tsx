@@ -113,12 +113,12 @@ export default function PmAnalisaKeterlambatanPage() {
           ].map((k) => (
             <div key={k.label} style={{ flex: "1 1 30%", padding: "var(--pad-kartu)", borderRadius: 12, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: k.warna }}>{k.value}</div>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{k.label}</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{k.label}</div>
             </div>
           ))}
           {/* Rp0 tak boleh terbaca "tak ada risiko" — sebagian proyek dendanya memang mati (lib analisa-keterlambatan.ts). Dinyatakan, bukan disembunyikan. */}
           {data.jumlah_proyek_denda_mati > 0 && (
-            <div style={{ flex: "1 1 100%", fontSize: 11, color: "var(--text-secondary)" }}>
+            <div style={{ flex: "1 1 100%", fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
               {data.jumlah_proyek_denda_mati} proyek punya milestone telat tapi dendanya tidak aktif — estimasi paparan di atas TIDAK mencakupnya.
             </div>
           )}

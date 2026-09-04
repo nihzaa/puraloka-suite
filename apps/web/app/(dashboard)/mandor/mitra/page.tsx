@@ -112,7 +112,7 @@ export default function MitraPage() {
           </span>
           {m.daftar_hitam && (
             <span style={{
-              fontSize: 10.5, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
+              fontSize: "var(--t-mikro)", fontWeight: 700, padding: "2px 6px", borderRadius: 4,
               background: "var(--danger-bg)", color: "var(--danger)",
               border: "1px solid var(--danger-border)", whiteSpace: "nowrap",
             }}>
@@ -120,7 +120,7 @@ export default function MitraPage() {
             </span>
           )}
           {!m.aktif && !m.daftar_hitam && (
-            <span style={{ fontSize: 10.5, color: C.muted }}>nonaktif</span>
+            <span style={{ fontSize: "var(--t-mikro)", color: C.muted }}>nonaktif</span>
           )}
         </div>
       ),
@@ -223,7 +223,7 @@ export default function MitraPage() {
           ].map((k) => (
             <div key={k.l} style={{ ...GAYA_KARTU, padding: "12px 14px" }}>
               <div style={{
-                fontSize: 11, fontWeight: 700, color: C.muted,
+                fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
                 textTransform: "uppercase", letterSpacing: "0.05em",
               }}>{k.l}</div>
               <div style={{
@@ -452,7 +452,7 @@ function FormMitra({ awal, menyimpan, tutup, simpan }: {
             <option value="badan_usaha">Badan usaha — PT / CV / UD</option>
           </Pilihan>
           {awal.id && (
-            <span style={{ fontSize: 11, color: C.muted, display: "block", marginTop: 3 }}>
+            <span style={{ fontSize: "var(--t-kecil)", color: C.muted, display: "block", marginTop: 3 }}>
               Bentuk tak bisa diubah — kontrak yang sudah terbit menyebutnya.
             </span>
           )}
@@ -560,7 +560,7 @@ function DialogDaftarHitam({ mitra, menyimpan, tutup, kirim }: {
             />
             {/* Ambangnya DINYATAKAN, bukan cuma ditegakkan. Form yang menolak
                 tanpa memberitahu syaratnya membuat pemakai menebak. */}
-            <span style={{ fontSize: 11, color: C.muted, display: "block", marginTop: 3 }}>
+            <span style={{ fontSize: "var(--t-kecil)", color: C.muted, display: "block", marginTop: 3 }}>
               Minimal 10 huruf. Tanpa sebab yang bisa dibaca, keputusan ini tak
               bisa ditinjau ulang oleh siapa pun yang tak ada saat ini.
             </span>

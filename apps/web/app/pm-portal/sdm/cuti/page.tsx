@@ -180,11 +180,11 @@ export default function PmCutiPage() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{LABEL_JENIS[a.jenis]} · {a.jumlah_hari} hari</div>
-                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{a.tanggal_mulai} — {a.tanggal_selesai}</div>
+                      <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{a.tanggal_mulai} — {a.tanggal_selesai}</div>
                     </div>
                     <StatusBadge status={VARIAN_STATUS[a.status]} label={LABEL_STATUS[a.status]} />
                   </div>
-                  {a.alasan_tolak && <div style={{ fontSize: 11, color: "var(--danger)", marginTop: 6 }}>Ditolak: {a.alasan_tolak}</div>}
+                  {a.alasan_tolak && <div style={{ fontSize: "var(--t-kecil)", color: "var(--danger)", marginTop: 6 }}>Ditolak: {a.alasan_tolak}</div>}
                   {(a.status === "diajukan" || a.status === "disetujui") && (
                     <button type="button" onClick={() => void batalkan(a.id)} disabled={membatalkan === a.id}
                       style={{ marginTop: 8, fontSize: 12, fontWeight: 600, color: "var(--danger)", background: "none", border: "none", padding: 0, cursor: membatalkan === a.id ? "default" : "pointer" }}>

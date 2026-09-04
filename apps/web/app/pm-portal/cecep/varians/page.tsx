@@ -111,7 +111,7 @@ export default function PmVariansPage() {
               <span style={{ fontSize: 16, fontWeight: 700, color: "var(--navy)" }}>{fmtRupiah(data.meta.exposure_total)}</span>
             </div>
             {data.meta.actual_belum_dipetakan > 0 && (
-              <div style={{ fontSize: 11, color: "var(--on-warning-bg)", background: "var(--warning-bg)", padding: "6px 8px", borderRadius: 8, marginTop: 4 }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--on-warning-bg)", background: "var(--warning-bg)", padding: "6px 8px", borderRadius: 8, marginTop: 4 }}>
                 {fmtRupiah(data.meta.actual_belum_dipetakan)} belum terpetakan ke cost code manapun.
               </div>
             )}
@@ -140,7 +140,7 @@ export default function PmVariansPage() {
                   <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{b.name}</div>
                 </div>
                 {b.serapan_pct !== null && (
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-secondary)", flexShrink: 0 }}>{b.serapan_pct.toFixed(1)}%</span>
+                  <span style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: "var(--text-secondary)", flexShrink: 0 }}>{b.serapan_pct.toFixed(1)}%</span>
                 )}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 12 }}>

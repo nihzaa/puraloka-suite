@@ -163,7 +163,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Riwayat Serapan Dana</div>
             {!collapsed && (
-              <div style={{ fontSize: 11, color: C.muted }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
                 {loading ? "Memuat..." : totalEntries === 0 ? "Belum ada data" : `${totalEntries} entri · ${uniqueItems} item · ${weeks.length} minggu`}
               </div>
             )}
@@ -239,7 +239,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
                 display: "grid", gridTemplateColumns: "28px 1fr 80px 72px 72px 72px 72px 80px 110px 36px",
                 gap: 6, padding: "8px 16px",
                 background: "var(--surface-hover)", borderBottom: `1px solid var(--border)`,
-                fontSize: 10, fontWeight: 700, color: C.muted,
+                fontSize: "var(--t-mikro)", fontWeight: 700, color: C.muted,
               }}>
                 <div />
                 <div>Item Pekerjaan</div>
@@ -287,7 +287,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
                           <span style={{ fontSize: 12, fontWeight: 700, color: C.navy }}>
                             {week.weekLabel}
                           </span>
-                          <span style={{ fontSize: 10, color: C.muted, marginLeft: 8 }}>
+                          <span style={{ fontSize: "var(--t-mikro)", color: C.muted, marginLeft: 8 }}>
                             {week.entries.length} item
                           </span>
                         </div>
@@ -313,7 +313,7 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
                           }}>
                             {week.totalPct.toFixed(1)}%
                           </span>
-                          <div style={{ fontSize: 10, color: C.muted }}>rata-rata/item</div>
+                          <div style={{ fontSize: "var(--t-mikro)", color: C.muted }}>rata-rata/item</div>
                         </div>
                         <div /><div />
                       </div>
@@ -337,10 +337,10 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
                                 {entry.rab_items?.name ?? "—"}
                               </div>
                               {entry.notes && (
-                                <div style={{ fontSize: 10, color: C.muted }}>{entry.notes}</div>
+                                <div style={{ fontSize: "var(--t-mikro)", color: C.muted }}>{entry.notes}</div>
                               )}
                             </div>
-                            <div style={{ textAlign: "right", color: C.mid, fontSize: 11 }}>
+                            <div style={{ textAlign: "right", color: C.mid, fontSize: "var(--t-kecil)" }}>
                               M{entry.week_number}
                             </div>
                             <div style={{ textAlign: "right", color: "var(--info)" }}>
@@ -359,14 +359,14 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
                               <span style={{
                                 fontWeight: 700, color: "var(--warning)",
                                 background: "var(--warning-bg)", borderRadius: 6,
-                                padding: "2px 6px", fontSize: 11,
+                                padding: "2px 6px", fontSize: "var(--t-kecil)",
                               }}>
                                 {total.toFixed(1)}%
                               </span>
                             </div>
-                            <div style={{ fontSize: 10, color: C.muted }}>
+                            <div style={{ fontSize: "var(--t-mikro)", color: C.muted }}>
                               {entry.logged_by_user?.name ?? "—"}
-                              <div style={{ fontSize: 10 }}>{fmtDate(entry.logged_at)}</div>
+                              <div style={{ fontSize: "var(--t-mikro)" }}>{fmtDate(entry.logged_at)}</div>
                             </div>
                             <div style={{ position: "relative" }}>
                               {canEdit && confirmDelete !== entry.id && (
@@ -392,18 +392,18 @@ export function AbsorptionLogTable({ projectId, refreshKey, canEdit, onAddClick,
                                   whiteSpace: "nowrap",
                                 }}>
                                   <AlertCircle size={11} style={{ color: C.red }} />
-                                  <span style={{ fontSize: 10, color: C.red, fontWeight: 600 }}>Hapus?</span>
+                                  <span style={{ fontSize: "var(--t-mikro)", color: C.red, fontWeight: 600 }}>Hapus?</span>
                                   <button
                                     onClick={() => handleDelete(entry.id)}
                                     style={{
-                                      padding: "2px 6px", borderRadius: 6, fontSize: 10, fontWeight: 700,
+                                      padding: "2px 6px", borderRadius: 6, fontSize: "var(--t-mikro)", fontWeight: 700,
                                       background: C.red, color: "#fff", border: "none", cursor: "pointer",
                                     }}
                                   >Ya</button>
                                   <button
                                     onClick={() => setConfirmDelete(null)}
                                     style={{
-                                      padding: "2px 6px", borderRadius: 6, fontSize: 10, fontWeight: 600,
+                                      padding: "2px 6px", borderRadius: 6, fontSize: "var(--t-mikro)", fontWeight: 600,
                                       background: "var(--surface-hover)", color: C.mid, border: "1px solid var(--border)", cursor: "pointer",
                                     }}
                                   >Batal</button>

@@ -25,7 +25,7 @@ export function StatusBadge({ label, color, bg, border }: {
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 4,
-      padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600,
+      padding: "2px 8px", borderRadius: 99, fontSize: "var(--t-kecil)", fontWeight: 600,
       color, background: bg, border: `1px solid ${border ?? bg}`, whiteSpace: "nowrap",
     }}>
       <span style={{ width: 5, height: 5, borderRadius: "50%", background: color, flexShrink: 0 }} />
@@ -90,9 +90,9 @@ export function AccountCard({ acc, onClick }: { acc: CashAccount; onClick: () =>
           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>{acc.name}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 10, fontWeight: 600, color: meta.color, background: meta.bg, padding: "0px 6px", borderRadius: 6 }}>{meta.label}</span>
-          {acc.owner && <span style={{ fontSize: 11, color: C.muted }}>{acc.owner.name}</span>}
-          {acc.projects && <span style={{ fontSize: 11, color: C.muted }}>· {acc.projects.name}</span>}
+          <span style={{ fontSize: "var(--t-mikro)", fontWeight: 600, color: meta.color, background: meta.bg, padding: "0px 6px", borderRadius: 6 }}>{meta.label}</span>
+          {acc.owner && <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>{acc.owner.name}</span>}
+          {acc.projects && <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>· {acc.projects.name}</span>}
         </div>
       </div>
       <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -106,7 +106,7 @@ export function AccountCard({ acc, onClick }: { acc: CashAccount; onClick: () =>
             matahari, tempat beda kuning/merah praktis hilang. */}
         {labelSaldo(keadaan) && (
           <div style={{
-            fontSize: 10, color: minus ? C.red : C.yellow,
+            fontSize: "var(--t-mikro)", color: minus ? C.red : C.yellow,
             fontWeight: minus ? 700 : 600,
           }}>{labelSaldo(keadaan)}</div>
         )}
@@ -141,13 +141,13 @@ export function TransferRow({ t, canConfirm, onConfirm, onCancel }: {
           <ArrowRightLeft size={11} color={C.muted} />
           <span style={{ fontSize: 12, fontWeight: 600, color: C.navy }}>{t.to_account?.name ?? "—"}</span>
         </div>
-        <div style={{ display: "flex", gap: 12, fontSize: 11, color: C.muted, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 12, fontSize: "var(--t-kecil)", color: C.muted, flexWrap: "wrap" }}>
           <span>{fmtDate(t.transfer_date)}</span>
           {t.ref_number && <span>Ref: {t.ref_number}</span>}
           {t.creator && <span>oleh {t.creator.name}</span>}
           {t.confirmer && <span>· dikonfirmasi {t.confirmer.name}</span>}
         </div>
-        {t.notes && <div style={{ fontSize: 11, color: C.mid, marginTop: 2, fontStyle: "italic" }}>{t.notes}</div>}
+        {t.notes && <div style={{ fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2, fontStyle: "italic" }}>{t.notes}</div>}
       </div>
       <div style={{ textAlign: "right", flexShrink: 0 }}>
         <div style={{ fontSize: 15, fontWeight: 800, color: C.text, fontFamily: "var(--font-display)", marginBottom: 6 }}>
@@ -156,8 +156,8 @@ export function TransferRow({ t, canConfirm, onConfirm, onCancel }: {
         <StatusBadge label={st.label} color={st.color} bg={st.bg} />
         {canConfirm && t.status === "pending" && (
           <div style={{ display: "flex", gap: 4, justifyContent: "flex-end", marginTop: 8 }}>
-            <button onClick={() => onCancel(t.id)} style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 11, cursor: "pointer" }}>Batal</button>
-            <button onClick={() => onConfirm(t.id)} style={{ padding: "4px 8px", borderRadius: 6, border: "none", background: C.green, color: "var(--surface)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Konfirmasi</button>
+            <button onClick={() => onCancel(t.id)} style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: "var(--t-kecil)", cursor: "pointer" }}>Batal</button>
+            <button onClick={() => onConfirm(t.id)} style={{ padding: "4px 8px", borderRadius: 6, border: "none", background: C.green, color: "var(--surface)", fontSize: "var(--t-kecil)", fontWeight: 600, cursor: "pointer" }}>Konfirmasi</button>
           </div>
         )}
       </div>
@@ -190,7 +190,7 @@ export function ExpenseRow({ e, canReview, onApprove, onReject }: {
             <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{e.description}</span>
             <StatusBadge label={st.label} color={st.color} bg={st.bg} border={EXPENSE_STATUS[e.status]?.border} />
           </div>
-          <div style={{ display: "flex", gap: 8, fontSize: 11, color: C.muted, flexWrap: "wrap", marginBottom: 2 }}>
+          <div style={{ display: "flex", gap: 8, fontSize: "var(--t-kecil)", color: C.muted, flexWrap: "wrap", marginBottom: 2 }}>
             <span>{e.projects?.name ?? "—"}</span>
             <span>·</span>
             <span>{e.category?.name ?? "—"}</span>
@@ -198,7 +198,7 @@ export function ExpenseRow({ e, canReview, onApprove, onReject }: {
             <span>·</span>
             <span>{fmtDate(e.expense_date)}</span>
           </div>
-          <div style={{ display: "flex", gap: 8, fontSize: 11, color: C.muted, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 8, fontSize: "var(--t-kecil)", color: C.muted, flexWrap: "wrap" }}>
             <span style={{ background: "var(--surface-hover)", padding: "0px 6px", borderRadius: 6 }}>{SOURCE_LABEL[e.expense_source]}</span>
             {e.petty_cash && <span style={{ background: C.navyLight, color: C.navy, padding: "0px 6px", borderRadius: 6 }}>dari: {e.petty_cash.name}</span>}
             {e.main_cash && <span style={{ background: C.navyLight, color: C.navy, padding: "0px 6px", borderRadius: 6 }}>dari: {e.main_cash.name}</span>}
@@ -212,14 +212,14 @@ export function ExpenseRow({ e, canReview, onApprove, onReject }: {
           </div>
           {e.receipt_url && (
             <a href={e.receipt_url} target="_blank" rel="noopener noreferrer"
-              style={{ fontSize: 10, color: C.navy, display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end", marginBottom: 4 }}>
+              style={{ fontSize: "var(--t-mikro)", color: C.navy, display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end", marginBottom: 4 }}>
               <FileText size={10} /> Lihat nota
             </a>
           )}
           {canReview && e.status === "submitted" && (
             <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
-              <button onClick={() => onReject(e.id)} style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Tolak</button>
-              <button onClick={() => onApprove(e.id)} style={{ padding: "4px 8px", borderRadius: 6, border: "none", background: C.green, color: "var(--surface)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Setujui</button>
+              <button onClick={() => onReject(e.id)} style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red, fontSize: "var(--t-kecil)", fontWeight: 600, cursor: "pointer" }}>Tolak</button>
+              <button onClick={() => onApprove(e.id)} style={{ padding: "4px 8px", borderRadius: 6, border: "none", background: C.green, color: "var(--surface)", fontSize: "var(--t-kecil)", fontWeight: 600, cursor: "pointer" }}>Setujui</button>
             </div>
           )}
         </div>

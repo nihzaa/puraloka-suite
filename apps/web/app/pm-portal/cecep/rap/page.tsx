@@ -153,7 +153,7 @@ export default function PmRapDaftarPage() {
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{r.name}</div>
             {r.locked_at && (
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
                 Terkunci {new Date(r.locked_at).toLocaleDateString("id-ID")}
               </div>
             )}

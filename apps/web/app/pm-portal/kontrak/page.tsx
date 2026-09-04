@@ -76,25 +76,25 @@ export default function PmKontrakPage() {
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Model Kontrak</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Model Kontrak</div>
               <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>
                 {(proyek.contract_model && LABEL_MODEL[proyek.contract_model]) ?? proyek.contract_model ?? "—"}
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Skema Pajak</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Skema Pajak</div>
               <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>
                 {(proyek.tax_scheme && LABEL_PAJAK[proyek.tax_scheme]) ?? proyek.tax_scheme ?? "—"}
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Retensi</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Retensi</div>
               <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>
                 {fmtPersen(proyek.retention_pct)}{proyek.retention_amount ? ` (${fmtRupiah(proyek.retention_amount)})` : ""}
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Komisi</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Komisi</div>
               <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{fmtPersen(proyek.commission_pct)}</div>
             </div>
           </div>

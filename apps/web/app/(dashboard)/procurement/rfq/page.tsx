@@ -207,7 +207,7 @@ function PutusanTerekam({
       {rfq.alasan_pilih ? (
         <div style={{ marginTop: hasil ? 10 : 8 }}>
           <div style={{
-            fontSize: 11, fontWeight: 700, color: C.muted,
+            fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
             textTransform: "uppercase", letterSpacing: "0.05em",
           }}>
             Alasan pemilihan
@@ -429,7 +429,7 @@ export default function RfqPage() {
         render: (b) => (
           <>
             {b.material_name}
-            {b.unit && <span style={{ fontSize: 11, color: C.mid }}> · {b.unit}</span>}
+            {b.unit && <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}> · {b.unit}</span>}
           </>
         ),
       },
@@ -444,7 +444,7 @@ export default function RfqPage() {
           if (!s || s.harga_satuan == null) {
             // "Tidak menawar" ditulis sebagai KATA, bukan sel kosong: sel
             // kosong tak bisa dibedakan dari data yang hilang.
-            return <span style={{ fontSize: 11, color: C.muted }}>tak menawar</span>;
+            return <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>tak menawar</span>;
           }
           return (
             <span style={{
@@ -453,11 +453,11 @@ export default function RfqPage() {
             }}>
               {rupiah(s.harga_satuan)}
               {s.termurah ? (
-                <span style={{ display: "block", fontSize: 10, fontWeight: 600, color: "var(--success)" }}>
+                <span style={{ display: "block", fontSize: "var(--t-mikro)", fontWeight: 600, color: "var(--success)" }}>
                   termurah
                 </span>
               ) : s.selisih_pct != null && s.selisih_pct > 0 ? (
-                <span style={{ display: "block", fontSize: 10, fontWeight: 400, color: C.muted }}>
+                <span style={{ display: "block", fontSize: "var(--t-mikro)", fontWeight: 400, color: C.muted }}>
                   +{s.selisih_pct.toFixed(1)}%
                 </span>
               ) : null}
@@ -474,7 +474,7 @@ export default function RfqPage() {
               : b.rentang_pct >= 10 ? "var(--danger)" : C.mid,
           }}>
             {b.rentang_pct == null ? (
-              <span style={{ fontSize: 11, fontWeight: 400 }}>
+              <span style={{ fontSize: "var(--t-kecil)", fontWeight: 400 }}>
                 {b.harga_termurah == null ? "tak ada penawaran" : "1 penawar"}
               </span>
             ) : `${b.rentang_pct.toFixed(1)}%`}
@@ -489,7 +489,7 @@ export default function RfqPage() {
     borderRadius: 10, boxShadow: "var(--naik-1)",
   };
   const labelGaya: React.CSSProperties = {
-    fontSize: 11, fontWeight: 700, color: C.muted,
+    fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
     textTransform: "uppercase", letterSpacing: "0.05em",
   };
   const isianGaya: React.CSSProperties = {
@@ -592,7 +592,7 @@ export default function RfqPage() {
                     </option>
                   ))}
                 </Pilihan>
-                <span id="rq-mr-ket" style={{ fontSize: 11, color: C.mid, lineHeight: 1.5 }}>
+                <span id="rq-mr-ket" style={{ fontSize: "var(--t-kecil)", color: C.mid, lineHeight: 1.5 }}>
                   {!mrLayak
                     ? "Memuat kebutuhan…"
                     : mrLayak.layak.length === 0
@@ -631,7 +631,7 @@ export default function RfqPage() {
               {/* `aria-live` polite, bukan alert: ini keterangan yang menyusul
                   perbuatan pemakai, bukan galat yang menyela. */}
               {buatProyek && !buatNomor.trim() && !membuat && (
-                <span aria-live="polite" style={{ fontSize: 11, color: C.mid }}>
+                <span aria-live="polite" style={{ fontSize: "var(--t-kecil)", color: C.mid }}>
                   Isi nomor RFQ dulu
                 </span>
               )}
@@ -684,7 +684,7 @@ export default function RfqPage() {
                       atasnya sudah menyebutnya, dan mengulanginya membuat
                       mata mencari beda yang tak ada. Yang dibawa panel ini
                       adalah yang belum terlihat: bahan dan jumlahnya. */}
-                  <div style={{ fontSize: 11.5, color: C.mid, marginBottom: 7 }}>
+                  <div style={{ fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 7 }}>
                     Yang akan dimintakan harga
                     {dipilih.tanpa_material > 0 && (
                       // Item tanpa material tak bisa jadi baris penawaran
@@ -709,7 +709,7 @@ export default function RfqPage() {
                             dari 115" adalah angka yang bisa diperiksa; "30"
                             saja adalah angka yang harus dipercaya. */}
                         {it.qty_diminta > it.qty && (
-                          <span style={{ fontSize: 11, color: C.mid, fontVariantNumeric: "tabular-nums" }}>
+                          <span style={{ fontSize: "var(--t-kecil)", color: C.mid, fontVariantNumeric: "tabular-nums" }}>
                             sisa dari {it.qty_diminta} — {it.qty_diminta - it.qty} sudah dipesan
                           </span>
                         )}
@@ -753,7 +753,7 @@ export default function RfqPage() {
                       membedakan warna, dan pembaca layar, sama-sama butuh
                       teksnya (WCAG 1.4.1). */}
                   <span style={{
-                    padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600,
+                    padding: "3px 10px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 600,
                     color: STATUS_META[rfqAktif.status].warna,
                     background: STATUS_META[rfqAktif.status].bg,
                     border: `1px solid ${STATUS_META[rfqAktif.status].border}`,
@@ -851,7 +851,7 @@ export default function RfqPage() {
                         }}>
                           {v.jumlah_ditawar === 0 ? "Belum menawar" : rupiah(v.total_penawaran)}
                         </div>
-                        <div style={{ fontSize: 11, color: C.mid, marginTop: 3, lineHeight: 1.5 }}>
+                        <div style={{ fontSize: "var(--t-kecil)", color: C.mid, marginTop: 3, lineHeight: 1.5 }}>
                           {v.jumlah_ditawar === 0
                             ? "tak satu pun material ditawar"
                             : `termurah di ${v.jumlah_termurah} dari ${tabulasi.baris.length} material`}
@@ -896,7 +896,7 @@ export default function RfqPage() {
 
                     <p style={{
                       margin: 0, padding: "10px 14px", borderTop: `1px solid ${C.border}`,
-                      background: "var(--surface-subtle)", fontSize: 11, color: C.mid, lineHeight: 1.55,
+                      background: "var(--surface-subtle)", fontSize: "var(--t-kecil)", color: C.mid, lineHeight: 1.55,
                     }}>
                       Bila tiap material diambil dari vendor termurahnya masing-masing,
                       totalnya <strong>{rupiah(tabulasi.total_termurah_gabungan)}</strong>.
@@ -1019,7 +1019,7 @@ export default function RfqPage() {
                             placeholder="mis. stok siap kirim 2 hari; vendor termurah inden 3 minggu"
                             style={{ ...isianGaya, resize: "vertical", fontFamily: "inherit", lineHeight: 1.5 }}
                           />
-                          <p id="rq-alasan-bantu" style={{ fontSize: 11, color: C.muted, margin: 0, lineHeight: 1.5 }}>
+                          <p id="rq-alasan-bantu" style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: 0, lineHeight: 1.5 }}>
                             {alasanWajib
                               ? `Minimal 10 huruf. Inilah yang dibaca saat seseorang bertanya kenapa yang lebih mahal yang dipilih${alasanPilih.trim().length > 0 && !alasanCukup ? ` — baru ${alasanPilih.trim().length} huruf` : ""}.`
                               : "Vendor ini termurah di semua material yang ia tawar, jadi alasan tak diminta. Isi bila ada yang perlu dicatat."}

@@ -205,7 +205,7 @@ const metaKecil: React.CSSProperties = {
   fontSize: 12, color: "var(--text-secondary)",
 };
 const pilNonaktif: React.CSSProperties = {
-  fontSize: 11, fontWeight: 700, padding: "3px 8px",
+  fontSize: "var(--t-kecil)", fontWeight: 700, padding: "3px 8px",
   borderRadius: "var(--portal-radius-pill)", flexShrink: 0,
   background: "var(--surface-subtle)", color: "var(--text-muted)",
 };

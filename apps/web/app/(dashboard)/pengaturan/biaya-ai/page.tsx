@@ -274,7 +274,7 @@ function Konten() {
                   <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
                   <XAxis
                     dataKey="tanggal"
-                    tick={{ fontSize: 11, fill: C.muted }}
+                    tick={{ fontSize: "var(--t-kecil)", fill: C.muted }}
                     tickLine={false}
                     axisLine={{ stroke: "var(--border)" }}
                     // Hanya tanggalnya — label penuh membuat sumbu bertumpuk
@@ -283,7 +283,7 @@ function Konten() {
                     minTickGap={16}
                   />
                   <YAxis
-                    tick={{ fontSize: 11, fill: C.muted }}
+                    tick={{ fontSize: "var(--t-kecil)", fill: C.muted }}
                     tickLine={false}
                     axisLine={false}
                     width={52}
@@ -340,7 +340,7 @@ function Kpi({
     <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
         {ikon && <span style={{ color: C.muted, display: "grid", placeItems: "center" }}>{ikon}</span>}
-        <span style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: C.muted }}>
+        <span style={{ fontSize: "var(--t-kecil)", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: C.muted }}>
           {judul}
         </span>
       </div>
@@ -358,7 +358,7 @@ function Kpi({
         {nilai}
       </div>
       {catatan && (
-        <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>{catatan}</div>
+        <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4, lineHeight: 1.5 }}>{catatan}</div>
       )}
     </div>
   );
@@ -394,7 +394,7 @@ function Rincian({
                 >
                   {peta?.[d.kunci] ?? d.kunci}
                 </span>
-                <span style={{ fontSize: 11.5, color: C.muted, whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: "var(--t-kecil)", color: C.muted, whiteSpace: "nowrap" }}>
                   {d.panggilan.toLocaleString("id-ID")}×
                 </span>
                 <span style={{ fontSize: 12.5, fontWeight: 600, color: C.text, whiteSpace: "nowrap", minWidth: 76, textAlign: "right" }}>

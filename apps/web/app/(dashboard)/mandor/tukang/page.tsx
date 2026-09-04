@@ -175,7 +175,7 @@ export default function DaftarTukangPage() {
                       {(w.skills ?? []).length > 0 && (
                         <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 3 }}>
                           {(w.skills ?? []).map(s => (
-                            <span key={s} style={{ fontSize: 10, padding: "0px 4px", borderRadius: 6, background: C.blueBg, color: C.blue, border: `1px solid ${C.blueBorder}` }}>
+                            <span key={s} style={{ fontSize: "var(--t-mikro)", padding: "0px 4px", borderRadius: 6, background: C.blueBg, color: C.blue, border: `1px solid ${C.blueBorder}` }}>
                               {SKILL_LABELS[s] ?? s}
                             </span>
                           ))}
@@ -190,11 +190,11 @@ export default function DaftarTukangPage() {
                 render: (w) => {
                   const tipeColor = w.tipe ? TIPE_COLORS[w.tipe] : null;
                   return tipeColor ? (
-                    <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 6, background: tipeColor.bg, color: tipeColor.color }}>
+                    <span style={{ fontSize: "var(--t-kecil)", fontWeight: 600, padding: "2px 8px", borderRadius: 6, background: tipeColor.bg, color: tipeColor.color }}>
                       {TIPE_LABELS[w.tipe!]}
                     </span>
                   ) : (
-                    <span style={{ fontSize: 11, color: C.muted }}>—</span>
+                    <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>—</span>
                   );
                 },
               },
@@ -219,7 +219,7 @@ export default function DaftarTukangPage() {
               {
                 kunci: "status", judul: "Status", lebar: 90,
                 render: (w) => (
-                  <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 6, background: w.is_active ? "var(--success-bg)" : "var(--surface-hover)", color: w.is_active ? "var(--on-success-bg)" : C.muted }}>
+                  <span style={{ fontSize: "var(--t-kecil)", fontWeight: 600, padding: "2px 8px", borderRadius: 6, background: w.is_active ? "var(--success-bg)" : "var(--surface-hover)", color: w.is_active ? "var(--on-success-bg)" : C.muted }}>
                     {w.is_active ? "Aktif" : "Nonaktif"}
                   </span>
                 ),

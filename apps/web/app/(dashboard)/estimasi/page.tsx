@@ -405,7 +405,7 @@ function Lencana({ status }: { status: StatusVersi }) {
         color: w.fg,
         borderRadius: "var(--radius-dense)",
         padding: "2px 8px",
-        fontSize: 11,
+        fontSize: "var(--t-kecil)",
         fontWeight: 600,
         whiteSpace: "nowrap",
       }}

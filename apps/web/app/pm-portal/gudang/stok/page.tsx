@@ -117,7 +117,7 @@ export default function PmStokPage() {
           style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", textAlign: "left", cursor: "pointer" }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{s.material?.name ?? "—"}</div>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{s.material?.category?.name ?? "Tanpa kategori"}</div>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{s.material?.category?.name ?? "Tanpa kategori"}</div>
             {dibawahAmbang(s) && (
               /*
                 Peringatan disertai ANGKA ambangnya, bukan kata "menipis" saja.
@@ -126,7 +126,7 @@ export default function PmStokPage() {
                 menjawab berapa yang kurang. Angka menjawabnya tanpa membuka
                 halaman lain.
               */
-              <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 11, fontWeight: 600, color: "var(--warning-teks)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: "var(--t-kecil)", fontWeight: 600, color: "var(--warning-teks)" }}>
                 <TriangleAlert size={12} aria-hidden="true" />
                 <span>Di bawah minimum ({s.material?.min_stock} {s.material?.unit ?? ""})</span>
               </div>
@@ -158,7 +158,7 @@ export default function PmStokPage() {
           <div key={m.id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
             <div>
               <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>{m.movement_type}</div>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{m.created_at.slice(0, 10)} · {m.created_by?.name ?? "—"}</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{m.created_at.slice(0, 10)} · {m.created_by?.name ?? "—"}</div>
             </div>
             <div style={{ fontSize: 13, fontWeight: 700, color: Number(m.qty) < 0 ? "var(--danger)" : "var(--success)" }}>
               {Number(m.qty) > 0 ? "+" : ""}{m.qty}

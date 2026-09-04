@@ -368,7 +368,7 @@ function KartuTemplate({ t, sibuk, bolehKelola, bolehTerap, onSalin, onTerapkan,
             {t.code}
             <span style={{ color: C.muted, fontWeight: 500 }}> v{t.version_number}</span>
             <span style={{
-              marginInlineStart: 10, fontSize: 11.5, fontWeight: 700, color: m.warna,
+              marginInlineStart: 10, fontSize: "var(--t-kecil)", fontWeight: 700, color: m.warna,
               textTransform: "uppercase", letterSpacing: "0.04em",
             }}>
               {m.label}
@@ -376,7 +376,7 @@ function KartuTemplate({ t, sibuk, bolehKelola, bolehTerap, onSalin, onTerapkan,
             {t.milik_bersama && (
               <span style={{
                 marginInlineStart: 8, display: "inline-flex", alignItems: "center", gap: 4,
-                fontSize: 11, color: C.mid, fontWeight: 500,
+                fontSize: "var(--t-kecil)", color: C.mid, fontWeight: 500,
               }}>
                 <Users size={11} aria-hidden="true" /> katalog bersama
               </span>
@@ -401,7 +401,7 @@ function KartuTemplate({ t, sibuk, bolehKelola, bolehTerap, onSalin, onTerapkan,
             <Layers size={14} aria-hidden="true" />
             {t.jumlahNode}
           </div>
-          <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>
+          <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 1 }}>
             baris struktur
           </div>
         </div>
@@ -593,7 +593,7 @@ function FormBuat({ salinDari, onTutup, onSelesai }: {
           placeholder="cth: RUMAH-2LT"
           style={GAYA_ISIAN}
         />
-        <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
+        <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
           Kode yang sama menghasilkan <strong>versi berikutnya</strong>, bukan galat — itulah
           cara merevisi template yang sudah aktif.
         </div>

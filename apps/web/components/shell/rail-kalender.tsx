@@ -140,7 +140,7 @@ export function RailKalender({
                 key={h}
                 role="columnheader"
                 style={{
-                  textAlign: "center", fontSize: 10, fontWeight: 700,
+                  textAlign: "center", fontSize: "var(--t-mikro)", fontWeight: 700,
                   letterSpacing: ".02em", color: C.muted, paddingBottom: 4,
                 }}
               >
@@ -218,7 +218,7 @@ export function RailKalender({
           gagal memuat; kalimat ini menyatakan bahwa bulannya memang lengang.
         */}
         <p style={{
-          margin: "10px 0 0", fontSize: 11, color: C.muted, lineHeight: 1.4,
+          margin: "10px 0 0", fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.4,
         }}>
           {jumlahBulanIni > 0
             ? <><strong style={{ color: C.text, fontWeight: 600 }}>{jumlahBulanIni} hari</strong> punya tenggat milestone bulan ini.</>

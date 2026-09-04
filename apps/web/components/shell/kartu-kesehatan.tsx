@@ -182,7 +182,7 @@ export function KartuKesehatan({ masukan }: { masukan: MasukanKesehatan }) {
           <text
             x={UKURAN / 2} y={UKURAN / 2 + 15}
             textAnchor="middle" dominantBaseline="central"
-            style={{ fontSize: 11, fontWeight: 500, fill: C.mid }}
+            style={{ fontSize: "var(--t-kecil)", fontWeight: 500, fill: C.mid }}
           >
             /100
           </text>

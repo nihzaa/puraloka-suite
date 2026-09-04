@@ -181,7 +181,7 @@ function Kpi({ label, nilai, keterangan, warna }: {
     // menyusun kartunya sendiri seluruhnya 22px. Dua sistem untuk satu jenis
     // kartu, dan bedanya cukup besar untuk terlihat saat berpindah halaman.
     <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)" }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+      <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
         {label}
       </div>
       <div style={{
@@ -261,7 +261,7 @@ function KartuKesiapan({ p }: { p: Kesiapan }) {
         )}
       </div>
 
-      <div style={{ fontSize: 11, color: C.muted, marginTop: 8, lineHeight: 1.45 }}>
+      <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 8, lineHeight: 1.45 }}>
         {p.skorTerakhir == null
           ? "belum pernah dinilai"
           : "skor evaluasi terbaru"}
@@ -315,7 +315,7 @@ function IsiKepatuhan() {
       render: (d) => (
         <span>
           <span style={{ fontWeight: 600, color: C.text }}>{d.pihak_nama ?? "—"}</span>
-          {d.nomor && <span style={{ display: "block", fontSize: 11, color: C.muted }}>{d.nomor}</span>}
+          {d.nomor && <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>{d.nomor}</span>}
         </span>
       ),
     },
@@ -328,7 +328,7 @@ function IsiKepatuhan() {
       render: (d) => (
         <span>
           <span style={{
-            padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+            padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 600, whiteSpace: "nowrap",
             color: STATUS_DOK[d.status].warna, background: STATUS_DOK[d.status].bg,
           }}>
             {STATUS_DOK[d.status].label}
@@ -337,7 +337,7 @@ function IsiKepatuhan() {
             // Bukan pengulangan status: yang ditandai di sini adalah CENTANG
             // HIJAU atas dokumen yang sudah mati — keadaan yang paling
             // menyesatkan pembacanya.
-            <span style={{ display: "block", fontSize: 11, color: "var(--danger)", fontWeight: 600, marginTop: 3 }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: "var(--danger)", fontWeight: 600, marginTop: 3 }}>
               bercentang terverifikasi
             </span>
           )}
@@ -350,7 +350,7 @@ function IsiKepatuhan() {
         <span style={{ color: d.status === "kedaluwarsa" ? "var(--danger)" : C.mid, whiteSpace: "nowrap" }}>
           {d.berlaku_sampai ? tanggalTerbaca(d.berlaku_sampai) : "tak bermasa"}
           {d.sisaHari != null && (
-            <span style={{ display: "block", fontSize: 11 }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)" }}>
               {d.sisaHari < 0 ? `lewat ${Math.abs(d.sisaHari)} hari` : `${d.sisaHari} hari lagi`}
             </span>
           )}
@@ -373,7 +373,7 @@ function IsiKepatuhan() {
       render: (e) => (
         <span>
           <span style={{ fontWeight: 600, color: C.text }}>{e.pihak_nama ?? "—"}</span>
-          <span style={{ display: "block", fontSize: 11, color: C.muted }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>
             periode {tanggalTerbaca(e.periode)}
           </span>
         </span>
@@ -390,7 +390,7 @@ function IsiKepatuhan() {
           {e.skor}
           {/* Rata-rata polos dibawa untuk DIBANDINGKAN — bobot K3 25% dan
               kerjasama 10% membuat keduanya bisa jauh berbeda. */}
-          <span style={{ display: "block", fontSize: 11, fontWeight: 400, color: C.mid }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 400, color: C.mid }}>
             rata polos {e.rataPolos}
           </span>
         </span>
@@ -413,7 +413,7 @@ function IsiKepatuhan() {
             )}
             {pel > 0 && (
               <span style={{
-                display: "block", fontSize: 11,
+                display: "block", fontSize: "var(--t-kecil)",
                 color: pel >= 3 ? "var(--danger)" : C.mid,
                 fontWeight: pel >= 3 ? 600 : 400,
               }}>
@@ -432,7 +432,7 @@ function IsiKepatuhan() {
         ) : (
           <span style={{ color: "var(--danger)", fontWeight: 600 }}>
             Tidak
-            <span style={{ display: "block", fontSize: 11, fontWeight: 400, color: C.mid }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 400, color: C.mid }}>
               {e.alasanTakBolehDipakai.join(" · ")}
             </span>
           </span>
@@ -452,7 +452,7 @@ function IsiKepatuhan() {
       render: (z) => (
         <span>
           <span style={{ fontWeight: 600, color: C.text, fontVariantNumeric: "tabular-nums" }}>{z.nomor}</span>
-          <span style={{ display: "block", fontSize: 11, color: C.muted }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>
             {LABEL_IZIN[z.jenis] ?? z.jenis}
           </span>
         </span>
@@ -463,7 +463,7 @@ function IsiKepatuhan() {
       render: (z) => (
         <span>
           <span style={{ fontSize: 13, color: C.text }}>{z.uraian_pekerjaan}</span>
-          {z.lokasi && <span style={{ display: "block", fontSize: 11, color: C.muted }}>{z.lokasi}</span>}
+          {z.lokasi && <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>{z.lokasi}</span>}
         </span>
       ),
     },
@@ -481,7 +481,7 @@ function IsiKepatuhan() {
       render: (z) => (
         <span>
           <span style={{
-            padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+            padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 600, whiteSpace: "nowrap",
             color: STATUS_IZIN[z.statusNyata].warna, background: STATUS_IZIN[z.statusNyata].bg,
           }}>
             {STATUS_IZIN[z.statusNyata].label}
@@ -489,12 +489,12 @@ function IsiKepatuhan() {
           {z.disetujuiTapiLewat && (
             // Kolom `status` di basis masih 'disetujui'. Yang membacanya dari
             // sana saja akan mengira pekerjaannya berizin.
-            <span style={{ display: "block", fontSize: 11, color: "var(--danger)", fontWeight: 700, marginTop: 3 }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: "var(--danger)", fontWeight: 700, marginTop: 3 }}>
               tercatat &ldquo;disetujui&rdquo; — pekerjaan TIDAK BERIZIN
             </span>
           )}
           {z.statusNyata === "tak_berlaku" && z.alasan_tolak && (
-            <span style={{ display: "block", fontSize: 11, color: C.mid, marginTop: 3 }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 3 }}>
               {z.alasan_tolak}
             </span>
           )}

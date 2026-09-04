@@ -121,7 +121,7 @@ function Kpi({ label, nilai, keterangan, warna }: {
   return (
     <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", flex: "1 1 190px", minWidth: 175 }}>
       <div style={{
-        fontSize: 11, fontWeight: 600, color: C.mid,
+        fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid,
         textTransform: "uppercase", letterSpacing: "0.04em",
       }}>
         {label}
@@ -254,7 +254,7 @@ export default function JadwalPerawatanPage() {
       render: (j) => (
         <span>
           <span style={{ fontWeight: 600, color: C.text }}>{j.nama}</span>
-          <span style={{ display: "block", fontSize: 11, color: C.muted }}>{j.jenis}</span>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>{j.jenis}</span>
         </span>
       ),
     },
@@ -263,7 +263,7 @@ export default function JadwalPerawatanPage() {
       render: (j) => (
         <span>
           <span style={{ fontSize: 12, color: C.text }}>{j.alatNama}</span>
-          <span style={{ display: "block", fontSize: 11, color: C.muted }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>
             {j.alatKode}{j.alatMerek && ` · ${j.alatMerek}`}
           </span>
         </span>
@@ -275,7 +275,7 @@ export default function JadwalPerawatanPage() {
         const m = STATUS_META[j.jatuhTempo.status];
         return (
           <span style={{
-            padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600,
+            padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 600,
             color: m.warna, background: m.bg, whiteSpace: "nowrap",
           }}>
             {m.label}

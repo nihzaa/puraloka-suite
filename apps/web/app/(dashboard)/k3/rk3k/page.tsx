@@ -138,7 +138,7 @@ export default function HalamanRk3k() {
         }}>
           <div style={{ flex: "1 1 280px", minWidth: 0 }}>
             <label htmlFor="rk3k-pilih-proyek" style={{
-              fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Proyek</label>
             <Pilihan

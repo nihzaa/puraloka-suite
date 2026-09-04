@@ -228,7 +228,7 @@ export default function ImporPage() {
     }}>
       <span style={{
         width: 20, height: 20, borderRadius: 999, display: "inline-flex",
-        alignItems: "center", justifyContent: "center", fontSize: 11,
+        alignItems: "center", justifyContent: "center", fontSize: "var(--t-kecil)",
         border: `1px solid ${tahap === n ? "var(--aksen)" : tahap > n ? "var(--success-border)" : C.border}`,
         background: tahap === n ? "var(--aksen)" : "transparent",
         color: tahap === n ? "var(--on-aksen)" : tahap > n ? "var(--success)" : C.muted,
@@ -272,7 +272,7 @@ export default function ImporPage() {
 
           <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
             <div>
-              <label htmlFor="im-skema" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+              <label htmlFor="im-skema" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
                 Jenis data
               </label>
               <Pilihan id="im-skema" style={gayaInput} value={pilihSkema}
@@ -281,13 +281,13 @@ export default function ImporPage() {
                 {skema.map((s) => <option key={s.kunci} value={s.kunci}>{s.label}</option>)}
               </Pilihan>
               {aktif && (
-                <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 4, lineHeight: 1.45 }}>
+                <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 4, lineHeight: 1.45 }}>
                   {aktif.keterangan}
                 </span>
               )}
             </div>
             <div>
-              <label htmlFor="im-berkas" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+              <label htmlFor="im-berkas" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
                 Berkas (.xlsx / .csv)
               </label>
               <input id="im-berkas" type="file" accept=".xlsx,.xls,.csv"
@@ -306,7 +306,7 @@ export default function ImporPage() {
                 href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/api/v1/impor/${aktif.kunci}/template`}>
                 Unduh template CSV
               </Tombol>
-              <span style={{ fontSize: 11.5, color: C.muted }}>
+              <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
                 Kolom bertanda <strong>*</strong> wajib diisi.
               </span>
             </div>
@@ -337,7 +337,7 @@ export default function ImporPage() {
                 <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, color: C.text }}>
                   Ekspor {aktif.label} yang sudah ada
                 </span>
-                <span style={{ display: "block", fontSize: 11.5, color: C.muted, lineHeight: 1.55, marginTop: 2 }}>
+                <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.55, marginTop: 2 }}>
                   Berkasnya memakai kolom yang sama dengan template — bisa disunting
                   massal di Excel lalu diunggah kembali di atas.
                 </span>
@@ -353,7 +353,7 @@ export default function ImporPage() {
 
           {aktif && (
             <div style={{ marginTop: 12 }}>
-              <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 5 }}>
+              <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 5 }}>
                 Kolom yang bisa diisi:
               </span>
               <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
@@ -396,7 +396,7 @@ export default function ImporPage() {
                 <span style={{ fontSize: 12.5, color: C.text }}>
                   {u.kolomBerkas}
                   {u.skor > 0 && (
-                    <span style={{ display: "block", fontSize: 11, color: C.muted }}>
+                    <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>
                       cocok {Math.round(u.skor * 100)}%
                     </span>
                   )}
@@ -478,7 +478,7 @@ export default function ImporPage() {
                   Lima baris pertama, sebagaimana akan tersimpan:
                 </p>
                 <pre style={{
-                  margin: 0, padding: 10, borderRadius: 8, fontSize: 11.5,
+                  margin: 0, padding: 10, borderRadius: 8, fontSize: "var(--t-kecil)",
                   background: "var(--surface-hover)", border: `1px solid ${C.border}`,
                   overflowX: "auto", color: C.text,
                 }}>{JSON.stringify(contohHasil, null, 2)}</pre>

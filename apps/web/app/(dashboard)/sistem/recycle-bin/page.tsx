@@ -146,7 +146,7 @@ export default function RecycleBinPage() {
               {kerja === it.id ? "Memulihkan…" : "Pulihkan"}
             </Tombol>
           )
-          : <span style={{ fontSize: 11.5, color: C.muted }}>tak berhak</span>
+          : <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>tak berhak</span>
       ),
     },
   ];
@@ -212,7 +212,7 @@ export default function RecycleBinPage() {
                       aria-pressed={aktif === j.kunci}
                       onClick={() => setAktif(j.kunci)}
                       style={{
-                        padding: "4px 10px", borderRadius: 999, fontSize: 11.5,
+                        padding: "4px 10px", borderRadius: 999, fontSize: "var(--t-kecil)",
                         fontWeight: 600, cursor: "pointer",
                         border: `1px solid ${aktif === j.kunci ? "var(--aksen)" : C.border}`,
                         background: aktif === j.kunci ? "var(--aksen)" : "transparent",

@@ -123,7 +123,7 @@ export default function PmKeuanganPage() {
                     {k.work_scopes?.mandor_assignments?.projects?.name ?? "—"} · {fmtDate(k.kasbon_date)}
                   </div>
                   {k.notes && <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4, fontStyle: "italic" }}>{k.notes}</div>}
-                  {PURPOSE_LABEL[k.purpose] && <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>Keperluan: {PURPOSE_LABEL[k.purpose]}</div>}
+                  {PURPOSE_LABEL[k.purpose] && <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 2 }}>Keperluan: {PURPOSE_LABEL[k.purpose]}</div>}
                 </div>
                 {isPending && (
                   <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>

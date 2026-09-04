@@ -106,7 +106,7 @@ function priorityBadge(priority: string) {
   if (priority === "urgent") {
     return (
       <span style={{
-        fontSize: 10, fontWeight: 700, padding: "0px 4px",
+        fontSize: "var(--t-mikro)", fontWeight: 700, padding: "0px 4px",
         borderRadius: 6, background: C.redBg, color: C.red,
         letterSpacing: "0.03em", textTransform: "uppercase",
       }}>URGEN</span>
@@ -115,7 +115,7 @@ function priorityBadge(priority: string) {
   if (priority === "high") {
     return (
       <span style={{
-        fontSize: 10, fontWeight: 700, padding: "0px 4px",
+        fontSize: "var(--t-mikro)", fontWeight: 700, padding: "0px 4px",
         borderRadius: 6, background: C.yellowBg, color: C.yellow,
         letterSpacing: "0.03em", textTransform: "uppercase",
       }}>PENTING</span>
@@ -441,7 +441,7 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
           background: C.navy,
           border: "1.5px solid var(--surface)",
           color: "var(--surface)",
-          fontSize: 10, fontWeight: 700,
+          fontSize: "var(--t-mikro)", fontWeight: 700,
           display: "flex", alignItems: "center", justifyContent: "center",
           lineHeight: 1,
           padding: unreadCount > 9 ? "0 3px" : 0,
@@ -483,7 +483,7 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
           <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Notifikasi</span>
           {unreadCount > 0 && (
             <span style={{
-              fontSize: 11, fontWeight: 700,
+              fontSize: "var(--t-kecil)", fontWeight: 700,
               padding: "0px 6px", borderRadius: 9999,
               background: "var(--grad-aksen)", color: "var(--surface)",
             }}>{unreadCount}</span>
@@ -505,7 +505,7 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
                 padding: "4px 8px", borderRadius: 6,
                 border: `1px solid ${pushAktif ? C.navy : C.border}`,
                 background: "transparent",
-                fontSize: 11, color: pushAktif ? C.navy : C.mid,
+                fontSize: "var(--t-kecil)", color: pushAktif ? C.navy : C.mid,
                 cursor: pushProses ? "wait" : "pointer",
                 opacity: pushProses ? 0.6 : 1,
               }}
@@ -522,7 +522,7 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
                 display: "flex", alignItems: "center", gap: 4,
                 padding: "4px 8px", borderRadius: 6,
                 border: `1px solid ${C.border}`, background: "transparent",
-                fontSize: 11, color: C.mid, cursor: "pointer",
+                fontSize: "var(--t-kecil)", color: C.mid, cursor: "pointer",
               }}
             >
               <CheckCheck size={11} /> Tandai Semua Dibaca
@@ -645,7 +645,7 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
                     )}
                   </div>
                   <p style={{
-                    margin: 0, fontSize: 11, color: C.mid,
+                    margin: 0, fontSize: "var(--t-kecil)", color: C.mid,
                     display: "-webkit-box",
                     WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
                     overflow: "hidden",
@@ -653,7 +653,7 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
                   }}>
                     {notif.message}
                   </p>
-                  <span style={{ fontSize: 10, color: C.muted, marginTop: 4, display: "block" }}>
+                  <span style={{ fontSize: "var(--t-mikro)", color: C.muted, marginTop: 4, display: "block" }}>
                     {relativeTime(notif.sent_at)}
                   </span>
                   <ActionButtons notif={notif} onAction={handleAction} />

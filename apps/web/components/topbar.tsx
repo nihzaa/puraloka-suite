@@ -333,7 +333,7 @@ function TombolCari({ onClick }: { onClick: () => void }) {
         display: "flex", alignItems: "center", gap: 2,
         padding: "0px 4px", borderRadius: 6,
         background: "var(--surface)", border: "1px solid var(--border)",
-        fontSize: 10, color: "var(--text-muted)", flexShrink: 0,
+        fontSize: "var(--t-mikro)", color: "var(--text-muted)", flexShrink: 0,
       }}>
         <Command size={9} /> K
       </kbd>

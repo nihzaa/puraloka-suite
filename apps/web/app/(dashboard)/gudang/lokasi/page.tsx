@@ -282,7 +282,7 @@ function KartuGudang({ g, sibuk, bolehKelola, onSunting, onUbahAktif }: {
             <span style={{ color: C.mid, fontWeight: 500 }}> · {g.nama}</span>
             {!g.aktif && (
               <span style={{
-                marginInlineStart: 10, fontSize: 11.5, fontWeight: 700, color: C.muted,
+                marginInlineStart: 10, fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
                 textTransform: "uppercase", letterSpacing: "0.04em",
               }}>
                 nonaktif
@@ -314,7 +314,7 @@ function KartuGudang({ g, sibuk, bolehKelola, onSunting, onUbahAktif }: {
             <Package size={14} aria-hidden="true" />
             {g.jenis_material}
           </div>
-          <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>
+          <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 1 }}>
             jenis material
             {berisi && (
               <>
@@ -385,7 +385,7 @@ function KartuGudang({ g, sibuk, bolehKelola, onSunting, onUbahAktif }: {
           </button>
 
           {g.aktif && berisi && (
-            <span style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.45 }}>
+            <span style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.45 }}>
               Masih menyimpan {g.jenis_material} jenis material.
             </span>
           )}
@@ -523,7 +523,7 @@ function FormGudang({ mode, awal, anggota, onTutup, onSelesai }: {
             style={{ ...GAYA_ISIAN, opacity: mode === "sunting" ? 0.6 : 1 }}
           />
           {mode === "sunting" && (
-            <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
               Kode tak bisa diubah — dokumen lama menunjuk kode ini.
             </div>
           )}
@@ -557,7 +557,7 @@ function FormGudang({ mode, awal, anggota, onTutup, onSelesai }: {
             <option key={a.id} value={a.id}>{a.name}</option>
           ))}
         </Pilihan>
-        <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
+        <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
           Gudang tanpa penanggung jawab adalah gudang yang selisih stoknya tak bisa
           ditanyakan ke siapa pun.
         </div>

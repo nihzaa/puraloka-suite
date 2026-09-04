@@ -107,7 +107,7 @@ export function ModalHapusBerstatus({ sasaran, onClose, onSukses }: {
             <strong style={{ color: C.text }}>{sasaran.nama}</strong> dihapus permanen.
             Tak bisa dikembalikan.
           </p>
-          <p style={{ margin: 0, fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.5 }}>
             Statusnya masih <strong>{sasaran.status}</strong> — belum bergerak ke mana
             pun, jadi tak ada jejak yang hilang karenanya. {sasaran.gantinya}
           </p>

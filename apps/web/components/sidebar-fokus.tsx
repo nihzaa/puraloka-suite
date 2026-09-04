@@ -129,7 +129,7 @@ export function SidebarFokus({ collapsed }: { collapsed: boolean }) {
         gap: 6, marginBottom: bersih ? 0 : 7,
       }}>
         <span style={{
-          fontSize: 10, fontWeight: 700, letterSpacing: ".05em",
+          fontSize: "var(--t-mikro)", fontWeight: 700, letterSpacing: ".05em",
           textTransform: "uppercase",
           color: adaYangLewat ? "rgba(255,255,255,.75)" : "var(--text-muted)",
         }}>Fokus hari ini</span>
@@ -159,7 +159,7 @@ export function SidebarFokus({ collapsed }: { collapsed: boolean }) {
                 color: "var(--on-aksen)",
               }}>{fokus.lewat}</div>
               <div style={{
-                fontSize: 10, marginTop: 3, display: "flex",
+                fontSize: "var(--t-mikro)", marginTop: 3, display: "flex",
                 alignItems: "center", gap: 2,
                 color: "rgba(255,255,255,.85)",
               }}>
@@ -176,7 +176,7 @@ export function SidebarFokus({ collapsed }: { collapsed: boolean }) {
                 color: adaYangLewat ? "rgba(255,255,255,.85)" : "var(--aksen)",
               }}>{fokus.menunggu}</div>
               <div style={{
-                fontSize: 10, marginTop: 3,
+                fontSize: "var(--t-mikro)", marginTop: 3,
                 color: adaYangLewat ? "rgba(255,255,255,.7)" : "var(--text-muted)",
               }}>menunggu putusan</div>
             </div>

@@ -141,7 +141,7 @@ const buatKolom = (
           </span>
         )}
         {b.status === "ditolak" && b.alasan_tolak && (
-          <span style={{ display: "block", fontSize: 11, color: "var(--danger)", marginTop: 2 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: "var(--danger)", marginTop: 2 }}>
             Ditolak: {b.alasan_tolak}
           </span>
         )}
@@ -178,7 +178,7 @@ const buatKolom = (
           <span
             title="Jam kerja normal melebihi jam standar tanpa dicatat sebagai lembur. Bisa jadi memang disepakati — yang penting selisihnya terlihat sebelum masuk laporan biaya."
             style={{
-              display: "block", fontSize: 10, fontWeight: 700,
+              display: "block", fontSize: "var(--t-mikro)", fontWeight: 700,
               color: "var(--warning-teks)",
             }}
           >di atas jam standar</span>
@@ -193,7 +193,7 @@ const buatKolom = (
       return (
         <span style={{
           display: "inline-block", padding: "2px 8px", borderRadius: 999,
-          fontSize: 11, fontWeight: 700,
+          fontSize: "var(--t-kecil)", fontWeight: 700,
           color: s.warna, background: s.bg, border: `1px solid ${s.border}`,
         }}>{s.label}</span>
       );
@@ -250,7 +250,7 @@ const buatKolom = (
           // Yang sudah disetujui tak bisa diubah — persetujuan mengikat pada
           // isi yang disetujui. Tombolnya dihilangkan supaya tak menjanjikan
           // sesuatu yang akan ditolak server.
-          <span style={{ fontSize: 11, color: C.muted }}>terkunci</span>
+          <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>terkunci</span>
         ) : (
           <button
             type="button" onClick={() => onIsi(b)}
@@ -436,7 +436,7 @@ export default function TimesheetPage() {
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
         <div className="rise" style={{ ...kartu, padding: "12px 16px", minWidth: 260, flex: "1 1 260px", maxWidth: 400 }}>
           <label htmlFor="ts-pegawai" style={{
-            fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+            fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
             marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
           }}>Pegawai</label>
           <Pilihan
@@ -458,7 +458,7 @@ export default function TimesheetPage() {
 
         <div className="rise" style={{ ...kartu, padding: "12px 16px", minWidth: 180, flex: "0 1 220px" }}>
           <label htmlFor="ts-bulan" style={{
-            fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+            fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
             marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
           }}>Bulan</label>
           <input
@@ -490,11 +490,11 @@ export default function TimesheetPage() {
               { l: "Disetujui", v: r.per_status.disetujui, sub: `dari ${r.hari_terisi} baris` },
             ].map((k) => (
               <div key={k.l} style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.l}</div>
                 <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text,
                   fontVariantNumeric: "tabular-nums" }}>{k.v}</div>
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{k.sub}</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>{k.sub}</div>
               </div>
             ))}
           </div>
@@ -514,7 +514,7 @@ export default function TimesheetPage() {
                 {r.hari_kosong.slice(0, 8).map(tanggalPendek).join(" · ")}
                 {r.hari_kosong.length > 8 && ` · +${r.hari_kosong.length - 8} lagi`}
               </p>
-              <p style={{ fontSize: 11, color: C.mid, margin: "6px 0 0", maxWidth: "68ch", lineHeight: 1.5 }}>
+              <p style={{ fontSize: "var(--t-kecil)", color: C.mid, margin: "6px 0 0", maxWidth: "68ch", lineHeight: 1.5 }}>
                 Kalau memang tak bekerja (cuti, libur, sakit), abaikan — yang kosong
                 <strong> tidak dihitung nol jam</strong>. Akhir pekan tak ikut disebut.
               </p>
@@ -524,7 +524,7 @@ export default function TimesheetPage() {
           {r.per_proyek.length > 0 && (
             <div className="rise" style={{ ...kartu, padding: "14px 18px", marginBottom: 14 }}>
               <div style={{
-                fontSize: 11, fontWeight: 700, color: C.muted, marginBottom: 8,
+                fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, marginBottom: 8,
                 textTransform: "uppercase", letterSpacing: "0.05em",
               }}>Jam per proyek</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -633,7 +633,7 @@ export default function TimesheetPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <label htmlFor="ts-tanggal" style={{
-              fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Tanggal <span style={{ color: "var(--danger)" }}>· wajib</span></label>
             <input
@@ -645,7 +645,7 @@ export default function TimesheetPage() {
                 border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text,
               }}
             />
-            <p style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
+            <p style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
               Satu baris per hari. Mengisi tanggal yang sudah ada akan
               <strong> memperbaruinya</strong>, bukan menambah baris kedua.
             </p>
@@ -654,7 +654,7 @@ export default function TimesheetPage() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
               <label htmlFor="ts-jam" style={{
-                fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+                fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
                 marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
               }}>Jam kerja</label>
               <input
@@ -668,7 +668,7 @@ export default function TimesheetPage() {
             </div>
             <div>
               <label htmlFor="ts-lembur" style={{
-                fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+                fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
                 marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
               }}>Jam lembur</label>
               <input
@@ -682,7 +682,7 @@ export default function TimesheetPage() {
               />
             </div>
           </div>
-          <p style={{ fontSize: 11, color: C.muted, margin: 0, lineHeight: 1.5 }}>
+          <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: 0, lineHeight: 1.5 }}>
             Lembur diisi <strong>sendiri</strong>, tidak dihitung dari selisih jam
             standar: lembur harus diperintahkan, dan lembur di hari libur tetap
             penuh meski totalnya di bawah standar.
@@ -690,7 +690,7 @@ export default function TimesheetPage() {
 
           <div>
             <label htmlFor="ts-proyek" style={{
-              fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Dibebankan ke proyek</label>
             <Pilihan
@@ -703,7 +703,7 @@ export default function TimesheetPage() {
               <option value="">— overhead kantor (tak melekat proyek) —</option>
               {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </Pilihan>
-            <p style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
+            <p style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
               Kosongkan kalau waktunya memang overhead kantor. Memilih proyek asal
               justru merusak angka yang dicari.
             </p>
@@ -711,7 +711,7 @@ export default function TimesheetPage() {
 
           <div>
             <label htmlFor="ts-kegiatan" style={{
-              fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Kegiatan</label>
             <input
@@ -766,7 +766,7 @@ export default function TimesheetPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <label htmlFor="ts-alasan" style={{
-              fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Alasan <span style={{ color: "var(--danger)" }}>· wajib</span></label>
             <textarea
@@ -778,7 +778,7 @@ export default function TimesheetPage() {
                 color: C.text, resize: "vertical", fontFamily: "inherit",
               }}
             />
-            <p style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
+            <p style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
               Yang mengajukan harus tahu <strong>apa</strong> yang perlu diperbaiki,
               bukan sekadar bahwa ditolak.
             </p>

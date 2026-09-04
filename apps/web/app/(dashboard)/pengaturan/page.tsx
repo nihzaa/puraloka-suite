@@ -276,7 +276,7 @@ function PengaturanContent() {
                       position: "relative",
                     }}>
                     {logoUploading && (
-                      <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,0.8)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: C.navy }}>
+                      <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,0.8)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--t-kecil)", color: C.navy }}>
                         Uploading...
                       </div>
                     )}
@@ -354,7 +354,7 @@ function PengaturanContent() {
                     style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", background: isAdmin ? "var(--surface)" : "var(--surface-subtle)", color: C.text, boxSizing: "border-box" }}
                     placeholder="INV"
                   />
-                  <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
+                  <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4 }}>
                     Format: {profile.invoice_prefix || "INV"}/2026/06/001
                   </div>
                 </div>

@@ -206,17 +206,17 @@ export default function JsaPage() {
             borderLeft: masihTinggi ? "3px solid var(--danger)" : "3px solid transparent",
           }}>
             <span style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 11, color: C.muted, fontWeight: 700 }}>{l.urutan}</span>
+              <span style={{ fontSize: "var(--t-kecil)", color: C.muted, fontWeight: 700 }}>{l.urutan}</span>
               <strong style={{ fontSize: 13, color: C.text }}>{l.langkah}</strong>
             </span>
-            <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 2, maxWidth: "56ch" }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2, maxWidth: "56ch" }}>
               <strong style={{ color: C.mid }}>Bahaya:</strong> {l.bahaya}
             </span>
-            <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 1, maxWidth: "56ch" }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 1, maxWidth: "56ch" }}>
               <strong style={{ color: C.mid }}>Kendali:</strong> {l.pengendalian}
             </span>
             {l.apd_wajib && (
-              <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 2 }}>
+              <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>
                 APD: {l.apd_wajib}
               </span>
             )}
@@ -253,7 +253,7 @@ export default function JsaPage() {
                 * Terlihat di layar: baris "16 → 4" berfaktor "4×4" —
                 * dua angka 4 yang artinya berbeda, dan pembacanya bisa
                 * mengira 4×4 adalah asal angka 4 di sebelah kanan. */}
-            <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 1 }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 1 }}>
               {l.dampak}×{l.kemungkinan}
               {sisa === null
                 ? " · belum dinilai ulang"
@@ -308,7 +308,7 @@ export default function JsaPage() {
         <>
           <Kartu pad="sedang">
             <label htmlFor="jsa-pilih" style={{
-              fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Jenis pekerjaan</label>
             <Pilihan

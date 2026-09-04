@@ -321,7 +321,7 @@ function InvoicePageInner() {
               ))}
             </tbody>
           </table>
-          <p style={{ fontSize: 11, color: C.muted, textAlign: "right", paddingTop: 12 }}>
+          <p style={{ fontSize: "var(--t-kecil)", color: C.muted, textAlign: "right", paddingTop: 12 }}>
             {invoices.length} invoice ditampilkan
           </p>
         </div>

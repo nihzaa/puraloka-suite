@@ -331,7 +331,7 @@ export default function AdminDetailRekonsiliasiBankPage() {
                     {Number(b.kredit) > 0 ? `+${formatRupiah(b.kredit)}` : `−${formatRupiah(b.debit)}`}
                   </span>
                 </div>
-                <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{formatTanggal(b.tanggal)}</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{formatTanggal(b.tanggal)}</div>
                 {u && koran.status === "terbuka" && bolehKelola && (
                   <button
                     type="button"

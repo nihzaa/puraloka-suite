@@ -185,7 +185,7 @@ export default function PmKlaimKontraktualPage() {
           ].map((k) => (
             <div key={k.label} style={{ flex: "1 1 30%", padding: "var(--pad-kartu)", borderRadius: 12, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: k.warna }}>{k.value}</div>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{k.label}</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{k.label}</div>
             </div>
           ))}
         </div>
@@ -205,7 +205,7 @@ export default function PmKlaimKontraktualPage() {
             <StatusBadge status={VARIAN_STATUS[k.status] ?? "netral"} label={LABEL_STATUS[k.status] ?? k.status} />
           </div>
           {(k.batas_pemberitahuan.keadaan === "mendesak" || k.batas_pemberitahuan.keadaan === "terlambat") && (
-            <div role="alert" style={{ fontSize: 11, fontWeight: 700, color: "var(--danger)", background: "var(--danger-bg)", padding: "4px 10px", borderRadius: 8, alignSelf: "flex-start" }}>
+            <div role="alert" style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: "var(--danger)", background: "var(--danger-bg)", padding: "4px 10px", borderRadius: 8, alignSelf: "flex-start" }}>
               {LABEL_BATAS[k.batas_pemberitahuan.keadaan]}
               {k.batas_pemberitahuan.sisaHari !== null && ` · sisa ${k.batas_pemberitahuan.sisaHari} hari`}
             </div>
@@ -324,7 +324,7 @@ export default function PmKlaimKontraktualPage() {
               <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
                 Nilai Disetujui (Rp)
                 {statusPutus === "disetujui" && (
-                  <span style={{ display: "block", fontWeight: 400, fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
+                  <span style={{ display: "block", fontWeight: 400, fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 2 }}>
                     Disetujui penuh wajib sama dengan nilai diklaim — untuk nilai berbeda pakai &quot;Disetujui Sebagian&quot;.
                   </span>
                 )}

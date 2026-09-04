@@ -88,7 +88,7 @@ function KartuBerlaku({ label, m }: { label: string; m: MarkupTerpilih | null })
         <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-secondary)" }}>{label}</div>
         <div style={{ fontSize: 18, fontWeight: 700, color: "var(--navy)" }}>{fmtPct(m.buk)}</div>
       </div>
-      <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>
+      <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 4 }}>
         Overhead {fmtPct(m.overhead)} · Keuntungan {fmtPct(m.keuntungan)} · Kontinjensi {fmtPct(m.kontinjensi)}
         {m.dari_umum ? " · dari aturan umum" : ""}
       </div>
@@ -158,11 +158,11 @@ export default function PmMarkupPage() {
                       <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Berlaku sejak {fmtTanggal(p.berlaku_sejak)}</span>
                       <span style={{ fontSize: 14, fontWeight: 700, color: "var(--navy)" }}>BUK {fmtPct(p.buk_fraksi)}</span>
                     </div>
-                    <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
+                    <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 2 }}>
                       Overhead {fmtPct(p.overhead_fraksi)} · Keuntungan {fmtPct(p.keuntungan_fraksi)} · Kontinjensi {fmtPct(p.kontinjensi_fraksi)}
                     </div>
                     {p.alasan && (
-                      <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4, fontStyle: "italic" }}>{p.alasan}</div>
+                      <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 4, fontStyle: "italic" }}>{p.alasan}</div>
                     )}
                   </div>
                 ))}

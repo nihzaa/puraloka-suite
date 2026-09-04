@@ -202,16 +202,16 @@ export default function JadwalProyekPage() {
             </div>
             <div style={{ display: "flex", gap: "var(--gap-bagian)", flexWrap: "wrap" }}>
               <div>
-                <div style={{ fontSize: 11, color: "var(--navy)" }}>Total pekerjaan</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--navy)" }}>Total pekerjaan</div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: "var(--navy)" }}>{pekerjaan.length}</div>
               </div>
               <div>
-                <div style={{ fontSize: 11, color: "var(--navy)" }}>Jalur kritis</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--navy)" }}>Jalur kritis</div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: "var(--navy)" }}>{jumlahKritis}</div>
               </div>
               {data.kalender.hariKerjaProyek !== null && (
                 <div>
-                  <div style={{ fontSize: 11, color: "var(--navy)" }}>Hari kerja</div>
+                  <div style={{ fontSize: "var(--t-kecil)", color: "var(--navy)" }}>Hari kerja</div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: "var(--navy)" }}>
                     {data.kalender.hariKerjaProyek}
                   </div>
@@ -281,7 +281,7 @@ export default function JadwalProyekPage() {
                     }}
                   />
                 </div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)" }}>
                   {progresWaktu >= 100
                     ? "Rentang waktu rencana sudah lewat"
                     : progresWaktu <= 0
@@ -310,7 +310,7 @@ export default function JadwalProyekPage() {
             `data?.cpm?.` — yang tak konsisten justru yang di sini.
           */}
           {(data.cpm?.tanpaDurasi?.length ?? 0) > 0 && (
-            <div style={{ fontSize: 11, color: "var(--text-muted)", textAlign: "center", padding: "0 8px" }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", textAlign: "center", padding: "0 8px" }}>
               {data.cpm?.tanpaDurasi?.length ?? 0} pekerjaan belum punya durasi/tanggal target — tak ikut dihitung di atas.
             </div>
           )}

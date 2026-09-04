@@ -193,12 +193,12 @@ export default function DaftarTukangPage() {
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{w.name}</span>
                       {tipeMeta && (
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: "var(--portal-radius-pill)", color: tipeMeta.warna, background: "var(--surface-hover)" }}>
+                        <span style={{ fontSize: "var(--t-mikro)", fontWeight: 700, padding: "2px 8px", borderRadius: "var(--portal-radius-pill)", color: tipeMeta.warna, background: "var(--surface-hover)" }}>
                           {tipeMeta.label}
                         </span>
                       )}
                       {!w.is_active && (
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: "var(--portal-radius-pill)", color: "var(--text-muted)", background: "var(--surface-hover)" }}>
+                        <span style={{ fontSize: "var(--t-mikro)", fontWeight: 700, padding: "2px 8px", borderRadius: "var(--portal-radius-pill)", color: "var(--text-muted)", background: "var(--surface-hover)" }}>
                           Nonaktif
                         </span>
                       )}
@@ -216,7 +216,7 @@ export default function DaftarTukangPage() {
                     {(w.skills ?? []).length > 0 && (
                       <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 4 }}>
                         {(w.skills ?? []).map((s) => (
-                          <span key={s} style={{ fontSize: 10, padding: "2px 8px", borderRadius: "var(--portal-radius-pill)", background: "var(--surface-hover)", color: "var(--text-secondary)" }}>
+                          <span key={s} style={{ fontSize: "var(--t-mikro)", padding: "2px 8px", borderRadius: "var(--portal-radius-pill)", background: "var(--surface-hover)", color: "var(--text-secondary)" }}>
                             {s}
                           </span>
                         ))}

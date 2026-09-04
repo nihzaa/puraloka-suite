@@ -63,7 +63,7 @@ function KartuAngka({ label, nilai, sub, ikon, warna, tepi }: {
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
         <span style={{ color: warna, display: "flex" }}>{ikon}</span>
         <span style={{
-          fontSize: 10, fontWeight: 700, letterSpacing: ".05em",
+          fontSize: "var(--t-mikro)", fontWeight: 700, letterSpacing: ".05em",
           textTransform: "uppercase", color: C.muted,
         }}>{label}</span>
       </div>
@@ -76,7 +76,7 @@ function KartuAngka({ label, nilai, sub, ikon, warna, tepi }: {
         fontSize: "var(--teks-kpi)", fontWeight: 700,
         color: warna, lineHeight: 1.1, fontVariantNumeric: "tabular-nums",
       }}>{nilai}</div>
-      {sub && <div style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.4 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4, lineHeight: 1.4 }}>{sub}</div>}
     </div>
   );
 }

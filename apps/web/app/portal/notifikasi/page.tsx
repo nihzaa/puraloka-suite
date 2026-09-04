@@ -118,7 +118,7 @@ export default function PortalNotifPage() {
                 <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--navy)", flexShrink: 0, marginTop: 5 }} />
               )}
             </div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8 }}>{timeAgo(n.created_at)}</div>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginTop: 8 }}>{timeAgo(n.created_at)}</div>
           </div>
         ))}
       </div>

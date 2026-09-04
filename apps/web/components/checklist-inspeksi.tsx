@@ -200,7 +200,7 @@ export function ChecklistInspeksi({ inspeksiId, bolehUbah, onBerubah }: {
                   {b.butir}
                 </div>
                 {b.acuan && (
-                  <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>
+                  <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>
                     Acuan: {b.acuan}
                   </div>
                 )}
@@ -213,7 +213,7 @@ export function ChecklistInspeksi({ inspeksiId, bolehUbah, onBerubah }: {
                   </div>
                 )}
                 {b.pemeriksa?.name && b.diperiksa_pada && (
-                  <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                  <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>
                     {b.pemeriksa.name} · {b.diperiksa_pada.slice(0, 10)}
                   </div>
                 )}
@@ -415,7 +415,7 @@ function FormTambahButir({ inspeksiId, urutanBerikut, onTutup, onSelesai }: {
         placeholder="cth: SNI 2847:2019 pasal 20.6.1"
         style={GAYA_ISIAN}
       />
-      <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
+      <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
         Acuan membuat butir ini bisa diperdebatkan dengan standar, bukan dengan pendapat.
       </div>
     </DialogBersama>
@@ -474,7 +474,7 @@ function FormTidakLolos({ butir, onTutup, onKirim }: {
       }}>
         {butir.butir}
         {butir.acuan && (
-          <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3 }}>
+          <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 3 }}>
             Acuan: {butir.acuan}
           </div>
         )}

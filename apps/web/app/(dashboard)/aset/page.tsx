@@ -327,7 +327,7 @@ function IsiAset() {
             selesainya sudah lewat — biayanya terus bertambah tiap hari.
           </span>
           <button onClick={lompatKeSewa} style={{
-            marginLeft: "auto", fontSize: 11, color: C.onDangerBg, fontWeight: 700,
+            marginLeft: "auto", fontSize: "var(--t-kecil)", color: C.onDangerBg, fontWeight: 700,
             background: "none", border: "none", cursor: "pointer", whiteSpace: "nowrap",
           }}>
             Lihat daftar sewa →
@@ -440,7 +440,7 @@ function DaftarSewaPerhatian({ baris }: { baris: BarisSewaPerhatian[] }) {
             {/* Keadaan: ikon + teks + warna, bukan warna saja. */}
             <span style={{
               display: "inline-flex", alignItems: "center", gap: 4,
-              fontSize: 11, fontWeight: 700, whiteSpace: "nowrap",
+              fontSize: "var(--t-kecil)", fontWeight: 700, whiteSpace: "nowrap",
               color: lewat ? C.onDangerBg : terbuka ? C.mid : C.onWarningBg,
             }}>
               {lewat ? <AlertTriangle size={11} aria-hidden="true" />
@@ -449,7 +449,7 @@ function DaftarSewaPerhatian({ baris }: { baris: BarisSewaPerhatian[] }) {
               {keadaan}
             </span>
 
-            <span style={{ fontSize: 11, color: C.mid, whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: "var(--t-kecil)", color: C.mid, whiteSpace: "nowrap" }}>
               {fmtRp(b.tarif)} / {b.satuan}
             </span>
 
@@ -463,7 +463,7 @@ function DaftarSewaPerhatian({ baris }: { baris: BarisSewaPerhatian[] }) {
         );
       })}
 
-      <li style={{ fontSize: 10, color: C.muted, lineHeight: 1.5, marginTop: 2 }}>
+      <li style={{ fontSize: "var(--t-mikro)", color: C.muted, lineHeight: 1.5, marginTop: 2 }}>
         <Clock size={10} aria-hidden="true" style={{ verticalAlign: "-1px", marginRight: 4 }} />
         Biaya dihitung sampai hari ini, jadi baris yang sudah lewat tanggal
         masih terus bertambah selama statusnya belum ditutup.
@@ -510,7 +510,7 @@ function TabelAset({ baris }: { baris: Aset[] }) {
             <span style={{ color: C.text, fontWeight: 600 }}>
               {a.name}
               {(a.brand || a.model) && (
-                <span style={{ color: C.muted, fontSize: 11, display: "block", fontWeight: 400 }}>
+                <span style={{ color: C.muted, fontSize: "var(--t-kecil)", display: "block", fontWeight: 400 }}>
                   {[a.brand, a.model].filter(Boolean).join(" ")}
                 </span>
               )}
@@ -539,7 +539,7 @@ function TabelAset({ baris }: { baris: Aset[] }) {
               // Warna DAN teks — WCAG 1.4.1
               <span style={{
                 display: "inline-flex", alignItems: "center", gap: 4,
-                padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600,
+                padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 600,
                 color: s.warna, background: s.bg, border: `1px solid ${s.border}`,
                 whiteSpace: "nowrap",
               }}>
@@ -554,7 +554,7 @@ function TabelAset({ baris }: { baris: Aset[] }) {
           render: (a) => (
             <span style={{ color: C.mid, whiteSpace: "nowrap" }}>
               {fmtRp(a.purchase_price)}
-              <span style={{ display: "block", fontSize: 11, color: C.muted }}>
+              <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>
                 {fmtTgl(a.purchase_date)}
               </span>
             </span>
@@ -574,7 +574,7 @@ function TabelAset({ baris }: { baris: Aset[] }) {
             a.sudah_disusutkan
               ? <span style={{ color: C.mid, whiteSpace: "nowrap" }}>{fmtRp(a.akumulasi_penyusutan)}</span>
               // Dibedakan dari "Rp 0" — belum dicatat bukan berarti nol.
-              : <span style={{ color: C.muted, fontSize: 11, fontStyle: "italic" }}>belum dicatat</span>
+              : <span style={{ color: C.muted, fontSize: "var(--t-kecil)", fontStyle: "italic" }}>belum dicatat</span>
           ),
         },
       ]}
@@ -642,7 +642,7 @@ function TabelSewa({ baris }: { baris: Sewa[] }) {
             const berjalan = r.status === "berjalan";
             return (
               <span style={{
-                padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600,
+                padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 600,
                 color: berjalan ? C.yellow : C.mid,
                 background: berjalan ? C.yellowBg : "var(--surface-subtle)",
                 border: `1px solid ${berjalan ? C.yellowBorder : C.border}`,
@@ -659,7 +659,7 @@ function TabelSewa({ baris }: { baris: Sewa[] }) {
             <span style={{ fontWeight: 700, color: C.text, whiteSpace: "nowrap" }}>
               {fmtRp(r.biaya_sampai_kini)}
               {r.status === "berjalan" && (
-                <span style={{ display: "block", fontSize: 10, color: C.muted, fontWeight: 400 }}>
+                <span style={{ display: "block", fontSize: "var(--t-mikro)", color: C.muted, fontWeight: 400 }}>
                   masih bertambah
                 </span>
               )}
@@ -713,7 +713,7 @@ function FormBaru({ jenis, onSelesai, onBatal }: {
   }
 
     const labelStyle: React.CSSProperties = {
-    display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 4,
+    display: "block", fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, marginBottom: 4,
   };
 
   return (
@@ -764,7 +764,7 @@ function FormBaru({ jenis, onSelesai, onBatal }: {
             <div>
               <label htmlFor="residual_value" style={labelStyle}>Nilai sisa (Rp)</label>
               <input className="isian-fokus" id="residual_value" name="residual_value" type="number" min="0" defaultValue={0} style={GAYA_ISIAN} />
-              <span style={{ fontSize: 10, color: C.muted, display: "block", marginTop: 3 }}>
+              <span style={{ fontSize: "var(--t-mikro)", color: C.muted, display: "block", marginTop: 3 }}>
                 Perkiraan harga jual saat umur habis — bukan nol.
               </span>
             </div>
@@ -797,7 +797,7 @@ function FormBaru({ jenis, onSelesai, onBatal }: {
                 <option value="minggu">Per minggu</option>
                 <option value="bulan">Per bulan</option>
               </Pilihan>
-              <span style={{ fontSize: 10, color: C.muted, display: "block", marginTop: 3 }}>
+              <span style={{ fontSize: "var(--t-mikro)", color: C.muted, display: "block", marginTop: 3 }}>
                 Mingguan &amp; bulanan dibulatkan ke atas, seperti tagihan sewa.
               </span>
             </div>
@@ -808,7 +808,7 @@ function FormBaru({ jenis, onSelesai, onBatal }: {
             <div>
               <label htmlFor="end_date" style={labelStyle}>Selesai sewa</label>
               <input className="isian-fokus" id="end_date" name="end_date" type="date" style={GAYA_ISIAN} />
-              <span style={{ fontSize: 10, color: C.muted, display: "block", marginTop: 3 }}>
+              <span style={{ fontSize: "var(--t-mikro)", color: C.muted, display: "block", marginTop: 3 }}>
                 Kosongkan bila masih berjalan.
               </span>
             </div>

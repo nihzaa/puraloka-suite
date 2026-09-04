@@ -180,7 +180,7 @@ function Konten() {
               <div style={{ fontSize: 18, fontWeight: 600, lineHeight: 1.2, color: C.text }}>
                 {resp?.total ?? 0}
               </div>
-              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>Menunggu keputusan</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>Menunggu keputusan</div>
             </div>
             <div>
               <div
@@ -191,13 +191,13 @@ function Konten() {
               >
                 {terlama} hari
               </div>
-              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>Paling lama tertahan</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>Paling lama tertahan</div>
             </div>
             <div>
               <div style={{ fontSize: 18, fontWeight: 600, lineHeight: 1.2, color: C.text }}>
                 {berjenis.length}
               </div>
-              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>Jenis dokumen</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>Jenis dokumen</div>
             </div>
           </div>
 
@@ -230,7 +230,7 @@ function Konten() {
                       )}
                       {b.judul ?? <span style={{ color: C.muted }}>(tanpa judul)</span>}
                       {b.level_selesai > 0 && (
-                        <span style={{ fontSize: 11.5, color: C.muted, marginInlineStart: 8 }}>
+                        <span style={{ fontSize: "var(--t-kecil)", color: C.muted, marginInlineStart: 8 }}>
                           · level {b.level_selesai} sudah setuju
                         </span>
                       )}
@@ -241,7 +241,7 @@ function Konten() {
                         <span
                           style={{
                             display: "inline-flex", alignItems: "center", gap: 4,
-                            fontSize: 11, marginInlineStart: 8,
+                            fontSize: "var(--t-kecil)", marginInlineStart: 8,
                             padding: "var(--pad-lencana)", borderRadius: 999,
                             color: C.mid, background: "var(--surface-subtle)",
                             border: `1px solid ${C.border}`, whiteSpace: "nowrap",

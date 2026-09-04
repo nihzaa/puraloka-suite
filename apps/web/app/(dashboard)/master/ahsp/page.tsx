@@ -330,23 +330,23 @@ function KatalogTab() {
                     <span title={`${kurangHarga[a.id]} bahan/upah/alat belum punya harga aktif`}
                       style={{ display: "inline-flex", alignItems: "center", gap: 2, marginLeft: 8,
                         padding: "0px 6px", borderRadius: 999, background: C.yellowBg,
-                        color: C.yellow, fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>
+                        color: C.yellow, fontSize: "var(--t-kecil)", fontWeight: 700, whiteSpace: "nowrap" }}>
                       <AlertTriangle size={10} aria-hidden="true" />
                       {kurangHarga[a.id]} tanpa harga
                     </span>
                   )}
                   {a.source === "company" && (
                     <span style={{ marginLeft: 6, padding: "0px 6px", borderRadius: 999,
-                      background: C.greenBg, color: C.green, fontSize: 11, fontWeight: 700 }}>
+                      background: C.greenBg, color: C.green, fontSize: "var(--t-kecil)", fontWeight: 700 }}>
                       perusahaan
                     </span>
                   )}
                 </span>
-                <span style={{ fontSize: 11, color: C.muted, whiteSpace: "nowrap", paddingTop: 1 }}>
+                <span style={{ fontSize: "var(--t-kecil)", color: C.muted, whiteSpace: "nowrap", paddingTop: 1 }}>
                   per {a.output_unit_code}
                 </span>
                 <span style={{
-                  fontSize: 10, fontWeight: 700, borderRadius: 999, padding: "2px 8px",
+                  fontSize: "var(--t-mikro)", fontWeight: 700, borderRadius: 999, padding: "2px 8px",
                   whiteSpace: "nowrap",
                   color: a.source === "national" ? C.mid : C.navy,
                   border: `1px solid ${C.border}`,
@@ -355,7 +355,7 @@ function KatalogTab() {
                 </span>
                 {a.status === "draft" && (
                   <span style={{
-                    fontSize: 10, fontWeight: 700, borderRadius: 999, padding: "2px 8px",
+                    fontSize: "var(--t-mikro)", fontWeight: 700, borderRadius: 999, padding: "2px 8px",
                     whiteSpace: "nowrap", color: C.yellow, border: `1px solid ${C.yellow}`,
                   }}>
                     DRAFT
@@ -380,7 +380,7 @@ function KatalogTab() {
                         <button onClick={() => setAdopsi(a)} style={btnGhost}>
                           <Plus size={13} /> Jadikan analisa perusahaan
                         </button>
-                        <span style={{ fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
+                        <span style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.5 }}>
                           Menyalin analisa ini supaya koefisiennya bisa Anda sesuaikan.
                           Analisa nasional tidak berubah.
                         </span>
@@ -507,7 +507,7 @@ function RincianAnalisa({ d }: { d: HspLive }) {
               <Fragment key={g.k}>
                 <tr>
                   <td colSpan={5} style={{
-                    padding: "8px 6px 4px", fontSize: 11, fontWeight: 700,
+                    padding: "8px 6px 4px", fontSize: "var(--t-kecil)", fontWeight: 700,
                     color: C.mid, letterSpacing: "0.05em", textTransform: "uppercase",
                   }}>
                     {g.label.huruf}. {g.label.judul}
@@ -523,7 +523,7 @@ function RincianAnalisa({ d }: { d: HspLive }) {
                       {c.resource_name}
                       {c.sumber === "override_proyek" && (
                         <span title={c.override_reason ?? ""} style={{
-                          marginLeft: 6, fontSize: 10, fontWeight: 700, color: C.navy,
+                          marginLeft: 6, fontSize: "var(--t-mikro)", fontWeight: 700, color: C.navy,
                           border: `1px solid ${C.border}`, borderRadius: 999, padding: "0px 6px",
                         }}>KHUSUS PROYEK</span>
                       )}
@@ -580,7 +580,7 @@ function RincianAnalisa({ d }: { d: HspLive }) {
         </table>
       </div>
 
-      <p style={{ fontSize: 11, color: C.muted, margin: "10px 0 0", lineHeight: 1.5 }}>
+      <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: "10px 0 0", lineHeight: 1.5 }}>
         Harga per {new Date(d.input.price_date).toLocaleDateString("id-ID",
           { day: "numeric", month: "long", year: "numeric" })}.
         Mengubah harga di Price Book langsung mengubah angka di sini.
@@ -690,7 +690,7 @@ function AdopsiModal({ asal, onClose, onDone }: {
           <p style={{ fontSize: 12, fontWeight: 600, color: C.text, margin: "0 0 4px" }}>
             Sesuaikan koefisien
           </p>
-          <p style={{ fontSize: 11, color: C.muted, margin: "0 0 10px", lineHeight: 1.5 }}>
+          <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: "0 0 10px", lineHeight: 1.5 }}>
             Kosongkan yang tidak berubah — yang dikosongkan memakai angka aslinya.
           </p>
           {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — caption sr-only,
@@ -868,7 +868,7 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
                 Penyimpangan (deviation)
               </button>
             </div>
-            <p style={{ fontSize: 11, color: C.muted, margin: "6px 0 0", lineHeight: 1.5 }}>
+            <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: "6px 0 0", lineHeight: 1.5 }}>
               {editType === "correction"
                 ? `Angka semula salah (mis. salah baca sumber). Hasil tetap "${asal.source === "national" ? "nasional" : "perusahaan"}" — labelnya dipertahankan.`
                 : jadiCompany
@@ -890,7 +890,7 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
           <p style={{ fontSize: 12, fontWeight: 600, color: C.text, margin: "0 0 4px" }}>
             Ubah koefisien
           </p>
-          <p style={{ fontSize: 11, color: C.muted, margin: "0 0 10px", lineHeight: 1.5 }}>
+          <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: "0 0 10px", lineHeight: 1.5 }}>
             Kosongkan yang tidak berubah. Minimal satu koefisien wajib diubah.
           </p>
           {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — caption sr-only,

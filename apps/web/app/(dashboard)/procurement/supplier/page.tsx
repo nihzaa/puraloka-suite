@@ -130,7 +130,7 @@ export default function SupplierPage() {
                     {s.city && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><MapPin size={11} aria-hidden="true" />{s.city}</span>}
                   </div>
                 </div>
-                <div style={{ fontSize: 11, color: C.muted, textAlign: "right" }}>
+                <div style={{ fontSize: "var(--t-kecil)", color: C.muted, textAlign: "right" }}>
                   {PAYMENT_TERMS.find(t => t.value === s.payment_terms)?.label ?? s.payment_terms}
                 </div>
               </div>
@@ -186,7 +186,7 @@ export default function SupplierPage() {
                   <div key={inv.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "6px 0", borderBottom: `1px solid ${C.border}` }}>
                     <div>
                       <div>{inv.description ?? inv.invoice_number ?? "Invoice"}</div>
-                      <div style={{ color: C.muted, fontSize: 11 }}>
+                      <div style={{ color: C.muted, fontSize: "var(--t-kecil)" }}>
                         {fmtDate(inv.invoice_date)}{inv.due_date ? ` · Jatuh tempo: ${fmtDate(inv.due_date)}` : ""}
                       </div>
                     </div>
@@ -206,7 +206,7 @@ export default function SupplierPage() {
                   <div key={p.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "6px 0", borderBottom: `1px solid ${C.border}` }}>
                     <div>
                       <div>{fmtDate(p.payment_date)} · {p.payment_method}</div>
-                      {p.notes && <div style={{ color: C.muted, fontSize: 11 }}>{p.notes}</div>}
+                      {p.notes && <div style={{ color: C.muted, fontSize: "var(--t-kecil)" }}>{p.notes}</div>}
                     </div>
                     <div style={{ color: C.success, fontWeight: 600 }}>{fmt(p.amount)}</div>
                   </div>

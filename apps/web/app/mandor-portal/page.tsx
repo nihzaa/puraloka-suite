@@ -194,7 +194,7 @@ export default function MandorBerandaPage() {
                       {s.scope_name}
                     </div>
                     {s.projectName && (
-                      <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
+                      <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 2 }}>
                         {s.projectName}
                       </div>
                     )}
@@ -245,7 +245,7 @@ export default function MandorBerandaPage() {
                 <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
                   {fmtRp(Number(k.amount ?? 0))}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 2 }}>
                   {k.purpose ?? k.work_scopes?.scope_name ?? "—"}
                 </div>
               </div>

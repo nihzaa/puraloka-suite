@@ -168,7 +168,7 @@ export default function PmOpnamePage() {
             </div>
             <div style={{ textAlign: "right", flexShrink: 0 }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: "var(--navy)" }}>{o.pct_selesai === null ? "—" : `${o.pct_selesai}%`}</div>
-              <div style={{ fontSize: 10, color: "var(--text-muted)" }}>{DASAR_ARTI[o.dasar_pct]}</div>
+              <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-muted)" }}>{DASAR_ARTI[o.dasar_pct]}</div>
             </div>
           </div>
 
@@ -190,7 +190,7 @@ export default function PmOpnamePage() {
           </div>
 
           {o.status === "diajukan" && (
-            <div style={{ padding: "10px var(--pad-kartu-lega)", borderTop: "1px solid var(--border)", fontSize: 11, color: "var(--text-muted)" }}>
+            <div style={{ padding: "10px var(--pad-kartu-lega)", borderTop: "1px solid var(--border)", fontSize: "var(--t-kecil)", color: "var(--text-muted)" }}>
               Verifikasi butuh izin tersendiri — yang mengukur bukan yang menyetujui. Tidak tersedia dari Portal PM.
             </div>
           )}

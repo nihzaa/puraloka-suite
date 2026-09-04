@@ -107,7 +107,7 @@ export default function VerifyInvoicePage() {
               ID invoice tidak valid atau invoice telah dihapus. Pastikan Anda memindai QR code yang benar.
             </div>
             <div style={{ marginTop: 16, padding: "8px 12px", borderRadius: 6, background: "var(--danger-bg)", border: "1px solid var(--danger-border)", display: "inline-block" }}>
-              <span style={{ fontSize: 11, fontFamily: "monospace", color: "var(--danger)" }}>{id}</span>
+              <span style={{ fontSize: "var(--t-kecil)", fontFamily: "monospace", color: "var(--danger)" }}>{id}</span>
             </div>
           </div>
         )}
@@ -151,12 +151,12 @@ export default function VerifyInvoicePage() {
 
             {/* Footer */}
             <div style={{ padding: "16px 32px", background: "var(--bg)", borderTop: "1px solid var(--border)", textAlign: "center" }}>
-              <div style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.5 }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", lineHeight: 1.5 }}>
                 Dokumen ini diterbitkan oleh <strong style={{ color: "var(--text-primary)" }}>{company.company_name}</strong>
                 <br />
                 dan telah diverifikasi secara digital
               </div>
-              <div style={{ marginTop: 8, fontSize: 10, fontFamily: "monospace", color: "var(--border-strong)" }}>
+              <div style={{ marginTop: 8, fontSize: "var(--t-mikro)", fontFamily: "monospace", color: "var(--border-strong)" }}>
                 ID: {invoice.id}
               </div>
             </div>
@@ -164,7 +164,7 @@ export default function VerifyInvoicePage() {
         )}
       </div>
 
-      <div style={{ marginTop: 24, fontSize: 11, color: "var(--border-strong)", textAlign: "center" }}>
+      <div style={{ marginTop: 24, fontSize: "var(--t-kecil)", color: "var(--border-strong)", textAlign: "center" }}>
         © {new Date().getFullYear()} {company.company_name} · Powered by Puraloka Suite
       </div>
     </div>

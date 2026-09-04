@@ -224,7 +224,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
           </div>
           <div>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Dokumen Proyek</h3>
-            <p style={{ fontSize: 11, color: C.muted, margin: 0 }}>{docs.length} file terlampir</p>
+            <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: 0 }}>{docs.length} file terlampir</p>
           </div>
         </div>
         {canEdit && (
@@ -267,7 +267,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
                 key={tab}
                 onClick={() => setFilterType(tab)}
                 style={{
-                  padding: "4px 8px", borderRadius: 20, fontSize: 11, fontWeight: isActive ? 700 : 500, cursor: "pointer",
+                  padding: "4px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: isActive ? 700 : 500, cursor: "pointer",
                   border: `1px solid ${isActive ? C.navy : "var(--border)"}`,
                   background: isActive ? C.navy : "var(--surface)",
                   color: isActive ? "var(--surface)" : C.mid,
@@ -333,7 +333,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
                   <p style={{ fontSize: 13, fontWeight: 600, color: C.text, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {doc.title}
                     {doc.version && doc.version !== "1.0" && (
-                      <span style={{ marginLeft: 6, fontSize: 10, background: "var(--surface-hover)", color: C.mid, padding: "0px 4px", borderRadius: 6, fontWeight: 600 }}>
+                      <span style={{ marginLeft: 6, fontSize: "var(--t-mikro)", background: "var(--surface-hover)", color: C.mid, padding: "0px 4px", borderRadius: 6, fontWeight: 600 }}>
                         v{doc.version}
                       </span>
                     )}
@@ -343,7 +343,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
                         semua baris berhenti berarti apa-apa. */}
                     {(doc.revisi_hitung ?? 1) > 1 && (
                       <span style={{
-                        marginLeft: 6, fontSize: 10, padding: "0px 5px", borderRadius: 6,
+                        marginLeft: 6, fontSize: "var(--t-mikro)", padding: "0px 5px", borderRadius: 6,
                         fontWeight: 700, background: "var(--surface-hover)", color: C.mid,
                       }}>
                         rev {doc.revisi_hitung}
@@ -356,7 +356,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
                         dengan layar yang warnanya sudah pudar. */}
                     {doc.digantikan && (
                       <span style={{
-                        marginLeft: 6, fontSize: 10, padding: "0px 5px", borderRadius: 6,
+                        marginLeft: 6, fontSize: "var(--t-mikro)", padding: "0px 5px", borderRadius: 6,
                         fontWeight: 700, background: "var(--danger-bg)", color: "var(--danger)",
                         border: "1px solid var(--danger-border)",
                       }}>
@@ -368,16 +368,16 @@ export function DocumentSection({ projectId, userRole }: Props) {
                       bahwa dokumen ini usang. Peringatan tanpa jalan keluar
                       membuat orang tetap memakai yang di depannya. */}
                   {doc.digantikan && (
-                    <p style={{ fontSize: 11, color: "var(--danger)", margin: "3px 0 0", lineHeight: 1.5 }}>
+                    <p style={{ fontSize: "var(--t-kecil)", color: "var(--danger)", margin: "3px 0 0", lineHeight: 1.5 }}>
                       Sudah ada revisi lebih baru
                       {(doc.revisi_terkini ?? 0) > 0 && ` (rev ${doc.revisi_terkini})`}
                       {" "}— jangan dipakai untuk pekerjaan lapangan.
                     </p>
                   )}
-                  <p style={{ fontSize: 11, color: C.muted, margin: "3px 0 0", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: "3px 0 0", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <span style={{
                       display: "inline-block", padding: "0px 6px", borderRadius: 10,
-                      background: typeColor.bg, color: typeColor.color, fontWeight: 700, fontSize: 10,
+                      background: typeColor.bg, color: typeColor.color, fontWeight: 700, fontSize: "var(--t-mikro)",
                     }}>
                       {DOC_TYPE_LABELS[doc.doc_type] ?? doc.doc_type}
                     </span>
@@ -389,7 +389,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
                     {canEdit && (
                       <span style={{
                         display: "inline-flex", alignItems: "center", gap: 2,
-                        padding: "0px 6px", borderRadius: 10, fontSize: 10, fontWeight: 600,
+                        padding: "0px 6px", borderRadius: 10, fontSize: "var(--t-mikro)", fontWeight: 600,
                         background: doc.is_visible_to_client ? C.greenBg : "var(--surface-hover)",
                         color: doc.is_visible_to_client ? C.green : C.muted,
                         border: `1px solid ${doc.is_visible_to_client ? C.greenBorder : "var(--border)"}`,
@@ -427,7 +427,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
                     onClick={() => logAccess(doc.id, "view")}
                     style={{
                       display: "flex", alignItems: "center", gap: 4,
-                      padding: "6px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                      padding: "6px 8px", borderRadius: 6, fontSize: "var(--t-kecil)", fontWeight: 600,
                       background: C.navyLight, color: C.navy, border: "none",
                       textDecoration: "none", cursor: "pointer",
                     }}
@@ -458,7 +458,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
                       disabled={deletingId === doc.id}
                       style={{
                         display: "flex", alignItems: "center",
-                        padding: "6px 8px", borderRadius: 6, fontSize: 11,
+                        padding: "6px 8px", borderRadius: 6, fontSize: "var(--t-kecil)",
                         background: "transparent", color: C.muted,
                         border: "1px solid var(--border)", cursor: "pointer",
                       }}
@@ -608,7 +608,7 @@ function UploadModalContent({
                 <File size={20} color={C.green} style={{ flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{uploadFile.name}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{fmtSizeKb(Math.ceil(uploadFile.size / 1024))}</div>
+                  <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)" }}>{fmtSizeKb(Math.ceil(uploadFile.size / 1024))}</div>
                 </div>
                 <button type="button" aria-label="Buang berkas yang dipilih" onClick={() => { setUploadFile(null); if (fileRef.current) fileRef.current.value = ""; }}
                   style={{ background: "transparent", border: "none", cursor: "pointer", color: C.red, padding: 4 }}>
@@ -627,7 +627,7 @@ function UploadModalContent({
               >
                 <Upload size={22} color="var(--text-muted)" style={{ marginBottom: 8 }} />
                 <span style={{ display: "block", fontSize: 13, color: "var(--text-secondary)", margin: 0, fontWeight: 500 }}>Klik untuk pilih file</span>
-                <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)", margin: "4px 0 0" }}>PDF, JPG, PNG, DOCX · maks 20MB</span>
+                <span style={{ display: "block", fontSize: "var(--t-kecil)", color: "var(--text-muted)", margin: "4px 0 0" }}>PDF, JPG, PNG, DOCX · maks 20MB</span>
               </button>
             )}
           </div>

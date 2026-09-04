@@ -321,7 +321,7 @@ function Angka({ label, nilai, keterangan, tekan }: {
         {nilai}
       </div>
       {keterangan && (
-        <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2, lineHeight: 1.45 }}>
+        <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2, lineHeight: 1.45 }}>
           {keterangan}
         </div>
       )}
@@ -358,7 +358,7 @@ function KartuPegawai({ p, hariIni, bolehKelola, bolehLihatGaji, onSunting }: {
             {keluar && (
               <span style={{
                 marginInlineStart: 10, display: "inline-flex", alignItems: "center", gap: 4,
-                fontSize: 11.5, fontWeight: 700, color: C.mid,
+                fontSize: "var(--t-kecil)", fontWeight: 700, color: C.mid,
                 textTransform: "uppercase", letterSpacing: "0.04em",
               }}>
                 <UserMinus size={11} aria-hidden="true" /> keluar {p.tanggal_keluar}
@@ -378,7 +378,7 @@ function KartuPegawai({ p, hariIni, bolehKelola, bolehLihatGaji, onSunting }: {
         <div style={{ textAlign: "right", display: "flex", alignItems: "center", gap: 12 }}>
           {bolehLihatGaji && (
             <div>
-              <div style={{ fontSize: 11, color: C.muted }}>Gaji pokok</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>Gaji pokok</div>
               <div style={{
                 fontSize: 15, fontWeight: 700, color: C.text,
                 fontVariantNumeric: "tabular-nums",
@@ -611,7 +611,7 @@ function FormPegawai({ mode, awal, calon, pilihan, bolehLihatGaji, onTutup, onSe
               <option key={c.id} value={c.id}>{c.name} · {c.email}</option>
             ))}
           </Pilihan>
-          <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
+          <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
             Hanya pengguna yang belum punya data kepegawaian yang muncul di sini.
           </div>
         </div>
@@ -746,7 +746,7 @@ function FormPegawai({ mode, awal, calon, pilihan, bolehLihatGaji, onTutup, onSe
             </div>
           )}
         </div>
-        <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
+        <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
           Kosongkan bila belum ada datanya — <strong>kosong</strong> berbeda dari{" "}
           <strong>nol</strong>, dan yang kosong ditandai sebagai belum lengkap, bukan
           dihitung sebagai nol rupiah.

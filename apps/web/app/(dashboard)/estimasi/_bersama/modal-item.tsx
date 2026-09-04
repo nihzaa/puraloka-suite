@@ -306,7 +306,7 @@ export function AddItemModal({ version, onClose, onDone }:
               })),
             ]}
           />
-          <p style={{ fontSize: 11, color: C.muted, margin: "6px 0 0" }}>
+          <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: "6px 0 0" }}>
             Tidak ketemu? Coba tab &quot;Buat Analisa Baru&quot; atau &quot;Harga Langsung&quot; (untuk pekerjaan bukan-beranalisa: lift, pompa, septictank, dll).
           </p>
         </>
@@ -314,7 +314,7 @@ export function AddItemModal({ version, onClose, onDone }:
 
       {mode === "custom" && (
         <>
-          <p style={{ fontSize: 11, color: C.muted, margin: "0 0 8px" }}>
+          <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: "0 0 8px" }}>
             Analisa baru khusus proyek ini — tidak masuk katalog nasional/company lama.
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 8 }}>
@@ -381,7 +381,7 @@ export function AddItemModal({ version, onClose, onDone }:
                   dibedakan dari kolom yang diketik sendiri — dan itu justru
                   keadaan yang G6 perbaiki. */}
               <span id="buk-asal" style={{
-                display: "block", fontSize: 11, marginTop: 3, lineHeight: 1.45,
+                display: "block", fontSize: "var(--t-kecil)", marginTop: 3, lineHeight: 1.45,
                 color: markupBelumAda ? "var(--danger)" : "var(--text-muted)",
               }}>
                 {markupBelumAda
@@ -403,7 +403,7 @@ export function AddItemModal({ version, onClose, onDone }:
 
       {mode === "lumpsum" && (
         <>
-          <p style={{ fontSize: 11, color: C.muted, margin: "0 0 8px" }}>
+          <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: "0 0 8px" }}>
             Untuk pekerjaan yang bukan analisa AHSP (lift, pompa, septictank, air kerja, dll) — harga langsung, tanpa koefisien.
           </p>
           {label("Kategori (cost code)")}

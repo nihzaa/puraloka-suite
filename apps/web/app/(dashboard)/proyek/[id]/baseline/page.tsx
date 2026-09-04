@@ -291,7 +291,7 @@ export default function BaselinePage() {
                   <button key={n} type="button" aria-pressed={saring === n}
                     onClick={() => setSaring(n)}
                     style={{
-                      padding: "4px 10px", borderRadius: 999, fontSize: 11.5,
+                      padding: "4px 10px", borderRadius: 999, fontSize: "var(--t-kecil)",
                       fontWeight: 600, cursor: "pointer",
                       border: `1px solid ${saring === n ? "var(--aksen)" : C.border}`,
                       background: saring === n ? "var(--aksen)" : "transparent",
@@ -328,7 +328,7 @@ export default function BaselinePage() {
           gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
         }}>
           <div>
-            <label htmlFor="bl-nama" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+            <label htmlFor="bl-nama" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
               Nama
             </label>
             <input id="bl-nama" style={gayaInput} value={nama}
@@ -336,7 +336,7 @@ export default function BaselinePage() {
               placeholder="mis. Kontrak awal" />
           </div>
           <div>
-            <label htmlFor="bl-dok" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+            <label htmlFor="bl-dok" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
               Dasar dokumen (opsional)
             </label>
             <input id="bl-dok" style={gayaInput} value={dokumen}
@@ -345,13 +345,13 @@ export default function BaselinePage() {
           </div>
         </div>
         <div style={{ marginTop: 10 }}>
-          <label htmlFor="bl-alasan" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+          <label htmlFor="bl-alasan" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
             Alasan — minimal 10 huruf
           </label>
           <input id="bl-alasan" style={gayaInput} value={alasan}
             onChange={(e) => setAlasan(e.target.value)}
             placeholder="mis. perpanjangan waktu disetujui karena perubahan lingkup lantai 3" />
-          <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 3, lineHeight: 1.45 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 3, lineHeight: 1.45 }}>
             Ini yang dicari saat klaim keterlambatan dibahas — &quot;kenapa
             jadwalnya berubah?&quot; harus punya jawaban tertulis.
           </span>
@@ -379,7 +379,7 @@ export default function BaselinePage() {
                     <strong style={{ fontSize: 12.5, color: C.text }}>
                       #{b.nomor} — {b.nama}
                     </strong>
-                    <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 1, maxWidth: "48ch", lineHeight: 1.45 }}>
+                    <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 1, maxWidth: "48ch", lineHeight: 1.45 }}>
                       {b.alasan}
                     </span>
                   </span>
@@ -388,7 +388,7 @@ export default function BaselinePage() {
               {
                 kunci: "dok", judul: "Dasar",
                 render: (b: Baseline) => (
-                  <span style={{ fontSize: 11.5, color: C.mid }}>{b.dasar_dokumen ?? "—"}</span>
+                  <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}>{b.dasar_dokumen ?? "—"}</span>
                 ),
               },
               {
@@ -404,7 +404,7 @@ export default function BaselinePage() {
                 render: (b: Baseline) => (
                   b.aktif
                     ? <Lencana nada="sukses">Dipakai menghitung SPI</Lencana>
-                    : <span style={{ fontSize: 11.5, color: C.muted }}>riwayat</span>
+                    : <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>riwayat</span>
                 ),
               },
             ]}

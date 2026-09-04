@@ -101,7 +101,7 @@ const TARGET_LABEL: Record<Usulan["target_type"], string> = {
 const rupiah = formatRupiah;
 
 const labelGaya: React.CSSProperties = {
-  fontSize: 11, fontWeight: 700, color: C.muted,
+  fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
   textTransform: "uppercase", letterSpacing: "0.05em",
 };
 const isianGaya: React.CSSProperties = {
@@ -118,7 +118,7 @@ function kolomPelajaran(
       render: (p) => (
         <span style={{ display: "block" }}>
           <span style={{ fontWeight: 600, color: C.text }}>{p.title}</span>
-          <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 2 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2 }}>
             {p.proyek?.name ?? "—"}
             {p.akar.length > 0 && ` · ${p.akar.length} akar masalah`}
           </span>
@@ -138,7 +138,7 @@ function kolomPelajaran(
               {v > 0 ? "+" : ""}{rupiah(v)}
             </span>
             {dasar > 0 && (
-              <span style={{ display: "block", fontSize: 11, color: C.muted }}>
+              <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>
                 {v > 0 ? "+" : ""}{Math.round((v / dasar) * 1000) / 10}% dari rencana
               </span>
             )}
@@ -153,7 +153,7 @@ function kolomPelajaran(
       // sunyi di modul ini.
       render: (p) =>
         p.usulan.length === 0 ? (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "var(--warning-teks)", fontSize: 11.5 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "var(--warning-teks)", fontSize: "var(--t-kecil)" }}>
             <TriangleAlert size={13} aria-hidden="true" />
             tak mengubah apa pun
           </span>
@@ -177,7 +177,7 @@ function kolomPelajaran(
         return (
           <span title={m.arti} style={{
             display: "inline-block", padding: "2px 8px", borderRadius: 20,
-            fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+            fontSize: "var(--t-kecil)", fontWeight: 600, whiteSpace: "nowrap",
             color: m.warna, background: m.bg, border: `1px solid ${m.border}`,
           }}>{m.label}</span>
         );
@@ -196,7 +196,7 @@ function kolomPelajaran(
             <Send size={12} aria-hidden="true" /> Ajukan
           </button>
         ) : (
-          <span style={{ fontSize: 11.5, color: C.muted }}>—</span>
+          <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>—</span>
         ),
     },
   ];
@@ -458,7 +458,7 @@ export default function PelajaranPage() {
               aria-describedby="pl-judul-bantu"
               placeholder="mis. Bekisting kolom butuh 1,4× tenaga dari asumsi AHSP"
               style={isianGaya} />
-            <span id="pl-judul-bantu" style={{ fontSize: 11, color: C.muted, lineHeight: 1.45 }}>
+            <span id="pl-judul-bantu" style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.45 }}>
               Tulis temuannya, bukan nama pekerjaannya — judul inilah yang dicari orang
               enam bulan lagi saat menyusun estimasi sejenis.
             </span>
@@ -482,7 +482,7 @@ export default function PelajaranPage() {
               rows={3} aria-describedby="pl-akar-bantu"
               placeholder={"Tinggi kolom 4,2 m menuntut perancah tambahan\nKoefisien AHSP mengasumsikan kolom 3 m"}
               style={{ ...isianGaya, resize: "vertical", fontFamily: "inherit" }} />
-            <span id="pl-akar-bantu" style={{ fontSize: 11, color: C.muted, lineHeight: 1.45 }}>
+            <span id="pl-akar-bantu" style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.45 }}>
               Wajib. Pelajaran tanpa akar masalah adalah keluhan — “biayanya membengkak”
               tak memberitahu siapa pun apa yang harus berbeda lain kali.
             </span>
@@ -526,11 +526,11 @@ export default function PelajaranPage() {
                 ))}
               </Pilihan>
               {galatResource ? (
-                <span role="alert" style={{ fontSize: 11, color: "var(--danger)", lineHeight: 1.45 }}>
+                <span role="alert" style={{ fontSize: "var(--t-kecil)", color: "var(--danger)", lineHeight: 1.45 }}>
                   {galatResource}
                 </span>
               ) : resources.length === 0 && (
-                <span style={{ fontSize: 11, color: C.muted }}>
+                <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
                   Tak ada resource yang cocok. Ubah kata pencarian.
                 </span>
               )}
@@ -541,7 +541,7 @@ export default function PelajaranPage() {
               <input id="pl-nilai" type="number" inputMode="numeric" value={fNilaiUsulan}
                 onChange={(e) => setFNilaiUsulan(e.target.value)}
                 aria-describedby="pl-nilai-bantu" style={isianGaya} />
-              <span id="pl-nilai-bantu" style={{ fontSize: 11, color: C.muted, lineHeight: 1.45 }}>
+              <span id="pl-nilai-bantu" style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.45 }}>
                 Berlaku setelah disetujui, sebagai <strong>versi baru</strong> di price book —
                 versi lama tetap utuh, jadi estimasi yang sudah terbit tak berubah.
               </span>

@@ -112,7 +112,7 @@ export function NavBagian({ bagian }: { bagian: Bagian[] }) {
             {b.jumlah != null && b.jumlah > 0 && (
               <span
                 style={{
-                  fontSize: 11, fontWeight: 700, lineHeight: 1,
+                  fontSize: "var(--t-kecil)", fontWeight: 700, lineHeight: 1,
                   padding: "2px 6px", borderRadius: 99,
                   fontVariantNumeric: "tabular-nums",
                   background: b.mendesak ? "var(--danger-bg)" : "var(--surface-hover)",

@@ -197,7 +197,7 @@ function GrupCollapsible({
       {/* Jumlah submenu: memberi tahu ada berapa SEBELUM dibuka. Dengan 20
           grup, tanpa ini orang membuka satu per satu untuk mencari. */}
       <span style={{
-        fontSize: 10, fontWeight: 600, color: "var(--text-muted)",
+        fontSize: "var(--t-mikro)", fontWeight: 600, color: "var(--text-muted)",
         fontVariantNumeric: "tabular-nums", minWidth: 16, textAlign: "right",
       }}>{anak.length}</span>
       <ChevronDown
@@ -846,7 +846,7 @@ function SidebarIsi() {
                 Puraloka
               </span>
               <span style={{
-                fontSize: 11, fontWeight: 500, color: "var(--text-muted)",
+                fontSize: "var(--t-kecil)", fontWeight: 500, color: "var(--text-muted)",
                 letterSpacing: "0.04em",
               }}>
                 Suite
@@ -929,7 +929,7 @@ function SidebarIsi() {
       {/* Navigation — struktur dari menu_items (section='main') */}
       <nav style={{ flex: 1, paddingTop: collapsed ? 4 : 8, paddingBottom: 8, overflowY: "auto", overflowX: "hidden", minHeight: 0 }}>
         {!collapsed && (
-          <div style={{ padding: "12px 12px 6px", fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+          <div style={{ padding: "12px 12px 6px", fontSize: "var(--t-mikro)", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
             Menu
           </div>
         )}
@@ -1093,7 +1093,7 @@ function SidebarIsi() {
               </div>
               <div style={{
                 display: "inline-block", marginTop: 2,
-                fontSize: 10, textTransform: "uppercase", letterSpacing: "0.03em",
+                fontSize: "var(--t-mikro)", textTransform: "uppercase", letterSpacing: "0.03em",
                 background: "var(--navy-light)", color: "var(--navy)",
                 borderRadius: 6, padding: "0px 4px", fontWeight: 600,
               }}>

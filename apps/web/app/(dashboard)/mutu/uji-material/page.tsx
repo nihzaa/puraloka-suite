@@ -122,8 +122,8 @@ const KOLOM: Array<Kolom<BarisUji>> = [
           : "3px solid transparent",
       }}>
         <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>{u.nomor}</span>
-        <span style={{ display: "block", fontSize: 11.5, color: C.text, marginTop: 2 }}>{u.objek}</span>
-        <span style={{ display: "block", fontSize: 11, color: C.mid, marginTop: 1 }}>
+        <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.text, marginTop: 2 }}>{u.objek}</span>
+        <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 1 }}>
           {u.jenis_uji}
           {u.lembaga_uji && ` · ${u.lembaga_uji}`}
           {u.ncr && ` · NCR ${u.ncr.nomor}`}
@@ -154,7 +154,7 @@ const KOLOM: Array<Kolom<BarisUji>> = [
           // Selisih ditampilkan APA ADANYA, tanpa menyimpulkan baik/buruk —
           // arah "baik" berbeda antar-jenis uji.
           <span style={{
-            display: "block", fontSize: 10, color: C.muted, fontVariantNumeric: "tabular-nums",
+            display: "block", fontSize: "var(--t-mikro)", color: C.muted, fontVariantNumeric: "tabular-nums",
           }}>
             selisih {u.selisih > 0 ? "+" : ""}{new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(u.selisih)}
           </span>
@@ -167,7 +167,7 @@ const KOLOM: Array<Kolom<BarisUji>> = [
     render: (u) => {
       if (!u.kesimpulan) {
         return (
-          <span style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>
+          <span style={{ fontSize: "var(--t-kecil)", color: C.muted, fontStyle: "italic" }}>
             {u.perlu_kesimpulan ? "belum disimpulkan" : "—"}
           </span>
         );
@@ -177,7 +177,7 @@ const KOLOM: Array<Kolom<BarisUji>> = [
         <span style={{ display: "inline-flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
           <span title={m.arti} style={{
             display: "inline-block", padding: "2px 8px", borderRadius: 20,
-            fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+            fontSize: "var(--t-kecil)", fontWeight: 600, whiteSpace: "nowrap",
             color: m.warna, background: m.bg, border: `1px solid ${m.border}`,
           }}>{m.label}</span>
           {u.bertentangan && (
@@ -188,7 +188,7 @@ const KOLOM: Array<Kolom<BarisUji>> = [
               title="Angka hasil tak sejalan dengan kesimpulan ini. Bisa jadi benar — uji yang dibaca terbalik (kadar lumpur), toleransi, atau penilaian ahli. Yang penting selisihnya terlihat."
               style={{
                 display: "inline-flex", alignItems: "center", gap: 3,
-                fontSize: 10, fontWeight: 700, color: "var(--warning-teks)",
+                fontSize: "var(--t-mikro)", fontWeight: 700, color: "var(--warning-teks)",
               }}
             >
               <TriangleAlert size={11} aria-hidden="true" /> beda dari angka
@@ -261,7 +261,7 @@ export default function UjiMaterialPage() {
 
       <div className="rise" style={{ ...kartu, padding: "12px 16px", marginBottom: 16, maxWidth: 420 }}>
         <label htmlFor="uji-proyek" style={{
-          fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+          fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
           marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
         }}>Proyek</label>
         <Pilihan
@@ -297,44 +297,44 @@ export default function UjiMaterialPage() {
               gap: 8, marginBottom: 16 }}>
               <div style={{ ...kartu, padding: "12px var(--pad-kartu-lega)",
                 borderColor: hasil.tidak_memenuhi > 0 ? "var(--danger-border)" : C.border }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: "0.05em" }}>Tidak memenuhi</div>
                 <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1,
                   color: hasil.tidak_memenuhi > 0 ? "var(--danger)" : C.text }}>
                   {hasil.tidak_memenuhi}
                 </div>
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>
                   dari {hasil.jumlah_uji} uji
                 </div>
               </div>
 
               <div style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: "0.05em" }}>Perlu uji ulang</div>
                 <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text }}>
                   {hasil.perlu_uji_ulang}
                 </div>
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>hasilnya belum bisa dipakai</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>hasilnya belum bisa dipakai</div>
               </div>
 
               <div style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: "0.05em" }}>Belum disimpulkan</div>
                 <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text }}>
                   {hasil.belum_disimpulkan}
                 </div>
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>
                   angkanya ada, kesimpulan belum
                 </div>
               </div>
 
               <div style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: "0.05em" }}>Memenuhi</div>
                 <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: "var(--success)" }}>
                   {hasil.memenuhi}
                 </div>
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>sesuai syarat mutu</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>sesuai syarat mutu</div>
               </div>
             </div>
 
@@ -363,7 +363,7 @@ export default function UjiMaterialPage() {
                 kunciBaris={(u) => u.id}
                 kolom={KOLOM}
               />
-              <p style={{ margin: 0, padding: "10px var(--pad-kartu-lega)", fontSize: 11.5, color: C.mid,
+              <p style={{ margin: 0, padding: "10px var(--pad-kartu-lega)", fontSize: "var(--t-kecil)", color: C.mid,
                 borderTop: `1px solid ${C.border}`, lineHeight: 1.55 }}>
                 Syarat mutu disimpan bersama hasilnya, bukan dicari saat dibaca —
                 standar berubah antar-proyek dan antar-edisi SNI, dan kesimpulan

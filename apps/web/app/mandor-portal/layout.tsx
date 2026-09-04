@@ -100,7 +100,7 @@ export default function MandorPortalLayout({ children }: { children: React.React
           display: "flex", alignItems: "center", gap: 6,
           padding: "6px 10px", borderRadius: "var(--portal-radius-pill)",
           border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.12)",
-          cursor: "pointer", fontSize: 11, color: "var(--on-merek)", fontWeight: 700,
+          cursor: "pointer", fontSize: "var(--t-kecil)", color: "var(--on-merek)", fontWeight: 700,
         }}
       >
         <HardHat size={13} aria-hidden="true" />

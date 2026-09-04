@@ -203,7 +203,7 @@ export default function PmRapDetailPage() {
         >
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{m.resource?.name ?? "—"}</div>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
               {m.qty_adjusted} {m.unit_code} · {fmtRupiah(m.supplier_price)}/{m.unit_code}
             </div>
           </div>

@@ -191,7 +191,7 @@ export default function KasbonPage() {
               </button>
             ))}
           </div>
-          <span style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>
+          <span style={{ fontSize: "var(--t-kecil)", color: C.muted, fontStyle: "italic" }}>
             {kasbonType === "mandor" ? "Advance operasional mandor (dari kas proyek)" : "Advance upah tukang (dipotong dari gaji)"}
           </span>
           <div style={{ flex: 1 }} />
@@ -286,10 +286,10 @@ export default function KasbonPage() {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
                             <StatusBadge status={k.status} map={KASBON_STATUS} />
-                            <span style={{ fontSize: 11, color: C.muted, background: "var(--surface-hover)", padding: "2px 8px", borderRadius: 6 }}>
+                            <span style={{ fontSize: "var(--t-kecil)", color: C.muted, background: "var(--surface-hover)", padding: "2px 8px", borderRadius: 6 }}>
                               {FUND_SOURCE_LABEL[k.fund_source] ?? k.fund_source}
                             </span>
-                            <span style={{ fontSize: 11, fontWeight: 600, color: C.navy, background: C.navyLight, padding: "2px 8px", borderRadius: 6 }}>
+                            <span style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.navy, background: C.navyLight, padding: "2px 8px", borderRadius: 6 }}>
                               {PURPOSE_LABEL[k.purpose] ?? k.purpose}
                             </span>
                           </div>
@@ -298,15 +298,15 @@ export default function KasbonPage() {
                             {project && <span style={{ fontSize: 12, color: C.mid, fontWeight: 400 }}> · {project.name}</span>}
                           </div>
                           {k.work_scopes && (
-                            <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}>Scope: {k.work_scopes.scope_name}</div>
+                            <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginBottom: 3 }}>Scope: {k.work_scopes.scope_name}</div>
                           )}
-                          <div style={{ fontSize: 11, color: C.muted, display: "flex", gap: 12 }}>
+                          <div style={{ fontSize: "var(--t-kecil)", color: C.muted, display: "flex", gap: 12 }}>
                             <span>{fmtDate(k.kasbon_date)}</span>
                             {k.requester && <span>oleh {k.requester.name}</span>}
                             {k.approver && k.status === "approved" && <span style={{ color: C.green }}>✓ disetujui {k.approver.name}</span>}
                           </div>
                           {k.cash_account && k.status === "approved" && (
-                            <div style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, marginTop: 4, padding: "2px 8px", borderRadius: 6, background: C.navyLight, color: C.navy, fontWeight: 600 }}>
+                            <div style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: "var(--t-kecil)", marginTop: 4, padding: "2px 8px", borderRadius: 6, background: C.navyLight, color: C.navy, fontWeight: 600 }}>
                               <Wallet size={10} /> {k.cash_account.name}
                             </div>
                           )}
@@ -319,18 +319,18 @@ export default function KasbonPage() {
                           {canEdit && k.status === "pending" && approvingKasbonId !== k.id && (
                             <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
                               <button onClick={() => handleKasbonAction(k.id, "rejected")}
-                                style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                                style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red, fontSize: "var(--t-kecil)", fontWeight: 600, cursor: "pointer" }}>
                                 Tolak
                               </button>
                               <button onClick={() => openKasbonApprove(k.id)}
-                                style={{ padding: "4px 12px", borderRadius: 6, border: "none", background: C.green, color: "var(--surface)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                                style={{ padding: "4px 12px", borderRadius: 6, border: "none", background: C.green, color: "var(--surface)", fontSize: "var(--t-kecil)", fontWeight: 600, cursor: "pointer" }}>
                                 ✓ Setujui
                               </button>
                             </div>
                           )}
                           {canEdit && k.status === "pending" && approvingKasbonId === k.id && (
                             <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 10, background: C.greenBg, border: `1px solid ${C.greenBorder}`, textAlign: "left", minWidth: 230 }}>
-                              <div style={{ fontSize: 11, fontWeight: 600, color: C.green, marginBottom: 6 }}>Potong dari kas:</div>
+                              <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.green, marginBottom: 6 }}>Potong dari kas:</div>
                               <Pilihan aria-label="Sumber kas pembayaran kasbon" value={kasbonCashAccountId} onChange={e => setKasbonCashAccountId(e.target.value)}
                                 style={{ width: "100%", padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, background: "var(--surface)", outline: "none", marginBottom: 8, boxSizing: "border-box" }}>
                                 <option value="">— Tanpa potong kas —</option>
@@ -340,9 +340,9 @@ export default function KasbonPage() {
                               </Pilihan>
                               <div style={{ display: "flex", gap: 6 }}>
                                 <button onClick={() => setApprovingKasbonId(null)}
-                                  style={{ flex: 1, padding: "6px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 11, cursor: "pointer" }}>Batal</button>
+                                  style={{ flex: 1, padding: "6px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: "var(--t-kecil)", cursor: "pointer" }}>Batal</button>
                                 <button onClick={() => { handleKasbonAction(k.id, "approved", kasbonCashAccountId || undefined); setApprovingKasbonId(null); }}
-                                  style={{ flex: 2, padding: "6px", borderRadius: 6, border: "none", background: C.green, color: "var(--surface)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Konfirmasi Setuju</button>
+                                  style={{ flex: 2, padding: "6px", borderRadius: 6, border: "none", background: C.green, color: "var(--surface)", fontSize: "var(--t-kecil)", fontWeight: 600, cursor: "pointer" }}>Konfirmasi Setuju</button>
                               </div>
                             </div>
                           )}
@@ -393,7 +393,7 @@ export default function KasbonPage() {
                       const col = purposeColors[purpose] ?? C.mid;
                       return (
                         <div key={purpose} style={{ flex: "1 1 140px", padding: "8px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface-subtle)" }}>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: col, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>
+                          <div style={{ fontSize: "var(--t-mikro)", fontWeight: 700, color: col, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>
                             {PURPOSE_LABEL[purpose] ?? purpose}
                           </div>
                           <div style={{ fontSize: 15, fontWeight: 800, color: C.text, fontFamily: "var(--font-display)" }}>
@@ -414,7 +414,7 @@ export default function KasbonPage() {
                         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
                           <div style={{ flex: 1 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 2 }}>{m.mandorName}</div>
-                            <div style={{ fontSize: 11, color: C.muted }}>
+                            <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
                               {m.kasbonCount} kasbon · {m.projectCount} proyek
                             </div>
                             {/* Progress bar: approved vs total */}
@@ -422,14 +422,14 @@ export default function KasbonPage() {
                               <div style={{ flex: 1, height: 5, borderRadius: 6, background: C.border, overflow: "hidden" }}>
                                 <div style={{ height: "100%", borderRadius: 6, background: C.green, width: `${pct}%` }} />
                               </div>
-                              <span style={{ fontSize: 10, color: C.mid, flexShrink: 0 }}>{Math.round(pct)}% approved</span>
+                              <span style={{ fontSize: "var(--t-mikro)", color: C.mid, flexShrink: 0 }}>{Math.round(pct)}% approved</span>
                             </div>
                           </div>
                           <div style={{ textAlign: "right" }}>
                             <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 800, color: C.text, fontFamily: "var(--font-display)" }}>{fmtCompact(m.total)}</div>
                             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
-                              {m.totalPending > 0 && <span style={{ fontSize: 10, color: C.yellow, fontWeight: 600, background: C.yellowBg, padding: "2px 6px", borderRadius: 6 }}>pending {fmtCompact(m.totalPending)}</span>}
-                              {m.totalApproved > 0 && <span style={{ fontSize: 10, color: C.green, fontWeight: 600, background: C.greenBg, padding: "2px 6px", borderRadius: 6 }}>approved {fmtCompact(m.totalApproved)}</span>}
+                              {m.totalPending > 0 && <span style={{ fontSize: "var(--t-mikro)", color: C.yellow, fontWeight: 600, background: C.yellowBg, padding: "2px 6px", borderRadius: 6 }}>pending {fmtCompact(m.totalPending)}</span>}
+                              {m.totalApproved > 0 && <span style={{ fontSize: "var(--t-mikro)", color: C.green, fontWeight: 600, background: C.greenBg, padding: "2px 6px", borderRadius: 6 }}>approved {fmtCompact(m.totalApproved)}</span>}
                             </div>
                           </div>
                         </div>
@@ -447,7 +447,7 @@ export default function KasbonPage() {
                               <div key={purpose} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 6, background: "var(--surface-subtle)" }}>
                                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: col, flexShrink: 0 }} />
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontSize: 11, color: C.text, fontWeight: 600 }}>{PURPOSE_LABEL[purpose] ?? purpose}</div>
+                                  <div style={{ fontSize: "var(--t-kecil)", color: C.text, fontWeight: 600 }}>{PURPOSE_LABEL[purpose] ?? purpose}</div>
                                   <div style={{ height: 3, borderRadius: 0, background: C.border, marginTop: 3, overflow: "hidden" }}>
                                     <div style={{ height: "100%", borderRadius: 0, background: col, width: `${pctOfTotal}%` }} />
                                   </div>
@@ -461,10 +461,10 @@ export default function KasbonPage() {
                         {/* Breakdown per proyek (kalau > 1) */}
                         {m.byProject.length > 1 && (
                           <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid var(--surface-hover)` }}>
-                            <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>Per Proyek:</div>
+                            <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginBottom: 6 }}>Per Proyek:</div>
                             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                               {m.byProject.sort((a,b) => b.total-a.total).map(p => (
-                                <span key={p.name} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 6, background: C.navyLight, color: C.navy, fontWeight: 600 }}>
+                                <span key={p.name} style={{ fontSize: "var(--t-kecil)", padding: "2px 8px", borderRadius: 6, background: C.navyLight, color: C.navy, fontWeight: 600 }}>
                                   {p.name} · {fmtCompact(p.total)}
                                 </span>
                               ))}
@@ -534,7 +534,7 @@ export default function KasbonPage() {
                           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
                             <span style={{
                               display: "inline-flex", alignItems: "center", gap: 4,
-                              padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600,
+                              padding: "2px 8px", borderRadius: 99, fontSize: "var(--t-kecil)", fontWeight: 600,
                               color: wk.is_settled ? C.green : C.yellow,
                               background: wk.is_settled ? C.greenBg : C.yellowBg,
                               border: `1px solid ${wk.is_settled ? C.greenBorder : C.yellowBorder}`,
@@ -542,7 +542,7 @@ export default function KasbonPage() {
                               <span style={{ width: 5, height: 5, borderRadius: "50%", background: wk.is_settled ? C.green : C.yellow }} />
                               {wk.is_settled ? "Lunas" : "Beredar"}
                             </span>
-                            <span style={{ fontSize: 11, background: "var(--surface-hover)", padding: "2px 8px", borderRadius: 6, color: C.mid }}>
+                            <span style={{ fontSize: "var(--t-kecil)", background: "var(--surface-hover)", padding: "2px 8px", borderRadius: 6, color: C.mid }}>
                               {PURPOSE_LABEL[wk.purpose] ?? wk.purpose}
                             </span>
                           </div>
@@ -550,13 +550,13 @@ export default function KasbonPage() {
                             {wk.worker?.name ?? "—"}
                             {wk.mandor && <span style={{ fontSize: 12, color: C.mid, fontWeight: 400 }}> · Mandor {wk.mandor.name}</span>}
                           </div>
-                          {wk.project && <div style={{ fontSize: 11, color: C.muted, marginBottom: 2 }}>{wk.project.name}{wk.scope && ` · ${wk.scope.scope_name}`}</div>}
-                          <div style={{ fontSize: 11, color: C.muted }}>{fmtDate(wk.kasbon_date)}</div>
+                          {wk.project && <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginBottom: 2 }}>{wk.project.name}{wk.scope && ` · ${wk.scope.scope_name}`}</div>}
+                          <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>{fmtDate(wk.kasbon_date)}</div>
                           {!wk.is_settled && (
                             <div style={{ marginTop: 8 }}>
                               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                                <span style={{ fontSize: 10, color: C.muted }}>Terlunasi {Math.round(pct)}%</span>
-                                <span style={{ fontSize: 10, color: C.yellow }}>Sisa {fmtCompact(remaining)}</span>
+                                <span style={{ fontSize: "var(--t-mikro)", color: C.muted }}>Terlunasi {Math.round(pct)}%</span>
+                                <span style={{ fontSize: "var(--t-mikro)", color: C.yellow }}>Sisa {fmtCompact(remaining)}</span>
                               </div>
                               <div style={{ height: 5, borderRadius: 99, background: C.border, overflow: "hidden" }}>
                                 <div style={{ height: "100%", width: `${pct}%`, borderRadius: 99, background: C.green }} />
@@ -570,7 +570,7 @@ export default function KasbonPage() {
                             {fmt(Number(wk.amount))}
                           </div>
                           {Number(wk.amount_settled ?? 0) > 0 && !wk.is_settled && (
-                            <div style={{ fontSize: 11, color: C.green, marginTop: 2 }}>
+                            <div style={{ fontSize: "var(--t-kecil)", color: C.green, marginTop: 2 }}>
                               ↓ {fmtCompact(Number(wk.amount_settled))} dilunasi
                             </div>
                           )}

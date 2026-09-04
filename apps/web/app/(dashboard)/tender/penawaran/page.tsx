@@ -126,7 +126,7 @@ export default function PenawaranPage() {
       render: (p) => (
         <span style={{ display: "block" }}>
           <strong style={{ fontSize: 12.5, color: C.text }}>{p.nomor}</strong>
-          <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 1 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 1 }}>
             {p.perihal}
           </span>
         </span>
@@ -148,13 +148,13 @@ export default function PenawaranPage() {
         if (!p.berlaku_sampai) {
           // Disebut, bukan dikosongkan: masa berlaku yang belum diisi
           // menghalangi pengiriman, dan itu perlu terlihat dari daftar.
-          return <span style={{ color: "var(--warning)", fontSize: 11.5 }}>belum diisi</span>;
+          return <span style={{ color: "var(--warning)", fontSize: "var(--t-kecil)" }}>belum diisi</span>;
         }
         const lewat = p.berlaku_sampai < new Date().toISOString().slice(0, 10);
         return (
           <span style={{ color: lewat ? C.red : C.mid, whiteSpace: "nowrap" }}>
             {tanggal(p.berlaku_sampai)}
-            {lewat && <span style={{ display: "block", fontSize: 10.5 }}>kedaluwarsa</span>}
+            {lewat && <span style={{ display: "block", fontSize: "var(--t-mikro)" }}>kedaluwarsa</span>}
           </span>
         );
       },
@@ -183,7 +183,7 @@ export default function PenawaranPage() {
         return (
           <span style={{
             display: "inline-block", padding: "2px 8px", borderRadius: 99,
-            fontSize: 11, fontWeight: 700, whiteSpace: "nowrap",
+            fontSize: "var(--t-kecil)", fontWeight: 700, whiteSpace: "nowrap",
             color: s.warna, background: s.bg, border: `1px solid ${s.border}`,
           }}>{s.teks}</span>
         );
@@ -412,6 +412,6 @@ export default function PenawaranPage() {
 /** Tombol aksi dalam sel tabel — padding dari token, bukan angka dipaku. */
 const tombolKecil: React.CSSProperties = {
   cursor: "pointer", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
-  borderRadius: 5, fontSize: 11.5, border: `1px solid ${C.border}`,
+  borderRadius: 5, fontSize: "var(--t-kecil)", border: `1px solid ${C.border}`,
   background: "var(--surface)", color: C.text,
 };

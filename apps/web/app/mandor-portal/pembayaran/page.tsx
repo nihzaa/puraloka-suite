@@ -392,7 +392,7 @@ export default function RiwayatPembayaranPage() {
                             <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{item.scopeName}</span>
                             <span
                               style={{
-                                fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: "var(--portal-radius-pill)",
+                                fontSize: "var(--t-mikro)", fontWeight: 700, padding: "2px 8px", borderRadius: "var(--portal-radius-pill)",
                                 color: meta.color, background: meta.bg,
                               }}
                             >
@@ -402,14 +402,14 @@ export default function RiwayatPembayaranPage() {
                           <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
                             {item.projectName} · {item.label}
                           </div>
-                          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>{fmtDate(item.date)}</div>
+                          <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginTop: 1 }}>{fmtDate(item.date)}</div>
                         </div>
 
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
                           <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>
                             {fmtRp(item.amount)}
                           </div>
-                          <div style={{ fontSize: 10, color: "var(--success)", fontWeight: 700, marginTop: 2 }}>Diterima</div>
+                          <div style={{ fontSize: "var(--t-mikro)", color: "var(--success)", fontWeight: 700, marginTop: 2 }}>Diterima</div>
                         </div>
                       </div>
                     );

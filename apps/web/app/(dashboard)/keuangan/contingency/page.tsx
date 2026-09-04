@@ -129,7 +129,7 @@ const KOLOM: Array<Kolom<Pos>> = [
           : "3px solid transparent",
       }}>
         {p.nama}
-        <span style={{ display: "block", fontSize: 11, color: C.mid, marginTop: 2 }}>
+        <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2 }}>
           {p.project_name}
           {p.jumlah_penarikan > 0 && ` · ${p.jumlah_penarikan}× tarik`}
           {p.penarikan_terakhir && ` · terakhir ${tanggalTerbaca(p.penarikan_terakhir)}`}
@@ -146,7 +146,7 @@ const KOLOM: Array<Kolom<Pos>> = [
     render: (p) => (
       <>
         {rupiah(p.terpakai)}
-        <span style={{ display: "block", fontSize: 10, color: C.muted }}>
+        <span style={{ display: "block", fontSize: "var(--t-mikro)", color: C.muted }}>
           {p.terpakai_pct.toFixed(1)}%
         </span>
       </>
@@ -160,7 +160,7 @@ const KOLOM: Array<Kolom<Pos>> = [
       <span style={{ fontWeight: 700, color: p.sisa < 0 ? "var(--danger)" : C.text }}>
         {rupiah(p.sisa)}
         {p.sisa < 0 && (
-          <span style={{ display: "block", fontSize: 10, fontWeight: 600, color: "var(--danger)" }}>
+          <span style={{ display: "block", fontSize: "var(--t-mikro)", fontWeight: 600, color: "var(--danger)" }}>
             defisit
           </span>
         )}
@@ -173,7 +173,7 @@ const KOLOM: Array<Kolom<Pos>> = [
       <span style={{ color: C.mid }}>
         {/* null ≠ 0: null = kontraknya tak diketahui. */}
         {p.porsi_kontrak_pct === null
-          ? <span style={{ fontSize: 11, color: C.muted }}>kontrak kosong</span>
+          ? <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>kontrak kosong</span>
           : `${p.porsi_kontrak_pct.toFixed(1)}%`}
       </span>
     ),
@@ -187,7 +187,7 @@ const KOLOM: Array<Kolom<Pos>> = [
       return (
         <span title={meta.arti} style={{
           display: "inline-block", padding: "2px 8px", borderRadius: 20,
-          fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+          fontSize: "var(--t-kecil)", fontWeight: 600, whiteSpace: "nowrap",
           color: meta.warna, background: meta.bg, border: `1px solid ${meta.border}`,
         }}>{meta.label}</span>
       );
@@ -213,7 +213,7 @@ function kolomDenganAksi(onTarik: (p: Pos) => void): Array<Kolom<Pos>> {
       kunci: "aksi", judul: "", rata: "kanan",
       render: (p) =>
         p.status === "ditutup" ? (
-          <span style={{ fontSize: 11, color: C.muted }}>ditutup</span>
+          <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>ditutup</span>
         ) : (
           <button
             type="button" onClick={() => onTarik(p)}
@@ -296,7 +296,7 @@ export default function ContingencyPage() {
   }
 
     const labelGaya: React.CSSProperties = {
-    fontSize: 11, fontWeight: 700, color: C.muted,
+    fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
     textTransform: "uppercase", letterSpacing: "0.05em",
   };
   const isianGaya: React.CSSProperties = {
@@ -446,7 +446,7 @@ export default function ContingencyPage() {
                       fontSize: 18, fontWeight: 800, color: k.warna, marginTop: 3,
                       fontFamily: "var(--font-display)", fontVariantNumeric: "tabular-nums",
                     }}>{k.nilai}</div>
-                    <div style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>{k.sub}</div>
+                    <div style={{ fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2 }}>{k.sub}</div>
                   </div>
                 ))}
               </div>
@@ -503,7 +503,7 @@ export default function ContingencyPage() {
 
                   <p style={{
                     margin: 0, padding: "10px var(--pad-kartu-lega)", borderTop: `1px solid ${C.border}`,
-                    background: "var(--surface-subtle)", fontSize: 11, color: C.mid, lineHeight: 1.55,
+                    background: "var(--surface-subtle)", fontSize: "var(--t-kecil)", color: C.mid, lineHeight: 1.55,
                   }}>
                     Sisa <strong>dihitung</strong>, tidak disimpan — kolom sisa yang disimpan bisa
                     basi diam-diam saat satu penarikan disunting, dan angka “cadangan masih aman”

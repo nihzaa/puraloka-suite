@@ -127,14 +127,14 @@ export default function PmPenugasanPage() {
                     </a>
                   )}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginTop: 2 }}>
                   Ditugaskan {fmtDate(asg.assigned_at)}
                 </div>
               </div>
               {totalNilai > 0 && (
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "var(--navy)" }}>{fmt(totalNilai)}</div>
-                  <div style={{ fontSize: 10, color: "var(--text-muted)" }}>total nilai</div>
+                  <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-muted)" }}>total nilai</div>
                 </div>
               )}
             </div>
@@ -150,19 +150,19 @@ export default function PmPenugasanPage() {
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{sc.scope_name}</span>
                       <StatusBadge status={VARIAN_STATUS_SCOPE[sc.status] ?? "netral"} label={LABEL_STATUS_SCOPE[sc.status] ?? sc.status} />
-                      <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: "var(--portal-radius-pill)", background: "var(--info-bg)", color: "var(--on-info-bg)", fontWeight: 600 }}>
+                      <span style={{ fontSize: "var(--t-kecil)", padding: "2px 8px", borderRadius: "var(--portal-radius-pill)", background: "var(--info-bg)", color: "var(--on-info-bg)", fontWeight: 600 }}>
                         {LABEL_SISTEM[sc.payment_system] ?? sc.payment_system}
                       </span>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                      <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Progress fisik</span>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-primary)" }}>{sc.progress_pct_done.toFixed(0)}%</span>
+                      <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Progress fisik</span>
+                      <span style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: "var(--text-primary)" }}>{sc.progress_pct_done.toFixed(0)}%</span>
                     </div>
                     <div style={{ height: 5, borderRadius: 3, background: "var(--border)", overflow: "hidden" }}>
                       <div style={{ height: "100%", background: "var(--navy)", width: `${sc.progress_pct_done}%` }} />
                     </div>
                     {sc.payment_system === "borongan" && Number(sc.contract_value ?? 0) > 0 && (
-                      <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-secondary)" }}>
+                      <div style={{ marginTop: 8, fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
                         Kasbon/Kontrak: <strong style={{ color: "var(--warning)" }}>{fmt(sc.total_kasbon ?? 0)} / {fmt(Number(sc.contract_value))} ({sc.financial_pct ?? 0}%)</strong>
                       </div>
                     )}

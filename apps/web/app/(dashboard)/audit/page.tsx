@@ -92,19 +92,19 @@ function tableIcon(t: string) {
 }
 
 function DiffView({ oldVal, newVal }: { oldVal: Record<string, unknown> | null; newVal: Record<string, unknown> | null }) {
-  if (!oldVal && !newVal) return <span style={{ color: "var(--text-muted)", fontSize: 11 }}>Tidak ada data</span>;
+  if (!oldVal && !newVal) return <span style={{ color: "var(--text-muted)", fontSize: "var(--t-kecil)" }}>Tidak ada data</span>;
 
   const allKeys = [...new Set([...Object.keys(oldVal ?? {}), ...Object.keys(newVal ?? {})])];
   const changed = allKeys.filter(k => JSON.stringify((oldVal ?? {})[k]) !== JSON.stringify((newVal ?? {})[k]));
 
   if (changed.length === 0) {
-    return <span style={{ color: "var(--text-muted)", fontSize: 11 }}>Tidak ada perubahan nilai</span>;
+    return <span style={{ color: "var(--text-muted)", fontSize: "var(--t-kecil)" }}>Tidak ada perubahan nilai</span>;
   }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       {changed.slice(0, 8).map(key => (
-        <div key={key} style={{ display: "flex", gap: 6, alignItems: "flex-start", fontSize: 11 }}>
+        <div key={key} style={{ display: "flex", gap: 6, alignItems: "flex-start", fontSize: "var(--t-kecil)" }}>
           <span style={{ fontWeight: 700, color: "var(--text-secondary)", minWidth: 120, flexShrink: 0 }}>{key}</span>
           <div style={{ display: "flex", gap: 4, flexWrap: "wrap", flex: 1 }}>
             {oldVal && oldVal[key] !== undefined && (
@@ -121,7 +121,7 @@ function DiffView({ oldVal, newVal }: { oldVal: Record<string, unknown> | null; 
         </div>
       ))}
       {changed.length > 8 && (
-        <span style={{ fontSize: 10, color: "var(--text-muted)" }}>+{changed.length - 8} kolom lainnya</span>
+        <span style={{ fontSize: "var(--t-mikro)", color: "var(--text-muted)" }}>+{changed.length - 8} kolom lainnya</span>
       )}
     </div>
   );
@@ -290,7 +290,7 @@ export default function AuditPage() {
             type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)}
             style={{ height: 36, borderRadius: 6, border: "1px solid var(--border)", fontSize: 12, padding: "0 8px" }}
           />
-          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>—</span>
+          <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)" }}>—</span>
           <input aria-label="Tanggal akhir"
             type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)}
             style={{ height: 36, borderRadius: 6, border: "1px solid var(--border)", fontSize: 12, padding: "0 8px" }}
@@ -316,7 +316,7 @@ export default function AuditPage() {
           { label: "DELETE", count: logs.filter(l => l.action === "delete" || l.action === "soft_delete").length, color: "var(--danger)", bg: "var(--danger-bg)" },
           { label: "LAINNYA", count: logs.filter(l => !["insert","update","delete","soft_delete"].includes(l.action)).length, color: "var(--warning)", bg: "var(--warning-bg)" },
         ].map(chip => chip.count > 0 && (
-          <span key={chip.label} style={{ padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 700, background: chip.bg, color: chip.color }}>
+          <span key={chip.label} style={{ padding: "2px 8px", borderRadius: 99, fontSize: "var(--t-kecil)", fontWeight: 700, background: chip.bg, color: chip.color }}>
             {chip.label} · {chip.count}
           </span>
         ))}
@@ -369,7 +369,7 @@ export default function AuditPage() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                       <span style={{
-                        padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700,
+                        padding: "2px 8px", borderRadius: 99, fontSize: "var(--t-mikro)", fontWeight: 700,
                         background: ast.bg, color: ast.color, textTransform: "uppercase",
                       }}>{log.action}</span>
                       <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>{log.table_name}</span>
@@ -383,7 +383,7 @@ export default function AuditPage() {
                         yang kosong tanpa penanda terbaca seperti nilainya
                         gagal dimuat.
                       */}
-                      <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>
+                      <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", fontFamily: "monospace" }}>
                         {log.record_id ? `${log.record_id.slice(0, 8)}…` : "—"}
                       </span>
                       {/* `critical` ditandai KATA, bukan hanya warna (WCAG 1.4.1).
@@ -392,7 +392,7 @@ export default function AuditPage() {
                           adalah mayoritas mutlak. */}
                       {log.severity === "critical" && (
                         <span style={{
-                          padding: "1px 7px", borderRadius: 99, fontSize: 10, fontWeight: 700,
+                          padding: "1px 7px", borderRadius: 99, fontSize: "var(--t-mikro)", fontWeight: 700,
                           background: "var(--danger-bg)", color: "var(--danger)",
                           border: "1px solid var(--danger-border)", textTransform: "uppercase",
                         }}>kritis</span>
@@ -405,14 +405,14 @@ export default function AuditPage() {
                         endpoint tak mengambil kolomnya. */}
                     {log.reason && (
                       <div style={{
-                        fontSize: 11, color: "var(--text-secondary)", marginTop: 3,
+                        fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 3,
                         fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
                       }}>
                         “{log.reason}”
                       </div>
                     )}
-                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+                    <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginTop: 2 }}>
                       {log.new_values ? (
                         Object.keys(log.new_values).slice(0, 4).join(", ") +
                         (Object.keys(log.new_values).length > 4 ? ` +${Object.keys(log.new_values).length - 4} lainnya` : "")
@@ -429,17 +429,17 @@ export default function AuditPage() {
                       <User size={13} style={{ color: "var(--navy)" }} />
                     </div>
                     <div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)" }}>
+                      <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: "var(--text-secondary)" }}>
                         {log.user?.name ?? "—"}
                       </div>
-                      <div style={{ fontSize: 10, color: "var(--text-muted)" }}>{log.user?.role ?? ""}</div>
+                      <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-muted)" }}>{log.user?.role ?? ""}</div>
                     </div>
                   </div>
 
                   {/* Timestamp */}
                   <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0, minWidth: 140 }}>
                     <Clock size={11} style={{ color: "var(--border-strong)" }} />
-                    <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{fmtDate(log.created_at)}</span>
+                    <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)" }}>{fmtDate(log.created_at)}</span>
                   </div>
 
                   {/* Expand indicator */}
@@ -452,7 +452,7 @@ export default function AuditPage() {
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--gap-bagian)", marginTop: 14 }}>
                       {/* Metadata */}
                       <div style={{ background: "var(--surface)", borderRadius: 10, padding: "12px 12px", border: "1px solid var(--border)" }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>Detail</div>
+                        <div style={{ fontSize: "var(--t-mikro)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>Detail</div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                           {[
                             { label: "ID Log", val: log.id },
@@ -463,8 +463,8 @@ export default function AuditPage() {
                             { label: "Waktu", val: fmtDate(log.created_at) },
                           ].map(({ label, val }) => (
                             <div key={label} style={{ display: "flex", gap: 8 }}>
-                              <span style={{ fontSize: 11, color: "var(--text-muted)", minWidth: 80, flexShrink: 0 }}>{label}</span>
-                              <span style={{ fontSize: 11, color: "var(--text-secondary)", fontFamily: label === "ID Log" || label === "Record ID" ? "monospace" : "inherit", wordBreak: "break-all" }}>{val}</span>
+                              <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", minWidth: 80, flexShrink: 0 }}>{label}</span>
+                              <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", fontFamily: label === "ID Log" || label === "Record ID" ? "monospace" : "inherit", wordBreak: "break-all" }}>{val}</span>
                             </div>
                           ))}
                         </div>
@@ -472,10 +472,10 @@ export default function AuditPage() {
 
                       {/* Diff */}
                       <div style={{ background: "var(--surface)", borderRadius: 10, padding: "12px 12px", border: "1px solid var(--border)" }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
+                        <div style={{ fontSize: "var(--t-mikro)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
                           Perubahan
-                          {log.old_values && <span style={{ marginLeft: 8, padding: "0px 4px", borderRadius: 6, background: "var(--danger-bg)", color: "var(--on-danger-bg)", fontSize: 10 }}>SEBELUM</span>}
-                          {log.new_values && <span style={{ marginLeft: 4, padding: "0px 4px", borderRadius: 6, background: "var(--success-bg)", color: "var(--on-success-bg)", fontSize: 10 }}>SESUDAH</span>}
+                          {log.old_values && <span style={{ marginLeft: 8, padding: "0px 4px", borderRadius: 6, background: "var(--danger-bg)", color: "var(--on-danger-bg)", fontSize: "var(--t-mikro)" }}>SEBELUM</span>}
+                          {log.new_values && <span style={{ marginLeft: 4, padding: "0px 4px", borderRadius: 6, background: "var(--success-bg)", color: "var(--on-success-bg)", fontSize: "var(--t-mikro)" }}>SESUDAH</span>}
                         </div>
                         <DiffView oldVal={log.old_values} newVal={log.new_values} />
                       </div>
@@ -483,20 +483,20 @@ export default function AuditPage() {
 
                     {/* Raw JSON toggle */}
                     <details style={{ marginTop: 10 }}>
-                      <summary style={{ fontSize: 11, color: "var(--text-muted)", cursor: "pointer", userSelect: "none" }}>
+                      <summary style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", cursor: "pointer", userSelect: "none" }}>
                         <FileText size={11} style={{ display: "inline", marginRight: 4 }} />
                         Lihat JSON mentah
                       </summary>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
                         <div>
-                          <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 4 }}>old_values</div>
-                          <pre style={{ fontSize: 10, background: "var(--surface-subtle)", border: "1px solid var(--border)", borderRadius: 6, padding: 8, overflow: "auto", maxHeight: 200, margin: 0, color: "var(--text-secondary)" }}>
+                          <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-muted)", marginBottom: 4 }}>old_values</div>
+                          <pre style={{ fontSize: "var(--t-mikro)", background: "var(--surface-subtle)", border: "1px solid var(--border)", borderRadius: 6, padding: 8, overflow: "auto", maxHeight: 200, margin: 0, color: "var(--text-secondary)" }}>
                             {JSON.stringify(log.old_values, null, 2)}
                           </pre>
                         </div>
                         <div>
-                          <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 4 }}>new_values</div>
-                          <pre style={{ fontSize: 10, background: "var(--surface-subtle)", border: "1px solid var(--border)", borderRadius: 6, padding: 8, overflow: "auto", maxHeight: 200, margin: 0, color: "var(--text-secondary)" }}>
+                          <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-muted)", marginBottom: 4 }}>new_values</div>
+                          <pre style={{ fontSize: "var(--t-mikro)", background: "var(--surface-subtle)", border: "1px solid var(--border)", borderRadius: 6, padding: 8, overflow: "auto", maxHeight: 200, margin: 0, color: "var(--text-secondary)" }}>
                             {JSON.stringify(log.new_values, null, 2)}
                           </pre>
                         </div>

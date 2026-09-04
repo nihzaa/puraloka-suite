@@ -87,7 +87,7 @@ export function ModalBackChargeBaru({ lingkup, onClose, onSukses }: {
             <option key={l.work_scope_id} value={l.work_scope_id}>{l.scope_name}</option>
           ))}
         </Pilihan>
-        <p style={{ margin: "5px 0 0", fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
+        <p style={{ margin: "5px 0 0", fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.5 }}>
           Potongan menempel pada lingkup kerja, bukan pada mandornya — satu mandor
           bisa memegang beberapa lingkup, dan potongan yang salah lingkup memotong
           tagihan pekerjaan yang tak bermasalah.
@@ -120,7 +120,7 @@ export function ModalBackChargeBaru({ lingkup, onClose, onSukses }: {
           onChange={(e) => setUraian(e.target.value)}
           placeholder="Apa yang harus diperbaiki, kenapa biayanya dibebankan ke mandor"
           style={{ ...gayaInput, resize: "vertical" }} />
-        <p style={{ margin: "5px 0 0", fontSize: 11, lineHeight: 1.5,
+        <p style={{ margin: "5px 0 0", fontSize: "var(--t-kecil)", lineHeight: 1.5,
           color: uraian.trim() === "" ? "var(--warning)" : C.muted }}>
           Wajib. <strong>Potongan tanpa sebab tak bisa dijelaskan ke mandor</strong> —
           dan yang tak bisa dijelaskan akan disengketakan saat pembayaran.
@@ -198,7 +198,7 @@ export function ModalPutusanBackCharge({ bc, onClose, onSukses }: {
         background: "var(--surface-subtle)", border: `1px solid ${C.border}`,
       }}>{bc.uraian}</div>
 
-      <p style={{ margin: 0, fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
+      <p style={{ margin: 0, fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.5 }}>
         Menyetujui memasukkannya ke rantai persetujuan — bila tenant ini menuntut
         dua lapis, potongan <strong>belum</strong> berlaku sesudah ketukan ini.
         Anda tak bisa menyetujui back-charge yang Anda ajukan sendiri.
@@ -210,7 +210,7 @@ export function ModalPutusanBackCharge({ bc, onClose, onSukses }: {
           onChange={(e) => setAlasan(e.target.value)}
           placeholder="Kenapa potongan ini ditarik kembali"
           style={{ ...gayaInput, resize: "vertical" }} />
-        <p style={{ margin: "5px 0 0", fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
+        <p style={{ margin: "5px 0 0", fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.5 }}>
           Wajib diisi hanya bila membatalkan — tanpa itu tak ada yang tahu kenapa
           potongan yang sudah diajukan tiba-tiba hilang.
         </p>
@@ -319,7 +319,7 @@ export function ModalPrakualifikasiBaru({ vendor, onClose, onSukses }: {
           <label htmlFor="pra-berlaku" style={gayaLabel}>Berlaku sampai</label>
           <input id="pra-berlaku" type="date" value={berlaku}
             onChange={(e) => setBerlaku(e.target.value)} style={gayaInput} />
-          <p style={{ margin: "5px 0 0", fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
+          <p style={{ margin: "5px 0 0", fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.5 }}>
             Kosongkan bila tak bermasa. Penilaian yang lewat masanya ditandai
             kedaluwarsa, bukan dihapus.
           </p>
@@ -370,7 +370,7 @@ export function ModalPrakualifikasiBaru({ vendor, onClose, onSukses }: {
             onChange={(e) => setAlasanTolak(e.target.value)}
             placeholder="Apa yang tidak memenuhi syarat"
             style={{ ...gayaInput, resize: "vertical" }} />
-          <p style={{ margin: "5px 0 0", fontSize: 11, lineHeight: 1.5,
+          <p style={{ margin: "5px 0 0", fontSize: "var(--t-kecil)", lineHeight: 1.5,
             color: alasanCukup ? C.muted : "var(--warning)" }}>
             Minimal 5 huruf — basis menolak yang lebih pendek. Vendor yang ditolak
             akan bertanya kenapa, dan jawabannya harus ada di sini.

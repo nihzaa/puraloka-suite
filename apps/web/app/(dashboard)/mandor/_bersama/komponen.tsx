@@ -364,7 +364,7 @@ export function CreateWageReportModal({ onClose, onSuccess }: {
             {/* Header kolom */}
             <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 28px", gap: 6, marginBottom: 4, padding: "0 4px" }}>
               {["Nama Tukang", "Hari Kerja", "Tarif/Hari", "Lembur (jam)", "Tarif Lembur", ""].map(h => (
-                <div key={h} style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</div>
+                <div key={h} style={{ fontSize: "var(--t-mikro)", fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</div>
               ))}
             </div>
 
@@ -383,7 +383,7 @@ export function CreateWageReportModal({ onClose, onSuccess }: {
                       <Trash2 size={13} />
                     </button>
                     {subtotalItem > 0 && (
-                      <div style={{ gridColumn: "1/-1", fontSize: 11, color: C.mid, textAlign: "right", paddingRight: 4 }}>
+                      <div style={{ gridColumn: "1/-1", fontSize: "var(--t-kecil)", color: C.mid, textAlign: "right", paddingRight: 4 }}>
                         Subtotal: <strong style={{ color: C.text }}>{fmt(subtotalItem)}</strong>
                       </div>
                     )}
@@ -409,7 +409,7 @@ export function CreateWageReportModal({ onClose, onSuccess }: {
                     {(["kasbon_kolektif", "kasbon_individu"] as const).map(t => (
                       <button key={t} type="button"
                         onClick={() => updateDeduction(i, "tipe", t)}
-                        style={{ padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: d.tipe === t ? 700 : 400, cursor: "pointer", border: `1px solid ${d.tipe === t ? C.red : C.border}`, background: d.tipe === t ? C.redBg : "var(--surface)", color: d.tipe === t ? C.red : C.mid }}>
+                        style={{ padding: "4px 12px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: d.tipe === t ? 700 : 400, cursor: "pointer", border: `1px solid ${d.tipe === t ? C.red : C.border}`, background: d.tipe === t ? C.redBg : "var(--surface)", color: d.tipe === t ? C.red : C.mid }}>
                         {t === "kasbon_kolektif" ? "Kolektif" : "Per Individu"}
                       </button>
                     ))}
@@ -469,7 +469,7 @@ export function CreateWageReportModal({ onClose, onSuccess }: {
                 { label: "Yang Dibayar", value: net, color: C.navy },
               ].map(s => (
                 <div key={s.label}>
-                  <div style={{ fontSize: 11, color: C.mid, marginBottom: 2 }}>{s.label}</div>
+                  <div style={{ fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 2 }}>{s.label}</div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: s.color }}>{fmt(s.value)}</div>
                 </div>
               ))}
@@ -624,7 +624,7 @@ export function WageReportDetailModal({ data, onClose, onApprove }: {
                   <div key={d.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: C.redBg, borderRadius: 6, border: `1px solid ${C.redBorder}` }}>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{d.label}</div>
-                      {d.worker_kasbon && <div style={{ fontSize: 11, color: C.muted }}>Kasbon {d.worker_kasbon.worker?.name} · {fmtDate(d.worker_kasbon.kasbon_date)}</div>}
+                      {d.worker_kasbon && <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>Kasbon {d.worker_kasbon.worker?.name} · {fmtDate(d.worker_kasbon.kasbon_date)}</div>}
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: C.red }}>−{fmt(d.amount)}</div>
                   </div>
@@ -653,7 +653,7 @@ export function WageReportDetailModal({ data, onClose, onApprove }: {
           {/* Review notes jika ada */}
           {r?.review_notes && (
             <div style={{ padding: "8px 12px", background: "var(--surface-subtle)", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, color: C.text }}>
-              <div style={{ fontWeight: 600, color: C.muted, fontSize: 11, marginBottom: 4 }}>Catatan Review:</div>
+              <div style={{ fontWeight: 600, color: C.muted, fontSize: "var(--t-kecil)", marginBottom: 4 }}>Catatan Review:</div>
               {r.review_notes}
             </div>
           )}
@@ -677,7 +677,7 @@ export function WageReportDetailModal({ data, onClose, onApprove }: {
                 <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "12px 16px", background: C.greenBg, borderRadius: 10, border: `1px solid ${C.greenBorder}` }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.green }}>Konfirmasi Persetujuan</div>
                   <div>
-                    <span id="metode-pembayaran" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Metode Pembayaran <span style={{ color: C.red }}>*</span></span>
+                    <span id="metode-pembayaran" style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, marginBottom: 6 }}>Metode Pembayaran <span style={{ color: C.red }}>*</span></span>
                     <div role="group" aria-labelledby="metode-pembayaran" style={{ display: "flex", gap: 8 }}>
                       {([["cash", "Cash"], ["transfer_bank", "Transfer Bank"]] as const).map(([val, lbl]) => (
                         <button key={val} type="button" onClick={() => setApprovePaymentMethod(val)}
@@ -688,7 +688,7 @@ export function WageReportDetailModal({ data, onClose, onApprove }: {
                     </div>
                   </div>
                   <div>
-                    <label htmlFor="review-notes" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Catatan (opsional)</label>
+                    <label htmlFor="review-notes" style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, marginBottom: 6 }}>Catatan (opsional)</label>
                     <textarea id="review-notes" value={reviewNotes} onChange={e => setReviewNotes(e.target.value)} rows={2} placeholder="Catatan tambahan..." style={{ width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", resize: "none", boxSizing: "border-box" }} />
                   </div>
                   <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
@@ -705,9 +705,9 @@ export function WageReportDetailModal({ data, onClose, onApprove }: {
                 <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "12px 16px", background: C.redBg, borderRadius: 10, border: `1px solid ${C.redBorder}` }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.red }}>Tolak Laporan</div>
                   <div>
-                    <label htmlFor="reject-notes" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Alasan Penolakan <span style={{ color: C.red }}>*</span></label>
+                    <label htmlFor="reject-notes" style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, marginBottom: 6 }}>Alasan Penolakan <span style={{ color: C.red }}>*</span></label>
                     <textarea id="reject-notes" value={rejectNotes} onChange={e => setRejectNotes(e.target.value)} rows={3} placeholder="Wajib diisi — jelaskan alasan penolakan..." style={{ width: "100%", padding: "8px 8px", border: `1px solid ${rejectNotes.trim() ? C.border : C.red}`, borderRadius: 6, fontSize: 13, outline: "none", resize: "none", boxSizing: "border-box" }} />
-                    {!rejectNotes.trim() && <div style={{ fontSize: 11, color: C.red, marginTop: 4 }}>Alasan penolakan wajib diisi</div>}
+                    {!rejectNotes.trim() && <div style={{ fontSize: "var(--t-kecil)", color: C.red, marginTop: 4 }}>Alasan penolakan wajib diisi</div>}
                   </div>
                   <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                     <button onClick={() => setShowRejectForm(false)} style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 13, cursor: "pointer" }}>Batal</button>
@@ -734,12 +734,12 @@ export function WageReportDetailModal({ data, onClose, onApprove }: {
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.navy }}>Konfirmasi Pembayaran Upah</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     <div>
-                      <label htmlFor="paid-at" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Tanggal Bayar</label>
+                      <label htmlFor="paid-at" style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, marginBottom: 5 }}>Tanggal Bayar</label>
                       <input id="paid-at" aria-label="Tanggal" type="date" value={paidAt} onChange={e => setPaidAt(e.target.value)}
                         style={{ width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
                     </div>
                     <div>
-                      <label htmlFor="cash-account-id" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Sumber Kas <span style={{ color: C.red }}>*</span></label>
+                      <label htmlFor="cash-account-id" style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, marginBottom: 5 }}>Sumber Kas <span style={{ color: C.red }}>*</span></label>
                       <Pilihan id="cash-account-id" aria-label="Sumber kas pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)}
                         style={{ width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", boxSizing: "border-box" }}>
                         <option value="">— Tidak dari kas —</option>
@@ -755,7 +755,7 @@ export function WageReportDetailModal({ data, onClose, onApprove }: {
                     if (!acc) return null;
                     const ok = acc.balance >= net;
                     return (
-                      <div style={{ fontSize: 11, color: ok ? C.green : C.red, fontWeight: 600 }}>
+                      <div style={{ fontSize: "var(--t-kecil)", color: ok ? C.green : C.red, fontWeight: 600 }}>
                         {ok ? `✓ Saldo cukup — setelah bayar: Rp ${(acc.balance - net).toLocaleString("id-ID")}` : `⚠ Saldo tidak cukup (Rp ${acc.balance.toLocaleString("id-ID")} < Rp ${net.toLocaleString("id-ID")})`}
                       </div>
                     );
@@ -1207,7 +1207,7 @@ export function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () =>
             </div>
             <div>
               <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>Ajukan Kasbon</h2>
-              <p style={{ margin: 0, fontSize: 11, color: C.muted }}>Pengajuan akan dikirim ke admin/PM untuk disetujui</p>
+              <p style={{ margin: 0, fontSize: "var(--t-kecil)", color: C.muted }}>Pengajuan akan dikirim ke admin/PM untuk disetujui</p>
             </div>
           </div>
           <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
@@ -1242,9 +1242,9 @@ export function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () =>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 4 }}>
               Scope Pekerjaan
-              <span style={{ fontSize: 11, fontWeight: 400, color: C.muted, marginLeft: 6 }}>(opsional)</span>
+              <span style={{ fontSize: "var(--t-kecil)", fontWeight: 400, color: C.muted, marginLeft: 6 }}>(opsional)</span>
             </label>
-            <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginBottom: 6 }}>
               Kosongkan jika kasbon bersifat umum dan tidak terikat scope tertentu.
             </div>
             <Pilihan className="isian-fokus"
@@ -1312,7 +1312,7 @@ export function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () =>
             <textarea className="isian-fokus" id="notes-6" value={notes} onChange={e => setNotes(e.target.value)} rows={3} required
               placeholder="Jelaskan keperluan kasbon ini secara detail, misal: untuk beli semen 50 sak dan besi 10mm..."
               style={{ ...GAYA_ISIAN, resize: "vertical", fontFamily: "inherit" }} />
-            <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4 }}>
               Keterangan yang jelas mempercepat persetujuan dari admin/PM.
             </div>
           </div>
@@ -1508,7 +1508,7 @@ export function AddScopeModal({ assignmentId, onClose, onSuccess }: {
                 <button key={ps} type="button" onClick={() => setPaymentSystem(ps)}
                   style={{ padding: "8px 8px", borderRadius: 6, border: `2px solid ${paymentSystem === ps ? C.navy : C.border}`, background: paymentSystem === ps ? C.navyLight : "var(--surface)", cursor: "pointer", fontSize: 12, fontWeight: paymentSystem === ps ? 700 : 400, color: paymentSystem === ps ? C.navy : C.mid, textAlign: "center" }}>
                   {PAYMENT_SYSTEM[ps]}
-                  <div style={{ fontSize: 10, fontWeight: 400, marginTop: 2, color: C.muted }}>
+                  <div style={{ fontSize: "var(--t-mikro)", fontWeight: 400, marginTop: 2, color: C.muted }}>
                     {ps === "borongan" ? "Bayar selesai" : ps === "harian" ? "Bayar per minggu" : "Bayar per %"}
                   </div>
                 </button>
@@ -1588,10 +1588,10 @@ export function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh,
                 <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>{scope.scope_name}</h2>
                 <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
                   {(() => { const b = getPaymentSystemBadge(scope.payment_system); return (
-                    <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 10, background: b.bg, color: b.color, border: `1px solid ${b.border}`, fontWeight: 600 }}>{b.label}</span>
+                    <span style={{ fontSize: "var(--t-kecil)", padding: "2px 8px", borderRadius: 10, background: b.bg, color: b.color, border: `1px solid ${b.border}`, fontWeight: 600 }}>{b.label}</span>
                   ); })()}
-                  {scope.borongan_value && <span style={{ fontSize: 11, color: C.mid }}>Nilai: {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(scope.borongan_value)}</span>}
-                  {scope.start_date && <span style={{ fontSize: 11, color: C.muted }}>{new Date(scope.start_date).toLocaleDateString("id-ID", { day: "numeric", month: "short" })} {scope.end_date ? `– ${new Date(scope.end_date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}` : ""}</span>}
+                  {scope.borongan_value && <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}>Nilai: {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(scope.borongan_value)}</span>}
+                  {scope.start_date && <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>{new Date(scope.start_date).toLocaleDateString("id-ID", { day: "numeric", month: "short" })} {scope.end_date ? `– ${new Date(scope.end_date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}` : ""}</span>}
                 </div>
               </>
             ) : null}
@@ -1620,7 +1620,7 @@ export function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh,
             </div>
             <div style={{ textAlign: "right", flexShrink: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(totalSubtotal)}</div>
-              <div style={{ fontSize: 11, color: C.muted }}>total nilai {items.length} item</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>total nilai {items.length} item</div>
             </div>
           </div>
         )}
@@ -1648,10 +1648,10 @@ export function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh,
                 return (
                   <div key={cat}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 10, background: catColor.bg, color: catColor.color }}>
+                      <span style={{ fontSize: "var(--t-kecil)", fontWeight: 700, padding: "2px 8px", borderRadius: 10, background: catColor.bg, color: catColor.color }}>
                         {labelOf(cat)}
                       </span>
-                      <span style={{ fontSize: 11, color: C.muted }}>{catItems.length} item · {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(catTotal)}</span>
+                      <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>{catItems.length} item · {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(catTotal)}</span>
                     </div>
                     {catItems.map(item => {
                       const pct = Number(item.pct_done);
@@ -1665,7 +1665,7 @@ export function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh,
                               {item.specs && item.specs.length > 0 && (
                                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
                                   {item.specs.map(sp => (
-                                    <span key={sp.id} style={{ fontSize: 10, padding: "2px 8px", borderRadius: 6, background: "var(--info-bg)", color: C.navy, border: "1px solid #C7D7F5" }}>
+                                    <span key={sp.id} style={{ fontSize: "var(--t-mikro)", padding: "2px 8px", borderRadius: 6, background: "var(--info-bg)", color: C.navy, border: "1px solid #C7D7F5" }}>
                                       {sp.spec_key}: <strong>{sp.spec_value}</strong>
                                     </span>
                                   ))}
@@ -1678,14 +1678,14 @@ export function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh,
                                 <div style={{ flex: 1, height: 4, borderRadius: 0, background: C.border, overflow: "hidden" }}>
                                   <div style={{ height: "100%", borderRadius: 0, background: pctColor, width: `${pct}%` }} />
                                 </div>
-                                <span style={{ fontSize: 11, color: pctColor, fontWeight: 600, flexShrink: 0 }}>
+                                <span style={{ fontSize: "var(--t-kecil)", color: pctColor, fontWeight: 600, flexShrink: 0 }}>
                                   {Number(item.volume_done).toLocaleString("id-ID")}/{Number(item.volume).toLocaleString("id-ID")} {symbolOf(item.unit)} ({pct.toFixed(0)}%)
                                 </span>
                               </div>
                             </div>
                             <div style={{ textAlign: "right", flexShrink: 0 }}>
                               <div style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(item.subtotal)}</div>
-                              {item.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: "italic", marginTop: 2 }}>{item.notes}</div>}
+                              {item.notes && <div style={{ fontSize: "var(--t-kecil)", color: C.muted, fontStyle: "italic", marginTop: 2 }}>{item.notes}</div>}
                             </div>
                           </div>
                         </div>
@@ -1835,11 +1835,11 @@ export function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Spesifikasi Teknis (opsional)</span>
               <button type="button" onClick={() => setSpecs([...specs, { key: "", value: "" }])}
-                style={{ fontSize: 11, padding: "2px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", color: C.navy }}>
+                style={{ fontSize: "var(--t-kecil)", padding: "2px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", color: C.navy }}>
                 + Tambah Spec
               </button>
             </div>
-            <div style={{ fontSize: 11, color: C.muted, marginBottom: 8 }}>Contoh: Profil → WF 200x100x5.5x8, Grade → BJ41, Diameter → 4 inch</div>
+            <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginBottom: 8 }}>Contoh: Profil → WF 200x100x5.5x8, Grade → BJ41, Diameter → 4 inch</div>
             {specs.map((sp, i) => (
               <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 6, marginBottom: 6 }}>
                 <input className="isian-fokus" value={sp.key} onChange={e => { const s = [...specs]; s[i].key = e.target.value; setSpecs(s); }} placeholder="Nama spec" style={{ ...GAYA_ISIAN, fontSize: 12 }} />
@@ -1932,7 +1932,7 @@ export function SettlementBoronganModal({ data, cashAccounts, onClose, onSuccess
           <div>
             <label htmlFor="total-kasbon" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Total Kasbon Mandor (Rp)</label>
             <input className="isian-fokus" id="total-kasbon" type="number" min={0} value={totalKasbon} onChange={e => setTotalKasbon(e.target.value)} placeholder="0" style={GAYA_ISIAN} />
-            <div style={{ fontSize: 11, color: C.muted, marginTop: 3 }}>Kasbon yang sudah diajukan mandor untuk scope ini</div>
+            <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 3 }}>Kasbon yang sudah diajukan mandor untuk scope ini</div>
           </div>
           <div>
             <label htmlFor="total-other-expense" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Pengeluaran Lain (Rp)</label>
@@ -1940,15 +1940,15 @@ export function SettlementBoronganModal({ data, cashAccounts, onClose, onSuccess
           </div>
           <div style={{ background: "var(--navy-light)", borderRadius: 10, padding: "12px 16px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <div>
-              <div style={{ fontSize: 10, color: "var(--text-secondary)", marginBottom: 2 }}>Nilai Kontrak</div>
+              <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-secondary)", marginBottom: 2 }}>Nilai Kontrak</div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--navy)" }}>{fmtLocal(bv)}</div>
             </div>
             <div>
-              <div style={{ fontSize: 10, color: "var(--text-secondary)", marginBottom: 2 }}>Potongan</div>
+              <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-secondary)", marginBottom: 2 }}>Potongan</div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--danger)" }}>- {fmtLocal(tk + toe)}</div>
             </div>
             <div style={{ gridColumn: "span 2", borderTop: "1px solid var(--border)", paddingTop: 10 }}>
-              <div style={{ fontSize: 10, color: "var(--text-secondary)", marginBottom: 2 }}>Net Pembayaran</div>
+              <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-secondary)", marginBottom: 2 }}>Net Pembayaran</div>
               <div style={{ fontSize: 20, fontWeight: 800, color: netPayment > 0 ? "var(--success)" : "var(--text-secondary)" }}>{fmtLocal(netPayment)}</div>
             </div>
           </div>
@@ -2006,20 +2006,20 @@ export function PPConfirmModal({ payment, cashAccounts, loading, onClose, onActi
         </div>
         <div style={{ padding: "16px 24px", background: "var(--bg)", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, borderBottom: "1px solid var(--border)" }}>
           <div>
-            <div style={{ fontSize: 10, color: "var(--text-secondary)", marginBottom: 2 }}>Diajukan oleh</div>
+            <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-secondary)", marginBottom: 2 }}>Diajukan oleh</div>
             <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{payment.requester?.name ?? "---"}</div>
           </div>
           <div>
-            <div style={{ fontSize: 10, color: "var(--text-secondary)", marginBottom: 2 }}>Progress Klaim</div>
+            <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-secondary)", marginBottom: 2 }}>Progress Klaim</div>
             <div style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)" }}>{payment.pct_done}%</div>
           </div>
           <div style={{ gridColumn: "span 2" }}>
-            <div style={{ fontSize: 10, color: "var(--text-secondary)", marginBottom: 2 }}>Jumlah Tagihan</div>
+            <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-secondary)", marginBottom: 2 }}>Jumlah Tagihan</div>
             <div style={{ fontSize: 17, fontWeight: 800, color: C.text }}>{fmtLocal(payment.gross_payment)}</div>
           </div>
           {payment.notes && (
             <div style={{ gridColumn: "span 2" }}>
-              <div style={{ fontSize: 10, color: "var(--text-secondary)", marginBottom: 2 }}>Catatan Mandor</div>
+              <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-secondary)", marginBottom: 2 }}>Catatan Mandor</div>
               <div style={{ fontSize: 12, color: "var(--text-secondary)", fontStyle: "italic" }}>{payment.notes}</div>
             </div>
           )}

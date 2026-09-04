@@ -173,15 +173,15 @@ const buatKolom = (onTaut: (t: Temuan) => void): Array<Kolom<Temuan>> => [
         }}>
           <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             {t.kode && (
-              <span style={{ fontSize: 11, color: C.muted, fontVariantNumeric: "tabular-nums" }}>{t.kode}</span>
+              <span style={{ fontSize: "var(--t-kecil)", color: C.muted, fontVariantNumeric: "tabular-nums" }}>{t.kode}</span>
             )}
             <strong style={{ fontSize: 13, color: C.text }}>{t.uraian}</strong>
           </span>
-          <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 2 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>
             {t.klausul}
           </span>
           {t.bukti && (
-            <span style={{ display: "block", fontSize: 11, color: C.mid, marginTop: 2, maxWidth: "56ch" }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2, maxWidth: "56ch" }}>
               Bukti: {t.bukti}
             </span>
           )}
@@ -198,7 +198,7 @@ const buatKolom = (onTaut: (t: Temuan) => void): Array<Kolom<Temuan>> => [
           title={a.arti}
           style={{
             display: "inline-flex", alignItems: "center", gap: 4,
-            padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700,
+            padding: "2px 8px", borderRadius: 999, fontSize: "var(--t-kecil)", fontWeight: 700,
             color: a.warna, background: a.bg, border: `1px solid ${a.border}`,
           }}
         >
@@ -222,7 +222,7 @@ const buatKolom = (onTaut: (t: Temuan) => void): Array<Kolom<Temuan>> => [
             }}>
               <Link2 size={12} aria-hidden="true" /> {t.ncr.nomor}
             </span>
-            <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 1 }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 1 }}>
               {t.ncr.status}
             </span>
           </span>
@@ -232,14 +232,14 @@ const buatKolom = (onTaut: (t: Temuan) => void): Array<Kolom<Temuan>> => [
         return (
           <span style={{
             display: "inline-flex", alignItems: "center", gap: 4,
-            fontSize: 11, fontWeight: 700, color: "var(--danger)",
+            fontSize: "var(--t-kecil)", fontWeight: 700, color: "var(--danger)",
           }}>
             <TriangleAlert size={11} aria-hidden="true" /> belum ada NCR
           </span>
         );
       }
       // Minor & observasi tanpa NCR itu SAH — jangan tampilkan seperti cacat.
-      return <span style={{ fontSize: 11, color: C.muted }}>—</span>;
+      return <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>—</span>;
     },
   },
   {
@@ -254,7 +254,7 @@ const buatKolom = (onTaut: (t: Temuan) => void): Array<Kolom<Temuan>> => [
             }}>
               <ShieldCheck size={13} aria-hidden="true" /> Ditutup
             </span>
-            <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 1 }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 1 }}>
               {tanggal(t.ditutup_pada)}
             </span>
           </span>
@@ -424,7 +424,7 @@ export default function AuditMutuPage() {
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
         <div className="rise" style={{ ...kartu, padding: "12px 16px", minWidth: 280, flex: "1 1 280px", maxWidth: 420 }}>
           <label htmlFor="am-proyek" style={{
-            fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+            fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
             marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
           }}>Proyek</label>
           <Pilihan
@@ -442,7 +442,7 @@ export default function AuditMutuPage() {
         {daftar.length > 0 && (
           <div className="rise" style={{ ...kartu, padding: "12px 16px", minWidth: 280, flex: "1 1 280px", maxWidth: 460 }}>
             <label htmlFor="am-audit" style={{
-              fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Audit</label>
             <Pilihan
@@ -556,18 +556,18 @@ export default function AuditMutuPage() {
             <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
               <strong style={{ fontSize: 14, color: C.text }}>{detail.audit.nomor}</strong>
               <span style={{
-                padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700,
+                padding: "2px 8px", borderRadius: 999, fontSize: "var(--t-kecil)", fontWeight: 700,
                 color: STATUS[detail.audit.status].warna,
                 background: STATUS[detail.audit.status].bg,
                 border: `1px solid ${STATUS[detail.audit.status].border}`,
               }}>{STATUS[detail.audit.status].label}</span>
               {detail.audit.pemeriksa && (
-                <span style={{ fontSize: 11, color: C.muted }}>
+                <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
                   auditor: {detail.audit.pemeriksa.name}
                 </span>
               )}
               {detail.audit.teraudit && (
-                <span style={{ fontSize: 11, color: C.muted }}>
+                <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
                   diaudit: {detail.audit.teraudit}
                 </span>
               )}
@@ -606,12 +606,12 @@ export default function AuditMutuPage() {
               },
             ].map((k) => (
               <div key={k.l} style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.l}</div>
                 {/* Angka tenang — penekanan sudah dipakai verdict (§3d). */}
                 <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text,
                   fontVariantNumeric: "tabular-nums" }}>{k.v}</div>
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{k.sub}</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>{k.sub}</div>
               </div>
             ))}
           </div>
@@ -683,7 +683,7 @@ export default function AuditMutuPage() {
 
             <div>
               <label htmlFor="am-ncr" style={{
-                fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+                fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
                 marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
               }}>Tautkan ke NCR</label>
               <Pilihan
@@ -698,7 +698,7 @@ export default function AuditMutuPage() {
                   <option key={n.id} value={n.id}>{n.nomor} — {n.judul}</option>
                 ))}
               </Pilihan>
-              <p style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
+              <p style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
                 NCR memberi temuan ini penanggung jawab, target selesai, dan
                 verifikasi penutupan — tiga hal yang tak dimiliki catatan audit
                 sendirian.
@@ -713,7 +713,7 @@ export default function AuditMutuPage() {
 
             <div>
               <label htmlFor="am-catatan" style={{
-                fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+                fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
                 marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
               }}>Catatan penutupan</label>
               <textarea

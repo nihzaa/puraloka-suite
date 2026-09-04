@@ -367,7 +367,7 @@ export default function SitusContent() {
               <div key={k} style={{ display: "grid", gap: 5 }}>
                 <label htmlFor={`konten-${k}`} style={{ fontSize: 12, fontWeight: 600 }}>
                   {LABEL[k]}
-                  <span style={{ color: C.muted, fontWeight: 400, marginLeft: 8, fontFamily: "ui-monospace, monospace", fontSize: 11 }}>
+                  <span style={{ color: C.muted, fontWeight: 400, marginLeft: 8, fontFamily: "ui-monospace, monospace", fontSize: "var(--t-kecil)" }}>
                     {k}
                   </span>
                 </label>

@@ -156,7 +156,7 @@ export default function AdminDetailAkunKasPage() {
                     <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
                       {masuk ? `Dari ${t.from_account.name}` : `Ke ${t.to_account.name}`}
                     </span>
-                    <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{formatTanggal(t.transfer_date)}</div>
+                    <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{formatTanggal(t.transfer_date)}</div>
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: masuk ? "var(--success)" : "var(--danger)", fontVariantNumeric: "tabular-nums" }}>
@@ -211,7 +211,7 @@ export default function AdminDetailAkunKasPage() {
             <div key={e.id} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
               <div>
                 <div style={{ fontSize: 13, color: "var(--text-primary)" }}>{e.description}</div>
-                <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{e.projects?.name ?? "—"} · {formatTanggal(e.expense_date)}</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{e.projects?.name ?? "—"} · {formatTanggal(e.expense_date)}</div>
               </div>
               <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>{formatRupiah(e.total_amount)}</span>
             </div>

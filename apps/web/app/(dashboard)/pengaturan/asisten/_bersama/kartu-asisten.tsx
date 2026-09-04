@@ -250,7 +250,7 @@ export function KartuAsisten({ asisten }: { asisten: string }) {
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               background: "none", border: "none", padding: 0,
-              fontSize: 11.5, fontWeight: 550,
+              fontSize: "var(--t-kecil)", fontWeight: 550,
               color: menyamakan ? C.muted : C.navy,
               cursor: menyamakan ? "default" : "pointer",
               textDecoration: "underline", textUnderlineOffset: 3,
@@ -259,7 +259,7 @@ export function KartuAsisten({ asisten }: { asisten: string }) {
             {menyamakan ? <Loader2 size={12} className="berputar" /> : <Copy size={12} />}
             Terapkan sifat ini ke semua asisten
           </button>
-          <span style={{ fontSize: 11.5, color: C.muted, marginLeft: 8 }}>
+          <span style={{ fontSize: "var(--t-kecil)", color: C.muted, marginLeft: 8 }}>
             Menimpa sifat asisten lain — pengaturan lainnya tidak tersentuh.
           </span>
         </div>
@@ -281,7 +281,7 @@ export function KartuAsisten({ asisten }: { asisten: string }) {
           onChange={(e) => setDraf((d) => ({ ...d, prompt_sistem: e.target.value || null }))}
           style={{ ...GAYA_ISIAN, resize: "vertical", lineHeight: 1.6 }}
         />
-        <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
+        <p style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
           Ditambahkan di bawah instruksi bawaan, tidak menggantikannya. Dikirim ulang tiap
           langkah — instruksi panjang menambah biaya tiap pertanyaan.
         </p>
@@ -321,7 +321,7 @@ export function KartuAsisten({ asisten }: { asisten: string }) {
                 onChange={(e) => setDraf((d) => ({ ...d, maks_ronde: Number(e.target.value) }))}
                 style={{ ...GAYA_ISIAN, width: 110, flexShrink: 0 }}
               />
-              <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "8px 0 0", maxWidth: "60ch" }}>
+              <p style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.55, margin: "8px 0 0", maxWidth: "60ch" }}>
                 Berapa kali asisten boleh membaca data sebelum wajib menjawab. Tiap langkah
                 ditagih.
               </p>
@@ -377,7 +377,7 @@ export function KartuAsisten({ asisten }: { asisten: string }) {
                       audit a11y runtime menolak versi ber-`opacity: 0.75`
                       (6 node gagal kontras WCAG AA di tiga halaman asisten).
                     */}
-                    <code style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 3 }}>
+                    <code style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 3 }}>
                       {tool.nama}
                     </code>
                   </>
@@ -396,7 +396,7 @@ export function KartuAsisten({ asisten }: { asisten: string }) {
                 setDraf((d) => ({ ...d, tool_aktif: baru }));
               }}
             />
-            <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "8px 0 0" }}>
+            <p style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.55, margin: "8px 0 0" }}>
               Mematikan semuanya membuat asisten tetap menjawab, tetapi tanpa membaca data apa
               pun. Pengguna juga tetap butuh izinnya masing-masing — mencentang di sini tidak
               memberi akses baru.
@@ -404,7 +404,7 @@ export function KartuAsisten({ asisten }: { asisten: string }) {
           </div>
         </>
       ) : (
-        <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: 0 }}>
+        <p style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.55, margin: 0 }}>
           Asisten ini tidak memakai tool — ia menulis dari angka yang sudah dihitung sistem,
           jadi batas langkah dan pilihan data tidak berlaku.
         </p>

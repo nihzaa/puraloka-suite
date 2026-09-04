@@ -400,7 +400,7 @@ function WidgetShell({
         }}
       >
         <GripVertical size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
-        <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", flex: 1 }}>
+        <span style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", flex: 1 }}>
           {title}
         </span>
         <button aria-label="Sembunyikan widget"
@@ -697,7 +697,7 @@ export function DashboardGrid({ widgets }: DashboardGridProps) {
             padding: "4px 12px", borderRadius: 999,
             border: "1px solid color-mix(in srgb, var(--on-merek) 30%, transparent)",
             background: "transparent",
-            fontSize: 11, color: "var(--on-merek)", cursor: "pointer",
+            fontSize: "var(--t-kecil)", color: "var(--on-merek)", cursor: "pointer",
             fontWeight: 500,
           }}
         >
@@ -705,7 +705,7 @@ export function DashboardGrid({ widgets }: DashboardGridProps) {
           {hidden.size > 0 && (
             <span style={{
               marginLeft: 2, padding: "0px 4px", borderRadius: 99,
-              background: "var(--navy)", color: "var(--on-navy)", fontSize: 10, fontWeight: 700,
+              background: "var(--navy)", color: "var(--on-navy)", fontSize: "var(--t-mikro)", fontWeight: 700,
             }}>
               {hidden.size}
             </span>
@@ -719,7 +719,7 @@ export function DashboardGrid({ widgets }: DashboardGridProps) {
             borderRadius: 10, boxShadow: "var(--naik-2)",
             padding: 12, zIndex: 100, minWidth: 220,
           }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
+            <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
               Widget
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -762,7 +762,7 @@ export function DashboardGrid({ widgets }: DashboardGridProps) {
                 style={{
                   width: "100%", padding: "6px 0", borderRadius: 6,
                   border: "1px solid var(--border)", background: "var(--surface-subtle)",
-                  fontSize: 11, color: "var(--text-muted)", cursor: "pointer",
+                  fontSize: "var(--t-kecil)", color: "var(--text-muted)", cursor: "pointer",
                 }}
               >
                 Reset ke Default

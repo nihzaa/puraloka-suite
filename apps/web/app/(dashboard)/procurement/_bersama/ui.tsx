@@ -83,7 +83,7 @@ export function Badge({ status }: { status: string }) {
   const s = STATUS_BADGE[status] ?? { label: status, color: C.mid, bg: "var(--surface-hover)" };
   return (
     <span style={{
-      padding: "2px 8px", borderRadius: 99, fontSize: 11,
+      padding: "2px 8px", borderRadius: 99, fontSize: "var(--t-kecil)",
       fontWeight: 600, color: s.color, background: s.bg,
     }}>
       {s.label}

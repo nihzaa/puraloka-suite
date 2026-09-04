@@ -68,14 +68,14 @@ export default function PmRetensiPage() {
         <div style={{ background: "var(--surface)", border: "1px solid var(--warning-border)", borderRadius: 14, padding: "var(--pad-kartu)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
             <Lock size={13} aria-hidden="true" style={{ color: "var(--warning)" }} />
-            <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Ditahan</span>
+            <span style={{ fontSize: "var(--t-mikro)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Ditahan</span>
           </div>
           <div style={{ fontSize: 18, fontWeight: 700, color: "var(--warning)" }}>{memuat ? "—" : rpRingkas(data?.total_outstanding ?? 0)}</div>
         </div>
         <div style={{ background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", borderRadius: 14, padding: "var(--pad-kartu)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
             <HandCoins size={13} aria-hidden="true" style={{ color: "var(--success)" }} />
-            <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Dicairkan</span>
+            <span style={{ fontSize: "var(--t-mikro)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Dicairkan</span>
           </div>
           <div style={{ fontSize: 18, fontWeight: 700, color: "var(--success)" }}>{memuat ? "—" : rpRingkas(data?.total_dicairkan ?? 0)}</div>
         </div>
@@ -121,7 +121,7 @@ export default function PmRetensiPage() {
                 <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>
                   {s.mandor?.name ?? "—"} · {s.project?.name ?? "—"}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginTop: 2 }}>
                   {selesai ? "Selesai" : s.status ?? "—"}{s.retensi_pct != null && ` · ${s.retensi_pct}%`}
                 </div>
               </div>
@@ -129,7 +129,7 @@ export default function PmRetensiPage() {
                 <div style={{ fontSize: 14, fontWeight: 700, color: s.outstanding > 0 ? "var(--warning)" : "var(--text-muted)" }}>
                   {s.outstanding > 0 ? rp(s.outstanding) : "lunas"}
                 </div>
-                <div style={{ fontSize: 10, color: "var(--text-muted)" }}>dari {rp(s.ditahan)}</div>
+                <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-muted)" }}>dari {rp(s.ditahan)}</div>
               </div>
             </div>
 
@@ -221,7 +221,7 @@ function FormCairkan({ baris, onBatal, onSukses }: { baris: RetensiScope; onBata
             background: "var(--surface)", color: "var(--text-primary)", boxSizing: "border-box",
           }}
         />
-        {lebih && <div style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>Melebihi sisa yang ditahan ({rp(baris.outstanding)}).</div>}
+        {lebih && <div style={{ fontSize: "var(--t-kecil)", color: "var(--danger)", marginTop: 4 }}>Melebihi sisa yang ditahan ({rp(baris.outstanding)}).</div>}
       </label>
 
       <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>

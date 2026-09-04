@@ -332,7 +332,7 @@ export default function AdminRegisterKontrakPage() {
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{k.nomor}</div>
               <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{k.judul}</div>
               {/* Beda dari PM: company-wide berarti nama proyek WAJIB tampil (PM sudah tahu proyeknya sendiri). */}
-              {k.proyek?.name && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{k.proyek.name}</div>}
+              {k.proyek?.name && <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginTop: 2 }}>{k.proyek.name}</div>}
             </div>
             <StatusBadge status={VARIAN_STATUS[k.status] ?? "netral"} label={LABEL_STATUS[k.status] ?? k.status} />
           </div>
@@ -345,7 +345,7 @@ export default function AdminRegisterKontrakPage() {
             <div key={a.id} style={{ marginLeft: 16, paddingLeft: 12, borderLeft: "2px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
               <div>
                 <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>{a.nomor} · {a.judul}</div>
-                <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{formatRupiah(a.nilai)}</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{formatRupiah(a.nilai)}</div>
               </div>
               <StatusBadge status={VARIAN_STATUS[a.status] ?? "netral"} label={LABEL_STATUS[a.status] ?? a.status} />
             </div>

@@ -304,7 +304,7 @@ export function KlaimSection({ projectId }: { projectId: string }) {
                         fontSize: 12, fontWeight: 700, color: C.navy,
                         fontVariantNumeric: "tabular-nums",
                       }}>{k.claim_number}</span>
-                      <span style={{ fontSize: 11, color: C.muted }}>
+                      <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
                         {JENIS[k.claim_type] ?? k.claim_type}
                       </span>
                     </div>
@@ -339,7 +339,7 @@ export function KlaimSection({ projectId }: { projectId: string }) {
                 }}>
                   <span style={{
                     display: "inline-flex", alignItems: "center", gap: 5,
-                    padding: "4px 9px", borderRadius: 999, fontSize: 11, fontWeight: 600,
+                    padding: "4px 9px", borderRadius: 999, fontSize: "var(--t-kecil)", fontWeight: 600,
                     color: s.warna, background: s.bg, border: `1px solid ${s.border}`,
                   }}>
                     {s.ikon}{s.teks}
@@ -351,7 +351,7 @@ export function KlaimSection({ projectId }: { projectId: string }) {
                   {nada && belumDiputus && (
                     <span style={{
                       display: "inline-flex", alignItems: "center", gap: 5,
-                      padding: "4px 9px", borderRadius: 999, fontSize: 11, fontWeight: 600,
+                      padding: "4px 9px", borderRadius: 999, fontSize: "var(--t-kecil)", fontWeight: 600,
                       color: nada.warna, background: nada.bg,
                       border: `1px solid ${nada.warna}33`,
                     }}>
@@ -389,7 +389,7 @@ function Kotak({ label, nilai, warna }: { label: string; nilai: string; warna?: 
       border: `1px solid ${C.border}`, borderRadius: 10,
       padding: "10px 12px", background: C.subtle,
     }}>
-      <div style={{ fontSize: 11, color: C.mid, fontWeight: 500 }}>{label}</div>
+      <div style={{ fontSize: "var(--t-kecil)", color: C.mid, fontWeight: 500 }}>{label}</div>
       <div style={{
         fontSize: 17, fontWeight: 700, marginTop: 3,
         color: warna ?? C.text, fontVariantNumeric: "tabular-nums",
@@ -534,7 +534,7 @@ function Medan({
   return (
     <label style={{ display: "block" }}>
       <span style={{
-        display: "block", fontSize: 11.5, fontWeight: 600,
+        display: "block", fontSize: "var(--t-kecil)", fontWeight: 600,
         color: C.mid, marginBottom: 4,
       }}>
         {label}

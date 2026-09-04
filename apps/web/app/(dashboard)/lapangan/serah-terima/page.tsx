@@ -340,7 +340,7 @@ function KartuBeritaAcara({ ba: b, bolehKelola, sibuk, onTtd, onTandatangani }: 
           <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>
             {b.nomor}
             <span style={{
-              marginInlineStart: 10, fontSize: 11.5, fontWeight: 700, color: m.warna,
+              marginInlineStart: 10, fontSize: "var(--t-kecil)", fontWeight: 700, color: m.warna,
               textTransform: "uppercase", letterSpacing: "0.04em",
             }}>
               {m.label}
@@ -473,7 +473,7 @@ function KartuBeritaAcara({ ba: b, bolehKelola, sibuk, onTtd, onTandatangani }: 
               {sibuk ? "Memproses…" : "Sahkan berita acara"}
             </button>
             {!lengkapTtd && (
-              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6, lineHeight: 1.5 }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 6, lineHeight: 1.5 }}>
                 Serah terima bertanda tangan satu pihak adalah pengumuman bahwa pekerjaan
                 dianggap selesai, bukan perpindahan tanggung jawab.
               </div>
@@ -490,7 +490,7 @@ function BarisTtd({ label, ada, boleh, sibuk, onKlik }: {
 }) {
   return (
     <div>
-      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginBottom: 4 }}>{label}</div>
       {ada ? (
         <div style={{
           display: "inline-flex", alignItems: "center", gap: 5,
@@ -756,7 +756,7 @@ function FormTerbitBa({ proyek, onTutup, onSelesai }: {
             placeholder="cth: Retak rambut plafon ruang tamu dan bocor talang sisi timur, diperbaiki paling lambat 30 hari"
             style={{ ...GAYA_ISIAN, resize: "vertical" }}
           />
-          <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
+          <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
             {kesiapan.kesiapan.punchTerbuka} temuan masih terbuka. Jumlahnya tercatat permanen
             di berita acara ini — tuliskan yang disepakati diperbaiki supaya keduanya
             sepakat apa yang menggantung.

@@ -132,11 +132,11 @@ export default function KasbonTukangPage() {
       {!loading && !galatMuat && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div style={{ background: "var(--surface)", borderRadius: 16, padding: "var(--pad-kartu-lega)", border: "1px solid var(--border)" }}>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 600, marginBottom: 6 }}>Kasbon Aktif</div>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", fontWeight: 600, marginBottom: 6 }}>Kasbon Aktif</div>
             <div style={{ fontSize: 26, fontWeight: 800, color: "var(--on-warning-bg)" }}>{pending}</div>
           </div>
           <div style={{ background: "var(--surface)", borderRadius: 16, padding: "var(--pad-kartu-lega)", border: "1px solid var(--border)" }}>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 600, marginBottom: 6 }}>Total Outstanding</div>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", fontWeight: 600, marginBottom: 6 }}>Total Outstanding</div>
             <div style={{ fontSize: 15, fontWeight: 800, color: "var(--on-danger-bg)" }}>{fmt(totalOutstanding)}</div>
           </div>
         </div>
@@ -184,7 +184,7 @@ export default function KasbonTukangPage() {
                 </div>
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
                   <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)" }}>{fmt(Number(k.amount))}</div>
-                  <div style={{ fontSize: 11, color: k.is_settled ? "var(--on-success-bg)" : "var(--on-warning-bg)", fontWeight: 600, marginTop: 2 }}>
+                  <div style={{ fontSize: "var(--t-kecil)", color: k.is_settled ? "var(--on-success-bg)" : "var(--on-warning-bg)", fontWeight: 600, marginTop: 2 }}>
                     {k.is_settled ? "Lunas" : `Sisa ${fmt(Number(k.amount) - Number(k.amount_settled ?? 0))}`}
                   </div>
                 </div>
@@ -199,7 +199,7 @@ export default function KasbonTukangPage() {
                       }}
                     />
                   </div>
-                  <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 3 }}>
+                  <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 3 }}>
                     Dicicil {fmt(Number(k.amount_settled ?? 0))} dari {fmt(Number(k.amount))}
                   </div>
                 </div>

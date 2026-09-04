@@ -98,7 +98,7 @@ export function KartuRail({
             href={tautan}
             style={{
               display: "inline-flex", alignItems: "center", gap: 2,
-              fontSize: 11, fontWeight: 600, color: "var(--aksen)",
+              fontSize: "var(--t-kecil)", fontWeight: 600, color: "var(--aksen)",
               textDecoration: "none", flexShrink: 0,
             }}
           >
@@ -167,7 +167,7 @@ export function BarisRail({
         </span>
         {sub && (
           <span style={{
-            display: "block", fontSize: 11, color: C.mid, marginTop: 2,
+            display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2,
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>
             {sub}

@@ -155,7 +155,7 @@ function PembayaranInner() {
                     fontFamily: "var(--font-display)",
                   }}>{inv?.invoice_number ?? "—"}</div>
                   <div style={{
-                    fontSize: 11, color: C.mid,
+                    fontSize: "var(--t-kecil)", color: C.mid,
                     overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                   }}>{inv?.projects?.name ?? "—"}</div>
                 </div>
@@ -166,12 +166,12 @@ function PembayaranInner() {
                     {p.bank_name && <span style={{ color: C.muted }}> · {p.bank_name}</span>}
                   </div>
                   {p.ref_number && (
-                    <div style={{ fontSize: 11, color: C.muted }}>{p.ref_number}</div>
+                    <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>{p.ref_number}</div>
                   )}
                   {p.cash_account ? (
                     <div style={{
                       display: "inline-flex", alignItems: "center", gap: 2,
-                      fontSize: 11, marginTop: 2, padding: "2px 6px", borderRadius: 6,
+                      fontSize: "var(--t-kecil)", marginTop: 2, padding: "2px 6px", borderRadius: 6,
                       background: C.navyLight, color: C.navy, fontWeight: 600,
                     }}>
                       <Wallet size={10} aria-hidden="true" /> {p.cash_account.name}
@@ -183,7 +183,7 @@ function PembayaranInner() {
                     // ia ditandai, bukan dibiarkan sebagai baris kosong.
                     <div style={{
                       display: "inline-flex", alignItems: "center", gap: 2,
-                      fontSize: 11, marginTop: 2, padding: "2px 6px", borderRadius: 6,
+                      fontSize: "var(--t-kecil)", marginTop: 2, padding: "2px 6px", borderRadius: 6,
                       background: C.yellowBg, color: C.onWarningBg, fontWeight: 600,
                     }}>Tidak tercatat ke kas</div>
                   )}
@@ -196,13 +196,13 @@ function PembayaranInner() {
                   }}>{fmt(Number(p.amount_paid))}</div>
                 </div>
 
-                <div style={{ textAlign: "right", fontSize: 11, color: C.muted }}>
+                <div style={{ textAlign: "right", fontSize: "var(--t-kecil)", color: C.muted }}>
                   {fmtDate(p.paid_at)}
                 </div>
               </div>
             );
           })}
-          <p style={{ fontSize: 11, color: C.muted, textAlign: "right", paddingTop: 4 }}>
+          <p style={{ fontSize: "var(--t-kecil)", color: C.muted, textAlign: "right", paddingTop: 4 }}>
             {data.length} pembayaran ditampilkan
           </p>
         </div>

@@ -53,7 +53,7 @@ function DaftarAkun({ kelompok, warnaTotal }: { kelompok: Kelompok; warnaTotal?:
   return (
     <div>
       <div style={{
-        fontSize: 11, fontWeight: 700, color: C.muted,
+        fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
         textTransform: "uppercase", letterSpacing: ".05em",
         padding: "8px 12px", background: "var(--surface-subtle)",
         borderBottom: `1px solid ${C.border}`,
@@ -169,7 +169,7 @@ export function NeracaLabaRugi() {
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
         <div>
           <label htmlFor="lap-dari" style={{
-            fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+            fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
             marginBottom: 5, textTransform: "uppercase", letterSpacing: ".05em",
           }}>Dari</label>
           <input id="lap-dari" type="date" value={dari}
@@ -177,7 +177,7 @@ export function NeracaLabaRugi() {
         </div>
         <div>
           <label htmlFor="lap-sampai" style={{
-            fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+            fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
             marginBottom: 5, textTransform: "uppercase", letterSpacing: ".05em",
           }}>Sampai</label>
           <input id="lap-sampai" type="date" value={sampai}
@@ -246,7 +246,7 @@ export function NeracaLabaRugi() {
             )}
             {data.meta.terpotong && (
               <span style={{
-                marginLeft: "auto", fontSize: 11, fontWeight: 600,
+                marginLeft: "auto", fontSize: "var(--t-kecil)", fontWeight: 600,
                 padding: "2px 8px", borderRadius: 99,
                 background: C.yellowBg, color: C.onWarningBg,
                 border: `1px solid ${C.yellowBorder}`,
@@ -296,14 +296,14 @@ export function NeracaLabaRugi() {
             ].map((k) => (
               <div key={k.l}>
                 <div style={{
-                  fontSize: 10, fontWeight: 700, color: C.muted,
+                  fontSize: "var(--t-mikro)", fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 4,
                 }}>{k.l}</div>
                 <div style={{
                   fontSize: 20, fontWeight: 800, color: k.w,
                   fontFamily: "var(--font-display)", fontVariantNumeric: "tabular-nums",
                 }}>{k.v}</div>
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 3 }}>{k.s}</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 3 }}>{k.s}</div>
               </div>
             ))}
           </div>
@@ -354,7 +354,7 @@ export function NeracaLabaRugi() {
             </div>
           </div>
 
-          <p style={{ fontSize: 11, color: C.muted, marginTop: 12 }}>
+          <p style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 12 }}>
             {data.meta.jumlah_akun} akun bersaldo · hanya jurnal <strong>posted</strong> yang dihitung —
             draft belum sah, dan yang dibatalkan tak masuk.
           </p>

@@ -111,15 +111,15 @@ function IsiAsetPage() {
       {dataAset && (
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Total</div>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Total</div>
             <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)" }}>{dataAset.meta.total}</div>
           </div>
           <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Nilai Buku</div>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Nilai Buku</div>
             <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{fmtRupiah(dataAset.meta.nilai_buku)}</div>
           </div>
           <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Perawatan</div>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Perawatan</div>
             <div style={{ fontSize: 17, fontWeight: 700, color: "var(--on-warning-bg)" }}>{dataAset.meta.perawatan}</div>
           </div>
         </div>
@@ -150,7 +150,7 @@ function IsiAsetPage() {
                 style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", textDecoration: "none" }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{a.name}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{a.asset_code} · {a.ownership === "milik" ? "Milik" : "Sewa"}</div>
+                  <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{a.asset_code} · {a.ownership === "milik" ? "Milik" : "Sewa"}</div>
                 </div>
                 <StatusBadge status={VARIAN_STATUS[a.status] ?? "netral"} label={LABEL_STATUS[a.status] ?? a.status} />
               </Link>
@@ -175,7 +175,7 @@ function IsiAsetPage() {
                   <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{s.item_name}</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{fmtRupiah(s.biaya_sampai_kini)}</span>
                 </div>
-                <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
                   {fmtRupiah(s.rate)}/{s.rate_unit} · sejak {s.start_date}
                 </div>
               </div>
@@ -199,7 +199,7 @@ function IsiAsetPage() {
                 style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 12, borderRadius: 12, background: "var(--surface)", border: `1px solid ${a.palingMendesak!.jatuhTempo.status === "jatuh_tempo" ? "var(--danger-border)" : "var(--warning-border)"}`, textDecoration: "none" }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{a.name}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{a.palingMendesak!.nama}</div>
+                  <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{a.palingMendesak!.nama}</div>
                 </div>
                 <StatusBadge status={a.palingMendesak!.jatuhTempo.status === "jatuh_tempo" ? "rejected" : "pending"}
                   label={a.palingMendesak!.jatuhTempo.status === "jatuh_tempo" ? "Jatuh Tempo" : "Segera"} />

@@ -224,7 +224,7 @@ export default function KalenderPage() {
                   di bawah ambang 4,5:1. Opacity memudarkan terhadap LATAR, jadi
                   ia mengurangi kontras walau warnanya sudah dipilih benar.
                   Ini legenda: satu-satunya gunanya justru untuk dibaca. */}
-              <span style={{ fontSize: 11, color: c.color }}>{c.label}</span>
+              <span style={{ fontSize: "var(--t-kecil)", color: c.color }}>{c.label}</span>
             </div>
           ))}
           </>
@@ -242,7 +242,7 @@ export default function KalenderPage() {
             </button>
             <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{fmtMonthYear(year, month)}</span>
             <div style={{ display: "flex", gap: 4 }}>
-              <button onClick={() => { setYear(now.getFullYear()); setMonth(now.getMonth()); setSelectedDay(today); }} style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 11, cursor: "pointer", color: "var(--text-secondary)" }}>
+              <button onClick={() => { setYear(now.getFullYear()); setMonth(now.getMonth()); setSelectedDay(today); }} style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", fontSize: "var(--t-kecil)", cursor: "pointer", color: "var(--text-secondary)" }}>
                 Hari ini
               </button>
               <button aria-label="Berikutnya" onClick={nextMonth} style={{ width: 32, height: 32, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -254,7 +254,7 @@ export default function KalenderPage() {
           {/* Day labels */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: "1px solid var(--border)" }}>
             {DAY_LABELS.map(d => (
-              <div key={d} style={{ padding: "8px 0", textAlign: "center", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              <div key={d} style={{ padding: "8px 0", textAlign: "center", fontSize: "var(--t-kecil)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                 {d}
               </div>
             ))}
@@ -325,14 +325,14 @@ export default function KalenderPage() {
                           overflow: "hidden",
                         }}>
                           <span style={{ color: ev.color, flexShrink: 0 }}>{TYPE_STYLE[ev.type]?.icon}</span>
-                          <span style={{ fontSize: 10, color: ev.color, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <span style={{ fontSize: "var(--t-mikro)", color: ev.color, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {ev.title.slice(0, 18)}{ev.title.length > 18 ? "…" : ""}
                           </span>
                         </div>
                       );
                     })}
                     {dayEvents.length > 3 && (
-                      <div style={{ fontSize: 10, color: "var(--text-muted)", paddingLeft: 4 }}>
+                      <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-muted)", paddingLeft: 4 }}>
                         +{dayEvents.length - 3} lainnya
                       </div>
                     )}
@@ -347,7 +347,7 @@ export default function KalenderPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {/* Legend */}
           <div style={{ ...GAYA_KARTU, padding: "12px 16px" }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Keterangan</div>
+            <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Keterangan</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {Object.entries(TYPE_STYLE).map(([type, cfg]) => (
                 <div key={type} style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -371,7 +371,7 @@ export default function KalenderPage() {
                   : "Pilih tanggal"}
               </div>
               {selectedDay && (
-                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginTop: 2 }}>
                   {selectedEvents.length} event
                 </div>
               )}
@@ -405,10 +405,10 @@ export default function KalenderPage() {
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.title}</div>
-                        <div style={{ fontSize: 11, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.sub}</div>
+                        <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.sub}</div>
                       </div>
                       {ev.status && (
-                        <span style={{ fontSize: 10, fontWeight: 600, color: cfg.color, flexShrink: 0, alignSelf: "flex-start", marginTop: 2 }}>
+                        <span style={{ fontSize: "var(--t-mikro)", fontWeight: 600, color: cfg.color, flexShrink: 0, alignSelf: "flex-start", marginTop: 2 }}>
                           {ev.status}
                         </span>
                       )}
@@ -430,7 +430,7 @@ export default function KalenderPage() {
                   .filter(ev => ev.date >= today && !STATUS_FADED[ev.status ?? ""])
                   .sort((a, b) => a.date.localeCompare(b.date))
                   .slice(0, 5);
-                if (upcoming.length === 0) return <div style={{ padding: "12px 8px", fontSize: 11, color: "var(--text-muted)", textAlign: "center" }}>Tidak ada event mendatang</div>;
+                if (upcoming.length === 0) return <div style={{ padding: "12px 8px", fontSize: "var(--t-kecil)", color: "var(--text-muted)", textAlign: "center" }}>Tidak ada event mendatang</div>;
                 return upcoming.map(ev => {
                   const cfg = TYPE_STYLE[ev.type];
                   const daysLeft = Math.round((new Date(ev.date + "T12:00:00").getTime() - Date.now()) / 86400000);
@@ -440,8 +440,8 @@ export default function KalenderPage() {
                         {cfg.icon}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 11, fontWeight: 500, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.title}</div>
-                        <div style={{ fontSize: 10, color: "var(--text-muted)" }}>{ev.sub}</div>
+                        <div style={{ fontSize: "var(--t-kecil)", fontWeight: 500, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.title}</div>
+                        <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-muted)" }}>{ev.sub}</div>
                       </div>
                       {/*
                         `paddingInlineStart` — napas antara judul dan sisa
@@ -451,7 +451,7 @@ export default function KalenderPage() {
                         menempel. Pola yang sama sudah diperbaiki di
                         `BarisRail` — enam tempat, satu sebab.
                       */}
-                      <span style={{ fontSize: 10, paddingInlineStart: 4, color: daysLeft <= 3 ? "var(--danger)" : daysLeft <= 7 ? "var(--warning)" : "var(--text-muted)", fontWeight: daysLeft <= 7 ? 700 : 400, flexShrink: 0 }}>
+                      <span style={{ fontSize: "var(--t-mikro)", paddingInlineStart: 4, color: daysLeft <= 3 ? "var(--danger)" : daysLeft <= 7 ? "var(--warning)" : "var(--text-muted)", fontWeight: daysLeft <= 7 ? 700 : 400, flexShrink: 0 }}>
                         {daysLeft === 0 ? "Hari ini" : daysLeft === 1 ? "Besok" : `${daysLeft}h`}
                       </span>
                     </div>

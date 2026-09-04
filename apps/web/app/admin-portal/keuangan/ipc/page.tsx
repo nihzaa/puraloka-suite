@@ -160,7 +160,7 @@ export default function AdminSertifikatIpcPage() {
               </span>
             </div>
 
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 8, fontSize: 11, color: "var(--text-secondary)" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 8, fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
               <span>Prestasi {formatRupiah(s.hitung.nilai_prestasi)}</span>
               <span>Periode {formatRupiah(s.hitung.nilai_periode)}</span>
               <span>Retensi {formatRupiah(s.hitung.retensi)}</span>
@@ -169,7 +169,7 @@ export default function AdminSertifikatIpcPage() {
             {s.hitung.peringatan.length > 0 && (
               <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
                 {s.hitung.peringatan.map((p) => (
-                  <div key={p} style={{ fontSize: 11, color: "var(--on-warning-bg)", display: "flex", alignItems: "center", gap: 4 }}>
+                  <div key={p} style={{ fontSize: "var(--t-kecil)", color: "var(--on-warning-bg)", display: "flex", alignItems: "center", gap: 4 }}>
                     <AlertTriangle size={12} aria-hidden="true" /> {LABEL_PERINGATAN[p] ?? p}
                   </div>
                 ))}

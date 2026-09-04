@@ -258,10 +258,10 @@ export default function MandorScopePage() {
                               <div style={{ minWidth: 0 }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
                                   <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{scope.scope_name}</span>
-                                  <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: "var(--portal-radius-pill)", color: meta.warna, background: meta.bg }}>
+                                  <span style={{ fontSize: "var(--t-kecil)", fontWeight: 700, padding: "2px 8px", borderRadius: "var(--portal-radius-pill)", color: meta.warna, background: meta.bg }}>
                                     {meta.label}
                                   </span>
-                                  <span style={{ fontSize: 11, color: "var(--text-secondary)", background: "var(--surface-hover)", padding: "2px 8px", borderRadius: "var(--portal-radius-pill)" }}>
+                                  <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", background: "var(--surface-hover)", padding: "2px 8px", borderRadius: "var(--portal-radius-pill)" }}>
                                     {SISTEM_BAYAR[scope.payment_system ?? ""] ?? scope.payment_system}
                                   </span>
                                 </div>
@@ -271,15 +271,15 @@ export default function MandorScopePage() {
                               </div>
                               <div style={{ textAlign: "right", flexShrink: 0 }}>
                                 <div style={{ fontSize: 22, fontWeight: 800, color: "var(--navy)" }}>{physicalPct}%</div>
-                                <div style={{ fontSize: 10, color: "var(--text-secondary)" }}>fisik</div>
+                                <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-secondary)" }}>fisik</div>
                               </div>
                             </div>
 
                             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                               <div>
                                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                                  <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Progress Fisik</span>
-                                  <span style={{ fontSize: 11, fontWeight: 700, color: "var(--navy)" }}>{physicalPct}%</span>
+                                  <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Progress Fisik</span>
+                                  <span style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: "var(--navy)" }}>{physicalPct}%</span>
                                 </div>
                                 <ProgressBar pct={physicalPct} color="var(--navy)" />
                               </div>
@@ -287,8 +287,8 @@ export default function MandorScopePage() {
                               {isBorongan && contractValue > 0 && (
                                 <div>
                                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                                    <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Kasbon / Kontrak</span>
-                                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--on-warning-bg)" }}>
+                                    <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Kasbon / Kontrak</span>
+                                    <span style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: "var(--on-warning-bg)" }}>
                                       {fmtRp(Number(scope.total_kasbon ?? 0))} / {fmtRp(contractValue)} ({financialPct}%)
                                     </span>
                                   </div>
@@ -299,8 +299,8 @@ export default function MandorScopePage() {
                               {isProgressPct && contractValue > 0 && (
                                 <div>
                                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                                    <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Sudah Dibayar</span>
-                                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--on-success-bg)" }}>
+                                    <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Sudah Dibayar</span>
+                                    <span style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: "var(--on-success-bg)" }}>
                                       {fmtRp(Number(scope.total_progress_paid ?? 0))} ({Math.min(100, Math.round(((scope.total_progress_paid ?? 0) / contractValue) * 100))}%)
                                     </span>
                                   </div>
@@ -319,7 +319,7 @@ export default function MandorScopePage() {
                             )}
 
                             {isBorongan && physicalPct >= 90 && !scope.settlement && scope.status === "active" && (
-                              <div style={{ marginTop: 10, fontSize: 11, color: "var(--on-warning-bg)", fontWeight: 600 }}>
+                              <div style={{ marginTop: 10, fontSize: "var(--t-kecil)", color: "var(--on-warning-bg)", fontWeight: 600 }}>
                                 Progress {physicalPct}% — bisa ajukan settlement ke admin
                               </div>
                             )}
@@ -415,7 +415,7 @@ function ScopeItemsDetail({ scopeId }: { scopeId: string }) {
     {
       kunci: "pct", judul: "%", rata: "kanan",
       render: (i) => (
-        <span style={{ fontSize: 11, fontWeight: 700, color: persen(i) >= 100 ? "var(--on-success-bg)" : "var(--navy)" }}>
+        <span style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: persen(i) >= 100 ? "var(--on-success-bg)" : "var(--navy)" }}>
           {persen(i)}%
         </span>
       ),

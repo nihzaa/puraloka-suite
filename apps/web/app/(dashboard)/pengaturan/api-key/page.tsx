@@ -153,11 +153,11 @@ export default function ApiKeyPage() {
         <span style={{ display: "block" }}>
           <strong style={{ fontSize: 12.5, color: C.text }}>{k.nama}</strong>
           <span style={{
-            display: "block", fontSize: 11.5, color: C.mid, marginTop: 1,
+            display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 1,
             maxWidth: "42ch", lineHeight: 1.45,
           }}>{k.keperluan}</span>
           <code style={{
-            display: "inline-block", marginTop: 3, fontSize: 11,
+            display: "inline-block", marginTop: 3, fontSize: "var(--t-kecil)",
             color: C.muted, fontFamily: "var(--font-mono, monospace)",
           }}>{k.awalan}…</code>
         </span>
@@ -172,7 +172,7 @@ export default function ApiKeyPage() {
             </span>
           // Kunci tanpa izin bukan cacat — itu bawaannya. Tapi ia juga tak
           // bisa apa-apa, dan layar harus mengatakannya.
-          : <span style={{ fontSize: 11.5, color: C.muted }}>belum diberi izin</span>
+          : <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>belum diberi izin</span>
       ),
     },
     {
@@ -182,7 +182,7 @@ export default function ApiKeyPage() {
           <strong style={{ fontSize: 12.5, color: C.text }}>
             {Number(k.jumlah_pakai).toLocaleString("id-ID")}×
           </strong>
-          <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 1 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 1 }}>
             {k.dipakai_terakhir
               ? formatTanggal(k.dipakai_terakhir)
               /* Kunci yang tak pernah dipakai adalah kunci yang lebih baik
@@ -213,7 +213,7 @@ export default function ApiKeyPage() {
           </Lencana>
           {k.alasan_cabut && (
             <span style={{
-              display: "block", fontSize: 11, color: C.muted, marginTop: 3,
+              display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 3,
               maxWidth: "26ch", lineHeight: 1.4,
             }}>{k.alasan_cabut}</span>
           )}
@@ -224,7 +224,7 @@ export default function ApiKeyPage() {
       kunci: "aksi", judul: "",
       render: (k) => (
         k.keadaan === "dicabut"
-          ? <span style={{ fontSize: 11.5, color: C.muted }}>—</span>
+          ? <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>—</span>
           : (
             <Tombol kecil jenis="bahaya" ikon={<Ban size={12} aria-hidden="true" />}
               onClick={() => void cabut(k)}>
@@ -286,7 +286,7 @@ export default function ApiKeyPage() {
               Saya sudah menyimpannya
             </Tombol>
           </div>
-          <p style={{ margin: "8px 0 0", fontSize: 11.5 }}>
+          <p style={{ margin: "8px 0 0", fontSize: "var(--t-kecil)" }}>
             Kunci ini <strong>belum punya izin apa pun</strong> — ia tak bisa
             melakukan apa-apa sampai izinnya diberikan. Itu disengaja.
           </p>
@@ -302,7 +302,7 @@ export default function ApiKeyPage() {
           gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
         }}>
           <div>
-            <label htmlFor="ak-nama" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+            <label htmlFor="ak-nama" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
               Nama
             </label>
             <input id="ak-nama" style={gayaInput} value={nama}
@@ -310,25 +310,25 @@ export default function ApiKeyPage() {
               placeholder="mis. Sinkron Accurate" />
           </div>
           <div>
-            <label htmlFor="ak-hari" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+            <label htmlFor="ak-hari" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
               Berlaku (hari)
             </label>
             <input id="ak-hari" type="number" min="1" max="730" style={gayaInput}
               value={hari} onChange={(e) => setHari(e.target.value)} />
-            <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 3 }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 3 }}>
               Maksimal 730 hari — kunci yang berlaku lebih lama tak pernah
               dipertanyakan lagi oleh siapa pun.
             </span>
           </div>
         </div>
         <div style={{ marginTop: 10 }}>
-          <label htmlFor="ak-keperluan" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+          <label htmlFor="ak-keperluan" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
             Keperluan — minimal 10 huruf
           </label>
           <input id="ak-keperluan" style={gayaInput} value={keperluan}
             onChange={(e) => setKeperluan(e.target.value)}
             placeholder="mis. menarik data invoice ke sistem akuntansi tiap malam" />
-          <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 3, lineHeight: 1.45 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 3, lineHeight: 1.45 }}>
             Kunci tanpa keterangan tak bisa dinilai saat audit — dan yang
             terjadi kemudian selalu sama: tak ada yang berani mencabutnya.
           </span>

@@ -116,7 +116,7 @@ export default function PmPiutangPage() {
                       <span style={{ fontWeight: 700, color: "var(--on-warning-bg)", fontVariantNumeric: "tabular-nums" }}>{fmtRupiah(r.outstanding)}</span>
                     </div>
                     {r.is_due_estimate && (
-                      <div style={{ fontSize: 11, color: "var(--on-warning-bg)", marginTop: 4 }}>
+                      <div style={{ fontSize: "var(--t-kecil)", color: "var(--on-warning-bg)", marginTop: 4 }}>
                         Estimasi jatuh tempo pencairan: {fmtTanggal(r.estimated_release_due)} (BAST formal belum ada di sistem)
                       </div>
                     )}

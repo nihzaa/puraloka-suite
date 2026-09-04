@@ -157,7 +157,7 @@ function kolomCvr(
           : "3px solid transparent",
       }}>
         {b.scope_name}
-        <span style={{ display: "block", fontSize: 11, color: C.mid, marginTop: 2 }}>
+        <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2 }}>
           progres {b.progress_pct}%
           {b.jumlah_laporan > 0 && ` · ${b.jumlah_laporan} laporan upah`}
         </span>
@@ -174,7 +174,7 @@ function kolomCvr(
       <>
         {b.borongan > 0 ? rp(b.nilai_terpasang) : "—"}
         {b.borongan > 0 && (
-          <span style={{ display: "block", fontSize: 10, color: C.muted }}>
+          <span style={{ display: "block", fontSize: "var(--t-mikro)", color: C.muted }}>
             {b.progress_pct}% dari borongan
           </span>
         )}
@@ -194,7 +194,7 @@ function kolomCvr(
         {b.borongan > 0 ? rp(b.selisih) : "—"}
         {b.margin_pct !== null && (
           <span style={{
-            display: "block", fontSize: 10, fontWeight: 600,
+            display: "block", fontSize: "var(--t-mikro)", fontWeight: 600,
             color: b.margin_pct < 0 ? "var(--danger)" : C.muted,
           }}>
             {b.margin_pct.toFixed(1)}%
@@ -212,7 +212,7 @@ function kolomCvr(
       return (
         <span title={m.arti} style={{
           display: "inline-block", padding: "2px 8px", borderRadius: 20,
-          fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+          fontSize: "var(--t-kecil)", fontWeight: 600, whiteSpace: "nowrap",
           color: m.warna, background: m.bg, border: `1px solid ${m.border}`,
         }}>{m.label}</span>
       );
@@ -300,7 +300,7 @@ function BiayaLuar({ data }: { data: HasilCvr["biaya_luar_scope"] }) {
     >
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
         <h2 style={{
-          fontSize: 11, fontWeight: 700, color: C.muted, margin: 0,
+          fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, margin: 0,
           textTransform: "uppercase", letterSpacing: "0.05em",
         }}>
           Biaya di luar hitungan
@@ -308,7 +308,7 @@ function BiayaLuar({ data }: { data: HasilCvr["biaya_luar_scope"] }) {
         <strong style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, lineHeight: 1.1, color: C.text }}>
           {rp(data.total)}
         </strong>
-        <span style={{ fontSize: 11.5, color: C.muted }}>
+        <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
           {data.jumlah} catatan belanja
         </span>
       </div>
@@ -427,7 +427,7 @@ export default function CvrPage() {
 
       <div className="rise" style={{ ...GAYA_KARTU, padding: "12px 16px", marginBottom: 16, maxWidth: 420 }}>
         <label htmlFor="cvr-proyek" style={{
-          fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+          fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
           marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
         }}>Proyek</label>
         <Pilihan
@@ -492,7 +492,7 @@ export default function CvrPage() {
                 gap: 8, marginBottom: 16 }}>
                 <div style={{ ...GAYA_KARTU, padding: "12px 14px",
                   borderColor: hasil.jumlah_rugi > 0 ? "var(--danger-border)" : C.border }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                  <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
                     textTransform: "uppercase", letterSpacing: "0.05em", display: "flex",
                     alignItems: "center", gap: 5 }}>
                     {hasil.jumlah_rugi > 0 && (
@@ -504,29 +504,29 @@ export default function CvrPage() {
                     color: hasil.jumlah_rugi > 0 ? "var(--danger)" : C.text }}>
                     {hasil.jumlah_rugi}
                   </div>
-                  <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                  <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>
                     dari {hasil.meta.jumlah_scope} scope
                   </div>
                 </div>
 
                 <div style={{ ...GAYA_KARTU, padding: "12px 14px" }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                  <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
                     textTransform: "uppercase", letterSpacing: "0.05em" }}>Nilai terpasang</div>
                   <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text }}>
                     {rp(hasil.total_nilai_terpasang)}
                   </div>
-                  <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                  <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>
                     bagian yang sudah jadi hak
                   </div>
                 </div>
 
                 <div style={{ ...GAYA_KARTU, padding: "12px 14px" }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                  <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
                     textTransform: "uppercase", letterSpacing: "0.05em" }}>Biaya terpakai</div>
                   <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text }}>
                     {rp(hasil.total_terpakai)}
                   </div>
-                  <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                  <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>
                     {/* Biaya harian DINYATAKAN, bukan dibuang diam-diam.
                         Tanpa ini, total biaya di layar ini berbeda dari
                         `/estimasi` untuk proyek yang sama, dan tak ada yang
@@ -540,13 +540,13 @@ export default function CvrPage() {
                 </div>
 
                 <div style={{ ...GAYA_KARTU, padding: "12px 14px" }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                  <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
                     textTransform: "uppercase", letterSpacing: "0.05em" }}>Selisih</div>
                   <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1,
                     color: hasil.total_selisih < 0 ? "var(--danger)" : C.text }}>
                     {rp(hasil.total_selisih)}
                   </div>
-                  <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                  <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>
                     {/* Kalimat ini pernah BERBOHONG.
                     
                         Terlihat 2026-08-08: layar menampilkan "Selisih
@@ -591,7 +591,7 @@ export default function CvrPage() {
                   kunciBaris={(b) => b.scope_id}
                   kolom={kolomCvr(kategori, simpanKategori, menyimpan)}
                 />
-                <p style={{ margin: 0, padding: "10px 14px", fontSize: 11.5, color: C.mid,
+                <p style={{ margin: 0, padding: "10px 14px", fontSize: "var(--t-kecil)", color: C.mid,
                   borderTop: `1px solid ${C.border}`, lineHeight: 1.55 }}>
                   Nilai terpasang = nilai borongan × progres. Membandingkan biaya
                   sampai hari ini dengan nilai kontrak PENUH membuat setiap pekerjaan

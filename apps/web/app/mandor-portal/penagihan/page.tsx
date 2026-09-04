@@ -254,23 +254,23 @@ export default function PenagihanProgressPage() {
                         <div style={{ fontSize: 22, fontWeight: 700, color: "var(--navy)", fontVariantNumeric: "tabular-nums" }}>
                           {physicalPct}%
                         </div>
-                        <div style={{ fontSize: 10, color: "var(--text-secondary)" }}>progress fisik</div>
+                        <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-secondary)" }}>progress fisik</div>
                       </div>
                     </div>
 
                     <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
                       <div>
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                          <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Progress Fisik</span>
-                          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--navy)" }}>{physicalPct}%</span>
+                          <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Progress Fisik</span>
+                          <span style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: "var(--navy)" }}>{physicalPct}%</span>
                         </div>
                         <ProgressBar pct={physicalPct} color="var(--navy)" />
                       </div>
                       {contractValue > 0 && (
                         <div>
                           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Sudah Dibayar</span>
-                            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--success)" }}>
+                            <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Sudah Dibayar</span>
+                            <span style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: "var(--success)" }}>
                               {fmtRp(totalPaid)} ({paidPct}%)
                             </span>
                           </div>
@@ -318,7 +318,7 @@ export default function PenagihanProgressPage() {
                     <div style={{ borderTop: "1px solid var(--border)" }}>
                       <div
                         style={{
-                          padding: "8px 16px 4px", fontSize: 11, fontWeight: 700, color: "var(--text-secondary)",
+                          padding: "8px 16px 4px", fontSize: "var(--t-kecil)", fontWeight: 700, color: "var(--text-secondary)",
                           textTransform: "uppercase", letterSpacing: "0.05em",
                         }}
                       >
@@ -336,7 +336,7 @@ export default function PenagihanProgressPage() {
                             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>
                               {fmtRp(Number(p.gross_payment ?? 0))}
                             </div>
-                            <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
+                            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 2 }}>
                               Progress {p.pct_done}% · {fmtDate(p.created_at ?? null)}
                               {p.notes && ` · ${p.notes}`}
                             </div>
@@ -368,17 +368,17 @@ export default function PenagihanProgressPage() {
               }}
             >
               <div>
-                <div style={{ fontSize: 10, color: "var(--text-secondary)", marginBottom: 2 }}>Progress Fisik</div>
+                <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-secondary)", marginBottom: 2 }}>Progress Fisik</div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "var(--navy)" }}>{selectedScope.progress_pct_done ?? 0}%</div>
               </div>
               <div>
-                <div style={{ fontSize: 10, color: "var(--text-secondary)", marginBottom: 2 }}>Sudah Dibayar</div>
+                <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-secondary)", marginBottom: 2 }}>Sudah Dibayar</div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--success)" }}>
                   {fmtRp(Number(selectedScope.total_progress_paid ?? 0))}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: 10, color: "var(--text-secondary)", marginBottom: 2 }}>Sisa Kontrak</div>
+                <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-secondary)", marginBottom: 2 }}>Sisa Kontrak</div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>
                   {fmtRp(Math.max(0, Number(selectedScope.contract_value ?? 0) - (selectedScope.total_progress_paid ?? 0)))}
                 </div>
@@ -401,7 +401,7 @@ export default function PenagihanProgressPage() {
                   />
                   <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "var(--text-secondary)" }}>%</span>
                 </div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontWeight: 400 }}>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginTop: 4, fontWeight: 400 }}>
                   Progress fisik sekarang — akan digunakan sebagai dasar penagihan
                 </div>
               </label>
@@ -419,7 +419,7 @@ export default function PenagihanProgressPage() {
                   }}
                 />
                 {Number(selectedScope.contract_value ?? 0) > 0 && (
-                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontWeight: 400 }}>
+                  <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginTop: 4, fontWeight: 400 }}>
                     Maks sisa kontrak: {fmtRp(Math.max(0, Number(selectedScope.contract_value ?? 0) - (selectedScope.total_progress_paid ?? 0)))}
                   </div>
                 )}

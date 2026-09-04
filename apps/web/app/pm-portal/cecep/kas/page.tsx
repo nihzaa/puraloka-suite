@@ -145,9 +145,9 @@ export default function PmCashflowPage() {
               <caption className="sr-only">Proyeksi pencairan kas per periode dan kumulatifnya.</caption>
               <thead>
                 <tr style={{ background: "var(--surface-subtle)" }}>
-                  <th scope="col" style={{ padding: "8px 8px", textAlign: "left", fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", borderBottom: "1px solid var(--border)" }}>Periode</th>
-                  <th scope="col" style={{ padding: "8px 8px", textAlign: "right", fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", borderBottom: "1px solid var(--border)" }}>Pencairan</th>
-                  <th scope="col" style={{ padding: "8px 8px", textAlign: "right", fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", borderBottom: "1px solid var(--border)" }}>Kumulatif</th>
+                  <th scope="col" style={{ padding: "8px 8px", textAlign: "left", fontSize: "var(--t-mikro)", fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", borderBottom: "1px solid var(--border)" }}>Periode</th>
+                  <th scope="col" style={{ padding: "8px 8px", textAlign: "right", fontSize: "var(--t-mikro)", fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", borderBottom: "1px solid var(--border)" }}>Pencairan</th>
+                  <th scope="col" style={{ padding: "8px 8px", textAlign: "right", fontSize: "var(--t-mikro)", fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", borderBottom: "1px solid var(--border)" }}>Kumulatif</th>
                 </tr>
               </thead>
               <tbody>

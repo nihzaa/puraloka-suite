@@ -270,11 +270,11 @@ function IsiIzin() {
             {i.menghalangi_mulai && (
               <span
                 title="Pekerjaan tak boleh dimulai tanpa izin ini."
-                style={{ fontSize: 10.5, fontWeight: 700, color: C.muted, letterSpacing: ".03em" }}
+                style={{ fontSize: "var(--t-mikro)", fontWeight: 700, color: C.muted, letterSpacing: ".03em" }}
               >PENGHALANG</span>
             )}
           </span>
-          <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 1 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 1 }}>
             {i.nomor ? i.nomor : "belum bernomor"}
             {i.penerbit ? ` · ${i.penerbit}` : ""}
           </span>
@@ -294,7 +294,7 @@ function IsiIzin() {
             <>
               <span style={{ color: C.text }}>{tanggal(i.berlaku_sampai)}</span>
               {i.sisa_hari !== null && (
-                <span style={{ display: "block", fontSize: 11, color: C.muted }}>
+                <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>
                   {i.sisa_hari < 0
                     ? `lewat ${Math.abs(i.sisa_hari)} hari`
                     : `${i.sisa_hari} hari lagi`}
@@ -361,7 +361,7 @@ function IsiIzin() {
 
       <Kartu pad="sedang">
         <label htmlFor="iz-proyek" style={{
-          fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+          fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
           marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
         }}>Proyek</label>
         <Pilihan

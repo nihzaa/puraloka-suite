@@ -247,7 +247,7 @@ export default function KeamananPage() {
                   kehilangan ponselnya perlu tahu ke mana harus pergi SEBELUM
                   itu terjadi — bukan menemukannya saat sudah terkunci.
                 */}
-                <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.6, margin: "0 0 12px" }}>
+                <p style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.6, margin: "0 0 12px" }}>
                   Kehilangan ponsel? Tidak ada kode cadangan — administrator harus mencabut
                   faktor ini dari dashboard Supabase. Simpan juga rahasianya di pengelola
                   sandi kalau Anda ingin bisa memulihkannya sendiri.
@@ -428,12 +428,12 @@ export default function KeamananPage() {
                     <span style={{ color: C.text }}>
                       {ringkasPerangkat(s.perangkat)}
                       {s.ip && (
-                        <span style={{ color: C.muted, marginInlineStart: 8, fontSize: 11.5 }}>
+                        <span style={{ color: C.muted, marginInlineStart: 8, fontSize: "var(--t-kecil)" }}>
                           {s.ip}
                         </span>
                       )}
                     </span>
-                    <span style={{ color: C.muted, fontSize: 11.5, whiteSpace: "nowrap" }}>
+                    <span style={{ color: C.muted, fontSize: "var(--t-kecil)", whiteSpace: "nowrap" }}>
                       {formatTanggalJam(s.terakhir)}
                     </span>
                   </div>
@@ -463,7 +463,7 @@ export default function KeamananPage() {
                     }}
                   >
                     <span style={{ color: C.text }}>{r.aksi}</span>
-                    <span style={{ color: C.muted, fontSize: 11.5, whiteSpace: "nowrap" }}>
+                    <span style={{ color: C.muted, fontSize: "var(--t-kecil)", whiteSpace: "nowrap" }}>
                       {formatTanggalJam(r.waktu)}
                     </span>
                   </div>

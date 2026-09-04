@@ -294,9 +294,9 @@ export default function MandorKasbonPage() {
           <div>
             <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 4 }}>
               Scope Pekerjaan
-              <span style={{ fontSize: 11, fontWeight: 400, color: "var(--text-muted)", marginLeft: 6 }}>(opsional)</span>
+              <span style={{ fontSize: "var(--t-kecil)", fontWeight: 400, color: "var(--text-muted)", marginLeft: 6 }}>(opsional)</span>
             </label>
-            <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "0 0 6px" }}>
+            <p style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", margin: "0 0 6px" }}>
               Kosongkan jika kasbon bersifat umum dan tidak terikat scope tertentu.
             </p>
             <Pilihan

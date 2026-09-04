@@ -172,13 +172,13 @@ function EvmCard({
       background: bg, border: `1px solid ${C.border}`, borderRadius: 10,
       padding: "12px 12px", flex: 1, minWidth: 100,
     }}>
-      <p style={{ fontSize: 10, color: C.muted, margin: "0 0 4px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</p>
+      <p style={{ fontSize: "var(--t-mikro)", color: C.muted, margin: "0 0 4px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</p>
       <p style={{ fontSize: 20, fontWeight: 800, color: col, margin: "0 0 2px", fontFamily: "var(--font-display)" }}>{displayValue}</p>
       {status && (
-        <p style={{ fontSize: 10, color: col, margin: 0, fontWeight: 600 }}>{status}</p>
+        <p style={{ fontSize: "var(--t-mikro)", color: col, margin: 0, fontWeight: 600 }}>{status}</p>
       )}
       {sub && !status && (
-        <p style={{ fontSize: 10, color: C.mid, margin: 0 }}>{sub}</p>
+        <p style={{ fontSize: "var(--t-mikro)", color: C.mid, margin: 0 }}>{sub}</p>
       )}
     </div>
   );
@@ -192,9 +192,9 @@ function KpiCard({ label, value, sub, accent }: { label: string; value: string; 
       background: "var(--surface)", border: `1px solid ${C.border}`, borderRadius: 10,
       padding: "12px 16px", flex: 1,
     }}>
-      <p style={{ fontSize: 11, color: C.muted, margin: "0 0 4px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</p>
+      <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: "0 0 4px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</p>
       <p style={{ fontSize: 22, fontWeight: 800, color: accent ?? C.text, margin: "0 0 2px", fontFamily: "var(--font-display)" }}>{value}</p>
-      {sub && <p style={{ fontSize: 11, color: C.mid, margin: 0 }}>{sub}</p>}
+      {sub && <p style={{ fontSize: "var(--t-kecil)", color: C.mid, margin: 0 }}>{sub}</p>}
     </div>
   );
 }
@@ -266,7 +266,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
           </div>
           <div>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Kurva S — Realisasi Anggaran</h3>
-            <p style={{ fontSize: 11, color: C.muted, margin: 0 }}>
+            <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: 0 }}>
               {fmtDateShort(meta.startDate)} – {fmtDateShort(meta.endDate)} · {meta.totalWeeks} minggu
             </p>
           </div>
@@ -368,7 +368,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
             marginBottom: 10,
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <p style={{ fontSize: 11, fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>
+              <p style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>
                 Earned Value Management (EVM)
               </p>
               <button aria-label="Tentang EVM"
@@ -383,7 +383,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
                 basisnya, dan perubahan diam-diam pada angka yang dipakai
                 mengambil keputusan adalah bentuk kesalahan yang paling sulit
                 terdeteksi. */}
-            <span style={{ fontSize: 11, color: C.muted }}>
+            <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
               BAC: {fmt(evm.bac)}
               {evm.bacSource === "rap_locked" && (
                 <span style={{ color: C.green, marginLeft: 6 }}>· pagu RAP (biaya)</span>
@@ -401,7 +401,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
           {showEvmDetail && (
             <div style={{
               background: "var(--surface-subtle)", border: `1px solid ${C.blueLight}`, borderRadius: 6,
-              padding: "8px 12px", fontSize: 11, color: C.mid, marginBottom: 10,
+              padding: "8px 12px", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 10,
               lineHeight: 1.6,
             }}>
               <strong style={{ color: C.text }}>EVM (Earned Value Management)</strong> — sistem pengukuran kinerja proyek berdasarkan perbandingan biaya rencana, biaya aktual, dan nilai pekerjaan yang telah diselesaikan.<br />
@@ -477,7 +477,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
 
             <XAxis
               dataKey="week"
-              tick={{ fontSize: 10, fill: C.muted }}
+              tick={{ fontSize: "var(--t-mikro)", fill: C.muted }}
               tickLine={false}
               axisLine={{ stroke: C.border }}
               interval={tickInterval === 0 ? "preserveStartEnd" : tickInterval}
@@ -486,7 +486,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
             <YAxis
               domain={[0, 100]}
               tickFormatter={v => `${v}%`}
-              tick={{ fontSize: 10, fill: C.muted }}
+              tick={{ fontSize: "var(--t-mikro)", fill: C.muted }}
               tickLine={false}
               axisLine={false}
               width={40}
@@ -511,7 +511,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
                 label={{
                   value: m.title.length > 12 ? m.title.substring(0, 12) + "…" : m.title,
                   position: "insideTopLeft",
-                  fontSize: 10,
+                  fontSize: "var(--t-mikro)",
                   fill: m.status === "completed" ? C.green : C.yellow,
                   angle: -90,
                   offset: -2,
@@ -577,12 +577,12 @@ export function KurvaSSection({ projectId, userRole }: Props) {
         {/* Legend tambahan */}
         <div style={{ display: "flex", gap: "var(--gap-bagian)", paddingTop: 4, paddingLeft: 8, flexWrap: "wrap" }}>
           {milestoneMarkers.length > 0 && (
-            <div style={{ fontSize: 11, color: C.muted, display: "flex", alignItems: "center", gap: 4 }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: C.muted, display: "flex", alignItems: "center", gap: 4 }}>
               <span style={{ display: "inline-block", width: 16, borderBottom: `1.5px dashed ${C.yellow}` }} />
               Milestone
             </div>
           )}
-          <div style={{ fontSize: 11, color: C.muted }}>
+          <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
             Minggu ke-1 = {fmtDateShort(meta.startDate)}
           </div>
         </div>
@@ -595,22 +595,22 @@ export function KurvaSSection({ projectId, userRole }: Props) {
           background: C.bg, border: `1px solid ${C.border}`, borderRadius: 6,
           padding: "8px 16px", display: "flex", gap: 24, flexWrap: "wrap",
         }}>
-          <span style={{ fontSize: 11, color: C.mid }}>
+          <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}>
             <strong style={{ color: C.text }}>BAC</strong> {fmt(evm.bac)}
           </span>
-          <span style={{ fontSize: 11, color: C.mid }}>
+          <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}>
             <strong style={{ color: C.text }}>EV</strong> {fmt(evm.ev)} ({fmtPct(evm.evPct)})
           </span>
-          <span style={{ fontSize: 11, color: C.mid }}>
+          <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}>
             <strong style={{ color: C.text }}>PV</strong> {fmt(evm.pv)} ({fmtPct(evm.pvPct)})
           </span>
-          <span style={{ fontSize: 11, color: C.mid }}>
+          <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}>
             <strong style={{ color: C.text }}>AC</strong> {fmt(evm.ac)} ({fmtPct(evm.acPct)})
           </span>
-          <span style={{ fontSize: 11, color: evm.cv >= 0 ? C.green : C.red }}>
+          <span style={{ fontSize: "var(--t-kecil)", color: evm.cv >= 0 ? C.green : C.red }}>
             <strong>CV</strong> {evm.cv >= 0 ? "+" : ""}{fmt(evm.cv)}
           </span>
-          <span style={{ fontSize: 11, color: evm.sv >= 0 ? C.green : C.red }}>
+          <span style={{ fontSize: "var(--t-kecil)", color: evm.sv >= 0 ? C.green : C.red }}>
             <strong>SV</strong> {evm.sv >= 0 ? "+" : ""}{fmt(evm.sv)}
           </span>
         </div>
@@ -629,7 +629,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <div style={{ width: 8, height: 8, borderRadius: "50%", background: statusColor, flexShrink: 0 }} />
                   <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{m.title}</span>
-                  <span style={{ fontSize: 11, color: C.muted }}>
+                  <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
                     {m.date ? fmtDateShort(m.date) : "—"} · M{m.week}
                   </span>
                 </div>

@@ -84,11 +84,11 @@ export default function PmNcrPage() {
         <div style={{ display: "flex", gap: 8 }}>
           <div style={{ flex: 1, padding: "10px 14px", borderRadius: 14, background: "var(--surface-subtle)" }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text-primary)" }}>{dataIkhtisar.ncr.terbuka}</div>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>NCR terbuka</div>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>NCR terbuka</div>
           </div>
           <div style={{ flex: 1, padding: "10px 14px", borderRadius: 14, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: "var(--on-danger-bg)" }}>{dataIkhtisar.ncr.berat}</div>
-            <div style={{ fontSize: 11, color: "var(--on-danger-bg)" }}>Berat/major</div>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--on-danger-bg)" }}>Berat/major</div>
           </div>
         </div>
       )}

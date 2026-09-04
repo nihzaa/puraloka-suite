@@ -279,7 +279,7 @@ function KasRingkasan() {
                 {ringkas.pendingTransferCount} transfer menunggu konfirmasi · {fmtCompact(ringkas.pendingTransferAmount)}
               </span>
               <Link href="/kas/transfer?status=pending" style={{
-                marginLeft: "auto", fontSize: 11, color: C.yellow, fontWeight: 600,
+                marginLeft: "auto", fontSize: "var(--t-kecil)", color: C.yellow, fontWeight: 600,
                 whiteSpace: "nowrap", textDecoration: "none",
               }}>Lihat →</Link>
             </div>
@@ -295,7 +295,7 @@ function KasRingkasan() {
                 {ringkas.pendingExpenseCount} pengeluaran menunggu persetujuan · {fmtCompact(ringkas.pendingExpenseAmount)}
               </span>
               <Link href="/kas/pengeluaran?status=submitted" style={{
-                marginLeft: "auto", fontSize: 11, color: C.yellow, fontWeight: 600,
+                marginLeft: "auto", fontSize: "var(--t-kecil)", color: C.yellow, fontWeight: 600,
                 whiteSpace: "nowrap", textDecoration: "none",
               }}>Review →</Link>
             </div>
@@ -346,7 +346,7 @@ function KasRingkasan() {
                       <span style={{ color: C.text, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {k.name}
                       </span>
-                      <span style={{ color: C.muted, fontSize: 11 }}>{k.count}×</span>
+                      <span style={{ color: C.muted, fontSize: "var(--t-kecil)" }}>{k.count}×</span>
                       <span style={{ color: warna, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
                         {fmtCompact(k.total)}
                       </span>
@@ -416,7 +416,7 @@ function PintuBagian({ href, ikon, judul, sebab, jumlah, mendesak }: {
         <span style={{ fontSize: 14, fontWeight: 700, color: C.text, flex: 1 }}>{judul}</span>
         {menunggu && (
           <span style={{
-            fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 99,
+            fontSize: "var(--t-kecil)", fontWeight: 700, padding: "2px 8px", borderRadius: 99,
             fontVariantNumeric: "tabular-nums",
             background: mendesak ? "var(--danger-bg)" : "var(--surface-hover)",
             color: mendesak ? "var(--on-danger-bg)" : C.mid,

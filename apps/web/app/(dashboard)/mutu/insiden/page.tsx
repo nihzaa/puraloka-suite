@@ -204,7 +204,7 @@ export default function HalamanInsiden() {
             border: `1px solid ${C.border}`,
           }}>
             <div style={{
-              fontSize: 11, fontWeight: 700, color: C.muted,
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
               textTransform: "uppercase", letterSpacing: "0.04em",
             }}>{k.label}</div>
             <div style={{
@@ -307,7 +307,7 @@ export default function HalamanInsiden() {
                 return (
                   <span style={{
                     display: "inline-block", padding: "2px 8px", borderRadius: 6,
-                    fontSize: 11, fontWeight: 600, color: j.warna, background: j.bg,
+                    fontSize: "var(--t-kecil)", fontWeight: 600, color: j.warna, background: j.bg,
                   }}>{j.label}</span>
                 );
               },

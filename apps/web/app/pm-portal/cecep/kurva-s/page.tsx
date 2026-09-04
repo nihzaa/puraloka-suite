@@ -193,7 +193,7 @@ export default function PmKurvaSPage() {
               Deviasi serapan vs rencana: {data.meta.deviasi > 0 ? "+" : ""}
               {fmtPct(data.meta.deviasi)}
             </div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginTop: 4 }}>
               Sumber rencana: {LABEL_SUMBER_RENCANA[data.meta.rencanaSource] ?? data.meta.rencanaSource}
               {data.meta.rencanaSource === "gantt" && ` · cakupan ${fmtPct(data.meta.cakupanJadwalPct)} (${data.meta.itemBerjadwal}/${data.meta.itemTotal} item)`}
             </div>
@@ -211,7 +211,7 @@ export default function PmKurvaSPage() {
               <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-secondary)" }}>Detail EVM</span>
               <span
                 style={{
-                  fontSize: 11,
+                  fontSize: "var(--t-kecil)",
                   fontWeight: 700,
                   color: "var(--navy)",
                   background: "var(--info-bg)",
@@ -253,9 +253,9 @@ export default function PmKurvaSPage() {
             >
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{m.title ?? "—"}</div>
-                <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Minggu {m.week} · {fmtTanggal(m.date)}</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Minggu {m.week} · {fmtTanggal(m.date)}</div>
               </div>
-              <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{m.status ?? "—"}</span>
+              <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{m.status ?? "—"}</span>
             </div>
           ))}
         </>

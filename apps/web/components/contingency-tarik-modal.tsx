@@ -141,7 +141,7 @@ export function ContingencyTarikModal({ pos, onTutup, onBerhasil }: ContingencyT
   }
 
   const labelGaya: React.CSSProperties = {
-    fontSize: 11, fontWeight: 700, color: C.muted,
+    fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
     textTransform: "uppercase", letterSpacing: "0.05em",
   };
   const isianGaya: React.CSSProperties = {
@@ -206,7 +206,7 @@ export function ContingencyTarikModal({ pos, onTutup, onBerhasil }: ContingencyT
           />
           {melebihiSisa && pos && (
             <span id="ct-nilai-peringatan" role="status" style={{
-              fontSize: 11.5, lineHeight: 1.5, color: "var(--warning-teks)",
+              fontSize: "var(--t-kecil)", lineHeight: 1.5, color: "var(--warning-teks)",
             }}>
               Melebihi sisa {rupiah(pos.sisa)} — pos akan berstatus TERLAMPAUI.
               Tetap bisa dicatat: keadaan itu perlu terlihat, bukan disembunyikan.
@@ -221,7 +221,7 @@ export function ContingencyTarikModal({ pos, onTutup, onBerhasil }: ContingencyT
             placeholder="mis. penyesuaian pekerjaan galian batu" style={isianGaya}
             aria-describedby="ct-alasan-ket"
           />
-          <span id="ct-alasan-ket" style={{ fontSize: 11, color: C.mid, lineHeight: 1.5 }}>
+          <span id="ct-alasan-ket" style={{ fontSize: "var(--t-kecil)", color: C.mid, lineHeight: 1.5 }}>
             Wajib. Cadangan yang terpakai tanpa alasan tertulis adalah cadangan yang hilang.
           </span>
         </div>
@@ -242,7 +242,7 @@ export function ContingencyTarikModal({ pos, onTutup, onBerhasil }: ContingencyT
               </option>
             ))}
           </Pilihan>
-          <span id="ct-co-ket" style={{ fontSize: 11, color: C.mid, lineHeight: 1.5 }}>
+          <span id="ct-co-ket" style={{ fontSize: "var(--t-kecil)", color: C.mid, lineHeight: 1.5 }}>
             {coGagal
               ? "Daftar change order tak bisa dimuat. Penarikan tetap bisa dicatat tanpa dasar CO."
               : !co
@@ -257,7 +257,7 @@ export function ContingencyTarikModal({ pos, onTutup, onBerhasil }: ContingencyT
                 : `${co.layak.length} dari ${co.jumlah_co} CO bisa jadi dasar. Hanya yang sudah DISETUJUI yang ditawarkan.`}
           </span>
           {coDipilih?.nilai != null && (
-            <span style={{ fontSize: 11.5, color: C.text, fontVariantNumeric: "tabular-nums" }}>
+            <span style={{ fontSize: "var(--t-kecil)", color: C.text, fontVariantNumeric: "tabular-nums" }}>
               Nilai CO ini {rupiah(coDipilih.nilai)}
               {Number.isFinite(angka) && angka > 0 && angka !== coDipilih.nilai && (
                 // Selisih DINYATAKAN, bukan dilarang: satu CO boleh jadi dasar

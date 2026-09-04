@@ -197,7 +197,7 @@ export default function PreferensiPesanPage() {
               style={{ ...GAYA_ISIAN, width: 130, flexShrink: 0 }}
             />
           </div>
-          <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "8px 0 0", maxWidth: "60ch" }}>
+          <p style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.55, margin: "8px 0 0", maxWidth: "60ch" }}>
             Boleh melewati tengah malam — {muatan?.bawaan.jam_tenang_mulai}–
             {muatan?.bawaan.jam_tenang_selesai} berarti dari malam sampai pagi berikutnya.
           </p>
@@ -219,7 +219,7 @@ export default function PreferensiPesanPage() {
               onChange={(e) => setDraf((d) => ({ ...d, maks_per_hari: Number(e.target.value) }))}
               style={{ ...GAYA_ISIAN, width: 110, flexShrink: 0 }}
             />
-            <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "8px 0 0", maxWidth: "60ch" }}>
+            <p style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.55, margin: "8px 0 0", maxWidth: "60ch" }}>
               Isi <strong>0</strong> kalau Anda tak mau dihubungi duluan sama sekali, tetapi tetap
               ingin menerima yang mendesak.
             </p>

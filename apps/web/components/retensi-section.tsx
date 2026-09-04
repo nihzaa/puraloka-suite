@@ -211,7 +211,7 @@ export function RetensiSection() {
                       fontVariantNumeric: "tabular-nums",
                       fontFamily: "var(--font-display, inherit)",
                     }}>{lunas ? "Lunas" : fmtRp(b.outstanding)}</div>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                    <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>
                       {lunas ? "seluruh retensi dicairkan" : "masih tertahan"}
                     </div>
                   </div>
@@ -239,7 +239,7 @@ export function RetensiSection() {
 
                 <div style={{
                   display: "flex", justifyContent: "space-between",
-                  gap: 10, marginTop: 7, fontSize: 11.5, color: C.mid,
+                  gap: 10, marginTop: 7, fontSize: "var(--t-kecil)", color: C.mid,
                   fontVariantNumeric: "tabular-nums",
                 }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
@@ -290,7 +290,7 @@ function Kotak({
       borderRadius: 10, padding: "10px 12px",
       background: tebal && warna ? `${warna}0F` : C.subtle,
     }}>
-      <div style={{ fontSize: 11, color: C.mid, fontWeight: 500 }}>{label}</div>
+      <div style={{ fontSize: "var(--t-kecil)", color: C.mid, fontWeight: 500 }}>{label}</div>
       <div style={{
         fontSize: 17, fontWeight: 700, marginTop: 3,
         color: warna ?? C.text, fontVariantNumeric: "tabular-nums",
@@ -347,7 +347,7 @@ function FormPencairan({
       </p>
 
       <label style={{ display: "block" }}>
-        <span style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: C.mid, marginBottom: 4 }}>
+        <span style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, marginBottom: 4 }}>
           Jumlah dicairkan (Rp)
         </span>
         <input
@@ -362,7 +362,7 @@ function FormPencairan({
       </label>
 
       <label style={{ display: "block" }}>
-        <span style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: C.mid, marginBottom: 4 }}>
+        <span style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, marginBottom: 4 }}>
           Catatan <span style={{ fontWeight: 400, color: C.muted }}>· opsional</span>
         </span>
         <input

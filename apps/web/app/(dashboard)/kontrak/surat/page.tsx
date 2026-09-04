@@ -110,7 +110,7 @@ function Kpi({ label, nilai, keterangan, warna }: {
   return (
     <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", flex: "1 1 190px", minWidth: 175 }}>
       <div style={{
-        fontSize: 11, fontWeight: 600, color: C.mid,
+        fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid,
         textTransform: "uppercase", letterSpacing: "0.04em",
       }}>
         {label}
@@ -165,13 +165,13 @@ function LencanaBatas({ batas }: { batas: Batas }) {
   return (
     <span style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
       <span style={{
-        padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600,
+        padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 600,
         color: warna, background: bg, whiteSpace: "nowrap", width: "fit-content",
       }}>
         {teks}
       </span>
       {batas.siapaYangDitunggu && (
-        <span style={{ fontSize: 11, color: C.mid }}>
+        <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}>
           {kita ? "kita belum menjawab" : "lawan belum menjawab"}
         </span>
       )}
@@ -213,7 +213,7 @@ export default function SuratPage() {
       render: (s) => (
         <span>
           <span style={{ fontWeight: 600, color: C.text }}>{s.perihal}</span>
-          <span style={{ display: "block", fontSize: 11, color: C.muted }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>
             {s.nomor}
             {s.jenis && ` · ${s.jenis}`}
           </span>

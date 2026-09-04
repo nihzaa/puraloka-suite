@@ -152,7 +152,7 @@ export default function KasbonTukangPage() {
                   {group.name.charAt(0).toUpperCase()}
                 </div>
                 <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{group.name}</span>
-                <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 10, background: C.navyLight, color: C.navy }}>{group.kasbons.length} kasbon</span>
+                <span style={{ fontSize: "var(--t-kecil)", fontWeight: 600, padding: "2px 8px", borderRadius: 10, background: C.navyLight, color: C.navy }}>{group.kasbons.length} kasbon</span>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
                 {[
@@ -161,7 +161,7 @@ export default function KasbonTukangPage() {
                   { label: "Outstanding", value: fmt(outstanding), color: outstanding > 0 ? C.red : C.mid },
                 ].map((s, i) => (
                   <div key={i}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 1 }}>{s.label}</div>
+                    <div style={{ fontSize: "var(--t-mikro)", fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 1 }}>{s.label}</div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: s.color }}>{s.value}</div>
                   </div>
                 ))}
@@ -169,8 +169,8 @@ export default function KasbonTukangPage() {
               {totalKasbon > 0 && (
                 <div>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                    <span style={{ fontSize: 10, color: C.muted }}>Outstanding</span>
-                    <span style={{ fontSize: 10, fontWeight: 600, color: groupBarColor }}>{outstandingPct.toFixed(0)}%</span>
+                    <span style={{ fontSize: "var(--t-mikro)", color: C.muted }}>Outstanding</span>
+                    <span style={{ fontSize: "var(--t-mikro)", fontWeight: 600, color: groupBarColor }}>{outstandingPct.toFixed(0)}%</span>
                   </div>
                   <div style={{ height: 4, borderRadius: 0, background: C.border, overflow: "hidden" }}>
                     <div style={{ height: "100%", borderRadius: 0, background: groupBarColor, width: `${outstandingPct}%`, transition: "width 0.3s" }} />
@@ -192,32 +192,32 @@ export default function KasbonTukangPage() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{k.worker?.name ?? "—"}</span>
-                      <span style={{ fontSize: 10, fontWeight: 600, padding: "0px 6px", borderRadius: 6, background: k.is_settled ? C.greenBg : C.yellowBg, color: k.is_settled ? C.green : C.yellow }}>{k.is_settled ? "Lunas" : "Aktif"}</span>
-                      <span style={{ fontSize: 10, padding: "0px 6px", borderRadius: 6, background: "var(--surface-hover)", color: C.mid }}>{LABEL_TUJUAN[k.purpose] ?? k.purpose}</span>
+                      <span style={{ fontSize: "var(--t-mikro)", fontWeight: 600, padding: "0px 6px", borderRadius: 6, background: k.is_settled ? C.greenBg : C.yellowBg, color: k.is_settled ? C.green : C.yellow }}>{k.is_settled ? "Lunas" : "Aktif"}</span>
+                      <span style={{ fontSize: "var(--t-mikro)", padding: "0px 6px", borderRadius: 6, background: "var(--surface-hover)", color: C.mid }}>{LABEL_TUJUAN[k.purpose] ?? k.purpose}</span>
                     </div>
-                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>
+                    <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginBottom: 4 }}>
                       {k.project?.name ?? "—"} · {fmtDate(k.kasbon_date)}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <div style={{ flex: 1, height: 3, borderRadius: 0, background: C.border, overflow: "hidden" }}>
                         <div style={{ height: "100%", borderRadius: 0, background: k.is_settled ? C.green : C.yellow, width: `${pct}%` }} />
                       </div>
-                      <span style={{ fontSize: 10, color: C.muted, flexShrink: 0 }}>{Math.round(pct)}%</span>
+                      <span style={{ fontSize: "var(--t-mikro)", color: C.muted, flexShrink: 0 }}>{Math.round(pct)}%</span>
                     </div>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: k.is_settled ? C.green : C.red }}>{fmt(remaining)}</div>
-                    <div style={{ fontSize: 11, color: C.muted }}>dari {fmt(k.amount)}</div>
+                    <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>dari {fmt(k.amount)}</div>
                     {!k.is_settled && (
                       <button type="button"
                         onClick={() => { setCicilanModal({ kasbonId: k.id, remaining }); setCicilanNominal(""); setCicilanCatatan(""); setCicilanError(""); }}
-                        style={{ padding: "2px 8px", borderRadius: 6, border: `1px solid ${C.navy}`, background: C.navyLight, color: C.navy, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
+                        style={{ padding: "2px 8px", borderRadius: 6, border: `1px solid ${C.navy}`, background: C.navyLight, color: C.navy, cursor: "pointer", fontSize: "var(--t-kecil)", fontWeight: 600 }}>
                         Catat Cicilan
                       </button>
                     )}
                     {k.photo_url && (
                       <button aria-label="Lihat foto nota" type="button" onClick={() => setLightboxPhoto(k.photo_url!)}
-                        style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: C.blue, display: "flex", alignItems: "center", gap: 2, fontSize: 11 }} title="Lihat foto nota">
+                        style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: C.blue, display: "flex", alignItems: "center", gap: 2, fontSize: "var(--t-kecil)" }} title="Lihat foto nota">
                         <Camera size={12} /> Foto
                       </button>
                     )}

@@ -267,7 +267,7 @@ function KartuJenis({ jenis: j, bolehKelola, onSimpan, onGagal }: {
 
           {/* Contoh nomor — yang sebenarnya sedang disetel orang. */}
           <div style={{ textAlign: "right", minWidth: 0 }}>
-            <div style={{ fontSize: 11, color: C.muted, marginBottom: 2 }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginBottom: 2 }}>
               Nomor berikutnya
             </div>
             <div style={{
@@ -348,7 +348,7 @@ function KartuJenis({ jenis: j, bolehKelola, onSimpan, onGagal }: {
         )}
 
         {berubah && bolehKelola && (
-          <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
+          <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
             Berlaku untuk <strong>{j.periode.length} periode</strong> jenis ini. Nomor yang
             sudah terbit tidak berubah.
           </div>

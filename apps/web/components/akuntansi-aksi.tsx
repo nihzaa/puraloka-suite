@@ -141,7 +141,7 @@ export function ModalAkunBaru({ akun, onClose, onSukses }: {
             <option key={t.nilai} value={t.nilai}>{t.teks} — {t.jelas}</option>
           ))}
         </Pilihan>
-        <p style={{ fontSize: 11, color: C.muted, margin: "4px 0 0", lineHeight: 1.45 }}>
+        <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: "4px 0 0", lineHeight: 1.45 }}>
           <strong>Tipe tak bisa diubah sesudah akun dipakai.</strong> Ia menentukan
           akun ini muncul di neraca atau laba-rugi — menggesernya belakangan berarti
           memindahkan angka dari satu laporan ke laporan lain.
@@ -157,7 +157,7 @@ export function ModalAkunBaru({ akun, onClose, onSukses }: {
             <option key={a.id} value={a.id}>{a.code} — {a.name}</option>
           ))}
         </Pilihan>
-        <p style={{ fontSize: 11, color: C.muted, margin: "4px 0 0", lineHeight: 1.45 }}>
+        <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: "4px 0 0", lineHeight: 1.45 }}>
           Hanya akun bertipe sama yang bisa jadi induk. Induk bertipe beda membuat
           laporan menjumlahkan aset ke dalam beban.
         </p>
@@ -175,7 +175,7 @@ export function ModalAkunBaru({ akun, onClose, onSukses }: {
       <KakiModal>
         {halangan && (
           <span style={{
-            fontSize: 11.5, color: C.mid, marginRight: "auto",
+            fontSize: "var(--t-kecil)", color: C.mid, marginRight: "auto",
             maxWidth: "40ch", lineHeight: 1.45, alignSelf: "center",
           }}>{halangan}</span>
         )}
@@ -267,7 +267,7 @@ export function ModalStatusInvoice({ invoice, onClose, onSukses }: {
         </Pilihan>
       </div>
 
-      <p style={{ margin: 0, fontSize: 11.5, color: C.muted, lineHeight: 1.5 }}>
+      <p style={{ margin: 0, fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.5 }}>
         <strong>Lunas</strong> dan <strong>parsial</strong> tidak ada di daftar ini
         dengan sengaja: keduanya diturunkan dari pembayaran yang tercatat, bukan
         disetel tangan. Menyetelnya manual akan membuat status berbeda dari jumlah
@@ -290,7 +290,7 @@ export function ModalStatusInvoice({ invoice, onClose, onSukses }: {
       <KakiModal>
         {halangan && !batalPadahalDibayar && (
           <span style={{
-            fontSize: 11.5, color: C.mid, marginRight: "auto",
+            fontSize: "var(--t-kecil)", color: C.mid, marginRight: "auto",
             maxWidth: "40ch", lineHeight: 1.45, alignSelf: "center",
           }}>{halangan}</span>
         )}

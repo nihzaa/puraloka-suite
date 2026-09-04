@@ -247,7 +247,7 @@ export default function IngatanPage() {
             ].map((grup) =>
               grup.isi.length === 0 ? null : (
                 <div key={grup.judul}>
-                  <p style={{ fontSize: 11.5, fontWeight: 550, color: C.mid, margin: "0 0 8px" }}>
+                  <p style={{ fontSize: "var(--t-kecil)", fontWeight: 550, color: C.mid, margin: "0 0 8px" }}>
                     {grup.judul} <span style={{ color: C.muted, fontWeight: 400 }}>({grup.isi.length})</span>
                   </p>
                   <div style={{ display: "grid", gap: 6 }}>
@@ -275,12 +275,12 @@ export default function IngatanPage() {
                             {(i.izin_minimum || i.project_id) && (
                               <span style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
                                 {i.izin_minimum && (
-                                  <span style={{ fontSize: 11, color: C.mid, background: "var(--surface-subtle)", padding: "2px 7px", borderRadius: 999 }}>
+                                  <span style={{ fontSize: "var(--t-kecil)", color: C.mid, background: "var(--surface-subtle)", padding: "2px 7px", borderRadius: 999 }}>
                                     hanya yang punya izin <code>{i.izin_minimum}</code>
                                   </span>
                                 )}
                                 {i.project_id && (
-                                  <span style={{ fontSize: 11, color: C.mid, background: "var(--surface-subtle)", padding: "2px 7px", borderRadius: 999 }}>
+                                  <span style={{ fontSize: "var(--t-kecil)", color: C.mid, background: "var(--surface-subtle)", padding: "2px 7px", borderRadius: 999 }}>
                                     proyek {namaProyek ?? i.project_id.slice(0, 8)}
                                   </span>
                                 )}
@@ -296,7 +296,7 @@ export default function IngatanPage() {
                               style={{
                                 display: "inline-flex", alignItems: "center", gap: 5,
                                 background: "none", border: `1px solid ${C.border}`,
-                                borderRadius: 8, padding: "5px 9px", fontSize: 11.5,
+                                borderRadius: 8, padding: "5px 9px", fontSize: "var(--t-kecil)",
                                 color: C.mid, cursor: menghapus === i.id ? "wait" : "pointer",
                                 flexShrink: 0,
                               }}
@@ -362,7 +362,7 @@ export default function IngatanPage() {
               onChange={(e) => setKunci(e.target.value)}
               style={{ ...GAYA_ISIAN, maxWidth: 420 }}
             />
-            <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0", maxWidth: "60ch" }}>
+            <p style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.55, margin: "6px 0 0", maxWidth: "60ch" }}>
               Nama yang sama akan <strong>menimpa</strong> catatan lama, bukan menumpuk — supaya
               tak ada dua catatan yang saling membantah.
             </p>
@@ -382,7 +382,7 @@ export default function IngatanPage() {
               onChange={(e) => setNilai(e.target.value)}
               style={{ ...GAYA_ISIAN, resize: "vertical", lineHeight: 1.6 }}
             />
-            <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0", maxWidth: "60ch" }}>
+            <p style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.55, margin: "6px 0 0", maxWidth: "60ch" }}>
               Dikirim ulang tiap kali asisten menjawab — catatan panjang menambah biaya tiap
               pertanyaan.
             </p>
@@ -410,7 +410,7 @@ export default function IngatanPage() {
                     </option>
                   ))}
                 </Pilihan>
-                <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
+                <p style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
                   Yang tak punya izin ini tak akan pernah melihat catatannya — asisten diam
                   soal itu.
                 </p>
@@ -432,7 +432,7 @@ export default function IngatanPage() {
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </Pilihan>
-                <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
+                <p style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
                   Catatan berproyek hanya ikut saat proyek itu yang sedang dibicarakan.
                 </p>
               </div>

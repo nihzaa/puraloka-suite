@@ -270,7 +270,7 @@ export default function AdminMrDetailPage() {
                 cukup, "66/10 karakter" justru membingungkan — pembacanya
                 mengira ada batas ATAS 10 yang sudah dilampaui.
               */}
-              <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 4 }}>
                 {alasanCukup
                   ? "Alasan cukup panjang."
                   : `Kurang ${MIN_ALASAN - alasan.trim().length} karakter lagi.`}

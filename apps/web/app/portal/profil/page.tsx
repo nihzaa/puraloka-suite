@@ -58,7 +58,7 @@ export default function PortalProfilPage() {
             >
               <span style={{ color: "var(--text-secondary)" }}>{item.icon}</span>
               <div>
-                <div style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 600 }}>{item.label}</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", fontWeight: 600 }}>{item.label}</div>
                 <div style={{ fontSize: 13, color: "var(--text-primary)", marginTop: 1 }}>{item.value}</div>
               </div>
             </div>

@@ -272,7 +272,7 @@ function IsiK3() {
             borderLeft: telat ? "3px solid var(--danger)" : "3px solid transparent",
           }}>
             <strong style={{ fontSize: 13, color: C.text }}>{t.uraian}</strong>
-            <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 1 }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 1 }}>
               inspeksi {tanggal(t.tanggal_inspeksi)}
               {t.kategori ? ` · ${t.kategori}` : ""}
               {t.tindakan ? ` · ${t.tindakan}` : ""}
@@ -301,7 +301,7 @@ function IsiK3() {
             fontWeight: telat ? 700 : 400,
           }}>
             {tanggal(t.tenggat)}
-            {telat && <span style={{ display: "block", fontSize: 11 }}>lewat tenggat</span>}
+            {telat && <span style={{ display: "block", fontSize: "var(--t-kecil)" }}>lewat tenggat</span>}
           </span>
         );
       },
@@ -333,7 +333,7 @@ function IsiK3() {
           <strong style={{ fontSize: 13, color: C.text }}>
             {i.peserta_nama ?? "Pekerja terdaftar"}
           </strong>
-          <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 1 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 1 }}>
             {i.jenis.replace(/_/g, " ")}{i.materi ? ` · ${i.materi}` : ""}
           </span>
         </span>
@@ -357,7 +357,7 @@ function IsiK3() {
             fontWeight: habis ? 700 : 400,
           }}>
             {i.berlaku_sampai == null ? "Tanpa batas" : tanggal(i.berlaku_sampai)}
-            {habis && <span style={{ display: "block", fontSize: 11 }}>kedaluwarsa</span>}
+            {habis && <span style={{ display: "block", fontSize: "var(--t-kecil)" }}>kedaluwarsa</span>}
           </span>
         );
       },
@@ -370,7 +370,7 @@ function IsiK3() {
       render: (a) => (
         <span style={{ display: "block" }}>
           <strong style={{ fontSize: 13, color: C.text }}>{a.jenis_apd}</strong>
-          <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 1 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 1 }}>
             {a.penerima_nama ?? "pekerja terdaftar"}
             {a.kondisi ? ` · ${a.kondisi}` : ""}
           </span>
@@ -406,7 +406,7 @@ function IsiK3() {
             {tempo && (
               // Bukan sekadar terlambat administratif: APD kedaluwarsa
               // memberi rasa aman tanpa melindungi.
-              <span style={{ display: "block", fontSize: 11 }}>jatuh tempo diganti</span>
+              <span style={{ display: "block", fontSize: "var(--t-kecil)" }}>jatuh tempo diganti</span>
             )}
           </span>
         );
@@ -420,7 +420,7 @@ function IsiK3() {
       render: (u) => (
         <span style={{ display: "block" }}>
           <strong style={{ fontSize: 13, color: C.text }}>{u.parameter}</strong>
-          <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 1 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 1 }}>
             {u.lokasi ?? "lokasi tak dicatat"} · {tanggal(u.tanggal)}
           </span>
         </span>
@@ -438,7 +438,7 @@ function IsiK3() {
               fontSize: 13,
               color: lebih ? "var(--danger)" : C.text,
             }}>{n ?? "—"} {u.satuan}</strong>
-            <span style={{ display: "block", fontSize: 11, color: C.muted }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>
               {b == null
                 // Dinyatakan, bukan dibiarkan kosong: pengukuran tanpa
                 // pembanding tak menjawab apa pun, tetapi sering ditampilkan
@@ -495,7 +495,7 @@ function IsiK3() {
 
       <Kartu pad="sedang">
         <label htmlFor="k3-pilih-proyek" style={{
-          fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+          fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
           marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
         }}>Proyek</label>
         <Pilihan

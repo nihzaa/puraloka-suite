@@ -172,18 +172,18 @@ export function LookAheadSection({ projectId }: { projectId: string }) {
                     {/* Label status ditulis, bukan diwakili warna saja — WCAG
                         1.4.1. Pemakai sistem ini banyak membaca di layar HP
                         di bawah sinar matahari. */}
-                    <span style={{ fontSize: 10, fontWeight: 700, color: g.warna, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    <span style={{ fontSize: "var(--t-mikro)", fontWeight: 700, color: g.warna, textTransform: "uppercase", letterSpacing: "0.04em" }}>
                       {g.label}
                       {b.status === "telat" && ` ${b.hariTelat} hari`}
                     </span>
                     {b.categoryCode && (
-                      <span style={{ fontSize: 10, color: C.muted, fontFamily: "ui-monospace, monospace" }}>{b.categoryCode}</span>
+                      <span style={{ fontSize: "var(--t-mikro)", color: C.muted, fontFamily: "ui-monospace, monospace" }}>{b.categoryCode}</span>
                     )}
                   </div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginTop: 2, wordBreak: "break-word" }}>
                     {b.name}
                   </div>
-                  <div style={{ fontSize: 11, color: C.mid, marginTop: 3 }}>
+                  <div style={{ fontSize: "var(--t-kecil)", color: C.mid, marginTop: 3 }}>
                     {fmtTgl(b.plannedStart)} – {fmtTgl(b.plannedEnd)}
                     {" · "}progres {b.progressPct}%
                     {b.totalPrice > 0 && <> · {fmtRp(b.totalPrice)}</>}
@@ -203,9 +203,9 @@ function Kartu({ label, nilai, sub, warna, bg, border }: {
 }) {
   return (
     <div style={{ padding: "12px 12px", borderRadius: 10, background: bg, border: `1px solid ${border}` }}>
-      <div style={{ fontSize: 10, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
+      <div style={{ fontSize: "var(--t-mikro)", fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
       <div style={{ fontSize: 22, fontWeight: 800, color: warna, fontFamily: "var(--font-display, inherit)", lineHeight: 1.15 }}>{nilai}</div>
-      <div style={{ fontSize: 11, color: C.mid, marginTop: 1 }}>{sub}</div>
+      <div style={{ fontSize: "var(--t-kecil)", color: C.mid, marginTop: 1 }}>{sub}</div>
     </div>
   );
 }

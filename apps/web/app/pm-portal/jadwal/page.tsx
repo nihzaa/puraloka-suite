@@ -220,7 +220,7 @@ export default function PmJadwalPage() {
             <div key={`${h.jenis}-${h.nama}`} style={{ padding: "var(--pad-kartu)", borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{h.nama}</span>
-                <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Puncak {h.puncak}{h.tersedia !== null ? ` / tersedia ${h.tersedia}` : ""}</span>
+                <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Puncak {h.puncak}{h.tersedia !== null ? ` / tersedia ${h.tersedia}` : ""}</span>
               </div>
               {/* Daftar angka per minggu, BUKAN dirata-rata — puncak adalah sinyal yang dijaga backend, rata-rata menyembunyikannya. */}
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -292,19 +292,19 @@ export default function PmJadwalPage() {
                 <div style={{ display: "flex", gap: "var(--gap-bagian)", marginTop: 4, flexWrap: "wrap" }}>
                   <div>
                     <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)" }}>{dataPergeseran.ringkas.mundur}</div>
-                    <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>dari {dataPergeseran.ringkas.total_item} mundur</div>
+                    <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>dari {dataPergeseran.ringkas.total_item} mundur</div>
                   </div>
                   {dataPergeseran.ringkas.mundur_terparah_hari !== null && (
                     <div>
                       <div style={{ fontSize: 20, fontWeight: 700, color: "var(--danger)" }}>
                         +{dataPergeseran.ringkas.mundur_terparah_hari}
                       </div>
-                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>mundur terparah (hari)</div>
+                      <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>mundur terparah (hari)</div>
                     </div>
                   )}
                   <div>
                     <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)" }}>{dataPergeseran.ringkas.bobot_mundur_pct}%</div>
-                    <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>bobot mundur</div>
+                    <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>bobot mundur</div>
                   </div>
                 </div>
               )}

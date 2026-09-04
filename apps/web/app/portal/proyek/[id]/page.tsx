@@ -182,7 +182,7 @@ function KurvaSTab({ projectId }: { projectId: string }) {
           ...(meta.evm.spi !== null ? [{ label: "SPI", value: meta.evm.spi.toFixed(2), warna: warnaSpi }] : []),
         ].map((k) => (
           <div key={k.label} style={{ ...kartu, padding: "12px 16px", flex: 1, minWidth: 120 }}>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)", marginBottom: 3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.label}</div>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginBottom: 3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.label}</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: k.warna, fontVariantNumeric: "tabular-nums" }}>{k.value}</div>
           </div>
         ))}
@@ -192,15 +192,15 @@ function KurvaSTab({ projectId }: { projectId: string }) {
         <ResponsiveContainer width="100%" height={280}>
           <ComposedChart data={chartData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-            <XAxis dataKey="week" tick={{ fontSize: 10, fill: "var(--text-muted)" }} tickLine={false} />
-            <YAxis tick={{ fontSize: 10, fill: "var(--text-muted)" }} tickLine={false} tickFormatter={(v) => `${v}%`} domain={[0, 100]} />
+            <XAxis dataKey="week" tick={{ fontSize: "var(--t-mikro)", fill: "var(--text-muted)" }} tickLine={false} />
+            <YAxis tick={{ fontSize: "var(--t-mikro)", fill: "var(--text-muted)" }} tickLine={false} tickFormatter={(v) => `${v}%`} domain={[0, 100]} />
             <Tooltip formatter={(v, name) => [typeof v === "number" ? `${v.toFixed(1)}%` : v, name]} contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid var(--border)" }} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
             <Area type="monotone" dataKey="rencana" name="Rencana" stroke="var(--navy)" strokeDasharray="5 4" strokeWidth={2} fill="var(--info-bg)" fillOpacity={0.6} dot={false} connectNulls />
             <Line type="monotone" dataKey="progress" name="Progress Fisik" stroke="var(--success)" strokeWidth={2.5} dot={{ r: 3, fill: "var(--success)" }} connectNulls />
           </ComposedChart>
         </ResponsiveContainer>
-        <div style={{ marginTop: 10, fontSize: 11, color: "var(--text-muted)", textAlign: "center" }}>
+        <div style={{ marginTop: 10, fontSize: "var(--t-kecil)", color: "var(--text-muted)", textAlign: "center" }}>
           Grafik menampilkan rencana progres proyek vs realisasi fisik di lapangan
         </div>
       </div>
@@ -238,13 +238,13 @@ function GanttTab({ projectId }: { projectId: string }) {
   return (
     <div style={{ ...kartu, padding: "var(--pad-kartu-lega)", overflowX: "auto" }}>
       <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Jadwal Pelaksanaan (Gantt)</div>
-      <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 16 }}>Rencana — baca saja</div>
+      <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginBottom: 16 }}>Rencana — baca saja</div>
       <div style={{ minWidth: 600 }}>
         <div style={{ display: "flex", marginBottom: 6, paddingLeft: 200 }}>
           {[0, 0.25, 0.5, 0.75, 1].map((frac) => {
             const d = new Date(minDate.getTime() + frac * totalDays * 86400000);
             return (
-              <div key={frac} style={{ flex: frac === 0 ? "0 0 0" : 1, fontSize: 10, color: "var(--text-muted)", textAlign: "center" }}>
+              <div key={frac} style={{ flex: frac === 0 ? "0 0 0" : 1, fontSize: "var(--t-mikro)", color: "var(--text-muted)", textAlign: "center" }}>
                 {frac > 0 ? d.toLocaleDateString("id-ID", { day: "2-digit", month: "short" }) : ""}
               </div>
             );
@@ -258,7 +258,7 @@ function GanttTab({ projectId }: { projectId: string }) {
           return (
             <div key={t.id} style={{ display: "flex", alignItems: "center", marginBottom: 4, minHeight: 28 }}>
               <div style={{ width: 200, flexShrink: 0, paddingLeft: indent, paddingRight: 8, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                <span style={{ fontSize: 11, color: t.level <= 1 ? "var(--text-primary)" : "var(--text-secondary)", fontWeight: t.level <= 1 ? 600 : 400 }}>
+                <span style={{ fontSize: "var(--t-kecil)", color: t.level <= 1 ? "var(--text-primary)" : "var(--text-secondary)", fontWeight: t.level <= 1 ? 600 : 400 }}>
                   {t.no_urut} {t.uraian}
                 </span>
               </div>
@@ -275,7 +275,7 @@ function GanttTab({ projectId }: { projectId: string }) {
                   }} />
                 )}
               </div>
-              <div style={{ width: 36, textAlign: "right", fontSize: 10, color: "var(--text-muted)", flexShrink: 0, paddingLeft: 6 }}>
+              <div style={{ width: 36, textAlign: "right", fontSize: "var(--t-mikro)", color: "var(--text-muted)", flexShrink: 0, paddingLeft: 6 }}>
                 {t.progress_pct > 0 ? `${t.progress_pct}%` : ""}
               </div>
             </div>
@@ -283,9 +283,9 @@ function GanttTab({ projectId }: { projectId: string }) {
         })}
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 12, paddingLeft: 200 }}>
           <div style={{ width: 12, height: 2, background: "var(--danger)" }} />
-          <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Hari ini</span>
+          <span style={{ fontSize: "var(--t-mikro)", color: "var(--text-muted)" }}>Hari ini</span>
           <div style={{ width: 12, height: 8, background: "var(--success)", borderRadius: 4, opacity: 0.6, marginLeft: 10 }} />
-          <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Sudah selesai</span>
+          <span style={{ fontSize: "var(--t-mikro)", color: "var(--text-muted)" }}>Sudah selesai</span>
         </div>
       </div>
     </div>
@@ -354,7 +354,7 @@ function FotoTab({ projectId }: { projectId: string }) {
             >
               <img src={photo.file_url} alt={photo.caption ?? ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "6px 8px", background: "linear-gradient(transparent, rgba(0,0,0,0.6))" }}>
-                <span style={{ fontSize: 10, color: "#fff", fontWeight: 500 }}>
+                <span style={{ fontSize: "var(--t-mikro)", color: "#fff", fontWeight: 500 }}>
                   {LABEL_FOTO[photo.category] ?? photo.category}
                 </span>
               </div>
@@ -386,7 +386,7 @@ function FotoTab({ projectId }: { projectId: string }) {
             {filtered[lightbox].caption && (
               <div style={{ color: "#ccc", textAlign: "center", marginTop: 10, fontSize: 13 }}>{filtered[lightbox].caption}</div>
             )}
-            <div style={{ color: "#888", textAlign: "center", marginTop: 4, fontSize: 11 }}>
+            <div style={{ color: "#888", textAlign: "center", marginTop: 4, fontSize: "var(--t-kecil)" }}>
               {LABEL_FOTO[filtered[lightbox].category]} · {fmtDateShort(filtered[lightbox].created_at)} · {lightbox + 1}/{filtered.length}
             </div>
           </div>
@@ -425,12 +425,12 @@ function DokumenTab({ projectId }: { projectId: string }) {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.file_name}</div>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 2 }}>
               {LABEL_DOKUMEN[doc.doc_type] ?? doc.doc_type}
               {doc.file_size ? ` · ${fmtSize(doc.file_size)}` : ""}
               {` · ${fmtDateShort(doc.uploaded_at)}`}
             </div>
-            {doc.description && <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{doc.description}</div>}
+            {doc.description && <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 2 }}>{doc.description}</div>}
           </div>
           <a
             href={doc.file_url}
@@ -725,12 +725,12 @@ export default function PortalProyekDetailPage() {
               </div>
               <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
                 <div>
-                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Total</div>
+                  <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Total</div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>{fmt(inv.total_amount)}</div>
                 </div>
                 {inv.amount_due > 0 && (
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Sisa tagihan</div>
+                    <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Sisa tagihan</div>
                     <div style={{ fontSize: 15, fontWeight: 700, color: "var(--danger)", fontVariantNumeric: "tabular-nums" }}>{fmt(inv.amount_due)}</div>
                   </div>
                 )}

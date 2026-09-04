@@ -133,7 +133,7 @@ export function UmurPiutang({ buckets, total }: {
                   teks yang terpotong lebih buruk daripada tak ada teks. */}
               {pct >= 9 && (
                 <span style={{
-                  fontSize: 10, fontWeight: 700, color: "#fff",
+                  fontSize: "var(--t-mikro)", fontWeight: 700, color: "#fff",
                   fontVariantNumeric: "tabular-nums",
                   textShadow: "0 1px 2px rgba(0,0,0,.25)",
                 }}>{Math.round(pct)}%</span>
@@ -170,10 +170,10 @@ export function UmurPiutang({ buckets, total }: {
             }} />
             <span style={{ fontSize: 12, color: C.text, minWidth: 0 }}>
               {d.label}
-              <span style={{ color: C.muted, fontSize: 11 }}> · {d.ket}</span>
+              <span style={{ color: C.muted, fontSize: "var(--t-kecil)" }}> · {d.ket}</span>
             </span>
             <span style={{
-              fontSize: 11, color: C.muted, fontVariantNumeric: "tabular-nums",
+              fontSize: "var(--t-kecil)", color: C.muted, fontVariantNumeric: "tabular-nums",
             }}>{jumlah ? `${Math.round((d.amount / jumlah) * 100)}%` : "—"}</span>
             <span style={{
               fontSize: 12, fontWeight: 600, color: d.amount ? C.text : C.muted,

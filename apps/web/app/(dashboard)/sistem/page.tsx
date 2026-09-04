@@ -106,11 +106,11 @@ export default function SistemPage() {
                         { icon: <Wallet size={10} />, label: "Kasbon", val: d.checked.stale_kasbons },
                         { icon: <Receipt size={10} />, label: "Invoice", val: d.checked.overdue_invoices },
                       ].map(c => (
-                        <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 2, fontSize: 11, color: "var(--text-secondary)" }}>
+                        <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 2, fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
                           {c.icon} <span>{c.val} {c.label}</span>
                         </div>
                       ))}
-                      <div style={{ marginLeft: "auto", fontSize: 11, color: "var(--success)", fontWeight: 600 }}>
+                      <div style={{ marginLeft: "auto", fontSize: "var(--t-kecil)", color: "var(--success)", fontWeight: 600 }}>
                         +{d.notifications_created} notif dibuat
                       </div>
                     </div>
@@ -137,8 +137,8 @@ export default function SistemPage() {
                   if (!d?.success) return null;
                   return (
                     <div style={{ display: "flex", gap: 12, marginTop: 6 }}>
-                      <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{d.approaching} approaching · {d.overdue} overdue</span>
-                      <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--success)", fontWeight: 600 }}>+{d.notifications_created} notif dibuat</span>
+                      <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{d.approaching} approaching · {d.overdue} overdue</span>
+                      <span style={{ marginLeft: "auto", fontSize: "var(--t-kecil)", color: "var(--success)", fontWeight: 600 }}>+{d.notifications_created} notif dibuat</span>
                     </div>
                   );
                 }} />}
@@ -167,7 +167,7 @@ export default function SistemPage() {
                 EMAIL_FROM=Puraloka Suite &lt;noreply@contoh.id&gt;<br />
                 APP_URL=https://app.contoh.id
               </div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8 }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginTop: 8 }}>
                 Jika <code>RESEND_API_KEY</code> tidak diset, email dinonaktifkan (no-op). Notifikasi in-app tetap berjalan.
               </div>
             </div>
@@ -211,7 +211,7 @@ export default function SistemPage() {
                 &nbsp;&nbsp;-H &quot;Authorization: Bearer $ADMIN_TOKEN&quot; \<br />
                 &nbsp;&nbsp;$API_URL/api/v1/notifications/check-milestones
               </div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8 }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginTop: 8 }}>
                 Idempotent — aman dijalankan berkali-kali, tidak akan duplikat notif dalam satu hari.
               </div>
             </div>
@@ -259,10 +259,10 @@ function ResultBadge({ result, renderDetail }: {
         {result.ok
           ? <CheckCircle size={12} style={{ color: "var(--success)" }} />
           : <AlertCircle size={12} style={{ color: "var(--danger)" }} />}
-        <span style={{ fontSize: 11, fontWeight: 600, color: result.ok ? "var(--success)" : "var(--danger)" }}>
+        <span style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: result.ok ? "var(--success)" : "var(--danger)" }}>
           {result.ok ? "Berhasil" : "Gagal"}
         </span>
-        <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: "auto" }}>{result.ts}</span>
+        <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginLeft: "auto" }}>{result.ts}</span>
       </div>
       {result.ok && renderDetail(result.data)}
     </div>

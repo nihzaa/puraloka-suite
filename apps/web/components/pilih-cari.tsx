@@ -164,7 +164,7 @@ export function PilihCari({
               return (
                 <div key={o.value}>
                   {grupBaru && o.grup && (
-                    <div style={{ padding: "6px 12px 4px", fontSize: 11, fontWeight: 700,
+                    <div style={{ padding: "6px 12px 4px", fontSize: "var(--t-kecil)", fontWeight: 700,
                       color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.4,
                       background: "var(--bg)" }}>
                       {o.grup}
@@ -189,13 +189,13 @@ export function PilihCari({
                     <span style={{ flex: 1 }}>
                       {o.label}
                       {o.keterangan && (
-                        <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)" }}>
+                        <span style={{ display: "block", fontSize: "var(--t-kecil)", color: "var(--text-muted)" }}>
                           {o.keterangan}
                         </span>
                       )}
                     </span>
                     {o.badge && (
-                      <span style={{ fontSize: 10, fontWeight: 700, color: "var(--warning)",
+                      <span style={{ fontSize: "var(--t-mikro)", fontWeight: 700, color: "var(--warning)",
                         background: "var(--warning-bg)", padding: "0px 6px", borderRadius: 999,
                         whiteSpace: "nowrap" }}>
                         {o.badge}
@@ -207,7 +207,7 @@ export function PilihCari({
               );
             })}
             {terpotong && (
-              <p style={{ margin: 0, padding: "8px 12px", fontSize: 11, color: "var(--text-muted)",
+              <p style={{ margin: 0, padding: "8px 12px", fontSize: "var(--t-kecil)", color: "var(--text-muted)",
                 borderTop: "1px solid var(--border)" }}>
                 Menampilkan {hasil.length} dari {opsi.length.toLocaleString("id-ID")} — ketik untuk mempersempit.
               </p>

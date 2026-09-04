@@ -71,7 +71,7 @@ function ScopeBars({ scope }: { scope: WorkScope }) {
     <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
       {progressPct > 0 && (
         <div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: C.mid, marginBottom: 2 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--t-mikro)", color: C.mid, marginBottom: 2 }}>
             <span>Progress Fisik</span>
             <span style={{ fontWeight: 600 }}>{progressPct.toFixed(0)}%</span>
           </div>
@@ -87,7 +87,7 @@ function ScopeBars({ scope }: { scope: WorkScope }) {
       )}
       {kasbonActive > 0 && (
         <div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: C.mid, marginBottom: 2 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--t-mikro)", color: C.mid, marginBottom: 2 }}>
             <span>Kasbon Beredar</span>
             <span style={{ fontWeight: 600, color: C.orange }}>
               {fmt(kasbonActive)}
@@ -202,7 +202,7 @@ export function MandorSection({
             <div style={{ fontSize: 12, fontWeight: 600, color: C.orangeTeks, marginBottom: 4 }}>
               Total Kasbon Beredar di Proyek Ini: {fmt(totalKasbon)}
             </div>
-            <div style={{ display: "flex", gap: 12, fontSize: 11, color: C.mid, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 12, fontSize: "var(--t-kecil)", color: C.mid, flexWrap: "wrap" }}>
               {scopeKasbonTotal > 0 && <span>Per scope: {fmt(scopeKasbonTotal)}</span>}
               {scopelessKasbonTotal > 0 && <span>Umum (tanpa scope): {fmt(scopelessKasbonTotal)}</span>}
             </div>
@@ -268,7 +268,7 @@ export function MandorSection({
                     <button
                       onClick={e => { e.stopPropagation(); handleDeactivate(asgn.id); }}
                       disabled={deactivatingId === asgn.id}
-                      style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red, fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+                      style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red, fontSize: "var(--t-kecil)", fontWeight: 600, cursor: "pointer" }}
                     >
                       Nonaktifkan
                     </button>
@@ -318,9 +318,9 @@ export function MandorSection({
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
                                   <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{scope.scope_name}</span>
-                                  <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 10, background: ps.bg, color: ps.color }}>{ps.label}</span>
+                                  <span style={{ fontSize: "var(--t-mikro)", fontWeight: 700, padding: "2px 8px", borderRadius: 10, background: ps.bg, color: ps.color }}>{ps.label}</span>
                                   {scope.status !== "active" && (
-                                    <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 10, background: "var(--surface-hover)", color: C.muted }}>{scope.status}</span>
+                                    <span style={{ fontSize: "var(--t-mikro)", padding: "2px 8px", borderRadius: 10, background: "var(--surface-hover)", color: C.muted }}>{scope.status}</span>
                                   )}
                                 </div>
                                 <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px", fontSize: 12, color: C.muted }}>
@@ -485,7 +485,7 @@ function AssignMandorModal({ projectId, existingMandorIds, onClose, onSuccess }:
               <option value="">-- Pilih mandor --</option>
               {mandorTersedia.map(m => <option key={m.id} value={m.id}>{m.name}{m.phone ? ` (${m.phone})` : ""}</option>)}
             </Pilihan>
-            {mandorTersedia.length === 0 && <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Semua mandor sudah di-assign ke proyek ini</div>}
+            {mandorTersedia.length === 0 && <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4 }}>Semua mandor sudah di-assign ke proyek ini</div>}
           </div>
           <div>
             <label htmlFor="assigned-at" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tanggal Assign</label>
@@ -617,7 +617,7 @@ function AddScopeModal({ assignment, projectId: projectIdProp, onClose, onSucces
                   }}
                 >
                   <div style={{ fontSize: 13, fontWeight: 600, color: paymentSystem === opt.value ? C.navy : C.text }}>{opt.label}</div>
-                  <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{opt.desc}</div>
+                  <div style={{ fontSize: "var(--t-mikro)", color: C.muted, marginTop: 2 }}>{opt.desc}</div>
                 </button>
               ))}
             </div>
@@ -647,7 +647,7 @@ function AddScopeModal({ assignment, projectId: projectIdProp, onClose, onSucces
           {rabCategories.length > 0 && (
             <div>
               <label htmlFor="rab-category-id" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>
-                Kaitkan ke Sub-Kategori RAB <span style={{ fontSize: 11, color: C.muted }}>(opsional)</span>
+                Kaitkan ke Sub-Kategori RAB <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>(opsional)</span>
               </label>
               <Pilihan id="rab-category-id" aria-label="Kaitkan ke sub-kategori RAB" value={rabCategoryId} onChange={e => setRabCategoryId(e.target.value)} style={inputStyle}>
                 <option value="">— Tidak dikaitkan (isi scope manual)</option>
@@ -659,7 +659,7 @@ function AddScopeModal({ assignment, projectId: projectIdProp, onClose, onSucces
                   </option>
                 ))}
               </Pilihan>
-              <p style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
+              <p style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4 }}>
                 Mengaitkan scope mandor ke kategori RAB membantu tracking progress dan budget.
               </p>
             </div>

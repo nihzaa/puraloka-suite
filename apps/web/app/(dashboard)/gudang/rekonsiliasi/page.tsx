@@ -136,7 +136,7 @@ const KOLOM: Array<Kolom<Baris>> = [
           : `3px solid ${STATUS_META[b.status].warna}`,
       }}>
         {b.material_name}
-        {b.unit && <span style={{ fontSize: 11, color: C.mid }}> · {b.unit}</span>}
+        {b.unit && <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}> · {b.unit}</span>}
       </span>
     ),
   },
@@ -171,7 +171,7 @@ const KOLOM: Array<Kolom<Baris>> = [
         {b.transfer_keluar === 0 ? "—" : (
           <>
             {b.transfer_keluar > 0 ? "" : "+"}{angka(Math.abs(b.transfer_keluar))}
-            <span style={{ display: "block", fontSize: 10, color: C.muted }}>
+            <span style={{ display: "block", fontSize: "var(--t-mikro)", color: C.muted }}>
               {b.transfer_keluar > 0 ? "ke proyek lain" : "dari proyek lain"}
             </span>
           </>
@@ -190,7 +190,7 @@ const KOLOM: Array<Kolom<Baris>> = [
         {b.dari_klien === 0 ? "—" : (
           <>
             {angka(b.dari_klien)}
-            <span style={{ display: "block", fontSize: 10, color: C.muted }}>
+            <span style={{ display: "block", fontSize: "var(--t-mikro)", color: C.muted }}>
               dipasok owner
             </span>
           </>
@@ -212,7 +212,7 @@ const KOLOM: Array<Kolom<Baris>> = [
       }}>
         {b.selisih > 0 ? "+" : ""}{angka(b.selisih)}
         {b.selisih < 0 && (
-          <span style={{ display: "block", fontSize: 10, fontWeight: 500, color: C.muted }}>
+          <span style={{ display: "block", fontSize: "var(--t-mikro)", fontWeight: 500, color: C.muted }}>
             belum tercatat
           </span>
         )}
@@ -241,7 +241,7 @@ const KOLOM: Array<Kolom<Baris>> = [
       return (
         <span title={meta.arti} style={{
           display: "inline-block", padding: "2px 8px", borderRadius: 20,
-          fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+          fontSize: "var(--t-kecil)", fontWeight: 600, whiteSpace: "nowrap",
           color: meta.warna, background: meta.bg, border: `1px solid ${meta.border}`,
         }}>
           {meta.label}
@@ -319,7 +319,7 @@ export default function RekonsiliasiMaterialPage() {
         display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap",
       }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 260 }}>
-          <label htmlFor="rk-proyek" style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          <label htmlFor="rk-proyek" style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
             Proyek
           </label>
           <Pilihan
@@ -432,9 +432,9 @@ export default function RekonsiliasiMaterialPage() {
                 ...kartu, padding: "10px 14px", flex: "1 1 180px", minWidth: 168,
                 ...(k.tegang ? { borderColor: C.redBorder, background: C.redBg } : null),
               }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.label}</div>
+                <div style={{ fontSize: "var(--t-mikro)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.label}</div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: k.tegang ? C.red : C.text, fontFamily: "var(--font-display)", fontVariantNumeric: "tabular-nums", marginTop: 2 }}>{k.nilai}</div>
-                <div style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>{k.sub}</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2 }}>{k.sub}</div>
               </div>
             ))}
           </div>
@@ -509,7 +509,7 @@ export default function RekonsiliasiMaterialPage() {
 
             <p style={{
               margin: 0, padding: "10px 14px", borderTop: `1px solid ${C.border}`,
-              background: "var(--surface-subtle)", fontSize: 11, color: C.mid, lineHeight: 1.55,
+              background: "var(--surface-subtle)", fontSize: "var(--t-kecil)", color: C.mid, lineHeight: 1.55,
             }}>
               Selisih = (dibeli + dari klien) − dipakai − sisa − yang pindah proyek. Material dipasok owner masuk hitungan sebagai barang yang ADA di gudang, tapi TIDAK sebagai pembelian — jadi ia tak menggelembungkan “beli melebihi RAB”. Hanya penerimaan barang yang
               sudah <strong>dikonfirmasi</strong> dihitung sebagai pembelian, dan

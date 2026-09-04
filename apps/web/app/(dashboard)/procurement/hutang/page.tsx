@@ -170,7 +170,7 @@ export default function HutangPage() {
                       <span style={{ fontWeight: 600, color: C.text }}>{inv.supplier?.name}</span>
                       <Badge status={inv.status} />
                       {lewatTempo && (
-                        <span style={{ fontSize: 11, color: C.danger, fontWeight: 600 }}>JATUH TEMPO</span>
+                        <span style={{ fontSize: "var(--t-kecil)", color: C.danger, fontWeight: 600 }}>JATUH TEMPO</span>
                       )}
                     </div>
                     <div style={{ fontSize: 13, color: C.mid, marginTop: 4 }}>
