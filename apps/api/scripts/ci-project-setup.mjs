@@ -419,6 +419,25 @@ const USERS = [
   ['pm', 'ci-pm@puraloka.test', 'CI PM'],
   ['mandor', 'ci-mandor@puraloka.test', 'CI Mandor'],
   ['client', 'ci-client@puraloka.test', 'CI Client'],
+  /*
+    `direktur` dan `estimator` ditambahkan 2026-09-04.
+
+    Test peran menolak berjalan tanpa keduanya:
+
+        Tak ada pengguna ber-auth_id untuk peran: direktur.
+        Jalankan: node scripts/siapkan-akun-uji-peran.mjs
+
+    Skrip itu ada dan idempoten, tetapi butuh `SUPABASE_SECRET_KEY` dan
+    memanggil `auth.admin` — jalur yang berbeda dari daftar ini, yang sudah
+    bekerja di CI. Menambah dua baris ke daftar yang terbukti lebih sederhana
+    daripada memanggil skrip terpisah dengan prasyarat sendiri.
+
+    Keduanya diperiksa ADA sebagai role template sebelum ditambahkan
+    (`SELECT name FROM roles WHERE company_id IS NULL`) — peran yang tak ada
+    akan membuat seed ini gagal dengan galat yang menuduh akunnya.
+  */
+  ['direktur', 'ci-direktur@puraloka.test', 'CI Direktur'],
+  ['estimator', 'ci-estimator@puraloka.test', 'CI Estimator'],
 ]
 for (const [role, email, name] of USERS) {
   await seed(`user ${role}`, async () => {
@@ -1065,6 +1084,56 @@ await seed('worker x2 (bahan uji tukang & beban mandor)', async () => {
   if (mahir === 0) throw new Error('nol tukang aktif BERKEAHLIAN')
   if (polos === 0) throw new Error('nol tukang aktif TANPA keahlian — cabang tak teruji')
   if (rehat === 0) throw new Error('nol tukang NONAKTIF berkeahlian — cabang tak teruji')
+})
+
+/*
+  Resource — bahan uji jembatan RAB↔material dan take-off.
+
+  Beberapa test menolak berjalan tanpa satu baris:
+
+      Error: tak ada resource — fixture tak terbentuk
+      Error: basis tanpa resources — fixture tak bisa dibuat
+
+  Tabelnya KOSONG bahkan di basis dev (diukur: 0 baris), jadi tak ada contoh
+  untuk ditiru. Nilai `category` dibaca dari CHECK-nya sendiri —
+  `labor|equipment|material|subcontract` — bukan ditebak dari nama kolom.
+*/
+await seed('resource (bahan uji jembatan RAB↔material)', async () => {
+  await c.query(
+    `INSERT INTO resources (code, name, category, unit_code)
+     SELECT v.kode, v.nama, v.kategori, v.satuan
+       FROM (VALUES
+         ('CI-RES-MAT', 'CI Seed Semen',  'material', 'sak'),
+         ('CI-RES-LAB', 'CI Seed Tukang', 'labor',    'OH')
+       ) AS v(kode, nama, kategori, satuan)
+      WHERE NOT EXISTS (SELECT 1 FROM resources r WHERE r.code = v.kode)`)
+
+  const { rows } = await c.query(`SELECT count(*)::int n FROM resources`)
+  if (rows[0].n === 0) throw new Error('nol resource sesudah seed')
+})
+
+/*
+  Pemasok KEDUA — beberapa test menuntut dua untuk membandingkan.
+
+      Error: butuh dua pemasok untuk menguji
+
+  Seed `supplier` yang ada hanya membuat satu. Yang kedua cukup beda `name`;
+  `company_id` disebut eksplisit mengikuti pola seed lain di berkas ini —
+  pelajaran `clients`/`projects`/`cost_codes` yang defaultnya memilih tenant
+  mana pun yang kebetulan ada.
+*/
+await seed('pemasok kedua (bahan uji perbandingan)', async () => {
+  await c.query(
+    `INSERT INTO suppliers (company_id, name, created_by)
+     SELECT (SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1),
+            'CI Seed Pemasok B',
+            (SELECT id FROM public.users WHERE email='ci-admin@puraloka.test' LIMIT 1)
+      WHERE NOT EXISTS (SELECT 1 FROM suppliers WHERE name = 'CI Seed Pemasok B')
+        AND EXISTS (SELECT 1 FROM companies WHERE parent_company_id IS NULL)`)
+
+  const { rows } = await c.query(
+    `SELECT count(*)::int n FROM suppliers WHERE company_id IS NOT NULL`)
+  if (rows[0].n < 2) throw new Error(`butuh >=2 pemasok, ada ${rows[0].n}`)
 })
 
 /*
