@@ -1118,6 +1118,75 @@ await seed('worker x2 (bahan uji tukang & beban mandor)', async () => {
 })
 
 /*
+  Gudang — bahan uji otomasi K3/stok/mutu.
+
+      Error: tak ada gudang untuk diuji
+
+  ⚠ Tabelnya bernama `gudang`, BUKAN `warehouses`. Dugaan nama Inggris salah
+  dan `information_schema` memulangkan kosong — yang terbaca seperti "kolomnya
+  tak ada" alih-alih "tabelnya bernama lain". Dicari lewat
+  `table_name LIKE '%gudang%'`.
+*/
+await seed('gudang (bahan uji otomasi stok)', async () => {
+  await c.query(
+    `INSERT INTO gudang (company_id, kode, nama)
+     SELECT (SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1),
+            'CI-GDG-1', 'CI Seed Gudang'
+      WHERE NOT EXISTS (SELECT 1 FROM gudang WHERE kode = 'CI-GDG-1')
+        AND EXISTS (SELECT 1 FROM companies WHERE parent_company_id IS NULL)`)
+
+  const { rows } = await c.query(`SELECT count(*)::int n FROM gudang`)
+  if (rows[0].n === 0) throw new Error('nol gudang sesudah seed')
+})
+
+/*
+  Punch item TERBUKA — bahan uji serah terima.
+
+      Error: tak ada proyek ber-punch-item terbuka untuk diuji
+
+  Status dibiarkan DEFAULT (terbuka). Dua CHECK di tabel ini menuntut kolom
+  tambahan untuk status `ditolak` (alasan_penolakan) dan `ditutup`
+  (diverifikasi_oleh + ditutup_pada) — dibaca dari `pg_constraint`, dan
+  keduanya memang bukan yang dibutuhkan test ini.
+*/
+await seed('punch item terbuka (bahan uji serah terima)', async () => {
+  await c.query(
+    `INSERT INTO punch_items (project_id, nomor, judul, ditemukan_oleh)
+     SELECT p.id, 'CI-PUNCH-1', 'CI Seed Punch Terbuka',
+            (SELECT id FROM public.users WHERE email='ci-admin@puraloka.test' LIMIT 1)
+       FROM projects p
+      WHERE p.name = 'CI Seed Project'
+        AND NOT EXISTS (SELECT 1 FROM punch_items WHERE nomor = 'CI-PUNCH-1')`)
+
+  const { rows } = await c.query(`SELECT count(*)::int n FROM punch_items`)
+  if (rows[0].n === 0) throw new Error('nol punch item sesudah seed')
+})
+
+/*
+  Material request berstatus `submitted` — bahan uji expediting.
+
+      Error: tak ada MR berstatus submitted untuk diuji
+
+  Seed `purchase_order` yang ada melapor GAGAL di replay bersih ("butuh 1
+  proyek & 1 supplier lebih dulu") — keduanya kini ada, jadi MR ini bisa
+  berdiri di atasnya.
+*/
+await seed('material request submitted (bahan uji expediting)', async () => {
+  await c.query(
+    `INSERT INTO material_requests (mr_number, project_id, requested_by, status)
+     SELECT 'CI-MR-1', p.id,
+            (SELECT id FROM public.users WHERE email='ci-admin@puraloka.test' LIMIT 1),
+            'submitted'
+       FROM projects p
+      WHERE p.name = 'CI Seed Project'
+        AND NOT EXISTS (SELECT 1 FROM material_requests WHERE mr_number = 'CI-MR-1')`)
+
+  const { rows } = await c.query(
+    `SELECT count(*)::int n FROM material_requests WHERE status = 'submitted'`)
+  if (rows[0].n === 0) throw new Error('nol MR submitted sesudah seed')
+})
+
+/*
   Resource — bahan uji jembatan RAB↔material dan take-off.
 
   Beberapa test menolak berjalan tanpa satu baris:
