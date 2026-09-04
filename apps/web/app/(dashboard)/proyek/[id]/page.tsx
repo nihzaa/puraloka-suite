@@ -1360,17 +1360,62 @@ function ProjectDetailContent() {
               {rabCollapsed && <div style={{ fontSize: 11, color: C.muted }}>Klik untuk expand</div>}
             </div>
           </div>
-          <button
-            onClick={() => setRabCollapsed(c => !c)}
-            style={{
-              display: "flex", alignItems: "center", gap: 6,
-              padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`,
-              background: "var(--surface-subtle)", cursor: "pointer", fontSize: 12, color: C.mid,
-            }}
-          >
-            {rabCollapsed ? "Tampilkan" : "Sembunyikan"}
-            <ChevronDown size={13} style={{ transform: rabCollapsed ? "rotate(-90deg)" : "none", transition: "transform 0.2s" }} />
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {/*
+              Jalan masuk ke RAB & RAP DARI halaman proyek — diminta founder
+              2026-09-04: "saya mau bisa bikin rab/rap atau apapun itu langsung
+              di halaman detail proyek, ngga harus di halaman rab khusus, jadi
+              ada 2 yaa jangan hanya di menu estimasi aja".
+
+              Yang dipakai TAUTAN ke halaman yang sudah ada, bukan salinan
+              layarnya di sini. Dua alasan, dan keduanya sudah terbukti mahal
+              di repo ini:
+
+                · RAB punya skenario + versi (lihat kepala `estimasi/rab`), dan
+                  RAP punya rantai perubahannya sendiri. Menyalin sebagiannya
+                  ke sini melahirkan DUA layar yang menghitung hal sama dengan
+                  aturan berbeda — persis cacat `audit-takeoff-kembar-sepakat`
+                  yang butuh penjaga sendiri.
+                · `?proyek=<id>` sudah didukung KEDUA halaman itu, jadi
+                  proyeknya ikut terbawa dan pengguna tak perlu memilih ulang.
+
+              `RabSection` di bawah tetap ada dan tetap bisa menyunting — yang
+              kurang selama ini cuma jalan MEMBUAT dan jalan ke RAP.
+            */}
+            <button
+              onClick={() => router.push(`/estimasi/rab?proyek=${p.id}`)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`,
+                background: "var(--surface)", cursor: "pointer", fontSize: 12,
+                fontWeight: 600, color: C.navy,
+              }}
+            >
+              <FileText size={13} aria-hidden="true" /> Kelola RAB
+            </button>
+            <button
+              onClick={() => router.push(`/estimasi/rap?proyek=${p.id}`)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`,
+                background: "var(--surface)", cursor: "pointer", fontSize: 12,
+                fontWeight: 600, color: C.navy,
+              }}
+            >
+              <FileText size={13} aria-hidden="true" /> Kelola RAP
+            </button>
+            <button
+              onClick={() => setRabCollapsed(c => !c)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`,
+                background: "var(--surface-subtle)", cursor: "pointer", fontSize: 12, color: C.mid,
+              }}
+            >
+              {rabCollapsed ? "Tampilkan" : "Sembunyikan"}
+              <ChevronDown size={13} style={{ transform: rabCollapsed ? "rotate(-90deg)" : "none", transition: "transform 0.2s" }} />
+            </button>
+          </div>
         </div>
         {!rabCollapsed && <RabSection
           projectId={p.id}

@@ -782,6 +782,37 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
             {canEdit ? "Upload file Excel RAB (.xlsx) atau drag & drop ke sini" : "Belum ada data RAB untuk proyek ini"}
           </p>
         </label>
+        {/*
+          Jalan KEDUA dari keadaan kosong — diminta founder 2026-09-04.
+
+          Sebelum ini satu-satunya jalan keluar dari layar ini adalah mengunggah
+          Excel. Yang belum punya berkasnya sama sekali menemui jalan buntu:
+          layar bertuliskan "belum ada data" tanpa memberi tahu bagaimana cara
+          mengadakannya.
+
+          Tautan, bukan salinan layar RAB di sini — alasannya sama dengan tombol
+          di header halaman proyek: RAB punya skenario + versi, dan dua layar
+          yang menyusunnya dengan aturan berbeda melahirkan angka yang berbeda
+          untuk hal yang sama.
+        */}
+        {canEdit && (
+          <p style={{ fontSize: 12, color: C.muted, textAlign: "center", marginTop: 10 }}>
+            Belum punya berkasnya?{" "}
+            <a
+              href={`/estimasi/rab?proyek=${projectId}`}
+              style={{ color: "var(--navy)", fontWeight: 600, textDecoration: "underline" }}
+            >
+              Susun RAB dari nol
+            </a>
+            {" · "}
+            <a
+              href={`/estimasi/rap?proyek=${projectId}`}
+              style={{ color: "var(--navy)", fontWeight: 600, textDecoration: "underline" }}
+            >
+              Buat RAP
+            </a>
+          </p>
+        )}
         </div>
       )}
 
