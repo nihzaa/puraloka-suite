@@ -1,6 +1,6 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
-  View, Text, ScrollView, ActivityIndicator,
+  View, Text, FlatList, ActivityIndicator,
   RefreshControl, StyleSheet,
 } from 'react-native';
 import { Tekan } from '@/components/ui/Tekan';
@@ -65,6 +65,17 @@ import { FONT, HURUF, RADIUS, SPASI, type Palet } from '@/lib/tema';
 */
 
 type Jenis = 'punch' | 'ncr' | 'izin';
+
+/*
+  `keyExtractor` memakai `kunci` yang sudah dirakit saat menggabung tiga
+  sumber (punch, NCR, izin kerja) — bukan indeks larik.
+
+  Pedoman stack `react-native`, severity High. Di layar ini bahayanya
+  nyata: daftar disusun ULANG tiap kali "tampilkan yang selesai" ditekan,
+  dan indeks sebagai kunci membuat React memasangkan ulang kartu yang
+  salah — status satu temuan tampil di kartu temuan lain, tanpa galat.
+*/
+const ambilKunci = (b: Baris) => b.kunci;
 
 type Baris = {
   kunci: string;
@@ -206,6 +217,93 @@ function usia(iso?: string) {
   if (hari < 30) return `${hari} hari lalu`;
   return `${Math.floor(hari / 30)} bulan lalu`;
 }
+
+/**
+ * Satu kartu pekerjaan — komponen SENDIRI dan ter-`memo`.
+ *
+ * `FlatList` merender ulang `renderItem` tiap kali induknya berubah, dan
+ * layar ini berubah SERING: refresh, gelombang muat kedua yang menyusul,
+ * dan tombol "tampilkan yang selesai" yang menyusun ulang daftarnya.
+ *
+ * Tanpa `memo`, 63 kartu dirakit ulang tiap kali salah satu terjadi — di HP
+ * kelas menengah itu terasa sebagai gulir yang tersendat, dan gejalanya
+ * paling mudah disalahkan pada "HP-nya sudah tua".
+ *
+ * Pedoman stack `react-native`, severity **High**: "Memoize list item
+ * components".
+ */
+const KartuPekerjaan = React.memo(function KartuPekerjaan({
+  b,
+  s,
+  c,
+}: {
+  b: Baris;
+  s: ReturnType<typeof gaya>;
+  c: Palet;
+}) {
+  const petaStatus =
+    b.jenis === 'punch' ? STATUS_PUNCH : b.jenis === 'ncr' ? STATUS_NCR : STATUS_IZIN;
+  const warnaSev = b.severity ? warnaKeparahan(c, b.severity) : undefined;
+  return (
+      <View
+        key={b.kunci}
+        style={[s.kartu, b.mendesak && s.kartuMendesak, b.beres && s.kartuBeres]}
+      >
+        <View style={s.kartuKepala}>
+          <Text style={s.jenisTag}>
+            {LABEL_JENIS[b.jenis]}
+            {b.nomor ? ` · ${b.nomor}` : ''}
+          </Text>
+          {b.tanggal && <Text style={s.usia}>{usia(b.tanggal)}</Text>}
+        </View>
+
+        <Text style={[s.judul, b.beres && s.judulBeres]} numberOfLines={2}>
+          {b.judul}
+        </Text>
+
+        {(b.lokasi || b.proyek) && (
+          <Text style={s.tempat} numberOfLines={1}>
+            {[b.proyek, b.lokasi].filter(Boolean).join(' · ')}
+          </Text>
+        )}
+
+        <View style={s.kaki}>
+          {/*
+            Tingkat dan status dibedakan LATAR, bukan warna teks saja —
+            WCAG 1.4.1: informasi tak boleh disampaikan lewat warna
+            semata, dan layar ini dibaca di bawah matahari.
+          */}
+          {b.severity && warnaSev && (
+            <View style={[s.pil, { backgroundColor: warnaSev }]}>
+              <Text style={s.pilTeks}>{b.severity}</Text>
+            </View>
+          )}
+          {/*
+            ⚠ Pil STATUS tak lagi ikut memerah saat barisnya mendesak.
+
+            Terlihat dari potret 2026-09-04: kartu mendesak
+            menampilkan DUA pil merah berdampingan — "Berat" (tingkat)
+            dan "Menunggu Pengecekan" (status). Yang kedua bukan
+            keadaan bahaya; ia sekadar tahap kerja.
+
+            Akibatnya merah kehilangan artinya. Kalau "Sedang
+            Dikerjakan" semerah "Kritis", pembacanya berhenti memakai
+            warna sebagai isyarat dan harus membaca tiap kata —
+            persis kemampuan yang seharusnya diberikan warna.
+
+            Kemendesakan tetap terlihat, dan lewat isyarat yang tak
+            bersaing: garis kiri tebal pada kartunya (`kartuMendesak`)
+            plus pil tingkat yang memang berwarna semantik.
+          */}
+          <View style={[s.pil, s.pilStatus]}>
+            <Text style={[s.pilTeks, s.pilStatusTeks]}>
+              {petaStatus[b.status] ?? b.status}
+            </Text>
+          </View>
+        </View>
+      </View>
+  );
+});
 
 export default function PekerjaanSaya() {
   const { punyaIzin } = useAuth();
@@ -423,6 +521,141 @@ export default function PekerjaanSaya() {
     }, [muat]),
   );
 
+  /*
+    ⚠ SEMUA hook DAN turunannya berada di ATAS early-return.
+
+    Versi pertama saya menaruh ketiga hook (`renderKartu`, `kepala`,
+    `kaki`) di BAWAH `if (!bolehApaPun)` dan `if (memuat)`. Layar ini lalu
+    CRASH: "Rendered more hooks than during the previous render" — saat
+    memuat, ketiganya tak dipanggil; sesudah data datang, dipanggil.
+
+    Yang membuatnya mahal: `tsc` hijau, keenam penjaga mobile hijau, dan
+    skrip potret melapor "✅ Semua layar terisi" — karena layar crash TETAP
+    berisi teks (stack trace React), tak menggulir mendatar, dan tak punya
+    teks di bawah 12px. Ketiga pengukuran benar untuk dirinya sendiri, dan
+    ketiganya melewatkan layar yang tak bisa dibuka.
+
+    Ia baru ketahuan saat saya menambahkan deteksi crash ke skrip potret
+    untuk cacat yang SAMA di layar notifikasi — dan deteksi itu langsung
+    menemukan layar ini juga, yang sudah rusak sejak migrasinya.
+
+    Turunan `mendesak`/`berjalan`/`selesai` ikut naik karena hook di
+    bawahnya bergantung padanya.
+  */
+  const mendesak = baris.filter((b) => b.mendesak);
+  const berjalan = baris.filter((b) => !b.mendesak && !b.beres);
+  const selesai = baris.filter((b) => b.beres);
+  const terlihat = tampilSelesai ? [...mendesak, ...berjalan, ...selesai] : [...mendesak, ...berjalan];
+
+  /*
+    `useCallback` + `useMemo`: `FlatList` membandingkan prop-nya secara
+    dangkal, jadi fungsi atau elemen baru tiap render membatalkan seluruh
+    manfaat `React.memo` pada kartunya. Pedoman stack menyebutnya dua kali
+    ("useCallback for handlers", "Avoid anonymous functions in JSX").
+  */
+  const renderKartu = useCallback(
+    ({ item }: { item: Baris }) => <KartuPekerjaan b={item} s={s} c={c} />,
+    [s, c]
+  );
+
+  const kepala = useMemo(
+    () => (
+      <>
+        <Text style={s.judulHalaman}>Pekerjaan Saya</Text>
+
+        {galatMuat ? (
+          <View style={s.galat}>
+            <Text style={s.galatTeks}>{galatMuat}</Text>
+          </View>
+        ) : null}
+
+        {/*
+          Kegagalan SEBAGIAN disebutkan, bukan disamarkan. Daftar yang
+          diam-diam kurang lebih berbahaya daripada daftar yang mengaku tak
+          lengkap: mandor menyimpulkan tak ada yang menggantung, padahal ada.
+        */}
+        {memuatSisa > 0 ? (
+          <View style={s.peringatan}>
+            <Text style={s.peringatanTeks}>
+              Menambahkan {memuatSisa} proyek lagi… Daftar di bawah belum lengkap.
+            </Text>
+          </View>
+        ) : null}
+
+        {gagalSebagian > 0 ? (
+          <View style={s.peringatan}>
+            <Text style={s.peringatanTeks}>
+              {gagalSebagian} bagian gagal dimuat — daftar di bawah BELUM lengkap.
+              Tarik ke bawah untuk mencoba lagi.
+            </Text>
+          </View>
+        ) : null}
+
+        {baris.length > 0 ? (
+          <View style={s.ringkas}>
+            <View style={s.ringkasSel}>
+              <Text style={[s.ringkasAngka, mendesak.length > 0 && s.ringkasAngkaMerah]}>
+                {mendesak.length}
+              </Text>
+              <Text style={s.ringkasLabel}>perlu tindakan</Text>
+            </View>
+            <View style={s.ringkasGaris} />
+            <View style={s.ringkasSel}>
+              <Text style={s.ringkasAngka}>{berjalan.length}</Text>
+              <Text style={s.ringkasLabel}>berjalan</Text>
+            </View>
+            <View style={s.ringkasGaris} />
+            <View style={s.ringkasSel}>
+              <Text style={s.ringkasAngka}>{selesai.length}</Text>
+              <Text style={s.ringkasLabel}>selesai</Text>
+            </View>
+          </View>
+        ) : null}
+      </>
+    ),
+    [s, galatMuat, memuatSisa, gagalSebagian, baris.length, mendesak.length, berjalan.length, selesai.length]
+  );
+
+  const kaki = useMemo(
+    () => (
+      <>
+        {selesai.length > 0 ? (
+          <Tekan
+            onPress={() => setTampilSelesai((v) => !v)}
+            style={s.tombolSelesai}
+            accessibilityRole="button"
+          >
+            <Text style={s.tombolSelesaiTeks}>
+              {tampilSelesai
+                ? `Sembunyikan ${selesai.length} yang selesai`
+                : `Tampilkan ${selesai.length} yang selesai`}
+            </Text>
+          </Tekan>
+        ) : null}
+
+        {/*
+          Batas disebutkan, bukan didiamkan. Mandor yang mencari tombol
+          "tutup temuan" di sini akan menyimpulkan aplikasinya rusak —
+          padahal yang menahannya izin, dan sebagian dijaga CHECK di basis.
+        */}
+        <Text style={s.catatan}>
+          Halaman ini hanya menampilkan. Menutup temuan, mendisposisi NCR, dan
+          memutuskan izin kerja dilakukan di portal oleh QC/PM — pengaju dan
+          pemutus wajib orang berbeda.
+        </Text>
+
+        <Tekan
+          onPress={() => router.push('/lainnya')}
+          style={s.tautan}
+          accessibilityRole="button"
+        >
+          <Text style={s.tautanTeks}>Lapor yang baru →</Text>
+        </Tekan>
+      </>
+    ),
+    [s, selesai.length, tampilSelesai, router]
+  );
+
   if (!bolehApaPun) {
     return (
       <View style={s.tengah}>
@@ -443,175 +676,51 @@ export default function PekerjaanSaya() {
     );
   }
 
-  const mendesak = baris.filter((b) => b.mendesak);
-  const berjalan = baris.filter((b) => !b.mendesak && !b.beres);
-  const selesai = baris.filter((b) => b.beres);
-  const terlihat = tampilSelesai ? [...mendesak, ...berjalan, ...selesai] : [...mendesak, ...berjalan];
-
   return (
-    <ScrollView
+    /*
+      `FlatList`, bukan `ScrollView` + `.map()`.
+
+      Diukur 2026-09-04 dari potret layar ini: 25 perlu tindakan + 29
+      berjalan + 9 selesai = **63 baris**, semuanya dirakit sekaligus.
+      Ambang virtualisasi 50 (pedoman stack `react-native`, severity High).
+
+      Layar ini paling sering dibuka mandor — ia yang menjawab "apa yang
+      masih menggantung dari laporan saya". Gulir tersendat di sini terasa
+      tiap hari, bukan sesekali.
+
+      Ringkasan, peringatan, dan judul pindah ke `ListHeaderComponent`;
+      tombol "tampilkan selesai" dan catatan batas ke `ListFooterComponent`.
+      Keduanya ter-`useMemo` supaya tak merakit ulang elemen tiap render —
+      kalau tidak, `FlatList` menganggap header berubah dan ikut merender
+      ulang seluruh jendelanya.
+
+      `removeClippedSubviews` sengaja TIDAK dipasang: tinggi kartu di sini
+      bervariasi (judul bisa dua baris, lokasi bisa tak ada), dan ia dikenal
+      memunculkan baris kosong di Android pada daftar seperti itu.
+    */
+    <FlatList
       style={s.wadah}
+      data={terlihat}
+      keyExtractor={ambilKunci}
+      renderItem={renderKartu}
       contentContainerStyle={s.isi}
       refreshControl={<RefreshControl refreshing={false} onRefresh={muat} />}
-    >
-      <Text style={s.judulHalaman}>Pekerjaan Saya</Text>
-
-      {galatMuat && (
-        <View style={s.galat}>
-          <Text style={s.galatTeks}>{galatMuat}</Text>
-        </View>
-      )}
-
-      {/*
-        Kegagalan SEBAGIAN disebutkan, bukan disamarkan. Daftar yang diam-diam
-        kurang lebih berbahaya daripada daftar yang mengaku tak lengkap:
-        mandor menyimpulkan tak ada yang menggantung, padahal ada.
-      */}
-      {memuatSisa > 0 && (
-        <View style={s.peringatan}>
-          <Text style={s.peringatanTeks}>
-            Menambahkan {memuatSisa} proyek lagi… Daftar di bawah belum lengkap.
-          </Text>
-        </View>
-      )}
-
-      {gagalSebagian > 0 && (
-        <View style={s.peringatan}>
-          <Text style={s.peringatanTeks}>
-            {gagalSebagian} bagian gagal dimuat — daftar di bawah BELUM lengkap.
-            Tarik ke bawah untuk mencoba lagi.
-          </Text>
-        </View>
-      )}
-
-      {baris.length === 0 && !galatMuat ? (
-        <View style={s.kosong}>
-          <Text style={s.kosongJudul}>Belum ada yang dilaporkan</Text>
-          <Text style={s.kosongIsi}>
-            Temuan, NCR, dan izin kerja yang Anda kirim dari lapangan muncul di sini
-            beserta nasibnya.
-          </Text>
-        </View>
-      ) : (
-        <>
-          <View style={s.ringkas}>
-            <View style={s.ringkasSel}>
-              <Text style={[s.ringkasAngka, mendesak.length > 0 && s.ringkasAngkaMerah]}>
-                {mendesak.length}
-              </Text>
-              <Text style={s.ringkasLabel}>perlu tindakan</Text>
-            </View>
-            <View style={s.ringkasGaris} />
-            <View style={s.ringkasSel}>
-              <Text style={s.ringkasAngka}>{berjalan.length}</Text>
-              <Text style={s.ringkasLabel}>berjalan</Text>
-            </View>
-            <View style={s.ringkasGaris} />
-            <View style={s.ringkasSel}>
-              <Text style={s.ringkasAngka}>{selesai.length}</Text>
-              <Text style={s.ringkasLabel}>selesai</Text>
-            </View>
+      ListHeaderComponent={kepala}
+      ListFooterComponent={kaki}
+      ListEmptyComponent={
+        galatMuat ? null : (
+          <View style={s.kosong}>
+            <Text style={s.kosongJudul}>Belum ada yang dilaporkan</Text>
+            <Text style={s.kosongIsi}>
+              Temuan, NCR, dan izin kerja yang Anda kirim dari lapangan muncul di
+              sini beserta nasibnya.
+            </Text>
           </View>
-
-          {terlihat.map((b) => {
-            const petaStatus =
-              b.jenis === 'punch' ? STATUS_PUNCH : b.jenis === 'ncr' ? STATUS_NCR : STATUS_IZIN;
-            const warnaSev = b.severity ? warnaKeparahan(c, b.severity) : undefined;
-            return (
-              <View
-                key={b.kunci}
-                style={[s.kartu, b.mendesak && s.kartuMendesak, b.beres && s.kartuBeres]}
-              >
-                <View style={s.kartuKepala}>
-                  <Text style={s.jenisTag}>
-                    {LABEL_JENIS[b.jenis]}
-                    {b.nomor ? ` · ${b.nomor}` : ''}
-                  </Text>
-                  {b.tanggal && <Text style={s.usia}>{usia(b.tanggal)}</Text>}
-                </View>
-
-                <Text style={[s.judul, b.beres && s.judulBeres]} numberOfLines={2}>
-                  {b.judul}
-                </Text>
-
-                {(b.lokasi || b.proyek) && (
-                  <Text style={s.tempat} numberOfLines={1}>
-                    {[b.proyek, b.lokasi].filter(Boolean).join(' · ')}
-                  </Text>
-                )}
-
-                <View style={s.kaki}>
-                  {/*
-                    Tingkat dan status dibedakan LATAR, bukan warna teks saja —
-                    WCAG 1.4.1: informasi tak boleh disampaikan lewat warna
-                    semata, dan layar ini dibaca di bawah matahari.
-                  */}
-                  {b.severity && warnaSev && (
-                    <View style={[s.pil, { backgroundColor: warnaSev }]}>
-                      <Text style={s.pilTeks}>{b.severity}</Text>
-                    </View>
-                  )}
-                  {/*
-                    ⚠ Pil STATUS tak lagi ikut memerah saat barisnya mendesak.
-
-                    Terlihat dari potret 2026-09-04: kartu mendesak
-                    menampilkan DUA pil merah berdampingan — "Berat" (tingkat)
-                    dan "Menunggu Pengecekan" (status). Yang kedua bukan
-                    keadaan bahaya; ia sekadar tahap kerja.
-
-                    Akibatnya merah kehilangan artinya. Kalau "Sedang
-                    Dikerjakan" semerah "Kritis", pembacanya berhenti memakai
-                    warna sebagai isyarat dan harus membaca tiap kata —
-                    persis kemampuan yang seharusnya diberikan warna.
-
-                    Kemendesakan tetap terlihat, dan lewat isyarat yang tak
-                    bersaing: garis kiri tebal pada kartunya (`kartuMendesak`)
-                    plus pil tingkat yang memang berwarna semantik.
-                  */}
-                  <View style={[s.pil, s.pilStatus]}>
-                    <Text style={[s.pilTeks, s.pilStatusTeks]}>
-                      {petaStatus[b.status] ?? b.status}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            );
-          })}
-
-          {selesai.length > 0 && (
-            <Tekan
-              onPress={() => setTampilSelesai((v) => !v)}
-              style={s.tombolSelesai}
-              accessibilityRole="button"
-            >
-              <Text style={s.tombolSelesaiTeks}>
-                {tampilSelesai
-                  ? `Sembunyikan ${selesai.length} yang selesai`
-                  : `Tampilkan ${selesai.length} yang selesai`}
-              </Text>
-            </Tekan>
-          )}
-        </>
-      )}
-
-      {/*
-        Batas disebutkan, bukan didiamkan. Mandor yang mencari tombol
-        "tutup temuan" di sini akan menyimpulkan aplikasinya rusak — padahal
-        yang menahannya izin, dan sebagian dijaga CHECK di basis.
-      */}
-      <Text style={s.catatan}>
-        Halaman ini hanya menampilkan. Menutup temuan, mendisposisi NCR, dan memutuskan
-        izin kerja dilakukan di portal oleh QC/PM — pengaju dan pemutus wajib orang berbeda.
-      </Text>
-
-      <Tekan
-        onPress={() => router.push('/lainnya')}
-        style={s.tautan}
-        accessibilityRole="button"
-      >
-        <Text style={s.tautanTeks}>Lapor yang baru →</Text>
-      </Tekan>
-    </ScrollView>
+        )
+      }
+      initialNumToRender={8}
+      windowSize={7}
+    />
   );
 }
 

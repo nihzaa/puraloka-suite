@@ -131,6 +131,26 @@ const PASANGAN = [
     rute: 'dashboard.ts',
     tipe: 'DashboardData',
   },
+  /*
+    Ditambahkan 2026-09-04, sesudah cacat kedua dari kelas yang sama.
+
+    Layar notifikasi membaca `n.body`; rutenya mengirim `message`. **Nol
+    dari 30 notifikasi** pernah menampilkan isinya — yang tampil cuma judul
+    dan waktu, dan `?? ''` menelan seluruhnya tanpa galat.
+
+    Yang hilang bukan hiasan: `message` memuat keterangannya ("Kasbon
+    Rp 4.000.000 dari Pak Budi menunggu persetujuan Anda"), sementara
+    judulnya hanya menyebut JENIS. Tanpa itu, "Izin Kerja Sudah Habis Masa
+    Berlakunya" tak menyebutkan izin kerja yang MANA.
+
+    Ini tepat kelas yang penjaga ini tangkap: kunci SALAH NAMA (bukan salah
+    sarang), dan ia memang menangkapnya — terbukti lewat mutasi.
+  */
+  {
+    layar: 'app/(app)/notifications/index.tsx',
+    rute: 'notifications.ts',
+    tipe: 'Notification',
+  },
 ]
 
 const temuan = []
@@ -188,8 +208,42 @@ for (const { layar, rute, tipe } of PASANGAN) {
     yang dipakai berkas rute), plus bentuk singkat `nama,`.
   */
   const kunciRute = new Set()
+
+  /* Bentuk 1: properti objek — `      nama: …` atau `      nama,` */
   for (const m of kodeRute.matchAll(/^ {4,8}([a-z_][a-z0-9_]*)\s*[:,]/gm)) {
     kunciRute.add(m[1])
+  }
+
+  /*
+    Bentuk 2: daftar kolom PostgREST di dalam `.select(...)`.
+
+    ⚠ Ditambahkan 2026-09-04 setelah penjaga ini SALAH MERAH empat kali.
+
+    `notifications.ts` memilih kolomnya sebagai satu string berkoma:
+
+        .select(`
+          id, user_id, project_id, title, message, channel,
+          is_read, read_at, action_url, sent_at, created_at, …
+        `)
+
+    Pembacaan bentuk-1 tak mengenalinya sama sekali, jadi penjaga
+    melaporkan `message`, `created_at`, `action_type`, dan `priority`
+    sebagai "tak pernah dikirim" — padahal keempatnya ADA, dan saya sudah
+    mengukurnya langsung ke API produksi.
+
+    Penjaga yang SALAH MERAH lebih cepat dimatikan daripada penjaga yang
+    tak ada. Empat temuan palsu pada satu berkas sudah cukup untuk membuat
+    orang berikutnya menganggap seluruh keluarannya sampah.
+
+    Yang diambil: kata-kata di dalam tiap `.select( … )`, dipisah koma.
+    Alias PostgREST (`nama:tabel!fk(...)`) ikut terambil sebagai `nama` —
+    itu memang nama kunci yang dikirim.
+  */
+  for (const m of kodeRute.matchAll(/\.select\(\s*([`'"])([\s\S]*?)\1/g)) {
+    for (const potong of m[2].split(',')) {
+      const nama = potong.trim().split(/[:(\s]/)[0]
+      if (/^[a-z_][a-z0-9_]*$/.test(nama)) kunciRute.add(nama)
+    }
   }
 
   const hilang = kunciLayar.filter((k) => !kunciRute.has(k))

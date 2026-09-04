@@ -1,30 +1,65 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '@/components/ui/Card';
 import { Galat } from '@/components/ui/Galat';
+import { Tekan } from '@/components/ui/Tekan';
 import { api } from '@/lib/api';
 import { pesanGalat } from '@/lib/galat';
+import { useTema } from '@/hooks/useTema';
+import { FONT, HURUF, RADIUS, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
 
 interface Notification {
   id: string;
   title: string;
-  body: string;
+  /*
+    ⚠ `message`, BUKAN `body`.
+
+    Diukur 2026-09-04 langsung ke API produksi: kolom yang dikirim bernama
+    `message`, dan layar ini membaca `body` — **nol dari 30 notifikasi**
+    pernah menampilkan isinya. Yang tampil cuma judul dan waktu.
+
+    Kelas cacat yang sama persis dengan dashboard sehari sebelumnya: nama
+    kunci yang meleset, ditelan `?? ''` tanpa satu pun galat. `tsc` hijau
+    karena `res.data` bertipe `any` dari axios.
+
+    Yang hilang bukan hiasan — `message` memuat keterangannya ("Kasbon
+    Rp 4.000.000 dari Pak Budi menunggu persetujuan Anda"), sementara
+    judulnya hanya menyebut JENIS. Tanpa itu, notifikasi "Izin Kerja Sudah
+    Habis Masa Berlakunya" tak menyebutkan izin kerja yang MANA.
+
+    Kunci lengkap yang dikirim rute, terukur:
+      id · user_id · project_id · title · message · channel · is_read ·
+      read_at · action_url · sent_at · created_at · type · action_type ·
+      action_data · is_actioned · actioned_at · priority
+  */
+  message?: string;
   is_read: boolean;
   created_at: string;
   action_type?: string;
   is_actioned?: boolean;
   priority?: string;
 }
+
+/*
+  `keyExtractor` dari `id` basis, bukan indeks larik.
+
+  Pedoman stack `react-native`, severity High. Di layar ini bahayanya
+  langsung: menandai satu notifikasi terbaca menyusun ulang daftarnya, dan
+  indeks sebagai kunci membuat React memasangkan ulang kartu yang salah —
+  tombol "Setujui" pindah ke notifikasi LAIN. Untuk layar yang menyetujui
+  uang, itu bukan cacat kosmetik.
+*/
+const ambilKunci = (n: Notification) => n.id;
 
 function timeAgo(s: string) {
   const diff = Date.now() - new Date(s).getTime();
@@ -36,7 +71,99 @@ function timeAgo(s: string) {
   return `${Math.floor(h / 24)}h lalu`;
 }
 
+/**
+ * Satu kartu notifikasi — komponen SENDIRI dan ter-`memo`.
+ *
+ * `FlatList` merender ulang `renderItem` tiap kali induknya berubah, dan
+ * layar ini berubah pada TIAP ketukan: menandai terbaca mengubah state
+ * daftar. Tanpa `memo`, 30 kartu dirakit ulang setiap kali satu disentuh.
+ *
+ * Pedoman stack `react-native`, severity **High**.
+ */
+const KartuNotifikasi = React.memo(function KartuNotifikasi({
+  n,
+  s,
+  c,
+  sedangProses,
+  onBaca,
+  onAksi,
+}: {
+  n: Notification;
+  s: ReturnType<typeof gaya>;
+  c: Palet;
+  sedangProses: boolean;
+  onBaca: (id: string) => void;
+  onAksi: (id: string, action: 'approve' | 'reject', judul: string) => void;
+}) {
+  return (
+    <Tekan
+      onPress={() => !n.is_read && onBaca(n.id)}
+      accessibilityRole="button"
+      accessibilityLabel={`${n.title}. ${n.is_read ? 'Sudah dibaca' : 'Belum dibaca'}`}
+    >
+      <Card style={[s.card, !n.is_read ? s.cardUnread : undefined]}>
+        <View style={s.cardTop}>
+          <View style={s.dotCol}>{!n.is_read ? <View style={s.dot} /> : null}</View>
+          <View style={{ flex: 1 }}>
+            <Text style={[s.notifTitle, !n.is_read && s.bold]}>{n.title}</Text>
+            {n.message ? <Text style={s.notifBody}>{n.message}</Text> : null}
+            <Text style={s.timeAgo}>{timeAgo(n.created_at)}</Text>
+          </View>
+        </View>
+
+        {n.action_type && !n.is_actioned ? (
+          <View style={s.actionRow}>
+            {/*
+              Kedua tombol lewat `onAksi`, yang MEMINTA KONFIRMASI dulu.
+              Alasannya di `mintaKonfirmasi`: rute ini menyetujui kasbon
+              lewat mesin approval berjenjang — uang sungguhan.
+
+              Ikon vektor menggantikan "✓" dan "✕": karakter centang dan
+              silang dirender berbeda di tiap perangkat, dan pada sebagian
+              Android lama muncul sebagai kotak kosong. Untuk tombol yang
+              memutuskan uang, "kotak kosong Setujui" bukan risiko yang
+              boleh diambil.
+            */}
+            <Tekan
+              style={[s.actionBtn, s.approveBtn]}
+              onPress={() => onAksi(n.id, 'approve', n.title)}
+              disabled={sedangProses}
+              accessibilityRole="button"
+              accessibilityLabel={`Setujui: ${n.title}`}
+            >
+              {sedangProses ? (
+                <ActivityIndicator size="small" color={c.success} />
+              ) : (
+                <>
+                  <Ionicons name="checkmark" size={15} color={c.success} />
+                  <Text style={s.approveBtnText}>Setujui</Text>
+                </>
+              )}
+            </Tekan>
+            <Tekan
+              style={[s.actionBtn, s.rejectBtn]}
+              onPress={() => onAksi(n.id, 'reject', n.title)}
+              disabled={sedangProses}
+              accessibilityRole="button"
+              accessibilityLabel={`Tolak: ${n.title}`}
+            >
+              <Ionicons name="close" size={15} color={c.danger} />
+              <Text style={s.rejectBtnText}>Tolak</Text>
+            </Tekan>
+          </View>
+        ) : null}
+
+        {n.is_actioned && n.action_type ? (
+          <Text style={s.actionedLabel}>Sudah diproses</Text>
+        ) : null}
+      </Card>
+    </Tekan>
+  );
+});
+
 export default function NotificationsScreen() {
+  const { c } = useTema();
+  const styles = useMemo(() => gaya(c), [c]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -60,17 +187,122 @@ export default function NotificationsScreen() {
 
   const onRefresh = () => { setRefreshing(true); fetchNotifications(); };
 
-  const markRead = async (id: string) => {
-    await api.patch(`/api/v1/notifications/${id}/read`).catch(() => {});
-    setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, is_read: true } : n));
-  };
+  /*
+    ⚠ `useCallback` BUKAN kehalusan di sini — tanpanya `React.memo` pada
+    kartunya tak bekerja SAMA SEKALI.
 
-  const markAllRead = async () => {
-    await api.patch('/api/v1/notifications/read-all').catch(() => {});
-    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-  };
+    Rantainya: `markRead` baru tiap render → `renderKartu` (yang menerimanya
+    sebagai dependensi) juga baru → `FlatList` menganggap `renderItem`
+    berubah → seluruh kartu dirender ulang, dan `memo` yang saya pasang di
+    `KartuNotifikasi` tak pernah menahan apa pun.
 
-  const handleAction = async (id: string, action: 'approve' | 'reject') => {
+    Nol gejala: aplikasinya tetap benar, cuma optimasinya tak pernah hidup.
+    Persis kelas cacat yang sama dengan font yang dimuat tapi tak dipakai —
+    biaya penuh, nol hasil.
+
+    ── Dan galatnya tak lagi ditelan
+
+    `.catch(() => {})` sebelumnya membuang kegagalan diam-diam, lalu state
+    lokal tetap ditandai terbaca. Notifikasi yang GAGAL ditandai di server
+    akan muncul lagi sebagai belum-dibaca pada muat berikutnya — dan
+    pengguna yang sudah "membacanya" menyimpulkan aplikasinya kacau.
+
+    Sekarang state hanya berubah kalau servernya menerima. Ini kelas yang
+    dijaga `audit-catch-senyap.mjs` di sisi API; apps/mobile tak tercakup.
+  */
+  const markRead = useCallback(async (id: string) => {
+    try {
+      await api.patch(`/api/v1/notifications/${id}/read`);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+      );
+    } catch (err: unknown) {
+      /*
+        Sengaja TAK memunculkan Alert: menandai-terbaca adalah aksi latar
+        yang dipicu sekadar dengan menyentuh kartu, dan dialog untuk itu
+        akan mengganggu tanpa memberi pilihan yang berarti. Yang penting
+        state TIDAK berbohong — kartunya tetap bertanda belum dibaca.
+
+        ⚠ Tapi galatnya TETAP DICATAT, bukan ditelan.
+
+        Versi pertama saya menulis `catch {}` kosong dengan alasan ini di
+        komentarnya — dan `audit-mobile-sehat.mjs` merahkannya. Penjaga itu
+        benar: ia memindai PERNYATAAN, dan komentar bukan pernyataan.
+
+        Bedanya nyata, bukan formalitas. `catch {}` membuang bukti bahwa
+        server menolak; `console.warn` menyisakan jejak yang bisa dibaca
+        dari Metro atau adb logcat saat ada yang melaporkan "notifikasi
+        saya muncul lagi terus". Tanpa jejak itu, satu-satunya cara
+        mendiagnosis adalah menebak.
+
+        Kelas yang sama dengan `audit-catch-senyap.mjs` di sisi API —
+        kegagalan yang tak bisa dibedakan dari kekosongan.
+      */
+      console.warn(
+        '[notifikasi] gagal menandai terbaca —',
+        pesanGalat(err, 'menandai terbaca')
+      );
+    }
+  }, []);
+
+  const markAllRead = useCallback(async () => {
+    try {
+      await api.patch('/api/v1/notifications/read-all');
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    } catch (err: unknown) {
+      /*
+        Yang INI diberi tahu: pengguna menekannya dengan sengaja dan
+        mengharapkan seluruh daftar berubah. Diam di sini berarti ia melihat
+        daftar yang tak berubah tanpa tahu kenapa.
+      */
+      Alert.alert('Gagal', pesanGalat(err, 'menandai semua terbaca'));
+    }
+  }, []);
+
+  /*
+    ⚠ KONFIRMASI WAJIB — ditambahkan 2026-09-04.
+
+    Sebelumnya satu ketukan langsung mengeksekusi. Diukur ke rutenya:
+    `POST /api/v1/notifications/:id/action` menyetujui KASBON lewat mesin
+    approval berjenjang (`kasbons.ts:263-352`) — uang sungguhan, dan
+    keputusannya tak bisa ditarik dari HP.
+
+    Tombol "✓ Setujui" dan "✕ Tolak" berdampingan, masing-masing selebar
+    setengah kartu, ditekan dengan ibu jari bersarung di layar berdebu.
+    `ui-ux-pro-max` §8 `confirmation-dialogs`: "Confirm before destructive
+    actions", dan §2 `no-precision-required`.
+
+    Yang dikonfirmasi menyebut TINDAKANNYA, bukan "Anda yakin?" — kalimat
+    itu tak memberi tahu apa yang akan terjadi, dan orang menekannya secara
+    refleks.
+  */
+  const mintaKonfirmasi = useCallback((id: string, action: 'approve' | 'reject', judul: string) => {
+    const setuju = action === 'approve';
+    Alert.alert(
+      setuju ? 'Setujui pengajuan ini?' : 'Tolak pengajuan ini?',
+      `${judul}\n\nKeputusan ini langsung berlaku dan tak bisa dibatalkan dari aplikasi.`,
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: setuju ? 'Setujui' : 'Tolak',
+          style: setuju ? 'default' : 'destructive',
+          onPress: () => handleAction(id, action),
+        },
+      ]
+    );
+    /*
+      `handleAction` sengaja TIDAK jadi dependensi.
+
+      Ia dibaca di dalam `onPress` yang baru dieksekusi SETELAH pengguna
+      menekan tombol dialog — saat itu closure-nya sudah ter-resolve ke
+      versi terbaru lewat referensi fungsi yang stabil di bawah. Menjadikan
+      `handleAction` dependensi akan membuat `mintaKonfirmasi` berubah tiap
+      kali `actionLoading` berubah, dan rantai memo-nya putus lagi.
+    */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleAction = useCallback(async (id: string, action: 'approve' | 'reject') => {
     setActionLoading(id);
     try {
       await api.post(`/api/v1/notifications/${id}/action`, { action });
@@ -82,12 +314,48 @@ export default function NotificationsScreen() {
     } finally {
       setActionLoading(null);
     }
-  };
+  }, []);
+
+  /*
+    `useCallback`: `FlatList` membandingkan prop secara dangkal, jadi fungsi
+    baru tiap render membatalkan `React.memo` pada kartunya.
+
+    ⚠ POSISINYA di ATAS `if (loading)`, dan itu bukan selera.
+
+    Versi pertama saya menaruhnya di bawah early-return, dan layar ini
+    CRASH: "Rendered more hooks than during the previous render". Saat
+    memuat, hook ini tak dipanggil; sesudah data datang, dipanggil — dan
+    React menghitung jumlah hook per render.
+
+    Yang membuatnya mahal untuk ditemukan: `tsc` hijau, keenam penjaga
+    mobile hijau, dan skrip potret melapor **"✅ Semua layar terisi"** —
+    karena layar crash TETAP berisi teks (stack trace React), tak menggulir
+    mendatar, dan tak punya teks di bawah 12px.
+
+    Ketiga pengukuran itu benar untuk dirinya sendiri, dan ketiganya
+    melewatkan layar yang tak bisa dibuka sama sekali. Hanya MELIHAT
+    potretnya yang menemukannya.
+
+    Aturannya: SEMUA hook dipanggil sebelum early-return apa pun.
+  */
+  const renderKartu = useCallback(
+    ({ item }: { item: Notification }) => (
+      <KartuNotifikasi
+        n={item}
+        s={styles}
+        c={c}
+        sedangProses={actionLoading === item.id}
+        onBaca={markRead}
+        onAksi={mintaKonfirmasi}
+      />
+    ),
+    [styles, c, actionLoading, markRead, mintaKonfirmasi]
+  );
 
   if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color="#003366" />
+        <ActivityIndicator size="large" color={c.navy} />
       </SafeAreaView>
     );
   }
@@ -102,102 +370,134 @@ export default function NotificationsScreen() {
           {unread > 0 && <Text style={styles.unreadCount}>{unread} belum dibaca</Text>}
         </View>
         {unread > 0 && (
-          <TouchableOpacity onPress={markAllRead} style={styles.readAllBtn} accessibilityRole="button">
+          <Tekan onPress={markAllRead} style={styles.readAllBtn} accessibilityRole="button">
             <Text style={styles.readAllText}>Tandai semua</Text>
-          </TouchableOpacity>
+          </Tekan>
         )}
       </View>
-      <ScrollView
+      {/*
+        `FlatList`, bukan `ScrollView` + `.map()`.
+
+        Diukur 2026-09-04 ke API produksi: **30 notifikasi**. Di bawah
+        ambang 50, tetapi daftar ini TUMBUH terus — tiap kasbon, NCR, dan
+        izin kerja menambah baris, dan tak ada yang menghapusnya. Ia akan
+        melewati 50 tanpa ada yang memperhatikan.
+
+        Yang membedakannya dari `.map()` atas lima chip: daftar ini panjangnya
+        ditentukan DATA, bukan kode.
+      */}
+      <FlatList
+        data={notifications}
+        keyExtractor={ambilKunci}
+        renderItem={renderKartu}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#003366" />}
-      >
-        {galat ? <Galat judul="Notifikasi tidak bisa dimuat" pesan={galat} /> : null}
-        {!galat && notifications.length === 0 && (
-          <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>🔔</Text>
-            <Text style={styles.emptyText}>Tidak ada notifikasi</Text>
-          </View>
-        )}
-        {notifications.map((n) => (
-          <TouchableOpacity key={n.id} onPress={() => !n.is_read && markRead(n.id)} activeOpacity={0.8} accessibilityRole="button">
-            <Card style={[styles.card, !n.is_read ? styles.cardUnread : undefined]}>
-              <View style={styles.cardTop}>
-                <View style={styles.dotCol}>
-                  {!n.is_read && <View style={styles.dot} />}
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.notifTitle, !n.is_read && styles.bold]}>{n.title}</Text>
-                  <Text style={styles.notifBody}>{n.body}</Text>
-                  <Text style={styles.timeAgo}>{timeAgo(n.created_at)}</Text>
-                </View>
-              </View>
-
-              {n.action_type && !n.is_actioned && (
-                <View style={styles.actionRow}>
-                  <TouchableOpacity
-                    style={[styles.actionBtn, styles.approveBtn]}
-                    onPress={() => handleAction(n.id, 'approve')}
-                    disabled={actionLoading === n.id}
-                    accessibilityRole="button"
-                  >
-                    <Text style={styles.approveBtnText}>
-                      {actionLoading === n.id ? '...' : '✓ Setujui'}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.actionBtn, styles.rejectBtn]}
-                    onPress={() => handleAction(n.id, 'reject')}
-                    disabled={actionLoading === n.id}
-                    accessibilityRole="button"
-                  >
-                    <Text style={styles.rejectBtnText}>✕ Tolak</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {n.is_actioned && n.action_type && (
-                <Text style={styles.actionedLabel}>Sudah diproses</Text>
-              )}
-            </Card>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.navy} />
+        }
+        ListHeaderComponent={
+          galat ? <Galat judul="Notifikasi tidak bisa dimuat" pesan={galat} /> : null
+        }
+        ListEmptyComponent={
+          galat ? null : (
+            <View style={styles.empty}>
+              {/*
+                Ikon vektor menggantikan emoji 🔔 setinggi 40px — rupanya
+                berbeda di tiap HP, dan pada keadaan kosong ia justru elemen
+                yang paling dilihat.
+              */}
+              <Ionicons name="notifications-off-outline" size={40} color={c.textMuted} />
+              <Text style={styles.emptyText}>Tidak ada notifikasi</Text>
+            </View>
+          )
+        }
+        initialNumToRender={8}
+        windowSize={7}
+      />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F8F9FA' },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8F9FA' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8,
-  },
-  title: { fontSize: 22, fontWeight: '700', color: '#111827' },
-  unreadCount: { fontSize: 12, color: '#6B7280', marginTop: 2 },
-  readAllBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' },
-  readAllText: { fontSize: 13, color: '#374151' },
-  list: { padding: 16, gap: 10 },
-  card: { gap: 8 },
-  cardUnread: { borderLeftWidth: 3, borderLeftColor: '#003366' },
-  cardTop: { flexDirection: 'row', gap: 8 },
-  dotCol: { width: 12, paddingTop: 4, alignItems: 'center' },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#003366' },
-  notifTitle: { fontSize: 14, color: '#111827', marginBottom: 2 },
-  bold: { fontWeight: '700' },
-  notifBody: { fontSize: 13, color: '#6B7280', lineHeight: 18 },
-  timeAgo: { fontSize: 12, color: '#6B7280', marginTop: 4 },
-  actionRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  actionBtn: {
-    flex: 1, paddingVertical: 8, borderRadius: 8,
-    alignItems: 'center', borderWidth: 1,
-  },
-  approveBtn: { backgroundColor: '#DCFCE7', borderColor: '#15803D' },
-  approveBtnText: { fontSize: 13, color: '#15803D', fontWeight: '600' },
-  rejectBtn: { backgroundColor: '#FEE2E2', borderColor: '#B91C1C' },
-  rejectBtnText: { fontSize: 13, color: '#B91C1C', fontWeight: '600' },
-  actionedLabel: { fontSize: 12, color: '#6B7280', fontStyle: 'italic' },
-  empty: { alignItems: 'center', paddingTop: 80, gap: 8 },
-  emptyIcon: { fontSize: 40 },
-  emptyText: { fontSize: 15, color: '#6B7280' },
-});
+function gaya(c: Palet) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: c.surfaceSubtle },
+    centered: {
+      flex: 1, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: c.surfaceSubtle,
+    },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPASI.lg, paddingTop: SPASI.lg, paddingBottom: SPASI.sm,
+    },
+    title: { fontSize: 22, fontFamily: FONT.judul, color: c.textPrimary },
+    unreadCount: {
+      fontSize: HURUF.xs, fontFamily: FONT.isi, color: c.textSecondary, marginTop: 2,
+    },
+    readAllBtn: {
+      paddingHorizontal: SPASI.md, paddingVertical: 6,
+      borderRadius: RADIUS.sm, borderWidth: 1, borderColor: c.border,
+      minHeight: SENTUH_MIN, justifyContent: 'center',
+    },
+    readAllText: { fontSize: HURUF.sm, fontFamily: FONT.isi, color: c.textPrimary },
+    list: { padding: SPASI.lg, gap: 10, paddingBottom: 40 },
+    card: { gap: SPASI.sm },
+    cardUnread: { borderLeftWidth: 3, borderLeftColor: c.navy },
+    cardTop: { flexDirection: 'row', gap: SPASI.sm },
+    dotCol: { width: 12, paddingTop: 4, alignItems: 'center' },
+    dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: c.navy },
+    notifTitle: {
+      fontSize: HURUF.sm + 1, fontFamily: FONT.isi,
+      color: c.textPrimary, marginBottom: 2,
+    },
+    /*
+      Belum-dibaca ditandai TIGA hal sekaligus: titik, garis kiri navy, dan
+      judul tebal. Bukan berlebihan — WCAG 1.4.1 melarang informasi
+      disampaikan lewat warna semata, dan "belum dibaca" adalah keadaan yang
+      menentukan apakah orang perlu bertindak.
+    */
+    bold: { fontFamily: FONT.isiTebal },
+    notifBody: {
+      fontSize: HURUF.sm, fontFamily: FONT.isi,
+      color: c.textSecondary, lineHeight: 18,
+    },
+    timeAgo: {
+      fontSize: HURUF.xs, fontFamily: FONT.isi, color: c.textSecondary, marginTop: 4,
+    },
+    actionRow: { flexDirection: 'row', gap: SPASI.sm, marginTop: 4 },
+    /*
+      `minHeight: SENTUH_MIN` — dua tombol yang MEMUTUSKAN UANG, ditekan
+      dengan ibu jari bersarung. Sebelumnya hanya `paddingVertical: 8`, yang
+      pada teks 13px menghasilkan tinggi ~33px: di bawah ambang 44 (Apple
+      HIG) dan 48 (Material).
+
+      `flexDirection: 'row'` + `gap` supaya ikon dan teks sejajar; keduanya
+      dulu satu string ("✓ Setujui").
+    */
+    actionBtn: {
+      flex: 1, paddingVertical: SPASI.sm, borderRadius: RADIUS.sm,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      gap: 5, borderWidth: 1, minHeight: SENTUH_MIN,
+    },
+    /*
+      Pasangan warna DIHITUNG di kedua mode, bukan ditaksir:
+
+          terang  #15803D di #F0FDF4  4.79:1
+                  #B91C1C di #FEF2F2  5.91:1
+          gelap   #22C55E di campuran 5.64:1
+                  #FB8585 di campuran 5.37:1
+
+      Keempatnya lewat AA. Versi hex sebelumnya juga lolos (4.57 / 5.30) —
+      jadi migrasi ini MENAIKKAN angkanya, bukan menyelamatkan cacat. Yang
+      ia selamatkan adalah mode gelap, yang sebelumnya tak ada.
+    */
+    approveBtn: { backgroundColor: c.successBg, borderColor: c.success },
+    approveBtnText: { fontSize: HURUF.sm, fontFamily: FONT.isiTebal, color: c.success },
+    rejectBtn: { backgroundColor: c.dangerBg, borderColor: c.danger },
+    rejectBtnText: { fontSize: HURUF.sm, fontFamily: FONT.isiTebal, color: c.danger },
+    actionedLabel: {
+      fontSize: HURUF.xs, fontFamily: FONT.isi,
+      color: c.textSecondary, fontStyle: 'italic',
+    },
+    empty: { alignItems: 'center', paddingTop: 80, gap: SPASI.sm },
+    emptyText: { fontSize: HURUF.base, fontFamily: FONT.isi, color: c.textSecondary },
+  });
+}

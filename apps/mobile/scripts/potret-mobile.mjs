@@ -101,6 +101,15 @@ const LAYAR = [
   ['pekerjaan', '/pekerjaan'],
   ['proyek', '/proyek'],
   ['kasbon', '/kasbon'],
+  /*
+    Ditambahkan 2026-09-04. Ia terlewat pada daftar pertama, dan itu
+    kelalaian yang mahal: layar ini memuat tombol "Setujui"/"Tolak" yang
+    mengeksekusi approval kasbon lewat mesin berjenjang — satu-satunya
+    layar mobile yang memutuskan UANG.
+
+    Layar yang paling berisiko justru yang paling tak pernah dilihat.
+  */
+  ['notifikasi', '/notifications'],
   ['lainnya', '/lainnya'],
 ]
 
@@ -111,6 +120,44 @@ const LEBAR = [
 ]
 
 const peramban = await chromium.launch()
+
+/*
+  ── Bundel DIPANASKAN dulu, sebelum matriks dimulai ─────────────────────
+
+  ⚠ Ini memperbaiki kegagalan yang MENUDUH hal yang salah, dua kali.
+
+  Gejalanya: "LOGIN GAGAL @kecil" sementara @besar lolos — dan @kecil
+  selalu yang pertama dijalankan. Terbaca persis seperti cacat yang
+  bergantung LEBAR LAYAR, dan pertama kali saya mengejarnya ke arah itu.
+
+  Sebab sesungguhnya: Metro membundel ulang setiap kali kode berubah, dan
+  bundel pertama sesudah perubahan bisa memakan belasan detik. Konteks
+  peramban PERTAMA yang menyentuhnya menanggung seluruh biaya itu; yang
+  kedua mendapat bundel yang sudah hangat.
+
+  Terbukti: jalan pertama 6/12 potret, jalan KEDUA tanpa perubahan apa pun
+  12/12. Alat ukur yang hasilnya bergantung pada "sudah pernah dijalankan
+  atau belum" tak bisa dipercaya untuk keduanya.
+
+  Menunggu isian sandi terlihat (di bawah) TIDAK cukup: isian muncul
+  sebelum modul yang menangani penekanan tombol selesai dimuat.
+
+  Pemanasan ini memuat halaman sekali dan membuangnya. Biayanya beberapa
+  detik pada jalan pertama, dan nol pada jalan berikutnya.
+*/
+{
+  const ctxPanas = await peramban.newContext({ viewport: { width: 360, height: 800 } })
+  const halPanas = await ctxPanas.newPage()
+  await halPanas
+    .goto(`${BASIS}/login`, { waitUntil: 'networkidle', timeout: 120_000 })
+    .catch(() => {})
+  await halPanas
+    .locator('input')
+    .nth(1)
+    .waitFor({ state: 'visible', timeout: 60_000 })
+    .catch(() => {})
+  await ctxPanas.close()
+}
 const masalah = []
 let dipotret = 0
 
@@ -292,9 +339,57 @@ try {
               const diBilahTab = kotak.top >= window.innerHeight - 70
               return !diBilahTab
             }).length,
+            /*
+              ── LAYAR YANG CRASH, dan kenapa ia lolos semua pengukuran ──
+
+              Diukur 2026-09-04: `/notifications` CRASH dengan "Rendered
+              more hooks than during the previous render" (hook di bawah
+              early-return), dan skrip ini melapor:
+
+                  ✅ Semua layar terisi, nol gulir mendatar,
+                     nol teks di bawah 12px.
+
+              Ketiga pengukuran BENAR untuk dirinya sendiri: overlay galat
+              React berisi banyak teks (stack trace), tak menggulir
+              mendatar, dan tak punya teks di bawah 12px.
+
+              `pageerror` tak menangkapnya juga — React menangkap galat
+              render di error boundary miliknya sendiri, jadi ia tak pernah
+              sampai ke `window.onerror`.
+
+              Yang ditangkap sekarang: teks khas overlay LogBox/RedBox
+              Expo. Dicocokkan dengan `includes` pada 400 huruf pertama —
+              overlay selalu menaruh judulnya di paling atas.
+
+              ⚠ Batasnya jujur: ini pengenalan lewat TEKS, jadi ia bisa
+              basi bila Expo mengubah kalimatnya. Tapi diam sama sekali
+              lebih buruk — layar yang tak bisa dibuka dilaporkan sebagai
+              lulus.
+            */
+            crash: (() => {
+              const awal = (document.body.innerText ?? '').slice(0, 400)
+              const penanda = [
+                'Uncaught Error',
+                'Unhandled JS Exception',
+                'Render Error',
+                'Console Error',
+                'Rendered more hooks',
+                'Element type is invalid',
+              ]
+              const cocok = penanda.find((p) => awal.includes(p))
+              return cocok ? awal.replace(/\s+/g, ' ').slice(0, 120) : null
+            })(),
           }
         })
 
+        /*
+          Crash diperiksa PERTAMA: layar yang tak bisa dibuka membuat
+          seluruh pengukuran lain tak bermakna, dan melaporkannya bersama
+          "8 teks di bawah 12px" menyamarkan mana yang penting.
+        */
+        if (ukur.crash) {
+          masalah.push(`${nama} @${namaLebar}: LAYAR CRASH — ${ukur.crash}`)
+        }
         if (ukur.panjangTeks < 20) {
           masalah.push(`${nama} @${namaLebar}: layar nyaris kosong (${ukur.panjangTeks} huruf)`)
         }

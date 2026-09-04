@@ -1,5 +1,5 @@
 {
-  "berkas": 13,
+  "berkas": 11,
   "daftar": [
     "app/(app)/absensi/input.tsx",
     "app/(app)/dashboard.tsx",
@@ -8,8 +8,6 @@
     "app/(app)/lainnya.tsx",
     "app/(app)/mandor/index.tsx",
     "app/(app)/ncr/lapor.tsx",
-    "app/(app)/notifications/index.tsx",
-    "app/(app)/pekerjaan.tsx",
     "app/(app)/progress/input.tsx",
     "app/(app)/proyek/[id].tsx",
     "app/(app)/proyek/index.tsx",
