@@ -24,6 +24,7 @@ import {
   fmt, kartu as card,
 } from "../_bersama/tipe";
 import { PPConfirmModal } from "../_bersama/komponen";
+import { kabari } from "@/components/tanya";
 
 const PP_STATUS: Record<string, { label: string; color: string; bg: string }> = {
   pending:  { label: "Menunggu",   color: C.yellow, bg: C.yellowBg },
@@ -318,7 +319,7 @@ export default function PenagihanPage() {
               setPpConfirmModal(null);
               load();
             } catch (err: any) {
-              alert(err.response?.data?.error ?? "Gagal memproses");
+              void kabari("Tidak berhasil", err.response?.data?.error ?? "Gagal memproses");
             } finally {
               setPpActionLoading(false);
             }

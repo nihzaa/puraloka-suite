@@ -37,6 +37,7 @@ import { api, makeAbortController } from "@/lib/api";
 
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
+import { tanya, minta } from "@/components/tanya";
 
 type StatusEOT = "diajukan" | "disetujui" | "ditolak";
 
@@ -135,7 +136,12 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
 
   async function putuskan(id: string, status: "disetujui" | "ditolak") {
     const hari = status === "disetujui"
-      ? window.prompt("Berapa hari yang disetujui? (kosongkan = sesuai pengajuan)")
+      ? await minta({
+          judul: "Berapa hari yang disetujui?",
+          pesan: "Kosongkan kalau sesuai pengajuan.",
+          bolehKosong: true,
+          labelYa: "Setujui",
+        })
       : null;
     try {
       await api.patch(`/api/v1/eot/${id}/decide`, {
@@ -156,7 +162,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
     const pesan = status === "dicairkan"
       ? `Tandai ${JENIS_BOND[b.bond_type] ?? b.bond_type} senilai ${fmtRp(b.amount)} sebagai DICAIRKAN?\n\nIni berarti pemberi kerja menarik jaminan — uang perusahaan keluar.`
       : `Tandai ${JENIS_BOND[b.bond_type] ?? b.bond_type} senilai ${fmtRp(b.amount)} sebagai dikembalikan?`;
-    if (!window.confirm(pesan)) return;
+    if (!(await tanya({ judul: pesan }))) return;
 
     try {
       await api.patch(`/api/v1/bonds/${b.id}`, {

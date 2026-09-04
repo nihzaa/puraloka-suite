@@ -57,6 +57,7 @@ import {
 } from "./tipe";
 import { formatRupiah } from "@/lib/format";
 import { GAYA_ISIAN } from "@/components/isian";
+import { kabari } from "@/components/tanya";
 
 /**
  * Penjaga pemasangan modal.
@@ -2052,8 +2053,8 @@ export function PPConfirmModal({ payment, cashAccounts, loading, onClose, onActi
             <button onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, color: "var(--text-secondary)", cursor: "pointer" }}>Batal</button>
             <button
               onClick={() => {
-                if (mode === "approve" && !cashAccountId) { alert("Pilih akun kas"); return; }
-                if (mode === "reject" && !notes.trim()) { alert("Isi alasan penolakan"); return; }
+                if (mode === "approve" && !cashAccountId) { void kabari("Tidak berhasil", "Pilih akun kas"); return; }
+                if (mode === "reject" && !notes.trim()) { void kabari("Tidak berhasil", "Isi alasan penolakan"); return; }
                 onAction(mode === "approve" ? "approved" : "rejected", cashAccountId || undefined, notes || undefined);
               }}
               disabled={loading}

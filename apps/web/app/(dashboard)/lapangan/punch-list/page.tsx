@@ -9,6 +9,7 @@ import {
   ClipboardCheck, Plus, MapPin, CheckCircle2, X, RotateCcw,
   AlertTriangle, Camera, ChevronDown, Loader2,
 } from "lucide-react";
+import { minta } from "@/components/tanya";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PUNCH LIST — daftar cacat yang masih menghalangi serah terima.
@@ -151,11 +152,14 @@ export default function PunchListPage() {
   const ubahStatus = async (item: PunchItem, baru: PunchItem["status"]) => {
     let alasan: string | undefined;
     if (baru === "ditolak") {
-      const jawab = window.prompt(
-        `Kenapa ${item.nomor} tidak berlaku?\n\n` +
-        "Alasannya ikut tercatat — temuan yang ditolak tanpa alasan tak bisa " +
-        "dibedakan dari yang dihapus diam-diam."
-      );
+      const jawab = await minta({
+        judul: `Kenapa ${item.nomor} tidak berlaku?`,
+        pesan:
+          "Alasannya ikut tercatat — temuan yang ditolak tanpa alasan tak bisa " +
+          "dibedakan dari yang dihapus diam-diam.",
+        panjang: true,
+        labelYa: "Tandai tidak berlaku",
+      });
       if (jawab === null) return;              // dibatalkan
       if (!jawab.trim()) {
         showToast("error", "Alasan wajib diisi.");

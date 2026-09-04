@@ -9,6 +9,7 @@ import {
   FileText, TrendingUp, TrendingDown,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { tanya } from "@/components/tanya";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -309,7 +310,7 @@ function ChangeOrderCard({
   }
 
   async function handleDeleteItem(itemId: string) {
-    if (!confirm("Hapus item ini?")) return;
+    if (!(await tanya({ judul: "Hapus item ini?", labelYa: "Hapus", nada: "bahaya" }))) return;
     setLoadingAction(`del-${itemId}`);
     try {
       await api.delete(`/api/v1/change-orders/${co.id}/items/${itemId}`);
@@ -322,7 +323,7 @@ function ChangeOrderCard({
   }
 
   async function handleSubmit() {
-    if (!confirm(`Submit "${co.co_number}" untuk persetujuan admin?`)) return;
+    if (!(await tanya({ judul: `Submit "${co.co_number}" untuk persetujuan admin?` }))) return;
     setLoadingAction("submit");
     try {
       await api.patch(`/api/v1/change-orders/${co.id}/submit`);
@@ -336,7 +337,7 @@ function ChangeOrderCard({
   }
 
   async function handleApprove() {
-    if (!confirm(`Setujui "${co.co_number}"? Ini akan mengubah nilai kontrak proyek.`)) return;
+    if (!(await tanya({ judul: `Setujui "${co.co_number}"? Ini akan mengubah nilai kontrak proyek.` }))) return;
     setLoadingAction("approve");
     try {
       await api.patch(`/api/v1/change-orders/${co.id}/approve`);

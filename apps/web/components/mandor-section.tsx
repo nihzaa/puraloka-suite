@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
+import { tanya, kabari } from "@/components/tanya";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -146,7 +147,7 @@ export function MandorSection({
   const totalKasbon = scopeKasbonTotal + scopelessKasbonTotal;
 
   async function handleDeactivate(assignmentId: string) {
-    if (!confirm("Nonaktifkan penugasan mandor ini?")) return;
+    if (!(await tanya({ judul: "Nonaktifkan penugasan mandor ini?", labelYa: "Nonaktifkan", nada: "bahaya" }))) return;
     setDeactivatingId(assignmentId);
     try {
       await api.patch(`/api/v1/mandor/assignments/${assignmentId}`, { status: "inactive" });
@@ -155,14 +156,14 @@ export function MandorSection({
   }
 
   async function handleDeleteScope(scopeId: string) {
-    if (!confirm("Hapus scope pekerjaan ini? Tidak bisa dibatalkan.")) return;
+    if (!(await tanya({ judul: "Hapus scope pekerjaan ini? Tidak bisa dibatalkan.", labelYa: "Hapus", nada: "bahaya" }))) return;
     setDeletingScopeId(scopeId);
     try {
       await api.delete(`/api/v1/mandor/work-scopes/${scopeId}`);
       onRefresh();
     } catch (err: unknown) {
       const msg = (err as any)?.response?.data?.error ?? "Gagal hapus scope";
-      alert(msg);
+      void kabari("Tidak berhasil", msg);
     } finally { setDeletingScopeId(null); }
   }
 

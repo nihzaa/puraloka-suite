@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
 import StatusAntrean from "@/components/StatusAntrean";
 import { ToastProvider } from "@/components/toast";
+import { TuanRumahTanya } from "@/components/tanya";
 import { SidebarProvider, useSidebar } from "@/lib/sidebar-context";
 import { PenyediaRail, useIsiRail } from "@/lib/rail-context";
 
@@ -153,6 +154,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <PenyediaRail>
           <DashboardShell>{children}</DashboardShell>
         </PenyediaRail>
+        {/*
+          Tuan rumah dialog konfirmasi — dipasang SEKALI di sini.
+
+          `tanya()` MENOLAK bila komponen ini tak ada, bukan jatuh ke
+          `confirm()` bawaan: jatuhan diam-diam membuat halaman yang lupa
+          memasangnya tetap "bekerja" dengan dialog yang justru sedang
+          dihapus, dan itu bertahan tanpa ada yang tahu.
+
+          Di LUAR `PenyediaRail` supaya dialognya tak ikut terpotong oleh
+          `overflow: hidden` shell — meski `<dialog>` bawaan sudah berada di
+          lapisan teratas, menaruhnya di luar menghapus satu kelas kejutan
+          sekaligus.
+        */}
+        <TuanRumahTanya />
       </ToastProvider>
     </SidebarProvider>
   );

@@ -27,6 +27,7 @@ import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { RangkaBaris, TransferRow } from "../_bersama/komponen";
 import { type CashTransfer, fmtCompact, pesanGalat } from "../_bersama/tipe";
+import { kabari } from "@/components/tanya";
 
 /** Status yang dikenali API. Nilai `?status=` di luar daftar diperlakukan
  *  sebagai "semua" — bukan diteruskan mentah ke API, yang akan menghasilkan
@@ -84,7 +85,7 @@ function TransferIsi() {
       // menyegarkan diri.
       await muat();
     } catch (err: unknown) {
-      alert(pesanGalat(err, "Gagal konfirmasi"));
+      void kabari("Tidak berhasil", pesanGalat(err, "Gagal konfirmasi"));
     }
   }
 
@@ -97,7 +98,7 @@ function TransferIsi() {
       // atas tetap berubah jadi "dibatalkan". Jadi layar menunjukkan transfer
       // yang batal sementara server masih menganggapnya berjalan, dan selisih
       // itu baru terlihat saat halaman dimuat ulang.
-      alert(pesanGalat(err, "Gagal membatalkan transfer"));
+      void kabari("Tidak berhasil", pesanGalat(err, "Gagal membatalkan transfer"));
     }
   }
 

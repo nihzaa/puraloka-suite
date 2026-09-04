@@ -11,6 +11,7 @@ import {
   PackageCheck, Plus, Send, CheckCircle2, X, AlertTriangle,
   ChevronDown, Loader2, RotateCcw, Ban, Paperclip,
 } from "lucide-react";
+import { minta } from "@/components/tanya";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SUBMITTAL REGISTER — pengajuan material & gambar untuk disetujui.
@@ -150,12 +151,17 @@ export default function SubmittalPage() {
       const tanya = keputusan === "ditolak"
         ? `Kenapa ${it.nomor} ditolak?\n\nPengaju perlu tahu apa yang harus diganti sebelum mengajukan ulang.`
         : `Syarat apa yang menyertai persetujuan ${it.nomor}?\n\n"Boleh dipakai" tanpa menyebut syaratnya membuat syaratnya hilang, dan pekerjaan berjalan dengan asumsi yang salah.`;
-      const jawab = window.prompt(tanya);
+      const jawab = await minta({ judul: tanya });
       if (jawab === null) return;
       if (!jawab.trim()) { showToast("error", "Catatan wajib diisi."); return; }
       catatan = jawab.trim();
     }
-    const dari = window.prompt("Diputuskan oleh siapa? (boleh dikosongkan)") ?? "";
+    const dari = (await minta({
+      judul: "Diputuskan oleh siapa?",
+      pesan: "Boleh dikosongkan.",
+      bolehKosong: true,
+      labelYa: "Simpan",
+    })) ?? "";
 
     setSedangUbah(it.id);
     try {
@@ -181,11 +187,15 @@ export default function SubmittalPage() {
   };
 
   const ajukanRevisi = async (it: Submittal) => {
-    const usul = window.prompt(
-      `Revisi untuk ${it.nomor}\n\n` +
-      "Apa yang diusulkan sekarang? Kosongkan kalau usulannya sama dan yang " +
-      "berubah hanya lampirannya."
-    );
+    const usul = await minta({
+      judul: `Revisi untuk ${it.nomor}`,
+      pesan:
+        "Apa yang diusulkan sekarang? Kosongkan kalau usulannya sama dan yang " +
+        "berubah hanya lampirannya.",
+      panjang: true,
+      bolehKosong: true,
+      labelYa: "Kirim revisi",
+    });
     if (usul === null) return;
 
     setSedangUbah(it.id);

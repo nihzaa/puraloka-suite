@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { Modal, StatusBadge, btnPrimary, btnGhost } from "../_bersama/kerangka";
 import { LayarKosong } from "@/components/layar-kosong";
+import { tanya } from "@/components/tanya";
 
 const fmtRp = formatRupiah;
 const lbl: React.CSSProperties = {
@@ -170,9 +171,14 @@ function RapTab() {
 
   async function kunciPagu() {
     if (!detail) return;
-    if (!window.confirm(
-      `Kunci pagu "${detail.data.name}"? Baris material & tenaga kerja tidak bisa diubah lagi setelah ini — hanya bisa dicatat via log perubahan.`
-    )) return;
+    if (!(await tanya({
+      judul: `Kunci pagu "${detail.data.name}"?`,
+      pesan:
+        "Baris material & tenaga kerja tidak bisa diubah lagi setelah ini — " +
+        "hanya bisa dicatat via log perubahan.",
+      labelYa: "Kunci pagu",
+      nada: "peringatan",
+    }))) return;
     setBusy(true); setErr("");
     try {
       await api.patch(`/api/v1/rap/${rapId}/lock`);

@@ -34,7 +34,7 @@ export interface Project {
   description: string | null;
   location: string;
   contract_model: "termin" | "komisi";
-  tax_scheme: "pph_final" | "ppn";
+  tax_scheme: "pph_final" | "ppn" | "tanpa_pajak";
   contract_value: number;
   commission_pct: number | null;
   start_date: string;

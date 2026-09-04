@@ -52,6 +52,7 @@ import {
   type ProyekRingkas,
   type StatusVersi,
 } from "../_bersama/tipe";
+import { tanya, minta } from "@/components/tanya";
 
 // ── Bentuk jawaban API (dipakai apa adanya, bukan ditebak) ────────────────
 interface VersiRingkas {
@@ -226,11 +227,14 @@ function IsiSusunRab() {
   const hapusItem = async (item: ItemVersi) => {
     if (!versiDibuka) return;
     const nama = item.assembly?.name ?? item.description ?? "item ini";
-    if (!window.confirm(
-      `Buang "${nama}" dari RAB?\n\n` +
-      "Untuk mengubah volumenya, buang lalu tambahkan lagi dengan volume baru — " +
-      "angkanya dihitung ulang dari koefisien & harga yang berlaku.",
-    )) return;
+    if (!(await tanya({
+      judul: `Buang "${nama}" dari RAB?`,
+      pesan:
+        "Untuk mengubah volumenya, buang lalu tambahkan lagi dengan volume baru — " +
+        "angkanya dihitung ulang dari koefisien & harga yang berlaku.",
+      labelYa: "Buang",
+      nada: "bahaya",
+    }))) return;
     setSibuk(true); setGalat("");
     try {
       await api.delete(`/api/v1/estimate-versions/${versiDibuka.id}/items/${item.id}`);
@@ -337,10 +341,12 @@ function IsiSusunRab() {
 
   const buatPilihanLain = async () => {
     if (!proyekId) return;
-    const nama = window.prompt(
-      "Nama pilihan ini — supaya mudah dibandingkan.\n\nMisalnya: Spek Premium, Hemat, Revisi Klien",
-      `Pilihan ${skenario.length + 1}`,
-    );
+    const nama = await minta({
+      judul: "Nama pilihan ini — supaya mudah dibandingkan.",
+      pesan: "Misalnya: Spek Premium, Hemat, Revisi Klien",
+      awal: `Pilihan ${skenario.length + 1}`,
+      labelYa: "Buat pilihan",
+    });
     if (!nama?.trim()) return;
     setSibuk(true); setGalat("");
     try {
@@ -365,12 +371,15 @@ function IsiSusunRab() {
   };
 
   const kunci = async (versiId: string) => {
-    if (!window.confirm(
-      "Kunci RAB ini dan kirim ke klien?\n\n" +
-      "Setelah dikunci, angkanya tak bisa berubah lagi — itu yang membuatnya " +
-      "sah dipakai sebagai bukti penawaran. Kalau nanti perlu diubah, pakai " +
-      "tombol Revisi (versi lama tetap tersimpan).",
-    )) return;
+    if (!(await tanya({
+      judul: "Kunci RAB ini dan kirim ke klien?",
+      pesan:
+        "Setelah dikunci, angkanya tak bisa berubah lagi — itu yang membuatnya " +
+        "sah dipakai sebagai bukti penawaran. Kalau nanti perlu diubah, pakai " +
+        "tombol Revisi (versi lama tetap tersimpan).",
+      labelYa: "Kunci & kirim",
+      nada: "peringatan",
+    }))) return;
     setSibuk(true); setGalat("");
     try {
       /*

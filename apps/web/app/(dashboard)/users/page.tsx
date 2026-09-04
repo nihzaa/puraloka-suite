@@ -15,6 +15,7 @@ import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_ISIAN } from "@/components/isian";
 import { Kosong } from "@/components/ui-dasar";
+import { kabari } from "@/components/tanya";
 
 /*
   ── ROLE DIBACA DARI BASIS, BUKAN DIPAKU DI SINI (2026-08-29)
@@ -186,7 +187,7 @@ export default function UsersPage() {
       // "nonaktif" padahal server menolak perubahannya — dan orang itu masih
       // bisa masuk. Menonaktifkan akun adalah tindakan keamanan; ia tak boleh
       // gagal tanpa suara.
-      alert((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Gagal mengubah status user");
+      void kabari("Tidak berhasil", (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Gagal mengubah status user");
     }
   }
 

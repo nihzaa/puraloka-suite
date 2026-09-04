@@ -11,6 +11,7 @@ import {
   AlertTriangle, ArrowRight, ChevronDown, Loader2, ListChecks,
 } from "lucide-react";
 import { ChecklistInspeksi } from "@/components/checklist-inspeksi";
+import { tanya, minta } from "@/components/tanya";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // REQUEST FOR INSPECTION — izin cor, izin tutup.
@@ -203,19 +204,25 @@ export default function InspeksiPage() {
     let buatTemuan = false;
 
     if (baru === "tidak_lolos") {
-      const jawab = window.prompt(
-        `Apa yang harus diperbaiki sebelum ${it.nomor} diperiksa ulang?\n\n` +
-        "Catatan ini yang dibaca pemohon — tanpa itu ia tak tahu apa yang salah."
-      );
+      const jawab = await minta({
+        judul: `Apa yang harus diperbaiki sebelum ${it.nomor} diperiksa ulang?`,
+        pesan: "Catatan ini yang dibaca pemohon — tanpa itu ia tak tahu apa yang salah.",
+        panjang: true,
+        labelYa: "Kirim catatan",
+      });
       if (jawab === null) return;
       if (!jawab.trim()) { showToast("error", "Catatan hasil wajib diisi."); return; }
       catatan = jawab.trim();
-      buatTemuan = window.confirm(
-        "Buat temuan punch list dari kegagalan ini?\n\n" +
-        "Pilih Ya kalau ini cacat yang harus ditelusuri sampai serah terima. " +
-        "Pilih Tidak kalau ini sekadar kesiapan — bekisting belum rapi, besi " +
-        "belum lengkap — yang selesai hari ini juga."
-      );
+      buatTemuan = await tanya({
+        judul: "Buat temuan punch list dari kegagalan ini?",
+        pesan:
+          "Pilih Ya kalau ini cacat yang harus ditelusuri sampai serah terima. " +
+          "Pilih Tidak kalau ini sekadar kesiapan — bekisting belum rapi, besi " +
+          "belum lengkap — yang selesai hari ini juga.",
+        labelYa: "Ya, buat temuan",
+        labelTidak: "Tidak",
+        nada: "peringatan",
+      });
     }
 
     setSedangUbah(it.id);

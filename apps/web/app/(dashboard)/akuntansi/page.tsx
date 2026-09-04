@@ -42,6 +42,7 @@ import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
 import { Kosong } from "@/components/ui-dasar";
 import { GAYA_ISIAN } from "@/components/isian";
 import { formatRupiah } from "@/lib/format";
+import { minta } from "@/components/tanya";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: `1px solid ${C.border}`,
@@ -174,7 +175,7 @@ function IsiAkuntansi() {
   };
 
   const batalkan = async (id: string) => {
-    const alasan = window.prompt("Alasan pembatalan (wajib — pembatalan tanpa alasan tak bisa ditelusuri):");
+    const alasan = await minta({ judul: "Alasan pembatalan (wajib — pembatalan tanpa alasan tak bisa ditelusuri):" });
     if (!alasan?.trim()) return;
     try {
       await api.patch(`/api/v1/gl/journal-entries/${id}/void`, { alasan: alasan.trim() });

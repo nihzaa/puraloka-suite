@@ -34,6 +34,7 @@ import {
   type Edition, type Assembly, type AsmComponent,
   th, td, lbl, tfLabel, tfAngka,
 } from "../_cecep/dasar";
+import { kabari } from "@/components/tanya";
 
 const fmtRp = formatRupiah;
 
@@ -92,7 +93,7 @@ function KatalogTab() {
     } catch (e: unknown) {
       const x = e as { response?: { data?: { error?: string } } };
       setPesan("");
-      window.alert(x?.response?.data?.error ?? "Gagal mengaktifkan analisa");
+      void kabari("Tidak berhasil", x?.response?.data?.error ?? "Gagal mengaktifkan analisa");
     } finally { setAktivasi(null); }
   }
 

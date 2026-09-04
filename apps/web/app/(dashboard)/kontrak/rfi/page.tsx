@@ -11,6 +11,7 @@ import {
   MessageSquareQuote, Plus, Send, CheckCircle2, X, AlertTriangle,
   ChevronDown, Loader2, FileText, Ban,
 } from "lucide-react";
+import { minta } from "@/components/tanya";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // REQUEST FOR INFORMATION — pertanyaan resmi ke konsultan / pemberi kerja.
@@ -125,14 +126,22 @@ export default function RfiPage() {
   };
 
   const catatJawaban = async (it: Rfi) => {
-    const jawaban = window.prompt(
-      `Jawaban untuk ${it.nomor} — ${it.perihal}\n\n` +
-      "Tulis isi jawabannya, bukan ringkasan: dokumen ini yang dipakai " +
-      "kalau kemudian ada perselisihan."
-    );
+    const jawaban = await minta({
+      judul: `Jawaban untuk ${it.nomor} — ${it.perihal}`,
+      pesan:
+        "Tulis isi jawabannya, bukan ringkasan: dokumen ini yang dipakai " +
+        "kalau kemudian ada perselisihan.",
+      panjang: true,
+      labelYa: "Kirim jawaban",
+    });
     if (jawaban === null) return;
     if (!jawaban.trim()) { showToast("error", "Isi jawaban wajib diisi."); return; }
-    const dari = window.prompt("Dijawab oleh siapa? (boleh dikosongkan)") ?? "";
+    const dari = (await minta({
+      judul: "Dijawab oleh siapa?",
+      pesan: "Boleh dikosongkan.",
+      bolehKosong: true,
+      labelYa: "Simpan",
+    })) ?? "";
 
     setSedangUbah(it.id);
     try {

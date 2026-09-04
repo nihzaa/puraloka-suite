@@ -37,6 +37,7 @@ import {
   Halaman, KepalaHalaman, Kartu, JudulKartu, Tabel, Rangka, Galat,
   Tombol, Lencana, gayaInput, type Kolom,
 } from "@/components/dasar";
+import { minta } from "@/components/tanya";
 
 interface Kunci {
   id: string;
@@ -113,9 +114,15 @@ export default function ApiKeyPage() {
   }, [nama, keperluan, hari, muat]);
 
   const cabut = useCallback(async (k: Kunci) => {
-    const alasan = window.prompt(
-      `Cabut kunci "${k.nama}"?\n\nSebutkan alasannya — ini yang dicari saat `
-      + `seseorang bertanya "kenapa integrasi kami mati?".`);
+    const alasan = await minta({
+      judul: `Cabut kunci "${k.nama}"?`,
+      pesan:
+        "Sebutkan alasannya — ini yang dicari saat seseorang bertanya " +
+        String.fromCharCode(34) + "kenapa integrasi kami mati?" + String.fromCharCode(34),
+      panjang: true,
+      labelYa: "Cabut kunci",
+      nada: "bahaya",
+    });
     if (alasan === null) return;
     setGalatAksi(null);
     try {

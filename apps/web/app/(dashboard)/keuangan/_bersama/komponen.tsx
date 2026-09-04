@@ -36,6 +36,7 @@ import {
 import { formatRupiah } from "@/lib/format";
 import { Saklar } from "@/components/saklar";
 import { ModalStatusInvoice } from "@/components/akuntansi-aksi";
+import { kabari } from "@/components/tanya";
 export function Skeleton({ h = 20, w = "100%" }: { h?: number; w?: string | number }) {
   return <div style={{ height: h, width: w, borderRadius: 6, background: "linear-gradient(90deg, var(--surface-hover) 0%, var(--border) 50%, var(--surface-hover) 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />;
 }
@@ -1360,7 +1361,7 @@ export function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invo
                 </label>
                 <input id="bukti-transfer" ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" style={{ display: "none" }} onChange={e => {
                   const f = e.target.files?.[0] ?? null;
-                  if (f && f.size > 5 * 1024 * 1024) { alert("Ukuran file maksimal 5 MB"); e.target.value = ""; return; }
+                  if (f && f.size > 5 * 1024 * 1024) { void kabari("Tidak berhasil", "Ukuran file maksimal 5 MB"); e.target.value = ""; return; }
                   setProofFile(f);
                 }} />
                 {proofFile ? (

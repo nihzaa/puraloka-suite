@@ -31,6 +31,7 @@ import {
 } from "../_bersama/tipe";
 import { CreateWageReportModal, WageReportDetailModal } from "../_bersama/komponen";
 import { Kosong } from "@/components/ui-dasar";
+import { kabari } from "@/components/tanya";
 
 function LaporanUpahInner() {
   const router = useRouter();
@@ -142,7 +143,7 @@ function LaporanUpahInner() {
       // senyap di sini berarti orang mengira upah sudah disetujui sementara
       // mandor tak pernah menerima apa pun — dan tak ada yang menghubungkan
       // keduanya sampai ada yang bertanya.
-      alert((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Gagal menyetujui laporan upah");
+      void kabari("Tidak berhasil", (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Gagal menyetujui laporan upah");
     }
   }
 

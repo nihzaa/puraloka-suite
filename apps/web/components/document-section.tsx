@@ -9,6 +9,7 @@ import {
   Download, Lock, Unlock,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { tanya, kabari } from "@/components/tanya";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -178,7 +179,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
   }
 
   async function handleDelete(doc: Doc) {
-    if (!confirm(`Hapus dokumen "${doc.title}"?`)) return;
+    if (!(await tanya({ judul: `Hapus dokumen "${doc.title}"?` }))) return;
     setDeletingId(doc.id);
     try {
       await api.delete(`/api/v1/projects/${projectId}/documents/${doc.id}`);
@@ -597,7 +598,7 @@ function UploadModalContent({
             <input id="berkas-dokumen" ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.docx" style={{ display: "none" }}
               onChange={e => {
                 const f = e.target.files?.[0] ?? null;
-                if (f && f.size > 20 * 1024 * 1024) { alert("Ukuran file maksimal 20 MB"); e.target.value = ""; return; }
+                if (f && f.size > 20 * 1024 * 1024) { void kabari("Tidak berhasil", "Ukuran file maksimal 20 MB"); e.target.value = ""; return; }
                 setUploadFile(f);
               }}
             />
