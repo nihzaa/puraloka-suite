@@ -5,6 +5,95 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-04 (lanjutan 4) — suite API BERJALAN, dan apa yang tersingkap di baliknya
+
+Rantai migrasi tuntas: **565 migrasi diputar dari nol, nol HARD FAIL**. Lalu
+sesuatu yang belum pernah terjadi sesi ini — shard API menjalankan test:
+
+    Test Files  8 failed | 75 passed (83)
+         Tests  6 failed | 1114 passed
+
+1.114 lulus di shard 1 saja, dari suite yang sebelumnya tak pernah berjalan
+sama sekali.
+
+### Satu temuan arsitektural nyata
+
+**ENAM policy memanggil `auth_company_id()` sekali PER BARIS** — dan MERAH DI
+DEV JUGA, jadi cacatnya sudah ada sebelum PR ini. Dua di antaranya milik
+migrasi 564, yang saya tulis sendiri hari ini.
+
+    entitlement_snapshot · situs_domain · tagihan_tenant
+
+Dibungkus `(SELECT …)` ia jadi InitPlan: sekali untuk seluruh query, bukan
+sekali per baris. Tak ada galat — hanya kelambatan yang tumbuh sebanding
+jumlah baris, gejala yang paling mudah disalahkan pada "datanya sudah banyak".
+
+Migrasi 565. Artefak fisik diverifikasi SEBELUM dicatat di buku (G-2).
+
+### Enam seed CI yang tak pernah ada, satu akar
+
+Sesudah rantai lolos, seed roboh beruntun. Akarnya satu dan berulang LIMA
+kali: **seed migrasi bersyarat `EXISTS (company_members)`, sementara
+keanggotaan lahir BELAKANGAN lewat seed CI.** Yang disemai migrasi tak pernah
+menyusul.
+
+    projects.company_id      insert tak menyebut kolomnya -> 7 seed roboh
+    role tenant + izin       migrasi 365 dilewati -> 403 di rute yang minta 409
+    config AI                migrasi 250 dilewati -> 503 di test gerbang GRATIS
+    mitra + tukang tertaut   tak ada seed sama sekali
+    kategori biaya proyek    tak ada seed sama sekali
+    keanggotaan ganda        prasyarat portofolio grup
+
+### Pesan galat yang menunjuk ke tempat yang SALAH
+
+Empat kali hari ini, dan tiap kali saya sempat mengejar arah yang keliru:
+
+    "migrasi 461 belum jalan?"        461 sudah jalan — DATANYA yang tak ada
+    "undefined (reading 'id')"        tak menyebut tabel maupun query
+    "DITOLAK PADAHAL SAH"            yang menolak keunikan, bukan CHECK
+    "503 kunci_tak_ada"              bukan kunci API — baris config-nya
+
+Yang keempat paling mahal: saya hampir membawanya ke founder sebagai
+keputusan biaya AI. Komentar di `ai-chat.test.ts` mencatat kebalikannya —
+versi pertama test itu berasumsi TAK ada kunci, dan asumsinya salah.
+Membaca komentar membatalkan pertanyaan yang hampir saya ajukan.
+
+### Penjaga yang terhalang sisa dirinya sendiri
+
+`uji-invarian-absensi` menghapus barisnya SESUDAH tiap uji, tetapi tak ada
+pembersihan di AWAL. Satu jalan yang terputus — termasuk run CI yang
+dibatalkan push berikutnya, yang terjadi DUA KALI hari ini — meninggalkan
+barisnya, dan jalan berikutnya menabraknya selamanya.
+
+Empat belas penjaga lain berpola serupa. Penyaring pola memberi sinyal lemah
+dan campur, jadi keempat belasnya DIJALANKAN dua kali berturut alih-alih
+ditebak dari bentuk kodenya. Semuanya aman.
+
+### Penyaring pola ditolak — keempat kalinya
+
+    22 kandidat  penyaringnya memuat palsu (n_policy dari pg_policies)
+    53 kandidat  ternyata sehat; rantai lalu melompat 36 migrasi tanpa disentuh
+    2 kandidat   FUNGSI TRIGGER — menyuntingnya melumpuhkan produksi
+    14 kandidat  dijalankan dua kali; hanya 1 yang rentan
+
+Empat kali menolak, empat kali pengukuran langsung memberi jawaban yang
+berbeda dari tebakan. **Angka kandidat adalah ukuran penyaring, bukan ukuran
+kerusakan.**
+
+### Dua penjaga yang diperbaiki, dan satu yang hampir saya rusak
+
+`audit-nilai-kontrak-waras` mati exit 2 tanpa DATABASE_URL. Perbaikan PERTAMA
+saya justru membuatnya melewati diri SELALU — memeriksa `process.env` saja,
+padahal `buatClient()` membaca `apps/api/.env`. Ketahuan karena diuji di DUA
+keadaan, bukan hanya yang sedang diperbaiki. Kalau saya cuma menguji "tanpa
+basis", merahnya berubah hijau dan saya akan menyebutnya selesai.
+
+`t7-exit-criteria-l2` menyaring policy lewat NAMA, dan tiga tabel yang
+terlindungi dengan benar jatuh sebagai "tak berpagar". Diganti penyaring
+struktur; selisihnya diukur persis tiga (269 vs 266), bukan pelonggaran umum.
+
+---
+
 ## 2026-09-04 (lanjutan 3) — rantai migrasi diputar dari nol: 001 → 523
 
 Membersihkan rantai migrasi supaya PR #148 (multi-tenant porto) bisa hijau.
