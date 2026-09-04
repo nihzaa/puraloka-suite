@@ -420,24 +420,25 @@ const USERS = [
   ['mandor', 'ci-mandor@puraloka.test', 'CI Mandor'],
   ['client', 'ci-client@puraloka.test', 'CI Client'],
   /*
-    `direktur` dan `estimator` ditambahkan 2026-09-04.
+    ⚠ `direktur` dan `estimator` DICABUT 2026-09-04, beberapa jam sesudah
+    ditambahkan. Seed-nya gagal di CI:
 
-    Test peran menolak berjalan tanpa keduanya:
+        seed GAGAL: user direktur → role 'direktur' tak ada
+                    (migrasi RBAC belum seed?)
 
-        Tak ada pengguna ber-auth_id untuk peran: direktur.
-        Jalankan: node scripts/siapkan-akun-uji-peran.mjs
+    Saya menambahkannya sesudah memeriksa bahwa keduanya ADA sebagai role
+    template — tetapi memeriksanya di basis DEV, bukan CI. Disisir ulang:
+    TAK SATU PUN migrasi menyisipkan `direktur`/`estimator` ke `roles`
+    (`grep -c "INSERT INTO.*roles"` = 0 pada semua berkas yang menyebutnya),
+    dan `siapkan-akun-uji-peran.mjs` pun hanya membuat AKUN, bukan role.
 
-    Skrip itu ada dan idempoten, tetapi butuh `SUPABASE_SECRET_KEY` dan
-    memanggil `auth.admin` — jalur yang berbeda dari daftar ini, yang sudah
-    bekerja di CI. Menambah dua baris ke daftar yang terbukti lebih sederhana
-    daripada memanggil skrip terpisah dengan prasyarat sendiri.
+    Di dev keduanya ada karena dibuat lewat UI atau tangan — jalur yang tak
+    pernah dilalui basis CI.
 
-    Keduanya diperiksa ADA sebagai role template sebelum ditambahkan
-    (`SELECT name FROM roles WHERE company_id IS NULL`) — peran yang tak ada
-    akan membuat seed ini gagal dengan galat yang menuduh akunnya.
+    Test yang menuntutnya tetap merah, dan itu jujur: yang kurang role-nya,
+    bukan akunnya. Membiarkan seed gagal justru lebih buruk — ia menjatuhkan
+    seed sesudahnya yang tak ada hubungannya.
   */
-  ['direktur', 'ci-direktur@puraloka.test', 'CI Direktur'],
-  ['estimator', 'ci-estimator@puraloka.test', 'CI Estimator'],
 ]
 for (const [role, email, name] of USERS) {
   await seed(`user ${role}`, async () => {

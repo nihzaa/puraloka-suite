@@ -80,6 +80,38 @@ const DITOLAK = new Set([
 
 const nomorUji = () => `UJI-RFQ-${++nomor}-${PID.slice(0, 8)}`
 
+/*
+  ⚠ BERSIHKAN SISA JALAN SEBELUMNYA — ditambahkan 2026-09-04.
+
+      duplicate key value violates unique constraint "rfq_nomor_per_proyek"
+
+  Penjaga ini membuang barisnya di AKHIR. Jalan yang terputus di tengah —
+  galat tak terduga, timeout, atau run CI yang dibatalkan push berikutnya —
+  meninggalkan barisnya, dan `nomorUji()` yang deterministik membuat jalan
+  berikutnya menabraknya. Insert PERTAMA ada di luar `try`, jadi bentrok di
+  situ mematikan proses, bukan dihitung sebagai bocor.
+
+  Kelas yang sama dengan `uji-invarian-absensi` dan
+  `uji-invarian-tender-subkon`, keduanya diperbaiki hari ini.
+
+  ⚠ Disapu TANPA mengunci ke `PID`. Pelajaran dari absensi: id fixture
+  dipilih `LIMIT 1` tanpa `ORDER BY`, jadi jalan berikutnya bisa mendapat
+  proyek LAIN — dan sapuan yang terkunci ke proyek hari ini tak menyentuh
+  sisa milik proyek kemarin.
+
+  Awalan `UJI-RFQ-` cukup sempit: nomor sungguhan memakai format penomoran
+  dokumen, tak pernah berawalan itu.
+
+  ⚠ TIDAK disisipkan ke `uji-invarian-asuransi` dan `-sertifikat-ipc` yang
+  berpola serupa: percobaan itu MEMBUAT KEDUANYA MERAH, karena keduanya
+  SENGAJA menyisipkan baris kembar untuk menguji keunikan menolaknya.
+  Pembersihan menghapus baris pertama, dan uji keunikannya jadi bocor.
+*/
+const { rowCount: sisaRfq } = await db.query(
+  `DELETE FROM rfq WHERE nomor LIKE 'UJI-RFQ-%'`,
+)
+if (sisaRfq > 0) console.log(`  (dibersihkan ${sisaRfq} baris sisa jalan sebelumnya)`)
+
 /** RFQ induk sementara — dibuang di akhir. */
 const { rows: induk } = await db.query(
   `INSERT INTO rfq (nomor, project_id) VALUES ($1, $2) RETURNING id`,
