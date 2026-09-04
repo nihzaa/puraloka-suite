@@ -2220,6 +2220,29 @@ jobs:
       - name: Status mobile berlabel
         run: node scripts/audit-status-mobile-berlabel.mjs
 
+      # Tiap pasangan token mobile wajib >= 7:1 (WCAG AAA), bukan 4.5:1.
+      # Aplikasi ini dibaca di LOKASI PROYEK - layar berdebu, matahari
+      # langsung. Riset praktik lapangan (Corvus Intell, ABLEMKR)
+      # menyarankan 7:1 untuk kondisi itu dan menyebut 4.5:1 sebagai
+      # LANTAI. Keputusan founder 2026-09-05: naikkan SEMUANYA.
+      #
+      # Diukur sebelum: 0 gagal AA, tapi 29 dari 40 pasangan gagal AAA.
+      # Nilai barunya dicari dengan menggeser LIGHTNESS saja - hue dan
+      # saturasi dipertahankan, jadi navy tetap navy.
+      - name: Kontras token mobile AAA
+        run: node scripts/audit-kontras-aaa-mobile.mjs
+
+      # Layar kosong wajib menyebut LANGKAH BERIKUTNYA, bukan cuma
+      # keadaannya. Riset onboarding menemukan bukti kuat menentang
+      # carousel penjelas fitur (NN/G 91% vs 94%; Vevo +10% login selesai)
+      # dan merekomendasikan contextual help sebagai gantinya - empty
+      # state adalah bentuk paling murninya.
+      #
+      # Yang paling mahal: layar kosong karena IZIN dibaca sebagai
+      # aplikasi rusak, lalu ditinggalkan tanpa dilaporkan siapa pun.
+      - name: Layar kosong berpetunjuk
+        run: node scripts/audit-kosong-berpetunjuk.mjs
+
       # Versi paket mobile wajib cocok dengan Expo SDK. Diukur 2026-08-31,
       # PERTAMA kalinya `expo export` dijalankan di repo ini: bundling GAGAL,
       # dan sebelas paket tak cocok — React 18 (butuh 19), React Native 0.76

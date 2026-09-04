@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '@/components/ui/Card';
 import { Galat } from '@/components/ui/Galat';
+import { Kosong } from '@/components/ui/Kosong';
 import { Tekan } from '@/components/ui/Tekan';
 import { api } from '@/lib/api';
 import { pesanGalat } from '@/lib/galat';
@@ -522,15 +523,11 @@ export default function NotificationsScreen() {
         }
         ListEmptyComponent={
           galat ? null : (
-            <View style={styles.empty}>
-              {/*
-                Ikon vektor menggantikan emoji 🔔 setinggi 40px — rupanya
-                berbeda di tiap HP, dan pada keadaan kosong ia justru elemen
-                yang paling dilihat.
-              */}
-              <Ionicons name="notifications-off-outline" size={40} color={c.textMuted} />
-              <Text style={styles.emptyText}>Tidak ada notifikasi</Text>
-            </View>
+            <Kosong
+              ikon="notifications-off-outline"
+              judul="Tidak ada notifikasi"
+              petunjuk="Kasbon yang menunggu persetujuan, izin kerja yang habis masa berlakunya, dan pengingat lain akan muncul di sini."
+            />
           )
         }
         /*

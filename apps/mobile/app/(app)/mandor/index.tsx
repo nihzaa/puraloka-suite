@@ -14,6 +14,7 @@ import { Card } from '@/components/ui/Card';
 import { api } from '@/lib/api';
 import { pesanGalat } from '@/lib/galat';
 import { Galat } from '@/components/ui/Galat';
+import { Kosong } from '@/components/ui/Kosong';
 import { useTema } from '@/hooks/useTema';
 import { FONT, HURUF, SPASI, type Palet } from '@/lib/tema';
 
@@ -317,9 +318,11 @@ export default function MandorScreen() {
         ListHeaderComponent={kepala}
         ListEmptyComponent={
           ringkasan || galat ? null : (
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>Belum ada data mandor</Text>
-            </View>
+            <Kosong
+              ikon="people-outline"
+              judul="Belum ada data mandor"
+              petunjuk="Ringkasan dan laporan upah muncul setelah ada mandor yang ditugaskan ke proyek. Hubungi admin perusahaan bila Anda seharusnya melihat data di sini."
+            />
           )
         }
         initialNumToRender={8}

@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Badge, statusLabel, statusVariant } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Galat } from '@/components/ui/Galat';
+import { Kosong } from '@/components/ui/Kosong';
 import { api } from '@/lib/api';
 import { pesanGalat } from '@/lib/galat';
 import { Tekan } from '@/components/ui/Tekan';
@@ -208,9 +209,11 @@ export default function ProyekListScreen() {
         }
         ListEmptyComponent={
           galat ? null : (
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>Belum ada proyek</Text>
-            </View>
+            <Kosong
+              ikon="business-outline"
+              judul="Belum ada proyek"
+              petunjuk="Proyek yang Anda tangani akan muncul di sini. Kalau Anda merasa sudah ditugaskan, hubungi admin perusahaan."
+            />
           )
         }
         initialNumToRender={8}
