@@ -61,6 +61,23 @@ export function statusVariant(status: string): BadgeVariant {
     case 'paid': return 'success';
     case 'unpaid': return 'danger';
     case 'overdue': return 'danger';
+    /*
+      Tiga status yang HILANG sampai 2026-09-04, ditemukan dari memotret
+      layar mandor: lencananya menampilkan "submitted" apa adanya.
+
+      `statusLabel` memakai `map[status] ?? status`, jadi kunci yang tak
+      terdaftar MUNCUL MENTAH di layar — kata Inggris teknis di aplikasi
+      berbahasa Indonesia untuk pengguna yang justru tak paham istilah
+      teknis. Kelas yang dijaga `audit-jenis-tulis-punya-label.mjs` di
+      sisi web; mobile tak pernah tercakup.
+
+      Diukur dari data produksi, sepuluh status yang benar-benar ada:
+      active · approved · completed · draft · on_hold · paid · pending ·
+      rejected · settled · submitted
+    */
+    case 'draft': return 'default';
+    case 'submitted': return 'info';
+    case 'settled': return 'success';
     default: return 'default';
   }
 }
@@ -77,6 +94,20 @@ export function statusLabel(status: string): string {
     pending: 'Menunggu',
     paid: 'Lunas',
     unpaid: 'Belum Lunas',
+    /*
+      Bahasa Indonesia, dan dipilih dari kosakata yang dipakai di lapangan
+      — bukan terjemahan harfiah.
+
+      `submitted` → "Diajukan", bukan "Dikirim": yang dikirim adalah
+      laporannya, tapi yang dimaksud adalah PENGAJUANNYA menunggu
+      keputusan.
+
+      `settled` → "Diselesaikan", bukan "Ditutup": kasbon yang settled
+      sudah dipertanggungjawabkan, bukan sekadar tak aktif lagi.
+    */
+    draft: 'Draf',
+    submitted: 'Diajukan',
+    settled: 'Diselesaikan',
     overdue: 'Jatuh Tempo',
     harian: 'Harian',
     borongan: 'Borongan',

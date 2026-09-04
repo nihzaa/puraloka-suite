@@ -2082,6 +2082,24 @@ jobs:
       - name: Daftar mobile tervirtualisasi
         run: node scripts/audit-daftar-mobile-virtual.mjs
 
+      # Tiap nilai status yang bisa sampai ke layar mobile wajib punya LABEL
+      # Indonesia. Ditemukan 2026-09-04 dari MEMOTRET layar mandor: lencana
+      # statusnya berbunyi "submitted" - kunci basis apa adanya, di aplikasi
+      # berbahasa Indonesia.
+      #
+      # `statusLabel()` memakai `map[status] ?? status`, jadi status yang tak
+      # terdaftar TIDAK gagal - ia muncul MENTAH. Tiga dari sepuluh status
+      # hilang dari peta: draft, submitted, settled.
+      #
+      # Daftarnya dibaca dari tipe ENUM PostgreSQL, bukan dari isi tabel:
+      # tabel yang hari ini cuma berisi dua nilai tetap boleh menghasilkan
+      # yang ketiga besok.
+      #
+      # Kelas yang sama dijaga audit-jenis-tulis-punya-label.mjs di web;
+      # mobile memakai peta lain di berkas lain dan tak pernah ikut.
+      - name: Status mobile berlabel
+        run: node scripts/audit-status-mobile-berlabel.mjs
+
       # Versi paket mobile wajib cocok dengan Expo SDK. Diukur 2026-08-31,
       # PERTAMA kalinya `expo export` dijalankan di repo ini: bundling GAGAL,
       # dan sebelas paket tak cocok — React 18 (butuh 19), React Native 0.76

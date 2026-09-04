@@ -110,6 +110,17 @@ const LAYAR = [
     Layar yang paling berisiko justru yang paling tak pernah dilihat.
   */
   ['notifikasi', '/notifications'],
+  /*
+    Ditambahkan 2026-09-04, dan alasannya sama dengan `/notifications`:
+    layar yang tak pernah dipotret adalah layar yang tak seorang pun
+    pernah lihat.
+
+    Terukur sebelum diperbaiki, layar ini merender **114 karakter** —
+    judul "Mandor" plus label bilah tab. Nol isi, tiga cacat menumpuk,
+    dan pesan kosongnya ("Belum ada data mandor") terbaca seperti keadaan
+    yang wajar.
+  */
+  ['mandor', '/mandor'],
   ['lainnya', '/lainnya'],
 ]
 
