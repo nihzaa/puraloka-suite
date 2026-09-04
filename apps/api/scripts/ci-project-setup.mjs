@@ -1118,6 +1118,43 @@ await seed('worker x2 (bahan uji tukang & beban mandor)', async () => {
 })
 
 /*
+  Invoice bernilai > 2 juta — bahan uji tulis-pembayaran.
+
+      Error: prasyarat gagal: nol invoice yang bisa dipinjam
+             (butuh total > 2 juta …)
+
+  Tak satu pun seed membuat invoice (diukur: 0 kemunculan `INTO invoices`).
+
+  `invoice_type` diisi `commission_billing` — salah satu dari dua nilai yang
+  BENAR-BENAR dipakai di basis (diukur `SELECT DISTINCT`). Enum-nya punya lima
+  label; memilih yang tak pernah dipakai berarti menguji jalur yang tak ada
+  di kenyataan.
+
+  ⚠ `termin_billing` (nilai satunya) DITOLAK: CHECK
+  `chk_invoice_termin_billing` menuntut `termin_schedule_id` terisi. Dibaca
+  dari `pg_constraint` sesudah percobaan pertama ditolak — dan hanya tipe ITU
+  yang punya syarat tambahan, jadi `commission_billing` bebas.
+
+  Nilai 5 juta, di atas ambang 2 juta yang dituntut test, dan `amount_due`
+  dibiarkan penuh — pembayaran belum terjadi, yang justru keadaan yang diuji.
+*/
+await seed('invoice > 2 juta (bahan uji tulis-pembayaran)', async () => {
+  await c.query(
+    `INSERT INTO invoices (project_id, invoice_number, invoice_type,
+                           base_amount, total_amount, amount_due, due_date, created_by)
+     SELECT p.id, 'CI-INV-1', 'commission_billing',
+            5000000, 5000000, 5000000, CURRENT_DATE + 30,
+            (SELECT id FROM public.users WHERE email='ci-admin@puraloka.test' LIMIT 1)
+       FROM projects p
+      WHERE p.name = 'CI Seed Project'
+        AND NOT EXISTS (SELECT 1 FROM invoices WHERE invoice_number = 'CI-INV-1')`)
+
+  const { rows } = await c.query(
+    `SELECT count(*)::int n FROM invoices WHERE total_amount > 2000000`)
+  if (rows[0].n === 0) throw new Error('nol invoice > 2 juta sesudah seed')
+})
+
+/*
   Gudang — bahan uji otomasi K3/stok/mutu.
 
       Error: tak ada gudang untuk diuji
