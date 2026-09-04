@@ -72,8 +72,30 @@ beforeAll(async () => {
     `SELECT id FROM projects WHERE company_id = $1 LIMIT 1`, [companyId])
   proyek = p[0].id
 
+  /*
+    ⚠ Kategori WAJIB milik proyek yang sama — bukan `LIMIT 1` sembarang.
+
+    `project_expenses` mengambil company-nya dari PROYEK, dan proyek di atas
+    sudah disaring `company_id`. Kategorinya tidak: `LIMIT 1` global memilih
+    kategori milik proyek di company LAIN, sehingga biaya tersimpan di tempat
+    yang tak pernah dipindai otomasi (rute menyaring lewat `projectIds()`
+    milik company sesi).
+
+        langganan 3 bulan tak terdeteksi: expected 0 to be greater than 0
+
+    Galatnya terbaca seperti deteksi pola yang rusak. Yang salah kategorinya.
+
+    ⚠ Pemakuan `code = 'puraloka-persada'` di atas SENGAJA DIBIARKAN. Saya
+    sempat menggantinya dengan company sesi, dan itu MEMBUAT LEBIH BURUK:
+    company sesi admin dev punya NOL proyek, jadi test jatuh lebih awal.
+    Di CI, `puraloka-persada` justru company induk — tempat seed membuat
+    proyeknya. Pemakuan itu benar; hanya kategorinya yang salah.
+  */
   const { rows: k } = await db.query(
-    `SELECT id FROM project_expense_categories LIMIT 1`)
+    `SELECT id FROM project_expense_categories WHERE project_id = $1 LIMIT 1`,
+    [proyek],
+  )
+  if (!k.length) throw new Error('proyek uji tak punya kategori pengeluaran')
   kategoriId = k[0].id
 
   const { rows: u } = await db.query(`SELECT id FROM users WHERE auth_id = $1`, [auth])
