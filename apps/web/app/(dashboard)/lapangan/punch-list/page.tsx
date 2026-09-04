@@ -10,6 +10,7 @@ import {
   AlertTriangle, Camera, ChevronDown, Loader2,
 } from "lucide-react";
 import { minta } from "@/components/tanya";
+import { Pilihan } from "@/components/pilihan";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PUNCH LIST — daftar cacat yang masih menghalangi serah terima.
@@ -233,7 +234,7 @@ export default function PunchListPage() {
         <div className="pl-kepala-aksi">
           <label className="pl-pilih-bungkus">
             <span className="pl-label-tersembunyi">Proyek</span>
-            <select
+            <Pilihan
               className="pl-pilih"
               aria-label="Pilih proyek yang temuannya ditampilkan"
               value={proyekId}
@@ -250,7 +251,7 @@ export default function PunchListPage() {
               {proyek.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
-            </select>
+            </Pilihan>
             <ChevronDown size={16} className="pl-pilih-ikon" aria-hidden />
           </label>
 

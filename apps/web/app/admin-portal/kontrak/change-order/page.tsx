@@ -72,6 +72,7 @@ import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge"
 import BottomSheet from "@/components/portal/BottomSheet";
 import type { ProyekPM, RespChangeOrder, RespApproveCo, ChangeOrderProyek, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 interface RespProyek {
   projects: ProyekPM[];
@@ -272,7 +273,7 @@ export default function AdminChangeOrderPage() {
       {daftarProyek.length > 1 && (
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek</span>
-          <select
+          <Pilihan
             value={proyekAktif}
             onChange={(e) => setProyekId(e.target.value)}
             style={{
@@ -290,7 +291,7 @@ export default function AdminChangeOrderPage() {
                 {p.name}
               </option>
             ))}
-          </select>
+          </Pilihan>
         </label>
       )}
 
@@ -506,7 +507,7 @@ export default function AdminChangeOrderPage() {
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Mode penagihan</span>
-            <select
+            <Pilihan
               value={billingBaru}
               onChange={(e) => setBillingBaru(e.target.value)}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
@@ -515,7 +516,7 @@ export default function AdminChangeOrderPage() {
               <option value="include_termin">Termasuk termin</option>
               <option value="separate_co">Tagihan CO tersendiri</option>
               <option value="final_account">Final account settlement</option>
-            </select>
+            </Pilihan>
             <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
               Boleh dikosongkan sekarang, tapi WAJIB dipilih sebelum CO ini bisa disetujui — pilihan ini menentukan apakah nilai kontrak naik.
             </span>
@@ -540,7 +541,7 @@ export default function AdminChangeOrderPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Tipe</span>
-            <select
+            <Pilihan
               value={itemType}
               onChange={(e) => setItemType(e.target.value)}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
@@ -549,7 +550,7 @@ export default function AdminChangeOrderPage() {
               <option value="kerja_kurang">Kerja Kurang</option>
               <option value="perubahan_volume">Perubahan Volume</option>
               <option value="perubahan_spec">Perubahan Spesifikasi</option>
-            </select>
+            </Pilihan>
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Deskripsi</span>

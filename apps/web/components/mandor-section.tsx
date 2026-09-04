@@ -12,6 +12,7 @@ import {
 
 import { C } from "@/lib/warna-ui";
 import { tanya, kabari } from "@/components/tanya";
+import { Pilihan } from "@/components/pilihan";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -480,10 +481,10 @@ function AssignMandorModal({ projectId, existingMandorIds, onClose, onSuccess }:
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <label htmlFor="mandor-id" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Mandor <span style={{ color: C.red }}>*</span></label>
-            <select id="mandor-id" aria-label="Pilih mandor" value={mandorId} onChange={e => setMandorId(e.target.value)} style={inputStyle}>
+            <Pilihan id="mandor-id" aria-label="Pilih mandor" value={mandorId} onChange={e => setMandorId(e.target.value)} style={inputStyle}>
               <option value="">-- Pilih mandor --</option>
               {mandorTersedia.map(m => <option key={m.id} value={m.id}>{m.name}{m.phone ? ` (${m.phone})` : ""}</option>)}
-            </select>
+            </Pilihan>
             {mandorTersedia.length === 0 && <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Semua mandor sudah di-assign ke proyek ini</div>}
           </div>
           <div>
@@ -648,7 +649,7 @@ function AddScopeModal({ assignment, projectId: projectIdProp, onClose, onSucces
               <label htmlFor="rab-category-id" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>
                 Kaitkan ke Sub-Kategori RAB <span style={{ fontSize: 11, color: C.muted }}>(opsional)</span>
               </label>
-              <select id="rab-category-id" aria-label="Kaitkan ke sub-kategori RAB" value={rabCategoryId} onChange={e => setRabCategoryId(e.target.value)} style={inputStyle}>
+              <Pilihan id="rab-category-id" aria-label="Kaitkan ke sub-kategori RAB" value={rabCategoryId} onChange={e => setRabCategoryId(e.target.value)} style={inputStyle}>
                 <option value="">— Tidak dikaitkan (isi scope manual)</option>
                 {rabCategories.map(cat => (
                   <option key={cat.id} value={cat.id}>
@@ -657,7 +658,7 @@ function AddScopeModal({ assignment, projectId: projectIdProp, onClose, onSucces
                     {` (bobot ${cat.weight_pct.toFixed(2)}%)`}
                   </option>
                 ))}
-              </select>
+              </Pilihan>
               <p style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
                 Mengaitkan scope mandor ke kategori RAB membantu tracking progress dan budget.
               </p>

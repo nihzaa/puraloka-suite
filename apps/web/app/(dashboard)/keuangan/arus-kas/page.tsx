@@ -27,6 +27,7 @@ import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel } from "@/components/dasar";
 import { CashflowTooltip } from "../_bersama/komponen";
+import { Pilihan } from "@/components/pilihan";
 import {
   fmt, fmtCompact, fmtDate,
   type ArusKasData, type ArusKasChartPoint, type ExpenseCategory, type Project,
@@ -180,11 +181,11 @@ export default function ArusKasPage() {
           </div>
           <div>
             <label htmlFor="arus-project-id" style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Proyek</label>
-            <select id="arus-project-id" aria-label="Saring proyek pada arus kas" value={arusProjectId} onChange={e => setArusProjectId(e.target.value)}
+            <Pilihan id="arus-project-id" aria-label="Saring proyek pada arus kas" value={arusProjectId} onChange={e => setArusProjectId(e.target.value)}
               style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)", minWidth: 160 }}>
               <option value="">Semua Proyek</option>
               {arusProjectList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            </Pilihan>
           </div>
           <div>
             <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Jenis</label>
@@ -217,7 +218,7 @@ export default function ArusKasPage() {
           </div>
           <div>
             <label htmlFor="arus-category-id" style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Kategori</label>
-            <select id="arus-category-id" aria-label="Saring kategori pada arus kas" value={arusCategoryId} onChange={e => {
+            <Pilihan id="arus-category-id" aria-label="Saring kategori pada arus kas" value={arusCategoryId} onChange={e => {
               const id = e.target.value;
               const found = arusCategories.find(c => c.id === id);
               setArusCategoryId(id);
@@ -238,7 +239,7 @@ export default function ArusKasPage() {
                   <option value={parent.id}>{parent.name} (semua)</option>
                 </optgroup>
               ))}
-            </select>
+            </Pilihan>
           </div>
           {adaSaringanLain && (
             <div style={{ alignSelf: "flex-end" }}>

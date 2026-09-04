@@ -48,6 +48,7 @@ interface AbsorptionRow {
 
 import { C } from "@/lib/warna-ui";
 import { namaSapaan } from "@/lib/nama-sapaan";
+import { Pilihan } from "@/components/pilihan";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -307,7 +308,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
               <div style={{ color: C.muted, fontSize: 13 }}>Memuat...</div>
             ) : (
               <div style={{ position: "relative" }}>
-                <select
+                <Pilihan
                   aria-label="Item RAB yang dijadwalkan"
                   value={selectedItem?.id ?? ""}
                   onChange={e => {
@@ -327,7 +328,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                       {it.name} {it.total_price ? `· ${fmtCompact(it.total_price)}` : ""}
                     </option>
                   ))}
-                </select>
+                </Pilihan>
                 <ChevronDown size={14} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: C.mid }} />
               </div>
             )}
@@ -418,7 +419,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                       }}>
                         {/* Pilih minggu */}
                         <div style={{ position: "relative" }}>
-                          <select
+                          <Pilihan
                             aria-label="Minggu rencana"
                             value={row.week_start}
                             onChange={e => changeWeek(idx, e.target.value)}
@@ -436,7 +437,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                                   {fmtWeekLabel(w.week_start, w.week_number)}
                                 </option>
                               ))}
-                          </select>
+                          </Pilihan>
                           <ChevronDown size={10} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: C.mid }} />
                         </div>
 
@@ -716,7 +717,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
               <div style={{ color: C.muted, fontSize: 13 }}>Memuat...</div>
             ) : (
               <div style={{ position: "relative" }}>
-                <select
+                <Pilihan
                   aria-label="Item RAB yang dicatat serapannya"
                   value={selectedItem?.id ?? ""}
                   onChange={e => {
@@ -736,7 +737,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                       {it.name} {it.total_price ? `· ${fmtCompact(it.total_price)}` : ""}
                     </option>
                   ))}
-                </select>
+                </Pilihan>
                 <ChevronDown size={14} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: C.mid }} />
               </div>
             )}
@@ -815,7 +816,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                       border: `1px solid ${row.isDirty ? "var(--warning-border)" : C.border}`,
                     }}>
                       <div style={{ position: "relative" }}>
-                        <select
+                        <Pilihan
                           aria-label="Minggu serapan aktual"
                           value={row.week_start}
                           onChange={e => changeWeek(idx, e.target.value)}
@@ -833,7 +834,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                                 {fmtWeekLabel(w.week_start, w.week_number)}
                               </option>
                             ))}
-                        </select>
+                        </Pilihan>
                         <ChevronDown size={10} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: C.mid }} />
                       </div>
 

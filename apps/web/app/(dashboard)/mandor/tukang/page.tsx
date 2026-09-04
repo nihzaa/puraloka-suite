@@ -23,6 +23,7 @@ import { Tabel, Kosong } from "@/components/dasar";
 import { Plus, RefreshCw, Users, Search } from "lucide-react";
 import { C } from "@/lib/warna-ui";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
+import { Pilihan } from "@/components/pilihan";
 import {
   type Worker,
   TIPE_LABELS, TIPE_COLORS, SKILL_LABELS,
@@ -106,19 +107,19 @@ export default function DaftarTukangPage() {
           <Search size={13} color={C.muted} />
           <input aria-label="Cari nama pekerja" value={workerSearch} onChange={e => setWorkerSearch(e.target.value)} placeholder="Cari nama pekerja..." style={{ border: "none", outline: "none", fontSize: 13, width: "100%", color: C.text, background: "transparent" }} />
         </div>
-        <select aria-label="Saring tipe tukang" value={workerFilterTipe} onChange={e => setWorkerFilterTipe(e.target.value)}
+        <Pilihan aria-label="Saring tipe tukang" value={workerFilterTipe} onChange={e => setWorkerFilterTipe(e.target.value)}
           style={{ padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, color: C.text, background: "var(--surface)", cursor: "pointer" }}>
           <option value="">Semua Tipe</option>
           <option value="tukang">Tukang</option>
           <option value="laden">Laden</option>
           <option value="kenek">Kenek</option>
-        </select>
-        <select aria-label="Saring status tukang" value={workerFilterStatus} onChange={e => setWorkerFilterStatus(e.target.value)}
+        </Pilihan>
+        <Pilihan aria-label="Saring status tukang" value={workerFilterStatus} onChange={e => setWorkerFilterStatus(e.target.value)}
           style={{ padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, color: C.text, background: "var(--surface)", cursor: "pointer" }}>
           <option value="">Semua Status</option>
           <option value="aktif">Aktif</option>
           <option value="nonaktif">Nonaktif</option>
-        </select>
+        </Pilihan>
         <span style={{ fontSize: 12, color: C.muted, marginLeft: "auto" }}>{filteredWorkers.length} pekerja</span>
         <button onClick={loadWorkers} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid, display: "flex", alignItems: "center", gap: 4 }}>
           <RefreshCw size={13} /> Refresh

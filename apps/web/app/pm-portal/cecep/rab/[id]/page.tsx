@@ -48,6 +48,7 @@ import type {
   GalatApi,
 } from "../../../_bersama/tipe";
 import { pesanGalat } from "../../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 function fmtRupiah(v: number | string | null | undefined): string {
   if (v === null || v === undefined) return "—";
@@ -456,7 +457,7 @@ export default function PmRabDetailPage() {
               </label>
               <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Kode biaya (cost code)</span>
-                <select
+                <Pilihan
                   value={lumpsumCostCodeId}
                   onChange={(e) => setLumpsumCostCodeId(e.target.value)}
                   style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
@@ -467,7 +468,7 @@ export default function PmRabDetailPage() {
                       {cc.code} · {cc.name}
                     </option>
                   ))}
-                </select>
+                </Pilihan>
               </label>
             </>
           ) : (

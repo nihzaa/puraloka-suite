@@ -46,6 +46,7 @@ import SkeletonCard from "@/components/portal/SkeletonCard";
 import StatusBadge from "@/components/portal/StatusBadge";
 import type { Penugasan, GalatApi } from "../_bersama/tipe";
 import { pesanGalat } from "../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 interface RespAssignments { assignments: Penugasan[] }
 
@@ -147,7 +148,7 @@ export default function JadwalProyekPage() {
       {!memuatAsg && daftarProyek.length > 1 && (
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek</span>
-          <select
+          <Pilihan
             value={proyekAktif}
             onChange={(e) => setProyekId(e.target.value)}
             style={{
@@ -159,7 +160,7 @@ export default function JadwalProyekPage() {
             {daftarProyek.map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
-          </select>
+          </Pilihan>
         </label>
       )}
 

@@ -58,6 +58,7 @@ import { KartuKPI, Panel } from "@/components/ui-dasar";
 import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
 import { RailIsi } from "@/components/shell/rail-isi";
 import { usePasangRail } from "@/lib/rail-context";
+import { Pilihan } from "@/components/pilihan";
 import {
   hariIniWIB, penawaranMenggantung, ringkasTender,
   type BarisMenggantung,
@@ -326,13 +327,13 @@ export default function TenderPage() {
       {/* ── LAPIS 3 — DETAIL ── */}
       <div style={{ marginBottom: 14 }}>
         <label htmlFor="saring-status" style={{ fontSize: 12, color: C.mid, marginRight: 8 }}>Status</label>
-        <select id="saring-status" value={saring} onChange={(e) => { setSaring(e.target.value); }}
+        <Pilihan id="saring-status" value={saring} onChange={(e) => { setSaring(e.target.value); }}
           style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 13 }}>
           <option value="">Semua</option>
           {(Object.keys(STATUS_LABEL) as Status[]).map((s) => (
             <option key={s} value={s}>{STATUS_LABEL[s].teks}</option>
           ))}
-        </select>
+        </Pilihan>
       </div>
 
       {memuat && <div style={{ padding: 24, color: C.mid, fontSize: 13 }}>Memuat…</div>}

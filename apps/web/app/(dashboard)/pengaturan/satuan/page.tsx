@@ -12,6 +12,7 @@ import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_ISIAN } from "@/components/isian";
 import { Kosong } from "@/components/ui-dasar";
+import { Pilihan } from "@/components/pilihan";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: "1px solid var(--border)",
@@ -170,9 +171,9 @@ function AddUnitCard({ existing, onDone, onError }: { existing: UnitRow[]; onDon
         <Labeled label="Simbol"><input className="isian-fokus" value={symbol} onChange={e => setSymbol(e.target.value)} placeholder="cth: dus" style={GAYA_ISIAN} /></Labeled>
         <Labeled label="Nama"><input className="isian-fokus" value={label} onChange={e => setLabel(e.target.value)} placeholder="cth: Dus / Kardus" style={GAYA_ISIAN} /></Labeled>
         <Labeled label="Kategori">
-          <select className="isian-fokus" aria-label="Kategori" value={category} onChange={e => setCategory(e.target.value)} style={GAYA_ISIAN}>
+          <Pilihan className="isian-fokus" aria-label="Kategori" value={category} onChange={e => setCategory(e.target.value)} style={GAYA_ISIAN}>
             {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-          </select>
+          </Pilihan>
         </Labeled>
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
@@ -225,9 +226,9 @@ function UnitRowItem({ unit, canManage, onSaved, onError }: {
         <input className="isian-fokus" value={label} onChange={e => setLabel(e.target.value)} style={GAYA_ISIAN} />
         <input className="isian-fokus" value={sortOrder} onChange={e => setSortOrder(e.target.value.replace(/[^0-9]/g, ""))} style={GAYA_ISIAN} />
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <select className="isian-fokus" aria-label="Kategori" value={category} onChange={e => setCategory(e.target.value)} style={{ ...GAYA_ISIAN, width: 110 }}>
+          <Pilihan className="isian-fokus" aria-label="Kategori" value={category} onChange={e => setCategory(e.target.value)} style={{ ...GAYA_ISIAN, width: 110 }}>
             {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-          </select>
+          </Pilihan>
           <button aria-label="Simpan" onClick={() => patch({ symbol, label, category, sort_order: Number(sortOrder) || 0 })} disabled={busy}
             title="Simpan" style={{ padding: 6, borderRadius: 6, border: "none", background: C.green, color: "#fff", cursor: "pointer" }}><Check size={14} /></button>
           <button aria-label="Batal" onClick={() => { setEditing(false); setSymbol(unit.symbol); setLabel(unit.label); setCategory(unit.category); setSortOrder(String(unit.sort_order)); }}

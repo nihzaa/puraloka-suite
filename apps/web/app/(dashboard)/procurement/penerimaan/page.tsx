@@ -23,6 +23,7 @@ import {
   Badge, Btn, Card, Input, KotakGalat, Memuat, Modal, Select,
   fmtDate, pesanError,
 } from "../_bersama/ui";
+import { Pilihan } from "@/components/pilihan";
 
 interface GoodsReceipt {
   id: string;
@@ -65,7 +66,7 @@ export default function PenerimaanPage() {
   return (
     <div style={{ width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
       <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", justifyContent: "space-between" }}>
-        <select
+        <Pilihan
           aria-label="Saring status penerimaan barang" value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
           style={{ padding: "var(--pad-tombol)", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: C.surface, color: C.text }}
@@ -73,7 +74,7 @@ export default function PenerimaanPage() {
           <option value="">Semua Status</option>
           <option value="draft">Draft</option>
           <option value="confirmed">Dikonfirmasi</option>
-        </select>
+        </Pilihan>
         {canManage && <Btn onClick={() => setShowCreate(true)}><Plus size={14} aria-hidden="true" /> Catat Penerimaan</Btn>}
       </div>
 

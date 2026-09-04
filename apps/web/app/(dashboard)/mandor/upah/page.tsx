@@ -24,6 +24,7 @@ import {
   Plus, RefreshCw, XCircle, FileText, Calendar, Search, X, Check, Download,
 } from "lucide-react";
 import { C } from "@/lib/warna-ui";
+import { Pilihan } from "@/components/pilihan";
 import {
   type WageReport, type WageReportDetail, type MandorUser,
   fmt, fmtDateShort, REPORT_STATUS, getWageStatusBadge, getPaymentSystemBadge,
@@ -244,16 +245,16 @@ function LaporanUpahInner() {
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {/* Filter bar */}
           <div style={{ ...card, padding: "12px 16px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <select aria-label="Mandor" value={filterMandorId} onChange={e => { setFilterMandorId(e.target.value); updateFilter("mandor_id", e.target.value); }}
+              <Pilihan aria-label="Mandor" value={filterMandorId} onChange={e => { setFilterMandorId(e.target.value); updateFilter("mandor_id", e.target.value); }}
                 style={{ padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", color: C.text, minWidth: 160 }}>
                 <option value="">Semua Mandor</option>
                 {mandorList.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </select>
-              <select aria-label="Status" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); updateFilter("status", e.target.value); }}
+              </Pilihan>
+              <Pilihan aria-label="Status" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); updateFilter("status", e.target.value); }}
                 style={{ padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", color: C.text }}>
                 <option value="">Semua Status</option>
                 {Object.entries(REPORT_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-              </select>
+              </Pilihan>
               <input aria-label="Tanggal mulai" type="date" value={filterDateFrom} onChange={e => { setFilterDateFrom(e.target.value); updateFilter("date_from", e.target.value); }}
                 style={{ padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", color: C.text }} />
               <span style={{ fontSize: 12, color: C.muted }}>s/d</span>

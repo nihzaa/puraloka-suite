@@ -50,6 +50,7 @@ import SegmentedTab from "@/components/portal/SegmentedTab";
 import { Saklar } from "@/components/saklar";
 import type { RespSuratLintasProyek, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 const LABEL_STATUS: Record<string, string> = {
   draft: "Draf", terkirim: "Terkirim", diterima: "Diterima",
@@ -200,19 +201,19 @@ export default function AdminSuratPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
             Proyek
-            <select value={form.project_id} onChange={(e) => setForm((f) => ({ ...f, project_id: e.target.value }))}
+            <Pilihan value={form.project_id} onChange={(e) => setForm((f) => ({ ...f, project_id: e.target.value }))}
               style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)", boxSizing: "border-box" }}>
               <option value="">Pilih proyek</option>
               {(data?.proyek ?? []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            </Pilihan>
           </label>
           <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
             Arah
-            <select value={form.arah} onChange={(e) => setForm((f) => ({ ...f, arah: e.target.value as "masuk" | "keluar" }))}
+            <Pilihan value={form.arah} onChange={(e) => setForm((f) => ({ ...f, arah: e.target.value as "masuk" | "keluar" }))}
               style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)", boxSizing: "border-box" }}>
               <option value="keluar">Keluar</option>
               <option value="masuk">Masuk</option>
-            </select>
+            </Pilihan>
           </label>
           <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
             Nomor

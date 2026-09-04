@@ -41,6 +41,7 @@ import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { formatRupiah } from "@/lib/format";
+import { Pilihan } from "@/components/pilihan";
 
 interface KoranRingkas {
   id: string;
@@ -267,7 +268,7 @@ export default function RekonsiliasiBankPage() {
             }}>
               Rekening &amp; periode
             </label>
-            <select
+            <Pilihan
               id="pilih-koran"
               value={pilih ?? ""}
               onChange={(e) => setPilih(e.target.value)}
@@ -283,7 +284,7 @@ export default function RekonsiliasiBankPage() {
                   {k.belum_cocok > 0 ? ` · ${k.belum_cocok} belum cocok` : " · tuntas"}
                 </option>
               ))}
-            </select>
+            </Pilihan>
           </div>
 
           {detail && (

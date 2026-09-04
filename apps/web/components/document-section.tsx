@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { tanya, kabari } from "@/components/tanya";
+import { Pilihan } from "@/components/pilihan";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -571,11 +572,11 @@ function UploadModalContent({
           {/* Tipe */}
           <div>
             <label htmlFor="upload-type" style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>Tipe Dokumen</label>
-            <select id="upload-type" aria-label="Jenis dokumen" value={uploadType} onChange={e => setUploadType(e.target.value)} style={{ ...inpStyle, background: "var(--surface)" }}>
+            <Pilihan id="upload-type" aria-label="Jenis dokumen" value={uploadType} onChange={e => setUploadType(e.target.value)} style={{ ...inpStyle, background: "var(--surface)" }}>
               {Object.entries(DOC_TYPE_LABELS).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
               ))}
-            </select>
+            </Pilihan>
           </div>
 
           {/* Visibility */}

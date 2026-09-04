@@ -19,6 +19,7 @@ import { Kosong } from "@/components/ui-dasar";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { Plus, RefreshCw, Banknote, User, Search, X, Camera } from "lucide-react";
 import { C } from "@/lib/warna-ui";
+import { Pilihan } from "@/components/pilihan";
 import {
   type Assignment, type WorkerKasbon,
   fmt, fmtDate, kartu as card,
@@ -100,17 +101,17 @@ export default function KasbonTukangPage() {
           <Search size={13} color={C.muted} />
           <input aria-label="Cari kasbon tukang" value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari tukang / proyek..." style={{ border: "none", outline: "none", fontSize: 13, width: 180, color: C.text, background: "transparent" }} />
         </div>
-        <select aria-label="Mandor" value={filterMandorId} onChange={e => setFilterMandorId(e.target.value)}
+        <Pilihan aria-label="Mandor" value={filterMandorId} onChange={e => setFilterMandorId(e.target.value)}
           style={{ padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", color: C.text, minWidth: 150 }}>
           <option value="">Semua Mandor</option>
           {uniqueMandors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-        </select>
-        <select aria-label="Saring status kasbon" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+        </Pilihan>
+        <Pilihan aria-label="Saring status kasbon" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
           style={{ padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none", color: C.text }}>
           <option value="">Semua Status</option>
           <option value="aktif">Aktif</option>
           <option value="lunas">Lunas</option>
-        </select>
+        </Pilihan>
         {(filterMandorId || filterStatus !== "aktif") && (
           <button onClick={() => { setFilterMandorId(""); setFilterStatus("aktif"); }}
             style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 12, color: C.mid, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>

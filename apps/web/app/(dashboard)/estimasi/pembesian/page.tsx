@@ -57,6 +57,7 @@ import {
   Kartu, JudulKartu, Rangka, Galat, Tabel,
   Tombol, Lencana, Medan, gayaInput,
 } from "@/components/dasar";
+import { Pilihan } from "@/components/pilihan";
 
 // ── Bentuk jawaban rute ──────────────────────────────────────────────────────
 
@@ -657,30 +658,30 @@ export default function PembesianPage() {
                   value={fb.tebalPelatMm} onChange={(e) => setFb((x) => ({ ...x, tebalPelatMm: e.target.value }))} />} />
               <Medan id="b-skema" label="Skema balok" wajib
                 anak={
-                  <select id="b-skema" style={gayaInput} value={fb.skema}
+                  <Pilihan id="b-skema" style={gayaInput} value={fb.skema}
                     onChange={(e) => setFb((x) => ({ ...x, skema: e.target.value }))}>
                     {SKEMA.map((k) => <option key={k.nilai} value={k.nilai}>{k.label}</option>)}
-                  </select>
+                  </Pilihan>
                 } />
               <Medan id="b-fungsi" label="Fungsi ruang" wajib
                 keterangan="Menentukan beban hidup (SNI 1727 Tabel 4.3-1)"
                 anak={
-                  <select id="b-fungsi" style={gayaInput} value={fb.fungsiRuangKunci}
+                  <Pilihan id="b-fungsi" style={gayaInput} value={fb.fungsiRuangKunci}
                     onChange={(e) => setFb((x) => ({ ...x, fungsiRuangKunci: e.target.value }))}>
                     {(katalog?.fungsiRuang ?? []).map((r) => (
                       <option key={r.kunci} value={r.kunci}>{r.nama} — {r.bebanHidupKnM2} kN/m²</option>
                     ))}
-                  </select>
+                  </Pilihan>
                 } />
               <Medan id="b-dinding" label="Dinding di atas balok"
                 anak={
-                  <select id="b-dinding" style={gayaInput} value={fb.jenisDinding}
+                  <Pilihan id="b-dinding" style={gayaInput} value={fb.jenisDinding}
                     onChange={(e) => setFb((x) => ({ ...x, jenisDinding: e.target.value }))}>
                     <option value="">Tak ada dinding</option>
                     {(katalog?.jenisDinding ?? []).map((d) => (
                       <option key={d.kunci} value={d.kunci}>{d.nama}</option>
                     ))}
-                  </select>
+                  </Pilihan>
                 } />
               {fb.jenisDinding && (
                 <Medan id="b-tinggiDinding" label="Tinggi dinding (m)" wajib

@@ -41,6 +41,7 @@ import {
   Halaman, KepalaHalaman, Kartu, JudulKartu, Tabel, Rangka, Galat,
   Tombol, Lencana, gayaInput, type Kolom,
 } from "@/components/dasar";
+import { Pilihan } from "@/components/pilihan";
 
 type JenisPeta =
   | "pendapatan_termin" | "piutang_usaha" | "retensi_ditahan"
@@ -244,7 +245,7 @@ export default function PetaAkunPage() {
               position: "absolute", width: 1, height: 1, overflow: "hidden",
               clip: "rect(0 0 0 0)", whiteSpace: "nowrap",
             }}>Akun untuk {b.label}</label>
-            <select
+            <Pilihan
               id={`pa-${b.jenis}`} value={kini}
               onChange={(e) => setPilihan((p) => ({ ...p, [b.jenis]: e.target.value }))}
               style={{ ...gayaInput, fontSize: 12.5 }}
@@ -256,7 +257,7 @@ export default function PetaAkunPage() {
                   {a.code} — {a.name}
                 </option>
               ))}
-            </select>
+            </Pilihan>
             {usulAkun && kini !== usulAkun.id && (
               // Usulan DITAWARKAN, tak diisi otomatis. Bawaan yang terisi
               // sendiri tak pernah ditanyakan siapa pun.

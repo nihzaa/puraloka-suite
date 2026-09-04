@@ -52,6 +52,7 @@ import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
+import { Pilihan } from "@/components/pilihan";
 import {
   Halaman, KepalaHalaman, Kartu, JudulKartu, KartuAngka, BarisAngka,
   Tabel, Kosong, Rangka, Galat, Tombol, Lencana, Medan, gayaInput,
@@ -600,7 +601,7 @@ function IsiRisiko() {
           fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
           marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
         }}>Proyek</label>
-        <select
+        <Pilihan
           id="rk-proyek" value={proyekId} onChange={(e) => setProyekId(e.target.value)}
           style={{ ...gayaInput, maxWidth: 420 }}
         >
@@ -608,7 +609,7 @@ function IsiRisiko() {
           {proyekList.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
-        </select>
+        </Pilihan>
       </Kartu>
 
       {r && (
@@ -746,12 +747,12 @@ function IsiRisiko() {
         />
         <Medan id="rk-kategori" label="Kategori"
           anak={
-            <select id="rk-kategori" value={fKategori}
+            <Pilihan id="rk-kategori" value={fKategori}
               onChange={(e) => setFKategori(e.target.value)} style={gayaInput}>
               {Object.entries(KATEGORI).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
               ))}
-            </select>
+            </Pilihan>
           }
         />
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -759,10 +760,10 @@ function IsiRisiko() {
             <Medan id="rk-dampak" label="Dampak (1–5)"
               keterangan="Seberapa parah kalau terjadi."
               anak={
-                <select id="rk-dampak" value={fDampak}
+                <Pilihan id="rk-dampak" value={fDampak}
                   onChange={(e) => setFDampak(e.target.value)} style={gayaInput}>
                   {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
-                </select>
+                </Pilihan>
               }
             />
           </div>
@@ -770,10 +771,10 @@ function IsiRisiko() {
             <Medan id="rk-kemungkinan" label="Kemungkinan (1–5)"
               keterangan="Seberapa mungkin terjadi."
               anak={
-                <select id="rk-kemungkinan" value={fKemungkinan}
+                <Pilihan id="rk-kemungkinan" value={fKemungkinan}
                   onChange={(e) => setFKemungkinan(e.target.value)} style={gayaInput}>
                   {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
-                </select>
+                </Pilihan>
               }
             />
           </div>
@@ -781,24 +782,24 @@ function IsiRisiko() {
         <Medan id="rk-strategi" label="Strategi"
           keterangan="“Terima” adalah pilihan sah — risiko yang diterima sadar berbeda dari yang diabaikan, dan menuliskannya lebih jujur daripada mengarang mitigasi."
           anak={
-            <select id="rk-strategi" value={fStrategi}
+            <Pilihan id="rk-strategi" value={fStrategi}
               onChange={(e) => setFStrategi(e.target.value)} style={gayaInput}>
               {Object.entries(STRATEGI).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
               ))}
-            </select>
+            </Pilihan>
           }
         />
         <Medan id="rk-pemilik" label="Pemilik risiko"
           keterangan="Siapa yang mengurusnya. Risiko tinggi tanpa pemilik ditandai perlu perhatian — yang tak dimiliki siapa pun tak diurus siapa pun."
           anak={
-            <select id="rk-pemilik" value={fPemilik}
+            <Pilihan id="rk-pemilik" value={fPemilik}
               onChange={(e) => setFPemilik(e.target.value)} style={gayaInput}>
               <option value="">— belum ditentukan —</option>
               {orang.map((o) => (
                 <option key={o.id} value={o.id}>{o.name}</option>
               ))}
-            </select>
+            </Pilihan>
           }
         />
         <Medan id="rk-tenggat" label="Tenggat tinjau"
@@ -814,7 +815,7 @@ function IsiRisiko() {
               ? "Belum ada izin kerja tercatat di proyek ini."
               : "Menautkan izin kerja membuat pengendalian yang sudah disetujui di izin itu terbaca bersama risikonya — dan JSA-nya ikut terbawa."}
             anak={
-              <select id="rk-izin-kerja" value={fIzinKerja}
+              <Pilihan id="rk-izin-kerja" value={fIzinKerja}
                 onChange={(e) => setFIzinKerja(e.target.value)} style={gayaInput}
                 disabled={izinKerja.length === 0}>
                 <option value="">— tanpa izin kerja —</option>
@@ -824,7 +825,7 @@ function IsiRisiko() {
                     {z.uraian_pekerjaan ? ` · ${z.uraian_pekerjaan.slice(0, 40)}` : ""}
                   </option>
                 ))}
-              </select>
+              </Pilihan>
             }
           />
         )}
@@ -861,13 +862,13 @@ function IsiRisiko() {
         <Medan id="mt-penanggung" label="Penanggung"
           keterangan="Siapa yang mengerjakan tindakan ini."
           anak={
-            <select id="mt-penanggung" value={mPenanggung}
+            <Pilihan id="mt-penanggung" value={mPenanggung}
               onChange={(e) => setMPenanggung(e.target.value)} style={gayaInput}>
               <option value="">— belum ditentukan —</option>
               {orang.map((o) => (
                 <option key={o.id} value={o.id}>{o.name}</option>
               ))}
-            </select>
+            </Pilihan>
           }
         />
         <Medan id="mt-tenggat" label="Tenggat"

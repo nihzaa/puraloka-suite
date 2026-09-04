@@ -39,6 +39,7 @@ import {
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman } from "@/components/dasar";
+import { Pilihan } from "@/components/pilihan";
 
 interface Catatan {
   proyek_id: string;
@@ -139,7 +140,7 @@ export default function LaporanHarianPage() {
         />
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <label htmlFor="dpr-proyek" style={{ fontSize: 12, color: C.mid }}>Proyek</label>
-          <select
+          <Pilihan
             id="dpr-proyek"
             value={proyekId}
             onChange={(e) => setProyekId(e.target.value)}
@@ -152,7 +153,7 @@ export default function LaporanHarianPage() {
             {(data?.proyek ?? []).map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
-          </select>
+          </Pilihan>
           <button
             type="button"
             onClick={() => { void muatUlang(); }}

@@ -47,6 +47,7 @@ import {
   Tombol, Lencana, Medan, gayaInput, type Kolom,
 } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
+import { Pilihan } from "@/components/pilihan";
 
 interface Langkah {
   id: string;
@@ -310,7 +311,7 @@ export default function JsaPage() {
               fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Jenis pekerjaan</label>
-            <select
+            <Pilihan
               id="jsa-pilih" value={terpilih} onChange={(e) => setTerpilih(e.target.value)}
               style={{ ...gayaInput, maxWidth: 520 }}
             >
@@ -320,7 +321,7 @@ export default function JsaPage() {
                   {j.ringkas.sisa_tinggi > 0 ? " (perlu ditinjau)" : ""}
                 </option>
               ))}
-            </select>
+            </Pilihan>
           </Kartu>
 
           {/* ── SATU aksen: langkah yang masih tinggi sesudah kendali ─────── */}
@@ -509,20 +510,20 @@ export default function JsaPage() {
           <div style={{ flex: "1 1 140px" }}>
             <Medan id="lk-dampak" label="Dampak (1–5)"
               anak={
-                <select id="lk-dampak" value={lDampak}
+                <Pilihan id="lk-dampak" value={lDampak}
                   onChange={(e) => setLDampak(e.target.value)} style={gayaInput}>
                   {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
-                </select>
+                </Pilihan>
               }
             />
           </div>
           <div style={{ flex: "1 1 140px" }}>
             <Medan id="lk-kemungkinan" label="Kemungkinan (1–5)"
               anak={
-                <select id="lk-kemungkinan" value={lKemungkinan}
+                <Pilihan id="lk-kemungkinan" value={lKemungkinan}
                   onChange={(e) => setLKemungkinan(e.target.value)} style={gayaInput}>
                   {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
-                </select>
+                </Pilihan>
               }
             />
           </div>
@@ -536,22 +537,22 @@ export default function JsaPage() {
           <div style={{ flex: "1 1 140px" }}>
             <Medan id="lk-dampak-sisa" label="Dampak sesudah"
               anak={
-                <select id="lk-dampak-sisa" value={lDampakSisa}
+                <Pilihan id="lk-dampak-sisa" value={lDampakSisa}
                   onChange={(e) => setLDampakSisa(e.target.value)} style={gayaInput}>
                   <option value="">— belum dinilai —</option>
                   {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
-                </select>
+                </Pilihan>
               }
             />
           </div>
           <div style={{ flex: "1 1 140px" }}>
             <Medan id="lk-kemungkinan-sisa" label="Kemungkinan sesudah"
               anak={
-                <select id="lk-kemungkinan-sisa" value={lKemungkinanSisa}
+                <Pilihan id="lk-kemungkinan-sisa" value={lKemungkinanSisa}
                   onChange={(e) => setLKemungkinanSisa(e.target.value)} style={gayaInput}>
                   <option value="">— belum dinilai —</option>
                   {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
-                </select>
+                </Pilihan>
               }
             />
           </div>

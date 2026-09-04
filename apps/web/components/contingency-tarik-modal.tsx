@@ -41,6 +41,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { DialogBersama } from "@/components/dialog-bersama";
+import { Pilihan } from "@/components/pilihan";
 
 type CoLayak = {
   id: string;
@@ -229,7 +230,7 @@ export function ContingencyTarikModal({ pos, onTutup, onBerhasil }: ContingencyT
           <label htmlFor="ct-co" style={labelGaya}>
             Dasar change order <span style={{ fontWeight: 400, color: C.mid, textTransform: "none", letterSpacing: 0 }}>— opsional</span>
           </label>
-          <select
+          <Pilihan
             id="ct-co" value={coId} onChange={(e) => setCoId(e.target.value)}
             style={isianGaya} disabled={coGagal || !co || co.layak.length === 0}
             aria-describedby="ct-co-ket"
@@ -240,7 +241,7 @@ export function ContingencyTarikModal({ pos, onTutup, onBerhasil }: ContingencyT
                 {c.co_number}{c.judul ? ` · ${c.judul}` : ""}
               </option>
             ))}
-          </select>
+          </Pilihan>
           <span id="ct-co-ket" style={{ fontSize: 11, color: C.mid, lineHeight: 1.5 }}>
             {coGagal
               ? "Daftar change order tak bisa dimuat. Penarikan tetap bisa dicatat tanpa dasar CO."

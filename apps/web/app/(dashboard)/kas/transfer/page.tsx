@@ -28,6 +28,7 @@ import { Kosong } from "@/components/ui-dasar";
 import { RangkaBaris, TransferRow } from "../_bersama/komponen";
 import { type CashTransfer, fmtCompact, pesanGalat } from "../_bersama/tipe";
 import { kabari } from "@/components/tanya";
+import { Pilihan } from "@/components/pilihan";
 
 /** Status yang dikenali API. Nilai `?status=` di luar daftar diperlakukan
  *  sebagai "semua" — bukan diteruskan mentah ke API, yang akan menghasilkan
@@ -111,13 +112,13 @@ function TransferIsi() {
     // memeriksa `page.tsx` sendiri-sendiri, tanpa membaca layout induknya.
     <div style={{ width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
-        <select aria-label="Saring status transfer" value={saring} onChange={e => gantiSaring(e.target.value)}
+        <Pilihan aria-label="Saring status transfer" value={saring} onChange={e => gantiSaring(e.target.value)}
           style={{ padding: "var(--pad-tombol)", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none" }}>
           <option value="all">Semua Status</option>
           <option value="pending">Menunggu Konfirmasi</option>
           <option value="confirmed">Dikonfirmasi</option>
           <option value="cancelled">Dibatalkan</option>
-        </select>
+        </Pilihan>
         <button onClick={() => void muat()} style={{
           display: "flex", alignItems: "center", gap: 4, padding: "8px 12px",
           border: `1px solid ${C.border}`, borderRadius: 6, background: "var(--surface)",

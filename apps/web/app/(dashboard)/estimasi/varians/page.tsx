@@ -23,6 +23,7 @@ import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { LayarKosong } from "@/components/layar-kosong";
 import { angka, type ProyekRingkas } from "../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 interface VariansBaris {
   cost_code_id: string | null;
@@ -218,7 +219,7 @@ function Pemilih({ proyek, nilai, onPilih }: {
 }) {
   return (
     <div style={{ marginBottom: 14 }}>
-      <select
+      <Pilihan
         className="isian-fokus"
         aria-label="Proyek"
         value={nilai}
@@ -233,7 +234,7 @@ function Pemilih({ proyek, nilai, onPilih }: {
       >
         <option value="">— Pilih proyek —</option>
         {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-      </select>
+      </Pilihan>
     </div>
   );
 }

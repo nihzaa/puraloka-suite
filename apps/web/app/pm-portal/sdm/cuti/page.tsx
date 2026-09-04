@@ -28,6 +28,7 @@ import BottomSheet from "@/components/portal/BottomSheet";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import type { RespDaftarPegawai, RespCutiPegawai, JenisCutiPM, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 const LABEL_JENIS: Record<JenisCutiPM, string> = {
   tahunan: "Tahunan", sakit: "Sakit", melahirkan: "Melahirkan",
@@ -125,12 +126,12 @@ export default function PmCutiPage() {
         <div style={{ display: "flex", gap: 8 }}>
           <label style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Pegawai</span>
-            <select value={pegawaiAktif} onChange={(e) => setPegawaiId(e.target.value)}
+            <Pilihan value={pegawaiAktif} onChange={(e) => setPegawaiId(e.target.value)}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}>
               {daftarPegawai.map((p) => (
                 <option key={p.id} value={p.id}>{p.orang?.name ?? p.nomor_induk ?? p.id}</option>
               ))}
-            </select>
+            </Pilihan>
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6, width: 100 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Tahun</span>
@@ -201,10 +202,10 @@ export default function PmCutiPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jenis</span>
-            <select value={form.jenis} onChange={(e) => setForm((f) => ({ ...f, jenis: e.target.value as JenisCutiPM }))}
+            <Pilihan value={form.jenis} onChange={(e) => setForm((f) => ({ ...f, jenis: e.target.value as JenisCutiPM }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
               {(Object.keys(LABEL_JENIS) as JenisCutiPM[]).map((j) => <option key={j} value={j}>{LABEL_JENIS[j]}</option>)}
-            </select>
+            </Pilihan>
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Tanggal Mulai</span>

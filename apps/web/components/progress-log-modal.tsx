@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { X, Loader2, ClipboardEdit, ImagePlus, Check, List, CalendarDays } from "lucide-react";
 import { api, createProgressLog } from "@/lib/api";
 import { uploadProgressPhoto } from "@/lib/storage";
+import { Pilihan } from "@/components/pilihan";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -434,12 +435,12 @@ export function ProgressLogModal({
                           layar menyebut kaitan yang tak ada). */}
                       <label htmlFor={workScopes.length > 0 ? "work-scope-id" : "worker-count-tunggal"} style={fieldLabel}>{workScopes.length > 0 ? "Scope Pekerjaan" : "Jumlah Pekerja"}</label>
                       {workScopes.length > 0 ? (
-                        <select id="work-scope-id" aria-label="Pilih lingkup pekerjaan" value={workScopeId} onChange={e => setWorkScopeId(e.target.value)} style={fieldInput}
+                        <Pilihan id="work-scope-id" aria-label="Pilih lingkup pekerjaan" value={workScopeId} onChange={e => setWorkScopeId(e.target.value)} style={fieldInput}
                           onFocus={e => { e.target.style.borderColor = "var(--navy)"; }}
                           onBlur={e => { e.target.style.borderColor = "var(--border)"; }}>
                           <option value="">— Semua scope</option>
                           {workScopes.map(ws => <option key={ws.id} value={ws.id}>{ws.scope_name}</option>)}
-                        </select>
+                        </Pilihan>
                       ) : (
                         <input id="worker-count-tunggal" type="number" value={workerCount} onChange={e => setWorkerCount(e.target.value)} min={0} placeholder="0 orang" style={fieldInput}
                           onFocus={e => { e.target.style.borderColor = "var(--navy)"; e.target.style.boxShadow = "0 0 0 3px rgba(0,51,102,0.1)"; }}
@@ -490,7 +491,7 @@ export function ProgressLogModal({
                         Proyek ini belum memiliki RAB. Upload RAB Excel terlebih dahulu.
                       </div>
                     ) : (
-                      <select id="rab-item-pilihan" aria-label="Pilih item RAB" value={selectedRabId} onChange={e => setSelectedRabId(e.target.value)} style={fieldInput}
+                      <Pilihan id="rab-item-pilihan" aria-label="Pilih item RAB" value={selectedRabId} onChange={e => setSelectedRabId(e.target.value)} style={fieldInput}
                         onFocus={e => { e.target.style.borderColor = "var(--navy)"; }}
                         onBlur={e => { e.target.style.borderColor = "var(--border)"; }}>
                         <option value="">— Pilih item pekerjaan</option>
@@ -499,7 +500,7 @@ export function ProgressLogModal({
                             {it.category_code ? `${it.category_code}. ` : ""}{it.name} (bobot {it.weight_pct.toFixed(2)}%)
                           </option>
                         ))}
-                      </select>
+                      </Pilihan>
                     )}
                   </div>
 

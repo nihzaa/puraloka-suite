@@ -61,6 +61,7 @@ import {
 } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
 import { Saklar } from "@/components/saklar";
+import { Pilihan } from "@/components/pilihan";
 
 type StatusMasa =
   | "belum_terbit" | "berlaku" | "akan_habis" | "kedaluwarsa" | "ditolak" | "dicabut";
@@ -363,7 +364,7 @@ function IsiIzin() {
           fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
           marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
         }}>Proyek</label>
-        <select
+        <Pilihan
           id="iz-proyek" value={proyekId} onChange={(e) => setProyekId(e.target.value)}
           style={{ ...gayaInput, maxWidth: 420 }}
         >
@@ -371,7 +372,7 @@ function IsiIzin() {
           {proyekList.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
-        </select>
+        </Pilihan>
       </Kartu>
 
       {/* ── Spanduk kesiapan — SATU-SATUNYA aksen halaman ini (§3d) ─────── */}
@@ -500,14 +501,14 @@ function IsiIzin() {
         />
         <Medan id="iz-status" label="Status"
           anak={
-            <select id="iz-status" value={fStatus}
+            <Pilihan id="iz-status" value={fStatus}
               onChange={(e) => setFStatus(e.target.value)} style={gayaInput}>
               <option value="rencana">Rencana</option>
               <option value="diajukan">Diajukan</option>
               <option value="terbit">Terbit</option>
               <option value="ditolak">Ditolak</option>
               <option value="dicabut">Dicabut</option>
-            </select>
+            </Pilihan>
           }
         />
         <Medan id="iz-nomor" label="Nomor izin"

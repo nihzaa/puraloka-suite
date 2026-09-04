@@ -32,6 +32,7 @@ import SkeletonCard from "@/components/portal/SkeletonCard";
 import SegmentedTab from "@/components/portal/SegmentedTab";
 import type { KasbonTukang, ResponsKasbonTukang, PenugasanMandor, ResponsPenugasanMandor, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 interface WorkerOpsi { id: string; name: string }
 interface RespWorkers { workers: WorkerOpsi[] }
@@ -229,24 +230,24 @@ function FormKasbon({ onBatal, onSukses }: { onBatal: () => void; onSukses: () =
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
         Mandor / Proyek
-        <select
+        <Pilihan
           value={assignmentId} onChange={(e) => void pilihAssignment(e.target.value)}
           style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
         >
           <option value="">-- Pilih mandor --</option>
           {assignments.map((a) => <option key={a.id} value={a.id}>{a.mandor?.name} — {a.project?.name}</option>)}
-        </select>
+        </Pilihan>
       </label>
 
       <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
         Tukang
-        <select
+        <Pilihan
           value={workerId} onChange={(e) => setWorkerId(e.target.value)} disabled={!assignmentId}
           style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: assignmentId ? "var(--surface)" : "var(--surface-subtle)", color: "var(--text-primary)" }}
         >
           <option value="">-- Pilih tukang --</option>
           {workers.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-        </select>
+        </Pilihan>
       </label>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -268,7 +269,7 @@ function FormKasbon({ onBatal, onSukses }: { onBatal: () => void; onSukses: () =
 
       <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
         Tujuan
-        <select
+        <Pilihan
           value={purpose} onChange={(e) => setPurpose(e.target.value)}
           style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
         >
@@ -277,7 +278,7 @@ function FormKasbon({ onBatal, onSukses }: { onBatal: () => void; onSukses: () =
           <option value="pembelian_alat">Beli Alat</option>
           <option value="operasional">Operasional</option>
           <option value="lain_lain">Lain-lain</option>
-        </select>
+        </Pilihan>
       </label>
 
       <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>

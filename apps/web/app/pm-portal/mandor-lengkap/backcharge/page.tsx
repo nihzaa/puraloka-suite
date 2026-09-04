@@ -34,6 +34,7 @@ import SkeletonCard from "@/components/portal/SkeletonCard";
 import SegmentedTab from "@/components/portal/SegmentedTab";
 import type { BackCharge, ResponsBackCharge, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 interface ScopeOpsi {
   id: string; scope_name: string; payment_system: string; status: string;
@@ -228,7 +229,7 @@ function FormBackCharge({ onBatal, onSukses }: { onBatal: () => void; onSukses: 
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
         Lingkup kerja
-        <select
+        <Pilihan
           value={scopeId} onChange={(e) => setScopeId(e.target.value)}
           style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
         >
@@ -238,7 +239,7 @@ function FormBackCharge({ onBatal, onSukses }: { onBatal: () => void; onSukses: 
               {s.scope_name} — {s.assignment?.mandor?.name ?? "—"} ({s.assignment?.project?.name ?? "—"})
             </option>
           ))}
-        </select>
+        </Pilihan>
         <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, lineHeight: 1.4 }}>
           Potongan menempel pada lingkup kerja, bukan pada mandornya — satu mandor bisa memegang beberapa lingkup.
         </div>
@@ -254,12 +255,12 @@ function FormBackCharge({ onBatal, onSukses }: { onBatal: () => void; onSukses: 
         </label>
         <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
           Kategori
-          <select
+          <Pilihan
             value={kategori} onChange={(e) => setKategori(e.target.value)}
             style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
           >
             {KATEGORI_OPSI.map((k) => <option key={k.kunci} value={k.kunci}>{k.label}</option>)}
-          </select>
+          </Pilihan>
         </label>
       </div>
 

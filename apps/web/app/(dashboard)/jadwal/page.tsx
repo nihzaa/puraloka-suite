@@ -49,6 +49,7 @@ import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
 import { TabBagian } from "@/components/tab-bagian";
+import { Pilihan } from "@/components/pilihan";
 
 type Pekerjaan = {
   id: string;
@@ -434,7 +435,7 @@ function IsiJadwal() {
           <label htmlFor="pilih-proyek" style={{ fontSize: 12, color: C.mid, fontWeight: 600 }}>
             Proyek
           </label>
-          <select
+          <Pilihan
             id="pilih-proyek"
             value={dipilih}
             onChange={(e) => router.replace(`/jadwal?proyek=${e.target.value}`)}
@@ -447,7 +448,7 @@ function IsiJadwal() {
             {proyekList.map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
-          </select>
+          </Pilihan>
           <button
             type="button"
             onClick={muatUlang}

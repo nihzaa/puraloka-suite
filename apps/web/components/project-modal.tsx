@@ -59,6 +59,7 @@ interface ProjectModalProps {
 
 import { C } from "@/lib/warna-ui";
 import { Saklar } from "@/components/saklar";
+import { Pilihan } from "@/components/pilihan";
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "8px 12px",
@@ -381,22 +382,22 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                 <input style={inputStyle} value={form.location} onChange={e => set("location", e.target.value)} placeholder="Contoh: Bandung, Jawa Barat" />
               </Field>
               <Field label="Klien *" error={errors.client_id}>
-                <select aria-label="Klien pemberi kerja proyek" style={inputStyle} value={form.client_id} onChange={e => set("client_id", e.target.value)}>
+                <Pilihan aria-label="Klien pemberi kerja proyek" style={inputStyle} value={form.client_id} onChange={e => set("client_id", e.target.value)}>
                   <option value="">-- Pilih Klien --</option>
                   {clients.map(c => (
                     <option key={c.id} value={c.id}>
                       {c.contact_person}{c.company_name ? ` (${c.company_name})` : ""}
                     </option>
                   ))}
-                </select>
+                </Pilihan>
               </Field>
               <Field label="Project Manager *" error={errors.pm_id}>
-                <select aria-label="Project manager penanggung jawab" style={inputStyle} value={form.pm_id} onChange={e => set("pm_id", e.target.value)}>
+                <Pilihan aria-label="Project manager penanggung jawab" style={inputStyle} value={form.pm_id} onChange={e => set("pm_id", e.target.value)}>
                   <option value="">-- Pilih PM --</option>
                   {pms.map(u => (
                     <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
                   ))}
-                </select>
+                </Pilihan>
               </Field>
               <Field label="Deskripsi" error={errors.description}>
                 <textarea
@@ -509,11 +510,11 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                       label="Denda aktif untuk proyek ini"
                     />
                     <Field label="Basis denda">
-                      <select id="penalty-basis" aria-label="Basis perhitungan denda keterlambatan" style={inputStyle} value={form.penalty_basis} onChange={e => set("penalty_basis", e.target.value)}>
+                      <Pilihan id="penalty-basis" aria-label="Basis perhitungan denda keterlambatan" style={inputStyle} value={form.penalty_basis} onChange={e => set("penalty_basis", e.target.value)}>
                         <option value="invoice_telat">Nilai invoice yang telat</option>
                         <option value="outstanding_proyek">Sisa outstanding proyek</option>
                         <option value="kontrak_total">Nilai kontrak total</option>
-                      </select>
+                      </Pilihan>
                     </Field>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
                       <Field label="Tarif (‰/hari)">
@@ -612,7 +613,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                       <Field label="Trigger Pembayaran">
-                        <select
+                        <Pilihan
                           aria-label="Pemicu penagihan termin"
                           style={inputStyle}
                           value={t.trigger_type}
@@ -621,7 +622,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                           <option value="on_sign">Saat TTD Kontrak</option>
                           <option value="on_progress">Saat Progress Capai (%)</option>
                           <option value="on_retention">Retensi (setelah serah terima)</option>
-                        </select>
+                        </Pilihan>
                       </Field>
 
                       {t.trigger_type === "on_progress" && (

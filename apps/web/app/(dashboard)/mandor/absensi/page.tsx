@@ -30,6 +30,7 @@ import { useData } from "@/lib/data-cache";
 import { useIzin } from "@/lib/use-izin";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
+import { Pilihan } from "@/components/pilihan";
 
 type Scope = {
   id: string;
@@ -243,7 +244,7 @@ export default function AbsensiPage() {
           <label htmlFor="ab-scope" style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
             Lingkup kerja
           </label>
-          <select
+          <Pilihan
             id="ab-scope"
             value={scopeEfektif}
             onChange={(e) => setScopeId(e.target.value)}
@@ -255,7 +256,7 @@ export default function AbsensiPage() {
                 {s.project?.name ? `${s.project.name} · ` : ""}{s.scope_name}
               </option>
             ))}
-          </select>
+          </Pilihan>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>

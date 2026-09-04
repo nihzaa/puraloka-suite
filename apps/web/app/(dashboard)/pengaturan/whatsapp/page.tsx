@@ -44,6 +44,7 @@ import { GAYA_ISIAN } from "@/components/isian";
 import KartuSambungan from "./_sambungan";
 import { PanduanHalaman } from "@/components/panduan-halaman";
 import { Saklar } from "@/components/saklar";
+import { Pilihan } from "@/components/pilihan";
 
 
 
@@ -339,7 +340,7 @@ export default function WhatsAppPage() {
             <label htmlFor="pemilik-baru" style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: C.mid, marginBottom: 4 }}>
               Nomor ini milik
             </label>
-            <select className="isian-fokus"
+            <Pilihan className="isian-fokus"
               id="pemilik-baru"
               value={pemilikBaru}
               onChange={(e) => setPemilikBaru(e.target.value)}
@@ -351,7 +352,7 @@ export default function WhatsAppPage() {
                   {u.name}{u.id === akuId ? " (saya)" : ""}
                 </option>
               ))}
-            </select>
+            </Pilihan>
             <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
               Asisten menjawab memakai wewenang orang ini — bukan wewenang Anda.
             </p>

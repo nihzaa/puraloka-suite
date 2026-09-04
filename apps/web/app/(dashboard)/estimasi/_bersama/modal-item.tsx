@@ -40,6 +40,7 @@ import { GAYA_ISIAN } from "@/components/isian";
 import { HitungVolume, type MasukanTakeoff } from "./hitung-volume";
 import { Plus, X } from "lucide-react";
 import { Modal, label, btnPrimary, btnGhost } from "./kerangka";
+import { Pilihan } from "@/components/pilihan";
 
 
 
@@ -322,10 +323,10 @@ export function AddItemModal({ version, onClose, onDone }:
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 8 }}>
             <div>{label("Kategori (cost code)")}
-              <select className="isian-fokus" aria-label="Kode biaya item custom" style={GAYA_ISIAN} value={customCostCodeId} onChange={e => setCustomCostCodeId(e.target.value)}>
+              <Pilihan className="isian-fokus" aria-label="Kode biaya item custom" style={GAYA_ISIAN} value={customCostCodeId} onChange={e => setCustomCostCodeId(e.target.value)}>
                 <option value="">— pilih —</option>
                 {costCodes.map(c => <option key={c.id} value={c.id}>{c.code} — {c.name}</option>)}
-              </select></div>
+              </Pilihan></div>
             <div>{label("Satuan output")}<input className="isian-fokus" style={GAYA_ISIAN} value={customUnit} onChange={e => setCustomUnit(e.target.value)} placeholder="mis. m2, kg, unit" /></div>
           </div>
           {label("Komponen (resource code + koefisien)")}
@@ -390,10 +391,10 @@ export function AddItemModal({ version, onClose, onDone }:
                     : "Dari markup perusahaan yang berlaku."}
               </span></div>
             <div>{label("Pembulatan")}
-              <select className="isian-fokus" aria-label="Metode pembulatan" style={GAYA_ISIAN} value={roundMode} onChange={e => setRoundMode(e.target.value as typeof roundMode)}>
+              <Pilihan className="isian-fokus" aria-label="Metode pembulatan" style={GAYA_ISIAN} value={roundMode} onChange={e => setRoundMode(e.target.value as typeof roundMode)}>
                 <option value="down">ROUNDDOWN</option><option value="up">ROUNDUP</option>
                 <option value="nearest">ROUND</option><option value="none">Tanpa</option>
-              </select></div>
+              </Pilihan></div>
             <div>{label("Kelipatan (Rp)")}
               <input className="isian-fokus" style={GAYA_ISIAN} type="number" min="0" value={roundStep} onChange={e => setRoundStep(e.target.value)} /></div>
           </div>
@@ -406,10 +407,10 @@ export function AddItemModal({ version, onClose, onDone }:
             Untuk pekerjaan yang bukan analisa AHSP (lift, pompa, septictank, air kerja, dll) — harga langsung, tanpa koefisien.
           </p>
           {label("Kategori (cost code)")}
-          <select className="isian-fokus" aria-label="Kode biaya item lump-sum" style={GAYA_ISIAN} value={lumpCostCodeId} onChange={e => setLumpCostCodeId(e.target.value)}>
+          <Pilihan className="isian-fokus" aria-label="Kode biaya item lump-sum" style={GAYA_ISIAN} value={lumpCostCodeId} onChange={e => setLumpCostCodeId(e.target.value)}>
             <option value="">— pilih —</option>
             {costCodes.map(c => <option key={c.id} value={c.id}>{c.code} — {c.name}</option>)}
-          </select>
+          </Pilihan>
           {label("Jumlah (Rp)")}
           <input className="isian-fokus" style={GAYA_ISIAN} type="number" min="0" step="any" value={lumpAmount} onChange={e => setLumpAmount(e.target.value)} />
           {label("Catatan (opsional)")}

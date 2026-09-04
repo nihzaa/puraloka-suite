@@ -47,6 +47,7 @@ import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
+import { Pilihan } from "@/components/pilihan";
 import {
   Halaman, KepalaHalaman, Kartu, JudulKartu, KartuAngka, BarisAngka,
   Tabel, Kosong, Rangka, Galat, Tombol, Lencana, Medan, gayaInput,
@@ -497,7 +498,7 @@ function IsiK3() {
           fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
           marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
         }}>Proyek</label>
-        <select
+        <Pilihan
           id="k3-pilih-proyek" value={proyekId}
           onChange={(e) => setProyekId(e.target.value)}
           style={{ ...gayaInput, maxWidth: 420 }}
@@ -506,7 +507,7 @@ function IsiK3() {
           {proyekList.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
-        </select>
+        </Pilihan>
       </Kartu>
 
       {/* ── SATU aksen: temuan berulang (§3d) ─────────────────────────────── */}
@@ -794,7 +795,7 @@ function IsiK3() {
         {temuanUntuk && data && data.inspeksi.length > 1 && (
           <Medan id="tm-inspeksi" label="Inspeksi"
             anak={
-              <select id="tm-inspeksi" value={temuanUntuk.id}
+              <Pilihan id="tm-inspeksi" value={temuanUntuk.id}
                 onChange={(e) => setTemuanUntuk(
                   data.inspeksi.find((x) => x.id === e.target.value) ?? temuanUntuk)}
                 style={gayaInput}>
@@ -803,7 +804,7 @@ function IsiK3() {
                     {tanggal(i.tanggal)}{i.area ? ` — ${i.area}` : ""}
                   </option>
                 ))}
-              </select>
+              </Pilihan>
             }
           />
         )}
@@ -827,12 +828,12 @@ function IsiK3() {
         </datalist>
         <Medan id="tm-tingkat" label="Tingkat"
           anak={
-            <select id="tm-tingkat" value={tTingkat}
+            <Pilihan id="tm-tingkat" value={tTingkat}
               onChange={(e) => setTTingkat(e.target.value)} style={gayaInput}>
               <option value="1">1 — Ringan</option>
               <option value="2">2 — Sedang</option>
               <option value="3">3 — Berat</option>
-            </select>
+            </Pilihan>
           }
         />
         <Medan id="tm-tindakan" label="Tindakan perbaikan"

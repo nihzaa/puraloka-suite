@@ -25,6 +25,7 @@ import KpiCard from "@/components/portal/KpiCard";
 import MiniChart from "@/components/portal/MiniChart";
 import type { ProyekPM, RespKurvaS, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 interface RespProyek {
   projects: ProyekPM[];
@@ -128,7 +129,7 @@ export default function PmKurvaSPage() {
       {daftarProyek.length > 1 && (
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek</span>
-          <select
+          <Pilihan
             value={proyekAktif}
             onChange={(e) => setProyekId(e.target.value)}
             style={{
@@ -146,7 +147,7 @@ export default function PmKurvaSPage() {
                 {p.name}
               </option>
             ))}
-          </select>
+          </Pilihan>
         </label>
       )}
 

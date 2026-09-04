@@ -28,6 +28,7 @@ import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, KepalaHalaman } from "@/components/dasar";
+import { Pilihan } from "@/components/pilihan";
 
 type Proyek = { id: string; name: string };
 type Material = { id: string; name: string; unit: string | null };
@@ -191,20 +192,20 @@ export default function MaterialKlienPage() {
             }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label htmlFor="mk-proyek" style={labelGaya}>Proyek penerima</label>
-                <select id="mk-proyek" value={proyekId} onChange={(e) => setProyekId(e.target.value)} style={isianGaya}>
+                <Pilihan id="mk-proyek" value={proyekId} onChange={(e) => setProyekId(e.target.value)} style={isianGaya}>
                   <option value="">— pilih —</option>
                   {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
+                </Pilihan>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label htmlFor="mk-material" style={labelGaya}>Material</label>
-                <select id="mk-material" value={materialId} onChange={(e) => setMaterialId(e.target.value)} style={isianGaya}>
+                <Pilihan id="mk-material" value={materialId} onChange={(e) => setMaterialId(e.target.value)} style={isianGaya}>
                   <option value="">— pilih —</option>
                   {material.map((m) => (
                     <option key={m.id} value={m.id}>{m.name}{m.unit ? ` (${m.unit})` : ""}</option>
                   ))}
-                </select>
+                </Pilihan>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>

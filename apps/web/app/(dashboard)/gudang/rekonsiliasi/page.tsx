@@ -32,6 +32,7 @@ import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom, KepalaHalaman } from "@/components/dasar";
+import { Pilihan } from "@/components/pilihan";
 
 type Proyek = { id: string; name: string; status?: string };
 
@@ -321,7 +322,7 @@ export default function RekonsiliasiMaterialPage() {
           <label htmlFor="rk-proyek" style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
             Proyek
           </label>
-          <select
+          <Pilihan
             id="rk-proyek"
             value={proyekEfektif}
             onChange={(e) => setProyekId(e.target.value)}
@@ -329,7 +330,7 @@ export default function RekonsiliasiMaterialPage() {
           >
             {proyek.length === 0 && <option value="">— belum ada proyek —</option>}
             {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          </Pilihan>
         </div>
 
         <button

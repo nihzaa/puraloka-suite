@@ -40,6 +40,7 @@ import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge"
 import BottomSheet from "@/components/portal/BottomSheet";
 import type { ProyekPM, DokumenKontrak, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 interface RespProyek { projects: ProyekPM[] }
 interface RespKontrakList { kontrak: DokumenKontrak[] }
@@ -389,11 +390,11 @@ export default function AdminRegisterKontrakPage() {
           {jenisBaru === "induk" && (
             <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
               Proyek
-              <select value={proyekForm} onChange={(e) => setProyekForm(e.target.value)}
+              <Pilihan value={proyekForm} onChange={(e) => setProyekForm(e.target.value)}
                 style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)", boxSizing: "border-box" }}>
                 <option value="">Pilih proyek</option>
                 {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
+              </Pilihan>
             </label>
           )}
           <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>

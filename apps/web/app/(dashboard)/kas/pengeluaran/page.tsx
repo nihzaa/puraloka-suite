@@ -29,6 +29,7 @@ import { useIzin } from "@/lib/use-izin";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { ExpenseRow, RangkaBaris } from "../_bersama/komponen";
+import { Pilihan } from "@/components/pilihan";
 import {
   type Expense, type RingkasKategori,
   TYPE_COLOR, TYPE_LABEL, fmt, fmtCompact, fmtDate, pesanGalat,
@@ -143,14 +144,14 @@ function PengeluaranIsi() {
     // memeriksa `page.tsx` sendiri-sendiri, tanpa membaca layout induknya.
     <div style={{ width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <select aria-label="Saring status pengeluaran" value={saring} onChange={e => gantiSaring(e.target.value)}
+        <Pilihan aria-label="Saring status pengeluaran" value={saring} onChange={e => gantiSaring(e.target.value)}
           style={{ padding: "var(--pad-tombol)", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: "var(--surface)", outline: "none" }}>
           <option value="all">Semua Status</option>
           <option value="submitted">Menunggu Review</option>
           <option value="approved">Disetujui</option>
           <option value="rejected">Ditolak</option>
           <option value="draft">Draft</option>
-        </select>
+        </Pilihan>
         <button onClick={() => void muat()} style={{
           display: "flex", alignItems: "center", gap: 4, padding: "8px 12px",
           border: `1px solid ${C.border}`, borderRadius: 6, background: "var(--surface)",

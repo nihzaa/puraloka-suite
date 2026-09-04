@@ -11,6 +11,7 @@ import {
   ShieldCheck, Search,
   Clock, User, Database, RefreshCw, AlertCircle, FileText,
 } from "lucide-react";
+import { Pilihan } from "@/components/pilihan";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -260,7 +261,7 @@ export default function AuditPage() {
         </div>
 
         {/* Table filter */}
-        <select aria-label="Tabel"
+        <Pilihan aria-label="Tabel"
           value={filterTable}
           onChange={e => setFilterTable(e.target.value)}
           style={{ height: 36, borderRadius: 6, border: "1px solid var(--border)", fontSize: 12, padding: "0 10px", flex: "0 0 auto", minWidth: 150 }}
@@ -269,10 +270,10 @@ export default function AuditPage() {
           {auditMeta.tables.map(t => (
             <option key={t} value={t}>{tableIcon(t)} {t}</option>
           ))}
-        </select>
+        </Pilihan>
 
         {/* Action filter */}
-        <select aria-label="Aksi"
+        <Pilihan aria-label="Aksi"
           value={filterAction}
           onChange={e => setFilterAction(e.target.value)}
           style={{ height: 36, borderRadius: 6, border: "1px solid var(--border)", fontSize: 12, padding: "0 10px", flex: "0 0 auto", minWidth: 160 }}
@@ -281,7 +282,7 @@ export default function AuditPage() {
           {auditMeta.actions.map(a => (
             <option key={a} value={a}>{a}</option>
           ))}
-        </select>
+        </Pilihan>
 
         {/* Date range */}
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>

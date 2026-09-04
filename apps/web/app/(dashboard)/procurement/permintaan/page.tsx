@@ -22,6 +22,7 @@ import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
 import { Badge, Btn, Card, Memuat, Modal, STATUS_BADGE, fmt, fmtDate, tundaSatuTick } from "../_bersama/ui";
 import { CreateMrModal } from "../_bersama/modal-mr";
+import { Pilihan } from "@/components/pilihan";
 
 interface ItemMr {
   id: string;
@@ -214,14 +215,14 @@ export default function PermintaanPage() {
       />
 
       <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", justifyContent: "space-between" }}>
-        <select
+        <Pilihan
           aria-label="Saring status permintaan material" value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
           style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: C.surface, color: C.text }}
         >
           <option value="">Semua Status</option>
           {STATUS_MR.map(s => <option key={s} value={s}>{STATUS_BADGE[s]?.label ?? s}</option>)}
-        </select>
+        </Pilihan>
         <Btn onClick={() => setShowCreate(true)}><Plus size={14} aria-hidden="true" /> Buat Material Request</Btn>
       </div>
 

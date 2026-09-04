@@ -33,6 +33,7 @@ import SegmentedTab from "@/components/portal/SegmentedTab";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import type { Mitra, ResponsMitra, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 function statusMitra(m: Mitra): { varian: VarianStatus; label: string } {
   // Urutan prioritas SAMA dengan `periksaKelayakan()` server
@@ -302,7 +303,7 @@ export default function PmMitraPage() {
             <label htmlFor="pm-mitra-bentuk" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
               Bentuk
             </label>
-            <select
+            <Pilihan
               id="pm-mitra-bentuk"
               value={form.bentuk}
               // Bentuk TIDAK bisa diubah sesudah tersimpan — kontrak yang sudah
@@ -322,7 +323,7 @@ export default function PmMitraPage() {
             >
               <option value="orang">Orang — mandor borongan, tukang</option>
               <option value="badan_usaha">Badan usaha — PT / CV / UD</option>
-            </select>
+            </Pilihan>
             {editMitra && (
               <span style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginTop: 4 }}>
                 Bentuk tak bisa diubah — kontrak yang sudah terbit menyebutnya.

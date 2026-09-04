@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { Saklar } from "@/components/saklar";
+import { Pilihan } from "@/components/pilihan";
 
 const C = {
   navy: "var(--navy)", text: "var(--text-primary)", mid: "var(--text-secondary)",
@@ -430,10 +431,10 @@ function FormSurat({
             required placeholder="012/PP/VIII/2026" style={gayaInput} />
         </Medan>
         <Medan label="Jenis">
-          <select value={jenis} onChange={(e) => setJenis(e.target.value)}
+          <Pilihan value={jenis} onChange={(e) => setJenis(e.target.value)}
             aria-label="Jenis surat" style={gayaInput}>
             {Object.entries(JENIS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
+          </Pilihan>
         </Medan>
       </div>
 

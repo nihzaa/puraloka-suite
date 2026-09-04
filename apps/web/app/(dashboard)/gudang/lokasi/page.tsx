@@ -32,6 +32,7 @@ import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
+import { Pilihan } from "@/components/pilihan";
 
 interface Gudang {
   id: string;
@@ -546,7 +547,7 @@ function FormGudang({ mode, awal, anggota, onTutup, onSelesai }: {
 
       <div style={{ marginBottom: 14 }}>
         <Label htmlFor="gd-penjaga">Penanggung jawab</Label>
-        <select
+        <Pilihan
           id="gd-penjaga" value={isi.penjaga_id}
           onChange={(e) => ubah("penjaga_id", e.target.value)}
           style={GAYA_ISIAN}
@@ -555,7 +556,7 @@ function FormGudang({ mode, awal, anggota, onTutup, onSelesai }: {
           {anggota.map((a) => (
             <option key={a.id} value={a.id}>{a.name}</option>
           ))}
-        </select>
+        </Pilihan>
         <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
           Gudang tanpa penanggung jawab adalah gudang yang selisih stoknya tak bisa
           ditanyakan ke siapa pun.

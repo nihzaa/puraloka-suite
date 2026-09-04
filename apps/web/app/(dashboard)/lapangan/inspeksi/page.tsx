@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { ChecklistInspeksi } from "@/components/checklist-inspeksi";
 import { tanya, minta } from "@/components/tanya";
+import { Pilihan } from "@/components/pilihan";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // REQUEST FOR INSPECTION — izin cor, izin tutup.
@@ -271,7 +272,7 @@ export default function InspeksiPage() {
 
         <div className="in-kepala-aksi">
           <label className="in-pilih-bungkus">
-            <select
+            <Pilihan
               className="in-pilih"
               aria-label="Pilih proyek yang permintaannya ditampilkan"
               value={proyekId}
@@ -287,7 +288,7 @@ export default function InspeksiPage() {
                 </option>
               )}
               {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            </Pilihan>
             <ChevronDown size={16} className="in-pilih-ikon" aria-hidden />
           </label>
           <button className="in-tombol-utama" onClick={() => bukaForm(true)} disabled={!proyekId}>

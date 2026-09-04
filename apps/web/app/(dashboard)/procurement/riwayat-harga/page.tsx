@@ -31,6 +31,7 @@ import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
 import { formatRupiah } from "@/lib/format";
+import { Pilihan } from "@/components/pilihan";
 
 type Proyek = { id: string; name: string };
 
@@ -266,7 +267,7 @@ export default function RiwayatHargaPage() {
       }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 260 }}>
           <label htmlFor="rh-proyek" style={labelGaya}>Proyek</label>
-          <select
+          <Pilihan
             id="rh-proyek" value={proyekId} onChange={(e) => setProyekId(e.target.value)}
             style={{
               padding: "8px 10px", borderRadius: 6, border: `1px solid ${C.border}`,
@@ -275,7 +276,7 @@ export default function RiwayatHargaPage() {
           >
             <option value="">Semua proyek</option>
             {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          </Pilihan>
         </div>
 
         <button

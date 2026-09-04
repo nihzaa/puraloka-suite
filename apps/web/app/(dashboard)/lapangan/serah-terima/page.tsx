@@ -37,6 +37,7 @@ import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
+import { Pilihan } from "@/components/pilihan";
 
 type Jenis = "pho" | "fho";
 type Status = "draf" | "ditandatangani" | "dibatalkan";
@@ -666,7 +667,7 @@ function FormTerbitBa({ proyek, onTutup, onSelesai }: {
 
       <div style={{ marginBottom: 14 }}>
         <Label htmlFor="ba-proyek" wajib>Proyek</Label>
-        <select
+        <Pilihan
           id="ba-proyek" value={isi.project_id}
           onChange={(e) => ubah("project_id", e.target.value)}
           style={GAYA_ISIAN}
@@ -675,7 +676,7 @@ function FormTerbitBa({ proyek, onTutup, onSelesai }: {
           {proyek.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
-        </select>
+        </Pilihan>
       </div>
 
       {/* Kesiapan — muncul sebelum sisanya diisi, bukan sesudah ditolak. */}
@@ -704,14 +705,14 @@ function FormTerbitBa({ proyek, onTutup, onSelesai }: {
       }}>
         <div>
           <Label htmlFor="ba-jenis" wajib>Jenis</Label>
-          <select
+          <Pilihan
             id="ba-jenis" value={isi.jenis}
             onChange={(e) => ubah("jenis", e.target.value)}
             style={GAYA_ISIAN}
           >
             <option value="pho">PHO — serah terima pertama</option>
             <option value="fho">FHO — serah terima akhir</option>
-          </select>
+          </Pilihan>
         </div>
         <div>
           <Label htmlFor="ba-tanggal" wajib>Tanggal</Label>

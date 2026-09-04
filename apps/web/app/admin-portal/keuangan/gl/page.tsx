@@ -78,6 +78,7 @@ import type {
   GalatApi,
 } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 // `langganan`: pola PERSIS Task 10 — perubahan permission (login/switch
 // company) tercermin tanpa reload.
@@ -497,10 +498,10 @@ export default function AdminGlPage() {
               </label>
               <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Tipe *</span>
-                <select value={formAkun.type} onChange={(e) => setFormAkun((f) => ({ ...f, type: e.target.value as AkunGl["type"] }))}
+                <Pilihan value={formAkun.type} onChange={(e) => setFormAkun((f) => ({ ...f, type: e.target.value as AkunGl["type"] }))}
                   style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
                   {Object.entries(LABEL_TIPE_AKUN).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </select>
+                </Pilihan>
               </label>
               <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Deskripsi</span>
@@ -547,11 +548,11 @@ export default function AdminGlPage() {
                     tanpa cara membedakan baris mana yang sedang diisi.
                     Judul "Baris Jurnal" di atas hanya <div>, bukan label.
                   */}
-                  <select aria-label={`Akun jurnal baris ${i + 1}`} value={l.account_id} onChange={(e) => ubahLini(i, "account_id", e.target.value)}
+                  <Pilihan aria-label={`Akun jurnal baris ${i + 1}`} value={l.account_id} onChange={(e) => ubahLini(i, "account_id", e.target.value)}
                     style={{ minHeight: 40, padding: "0 8px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, flex: 2 }}>
                     <option value="">Akun</option>
                     {(dataAkun?.data ?? []).map((a) => <option key={a.id} value={a.id}>{a.code} {a.name}</option>)}
-                  </select>
+                  </Pilihan>
                   <input aria-label={`Debit baris ${i + 1}`} type="number" min={0} placeholder="Debit" value={l.debit} onChange={(e) => ubahLini(i, "debit", e.target.value)}
                     style={{ minHeight: 40, padding: "0 8px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, flex: 1, width: 0 }} />
                   <input aria-label={`Kredit baris ${i + 1}`} type="number" min={0} placeholder="Kredit" value={l.credit} onChange={(e) => ubahLini(i, "credit", e.target.value)}

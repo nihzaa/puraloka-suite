@@ -27,6 +27,7 @@ import { Kosong } from "@/components/ui-dasar";
 import { Paginasi } from "@/components/paginasi";
 import { C } from "@/lib/warna-ui";
 import { Skeleton, StatusBadge, AddKasbonModal } from "../_bersama/komponen";
+import { Pilihan } from "@/components/pilihan";
 import {
   fmt, fmtCompact, fmtDate, KASBON_STATUS, PURPOSE_LABEL, FUND_SOURCE_LABEL,
   type Kasbon, type WorkerKasbon, type KasbonSummaryData, type CashAccount,
@@ -240,14 +241,14 @@ export default function KasbonPage() {
         {kasbonSubTab === "daftar" && (
           <>
             <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
-              <select aria-label="Saring status kasbon" value={kasbonStatusFilter} onChange={e => setKasbonStatusFilter(e.target.value)}
+              <Pilihan aria-label="Saring status kasbon" value={kasbonStatusFilter} onChange={e => setKasbonStatusFilter(e.target.value)}
                 style={{ padding: "6px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, color: C.text, background: "var(--surface)", outline: "none" }}>
                 <option value="all">Semua Status</option>
                 <option value="pending">Menunggu Persetujuan</option>
                 <option value="approved">Disetujui</option>
                 <option value="rejected">Ditolak</option>
                 <option value="settled">Settled</option>
-              </select>
+              </Pilihan>
               <button onClick={() => void loadKasbons()} style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", border: `1px solid ${C.border}`, borderRadius: 6, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>
                 <RefreshCw size={13} /> Refresh
               </button>
@@ -330,13 +331,13 @@ export default function KasbonPage() {
                           {canEdit && k.status === "pending" && approvingKasbonId === k.id && (
                             <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 10, background: C.greenBg, border: `1px solid ${C.greenBorder}`, textAlign: "left", minWidth: 230 }}>
                               <div style={{ fontSize: 11, fontWeight: 600, color: C.green, marginBottom: 6 }}>Potong dari kas:</div>
-                              <select aria-label="Sumber kas pembayaran kasbon" value={kasbonCashAccountId} onChange={e => setKasbonCashAccountId(e.target.value)}
+                              <Pilihan aria-label="Sumber kas pembayaran kasbon" value={kasbonCashAccountId} onChange={e => setKasbonCashAccountId(e.target.value)}
                                 style={{ width: "100%", padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, background: "var(--surface)", outline: "none", marginBottom: 8, boxSizing: "border-box" }}>
                                 <option value="">— Tanpa potong kas —</option>
                                 {kasbonCashAccounts.map(a => (
                                   <option key={a.id} value={a.id}>{a.name} · {fmtCompact(Number(a.balance))}</option>
                                 ))}
-                              </select>
+                              </Pilihan>
                               <div style={{ display: "flex", gap: 6 }}>
                                 <button onClick={() => setApprovingKasbonId(null)}
                                   style={{ flex: 1, padding: "6px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 11, cursor: "pointer" }}>Batal</button>
@@ -484,12 +485,12 @@ export default function KasbonPage() {
         {kasbonType === "tukang" && (
           <>
             <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
-              <select aria-label="Saring kasbon tukang" value={workerKasbonFilter} onChange={e => setWorkerKasbonFilter(e.target.value)}
+              <Pilihan aria-label="Saring kasbon tukang" value={workerKasbonFilter} onChange={e => setWorkerKasbonFilter(e.target.value)}
                 style={{ padding: "6px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, color: C.text, background: "var(--surface)", outline: "none" }}>
                 <option value="all">Semua</option>
                 <option value="active">Belum Lunas</option>
                 <option value="settled">Sudah Lunas</option>
-              </select>
+              </Pilihan>
               <button onClick={() => void loadWorkerKasbons()} style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", border: `1px solid ${C.border}`, borderRadius: 6, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>
                 <RefreshCw size={13} /> Refresh
               </button>

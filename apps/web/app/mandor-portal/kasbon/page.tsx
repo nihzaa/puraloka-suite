@@ -11,6 +11,7 @@ import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge"
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import SegmentedTab from "@/components/portal/SegmentedTab";
+import { Pilihan } from "@/components/pilihan";
 
 /** `Kasbon` bersama tak punya `approver` — hanya dipakai di halaman ini. */
 interface KasbonDenganApprover extends Kasbon {
@@ -271,7 +272,7 @@ export default function MandorKasbonPage() {
             <label htmlFor="project-id" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
               Proyek <span style={{ color: "var(--danger)" }}>*</span>
             </label>
-            <select
+            <Pilihan
               id="project-id"
               aria-label="Proyek"
               value={form.project_id}
@@ -287,7 +288,7 @@ export default function MandorKasbonPage() {
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
-            </select>
+            </Pilihan>
           </div>
 
           <div>
@@ -298,7 +299,7 @@ export default function MandorKasbonPage() {
             <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "0 0 6px" }}>
               Kosongkan jika kasbon bersifat umum dan tidak terikat scope tertentu.
             </p>
-            <select
+            <Pilihan
               aria-label="Pilih lingkup pekerjaan"
               value={form.work_scope_id}
               onChange={(e) => setForm((f) => ({ ...f, work_scope_id: e.target.value }))}
@@ -314,7 +315,7 @@ export default function MandorKasbonPage() {
               {filteredScopes.map((s) => (
                 <option key={s.id} value={s.id}>{s.scope_name}</option>
               ))}
-            </select>
+            </Pilihan>
           </div>
 
           <div>
@@ -340,7 +341,7 @@ export default function MandorKasbonPage() {
             <label htmlFor="purpose" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
               Keperluan
             </label>
-            <select
+            <Pilihan
               id="purpose"
               aria-label="Tujuan kasbon"
               value={form.purpose}
@@ -352,14 +353,14 @@ export default function MandorKasbonPage() {
               }}
             >
               {PURPOSE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+            </Pilihan>
           </div>
 
           <div>
             <label htmlFor="fund-source" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
               Sumber Dana
             </label>
-            <select
+            <Pilihan
               id="fund-source"
               aria-label="Sumber dana kasbon"
               value={form.fund_source}
@@ -371,7 +372,7 @@ export default function MandorKasbonPage() {
               }}
             >
               {FUND_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+            </Pilihan>
           </div>
 
           <div>

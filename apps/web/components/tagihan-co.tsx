@@ -44,6 +44,7 @@ import { C } from "@/lib/warna-ui";
 import {
   ModalDasar, TombolModal, KakiModal, gayaLabel, gayaInput, gayaGalat, pesanGalat,
 } from "@/components/modal-dasar";
+import { Pilihan } from "@/components/pilihan";
 
 type Proyek = { id: string; name: string };
 
@@ -176,7 +177,7 @@ export function ModalTagihanCo({ onClose, onSukses }: {
         <>
           <div>
             <label htmlFor="tc-co" style={gayaLabel}>Change order</label>
-            <select id="tc-co" value={pilih} style={gayaInput}
+            <Pilihan id="tc-co" value={pilih} style={gayaInput}
               onChange={(e) => setPilih(e.target.value)}>
               <option value="">— pilih pekerjaan tambah —</option>
               {belum.map((c) => (
@@ -184,7 +185,7 @@ export function ModalTagihanCo({ onClose, onSukses }: {
                   {c.co_number} — {c.title} · {rupiah(c.total_amount_delta)}
                 </option>
               ))}
-            </select>
+            </Pilihan>
           </div>
 
           {terpilih && (

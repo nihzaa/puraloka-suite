@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { tanya } from "@/components/tanya";
+import { Pilihan } from "@/components/pilihan";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -169,12 +170,12 @@ function ItemForm({
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <label htmlFor="value" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Tipe</label>
-          <select id="value" aria-label="Tipe item change order" value={value.item_type} onChange={set("item_type")} style={inpStyle}>
+          <Pilihan id="value" aria-label="Tipe item change order" value={value.item_type} onChange={set("item_type")} style={inpStyle}>
             <option value="kerja_tambah">Kerja Tambah</option>
             <option value="kerja_kurang">Kerja Kurang</option>
             <option value="perubahan_volume">Perubahan Volume</option>
             <option value="perubahan_spec">Perubahan Spec</option>
-          </select>
+          </Pilihan>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <label htmlFor="value-6" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Delta Biaya (Rp)</label>
@@ -710,14 +711,14 @@ function CreateCoModal({
             dibiarkan jadi istilah yang harus ditebak. */}
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <label htmlFor="billing-mode" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Mode Penagihan</label>
-          <select id="billing-mode" aria-label="Mode penagihan change order"
+          <Pilihan id="billing-mode" aria-label="Mode penagihan change order"
             aria-describedby="billing-mode-bantu"
             value={billingMode} onChange={e => setBillingMode(e.target.value)} style={inpStyle}>
             <option value="">— Belum ditentukan —</option>
             <option value="include_termin">Termasuk dalam Termin</option>
             <option value="separate_co">Tagihan CO Tersendiri</option>
             <option value="final_account">Final Account Settlement</option>
-          </select>
+          </Pilihan>
           <p id="billing-mode-bantu" style={{ fontSize: 11, color: C.muted, margin: 0, lineHeight: 1.5 }}>
             {billingMode === "include_termin"
               ? "Nilai kontrak naik sebesar CO ini, dan IPC berikutnya otomatis menagihnya sesuai progres."

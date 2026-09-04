@@ -9,6 +9,7 @@ import { BellRing, Plus, Trash2, Info, ShieldCheck, UserCog, Users, HardHat } fr
 
 import { C } from "@/lib/warna-ui";
 import { GAYA_KARTU } from "@/components/ui-dasar";
+import { Pilihan } from "@/components/pilihan";
 
 const input: React.CSSProperties = { padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", background: "var(--surface)", color: C.text, boxSizing: "border-box", fontFamily: "inherit" };
 
@@ -235,18 +236,18 @@ function RuleCard({ rule, roles, perms, canManage, onToggle, onAdd, onRemove }: 
 
       {canManage && (adding ? (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12, alignItems: "center" }}>
-          <select aria-label="Jenis" value={type} onChange={e => { setType(e.target.value as TargetType); setValue(""); }} style={{ ...input, width: 150 }}>
+          <Pilihan aria-label="Jenis" value={type} onChange={e => { setType(e.target.value as TargetType); setValue(""); }} style={{ ...input, width: 150 }}>
             {(Object.keys(TARGET_META) as TargetType[]).map(k => (
               <option key={k} value={k}>{TARGET_META[k].text}</option>
             ))}
-          </select>
+          </Pilihan>
           {needsValue && (
-            <select aria-label={type === "role" ? "Peran penerima notifikasi" : "Kapabilitas penerima notifikasi"} value={value} onChange={e => setValue(e.target.value)} style={{ ...input, minWidth: 240 }}>
+            <Pilihan aria-label={type === "role" ? "Peran penerima notifikasi" : "Kapabilitas penerima notifikasi"} value={value} onChange={e => setValue(e.target.value)} style={{ ...input, minWidth: 240 }}>
               <option value="">Pilih {type === "role" ? "peran" : "kapabilitas"}…</option>
               {type === "role"
                 ? roles.map(r => <option key={r.name} value={r.name}>{r.label ?? r.name}</option>)
                 : perms.map(p => <option key={p.key} value={p.key}>{p.label ? `${p.label} — ${p.key}` : p.key}</option>)}
-            </select>
+            </Pilihan>
           )}
           <button onClick={submit} disabled={needsValue && !value}
             style={{ ...input, width: "auto", cursor: needsValue && !value ? "not-allowed" : "pointer", background: "var(--grad-aksen)", color: C.onNavy, borderColor: C.navy, fontWeight: 600 }}>

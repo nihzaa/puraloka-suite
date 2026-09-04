@@ -44,6 +44,7 @@ import EmptyState from "@/components/portal/EmptyState";
 import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import SegmentedTab from "@/components/portal/SegmentedTab";
+import { Pilihan } from "@/components/pilihan";
 
 /*
   Bentuk disalin dari API (`routes/v1/absensi.ts`, `mandor.ts`), bukan
@@ -254,7 +255,7 @@ export default function AbsensiPortalPage() {
           {/* ── Pemilih lingkup + tanggal ─────────────────────────────── */}
           <div style={kartu}>
             <label style={label} htmlFor="pilih-scope">Lingkup kerja</label>
-            <select
+            <Pilihan
               id="pilih-scope"
               value={scopeEfektif}
               onChange={(e) => setScopeId(e.target.value)}
@@ -265,7 +266,7 @@ export default function AbsensiPortalPage() {
                   {s.project?.name ? `${s.project.name} — ` : ""}{s.scope_name}
                 </option>
               ))}
-            </select>
+            </Pilihan>
 
             <label style={{ ...label, marginTop: 12 }} htmlFor="pilih-tanggal">
               Tanggal

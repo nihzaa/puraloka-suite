@@ -32,6 +32,7 @@ import SkeletonCard from "@/components/portal/SkeletonCard";
 import SegmentedTab from "@/components/portal/SegmentedTab";
 import type { OpnameBersama, ResponsOpnameBersama, ResponsKesiapanOpname, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 interface ScopeOpsi {
   id: string; scope_name: string; payment_system: string; status: string;
@@ -269,7 +270,7 @@ function FormOpname({ onBatal, onSukses }: { onBatal: () => void; onSukses: () =
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
         Lingkup kerja
-        <select
+        <Pilihan
           value={scopeId} onChange={(e) => setScopeId(e.target.value)}
           style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
         >
@@ -279,7 +280,7 @@ function FormOpname({ onBatal, onSukses }: { onBatal: () => void; onSukses: () =
               {s.scope_name} — {s.assignment?.mandor?.name ?? "—"} ({s.assignment?.project?.name ?? "—"})
             </option>
           ))}
-        </select>
+        </Pilihan>
       </label>
 
       <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>

@@ -36,6 +36,7 @@ import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_ISIAN } from "@/components/isian";
 import { Saklar } from "@/components/saklar";
+import { Pilihan } from "@/components/pilihan";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: "1px solid var(--border)",
@@ -315,9 +316,9 @@ function KartuTambah({ katalog, entitas, adaKunci, onDone, onError }: {
           <label htmlFor="cf-tipe" style={{ display: "block", fontSize: 12, fontWeight: 500, color: C.mid, marginBottom: 4 }}>
             Tipe
           </label>
-          <select id="cf-tipe" value={tipe} onChange={e => setTipe(e.target.value)} style={GAYA_ISIAN}>
+          <Pilihan id="cf-tipe" value={tipe} onChange={e => setTipe(e.target.value)} style={GAYA_ISIAN}>
             {katalog.tipe.map(t => <option key={t} value={t}>{NAMA_TIPE[t] ?? t}</option>)}
-          </select>
+          </Pilihan>
         </div>
       </div>
 

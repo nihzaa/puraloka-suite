@@ -35,6 +35,7 @@ import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
+import { Pilihan } from "@/components/pilihan";
 
 type StatusTemplate = "draft" | "active" | "superseded";
 
@@ -690,7 +691,7 @@ function FormTerapkan({ template, proyek, onTutup, onSelesai }: {
 
       <div style={{ marginBottom: 14 }}>
         <Label htmlFor="terap-proyek" wajib>Proyek tujuan</Label>
-        <select
+        <Pilihan
           id="terap-proyek" value={projectId} onChange={(e) => setProjectId(e.target.value)}
           style={GAYA_ISIAN}
         >
@@ -698,7 +699,7 @@ function FormTerapkan({ template, proyek, onTutup, onSelesai }: {
           {proyek.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
-        </select>
+        </Pilihan>
       </div>
 
       {/* Yang TIDAK ikut — disebut di depan, bukan sesudah orang mengira

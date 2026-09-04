@@ -47,6 +47,7 @@ import { GAYA_KARTU } from "@/components/ui-dasar";
 import { GAYA_ISIAN } from "@/components/isian";
 import { PanduanHalaman } from "@/components/panduan-halaman";
 import { Saklar } from "@/components/saklar";
+import { Pilihan } from "@/components/pilihan";
 
 
 
@@ -489,7 +490,7 @@ export default function PenyediaAiPage() {
                 <label htmlFor="mode-global" style={{ display: "block", fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5 }}>
                   Saat batas tercapai
                 </label>
-                <select className="isian-fokus"
+                <Pilihan className="isian-fokus"
                   id="mode-global"
                   aria-label="Tindakan saat batas biaya AI tercapai"
                   value={modeGlobal}
@@ -502,7 +503,7 @@ export default function PenyediaAiPage() {
                 >
                   <option value="peringatkan">Tetap jalan, beri peringatan</option>
                   <option value="blokir">Hentikan panggilan AI</option>
-                </select>
+                </Pilihan>
                 <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
                   {modeGlobal === "blokir"
                     ? "Asisten berhenti menjawab sampai bulan berikutnya."
@@ -743,7 +744,7 @@ export default function PenyediaAiPage() {
                     identik jadi tampak punya bentuk berbeda-beda, dan mata
                     kehilangan pasangan label↔isian antar kartu.
 
-                    `minmax(0, 1fr)` — bukan `auto` — supaya `<select>` yang
+                    `minmax(0, 1fr)` — bukan `auto` — supaya `<Pilihan>` yang
                     isinya panjang tak memaksa kolomnya melebar melewati
                     sepertiga kartu.
                   */}
@@ -752,7 +753,7 @@ export default function PenyediaAiPage() {
                       <label htmlFor={idPenyedia} style={{ display: "block", fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5 }}>
                         Penyedia
                       </label>
-                      <select className="isian-fokus"
+                      <Pilihan className="isian-fokus"
                         id={idPenyedia}
                         aria-label={`Penyedia AI untuk ${peran.nama}`}
                         value={k.penyedia}
@@ -765,7 +766,7 @@ export default function PenyediaAiPage() {
                             {p.label}
                           </option>
                         ))}
-                      </select>
+                      </Pilihan>
                       {metaPenyedia && (
                         <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
                           Kunci <code>{metaPenyedia.kunciKredensial}</code> dipasang di{" "}
@@ -788,7 +789,7 @@ export default function PenyediaAiPage() {
                       <label htmlFor={idModel} style={{ display: "block", fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5 }}>
                         Model
                       </label>
-                      <select
+                      <Pilihan
                         className="isian-fokus"
                         id={idModel}
                         // `aria-label` eksplisit meski `<label htmlFor>` sudah
@@ -806,7 +807,7 @@ export default function PenyediaAiPage() {
                             {m.label}
                           </option>
                         ))}
-                      </select>
+                      </Pilihan>
                       {modelDipilih && (
                         <p
                           style={{

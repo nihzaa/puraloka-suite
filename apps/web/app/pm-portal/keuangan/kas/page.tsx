@@ -52,6 +52,7 @@ import type {
   RespKategoriPengeluaran, GalatApi,
 } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 interface RespProyek { projects: ProyekPM[] }
 
@@ -258,19 +259,19 @@ export default function PmKasPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Dari Akun *</span>
-            <select value={formTransfer.from_account_id} onChange={(e) => setFormTransfer((f) => ({ ...f, from_account_id: e.target.value }))}
+            <Pilihan value={formTransfer.from_account_id} onChange={(e) => setFormTransfer((f) => ({ ...f, from_account_id: e.target.value }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
               <option value="">Pilih akun</option>
               {(dataAkun?.accounts ?? []).map((a) => <option key={a.id} value={a.id}>{a.name} ({fmtRupiah(a.balance)})</option>)}
-            </select>
+            </Pilihan>
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Ke Akun *</span>
-            <select value={formTransfer.to_account_id} onChange={(e) => setFormTransfer((f) => ({ ...f, to_account_id: e.target.value }))}
+            <Pilihan value={formTransfer.to_account_id} onChange={(e) => setFormTransfer((f) => ({ ...f, to_account_id: e.target.value }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
               <option value="">Pilih akun</option>
               {(dataAkun?.accounts ?? []).filter((a) => a.id !== formTransfer.from_account_id).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
+            </Pilihan>
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jumlah *</span>
@@ -294,27 +295,27 @@ export default function PmKasPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek *</span>
-            <select value={formExpense.project_id} onChange={(e) => setFormExpense((f) => ({ ...f, project_id: e.target.value, category_id: "" }))}
+            <Pilihan value={formExpense.project_id} onChange={(e) => setFormExpense((f) => ({ ...f, project_id: e.target.value, category_id: "" }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
               <option value="">Pilih proyek</option>
               {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            </Pilihan>
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Kategori *</span>
-            <select value={formExpense.category_id} onChange={(e) => setFormExpense((f) => ({ ...f, category_id: e.target.value }))}
+            <Pilihan value={formExpense.category_id} onChange={(e) => setFormExpense((f) => ({ ...f, category_id: e.target.value }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
               <option value="">Pilih kategori</option>
               {(dataKategori?.categories ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            </Pilihan>
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Sumber Kas Kecil</span>
-            <select value={formExpense.petty_cash_id} onChange={(e) => setFormExpense((f) => ({ ...f, petty_cash_id: e.target.value }))}
+            <Pilihan value={formExpense.petty_cash_id} onChange={(e) => setFormExpense((f) => ({ ...f, petty_cash_id: e.target.value }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
               <option value="">Pilih akun kas kecil</option>
               {akunPettyCash.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
+            </Pilihan>
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Deskripsi *</span>

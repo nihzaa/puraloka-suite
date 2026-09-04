@@ -20,6 +20,7 @@ import { useUnits } from "@/lib/use-units";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
 import { Btn, Input, Memuat, Modal, Select, fmt } from "../_bersama/ui";
+import { Pilihan } from "@/components/pilihan";
 
 interface Material {
   id: string;
@@ -108,14 +109,14 @@ export default function MaterialPage() {
             style={{ padding: "8px 12px 8px 32px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, width: "100%", boxSizing: "border-box", background: C.surface, color: C.text }}
           />
         </div>
-        <select
+        <Pilihan
           aria-label="Saring kategori material" value={catFilter}
           onChange={e => setCatFilter(e.target.value)}
           style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, minWidth: 160, background: C.surface, color: C.text }}
         >
           <option value="">Semua Kategori</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+        </Pilihan>
         <Btn onClick={() => setModal(true)}><Plus size={14} aria-hidden="true" /> Tambah Material</Btn>
       </div>
 

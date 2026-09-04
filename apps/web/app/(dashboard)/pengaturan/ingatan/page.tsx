@@ -46,6 +46,7 @@ import { GAYA_KARTU } from "@/components/ui-dasar";
 import { GAYA_ISIAN } from "@/components/isian";
 import { PanduanHalaman } from "@/components/panduan-halaman";
 import { PilihanKartu } from "@/components/pilihan-kartu";
+import { Pilihan } from "@/components/pilihan";
 
 interface Ingatan {
   id: string;
@@ -395,7 +396,7 @@ export default function IngatanPage() {
                 <label htmlFor="ingatan-izin" style={{ display: "block", fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5 }}>
                   Butuh izin khusus? <span style={{ fontWeight: 400, color: C.muted }}>(opsional)</span>
                 </label>
-                <select
+                <Pilihan
                   className="isian-fokus"
                   id="ingatan-izin"
                   value={izinMin}
@@ -408,7 +409,7 @@ export default function IngatanPage() {
                       {z.label} ({z.key})
                     </option>
                   ))}
-                </select>
+                </Pilihan>
                 <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
                   Yang tak punya izin ini tak akan pernah melihat catatannya — asisten diam
                   soal itu.
@@ -419,7 +420,7 @@ export default function IngatanPage() {
                 <label htmlFor="ingatan-proyek" style={{ display: "block", fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5 }}>
                   Khusus satu proyek? <span style={{ fontWeight: 400, color: C.muted }}>(opsional)</span>
                 </label>
-                <select
+                <Pilihan
                   className="isian-fokus"
                   id="ingatan-proyek"
                   value={projectId}
@@ -430,7 +431,7 @@ export default function IngatanPage() {
                   {proyek.map((p) => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
-                </select>
+                </Pilihan>
                 <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
                   Catatan berproyek hanya ikut saat proyek itu yang sedang dibicarakan.
                 </p>

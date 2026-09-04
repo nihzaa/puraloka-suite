@@ -34,6 +34,7 @@ import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
+import { Pilihan } from "@/components/pilihan";
 
 interface Kelengkapan {
   lengkap: boolean;
@@ -601,7 +602,7 @@ function FormPegawai({ mode, awal, calon, pilihan, bolehLihatGaji, onTutup, onSe
       {mode === "baru" && (
         <div style={{ marginBottom: 14 }}>
           <Label htmlFor="peg-user" wajib>Pengguna</Label>
-          <select
+          <Pilihan
             id="peg-user" value={userId} onChange={(e) => setUserId(e.target.value)}
             style={GAYA_ISIAN}
           >
@@ -609,7 +610,7 @@ function FormPegawai({ mode, awal, calon, pilihan, bolehLihatGaji, onTutup, onSe
             {calon.map((c) => (
               <option key={c.id} value={c.id}>{c.name} · {c.email}</option>
             ))}
-          </select>
+          </Pilihan>
           <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
             Hanya pengguna yang belum punya data kepegawaian yang muncul di sini.
           </div>
@@ -687,7 +688,7 @@ function FormPegawai({ mode, awal, calon, pilihan, bolehLihatGaji, onTutup, onSe
         }}>
           <div>
             <Label htmlFor="peg-ptkp" kritis>Status PTKP</Label>
-            <select
+            <Pilihan
               id="peg-ptkp" value={isi.status_ptkp}
               onChange={(e) => ubah("status_ptkp", e.target.value)}
               style={GAYA_ISIAN}
@@ -696,11 +697,11 @@ function FormPegawai({ mode, awal, calon, pilihan, bolehLihatGaji, onTutup, onSe
               {pilihan.status_ptkp.map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}
-            </select>
+            </Pilihan>
           </div>
           <div>
             <Label htmlFor="peg-ter">Kategori TER</Label>
-            <select
+            <Pilihan
               id="peg-ter" value={isi.kategori_ter}
               onChange={(e) => ubah("kategori_ter", e.target.value)}
               style={GAYA_ISIAN}
@@ -709,7 +710,7 @@ function FormPegawai({ mode, awal, calon, pilihan, bolehLihatGaji, onTutup, onSe
               {pilihan.kategori_ter.map((k) => (
                 <option key={k} value={k}>{k}</option>
               ))}
-            </select>
+            </Pilihan>
           </div>
           <div>
             <Label htmlFor="peg-npwp" kritis>NPWP</Label>

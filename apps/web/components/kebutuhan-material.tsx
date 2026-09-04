@@ -42,6 +42,7 @@ import { C } from "@/lib/warna-ui";
 import { Tabel } from "@/components/dasar";
 import { GAYA_KARTU } from "@/components/ui-dasar";
 import { formatAngka } from "@/lib/format";
+import { Pilihan } from "@/components/pilihan";
 
 /** Satu penyumbang: pekerjaan X memakai material ini sebanyak Y. */
 interface AsalMaterial {
@@ -232,7 +233,7 @@ export function KebutuhanMaterial({ estimateVersionId }: { estimateVersionId: st
             kombo" saja. Untuk saringan tabel, artinya kontrolnya tak bisa
             dipakai sama sekali tanpa melihat layar.
           */}
-          <select
+          <Pilihan
             aria-label="Kategori sumber daya yang ditampilkan"
             value={kategori}
             onChange={(e) => setKategori(e.target.value)}
@@ -245,7 +246,7 @@ export function KebutuhanMaterial({ estimateVersionId }: { estimateVersionId: st
             {KATEGORI.map((k) => (
               <option key={k.nilai} value={k.nilai}>{k.label}</option>
             ))}
-          </select>
+          </Pilihan>
         </label>
       </div>
 

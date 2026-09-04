@@ -38,6 +38,7 @@ import {
   Halaman, KepalaHalaman, Kartu, JudulKartu, Tabel, Rangka, Galat,
   Tombol, gayaInput, type Kolom as KolomTabel,
 } from "@/components/dasar";
+import { Pilihan } from "@/components/pilihan";
 
 type JenisKolom = "teks" | "angka" | "uang" | "tanggal" | "bool";
 
@@ -367,7 +368,7 @@ export default function SusunLaporanPage() {
                       <label htmlFor={`f-kol-${i}`} style={{ display: "block", fontSize: 11, color: C.muted, marginBottom: 3 }}>
                         Kolom
                       </label>
-                      <select id={`f-kol-${i}`} style={{ ...gayaInput, fontSize: 12.5 }}
+                      <Pilihan id={`f-kol-${i}`} style={{ ...gayaInput, fontSize: 12.5 }}
                         value={f.kolom}
                         onChange={(e) => {
                           const baru = sumber.kolom.find((k) => k.kunci === e.target.value)!;
@@ -384,17 +385,17 @@ export default function SusunLaporanPage() {
                         {sumber.kolom.map((k) => (
                           <option key={k.kunci} value={k.kunci}>{k.label}</option>
                         ))}
-                      </select>
+                      </Pilihan>
                     </div>
                     <div>
                       <label htmlFor={`f-op-${i}`} style={{ display: "block", fontSize: 11, color: C.muted, marginBottom: 3 }}>
                         Operator
                       </label>
-                      <select id={`f-op-${i}`} style={{ ...gayaInput, fontSize: 12.5 }}
+                      <Pilihan id={`f-op-${i}`} style={{ ...gayaInput, fontSize: 12.5 }}
                         value={f.operator}
                         onChange={(e) => setSaringan((p) => p.map((x, j) => j === i ? { ...x, operator: e.target.value } : x))}>
                         {opSah.map((o) => <option key={o} value={o}>{o}</option>)}
-                      </select>
+                      </Pilihan>
                     </div>
                     <div>
                       <label htmlFor={`f-nil-${i}`} style={{ display: "block", fontSize: 11, color: C.muted, marginBottom: 3 }}>
@@ -428,22 +429,22 @@ export default function SusunLaporanPage() {
               <label htmlFor="urut-kol" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
                 Urut berdasarkan
               </label>
-              <select id="urut-kol" style={gayaInput} value={urutKolom}
+              <Pilihan id="urut-kol" style={gayaInput} value={urutKolom}
                 onChange={(e) => setUrutKolom(e.target.value)}>
                 <option value="">— tanpa urutan —</option>
                 {sumber.kolom.map((k) => <option key={k.kunci} value={k.kunci}>{k.label}</option>)}
-              </select>
+              </Pilihan>
             </div>
             <div>
               <label htmlFor="urut-arah" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
                 Arah
               </label>
-              <select id="urut-arah" style={gayaInput} value={urutArah}
+              <Pilihan id="urut-arah" style={gayaInput} value={urutArah}
                 disabled={!urutKolom}
                 onChange={(e) => setUrutArah(e.target.value as "naik" | "turun")}>
                 <option value="turun">Terbesar dulu</option>
                 <option value="naik">Terkecil dulu</option>
-              </select>
+              </Pilihan>
             </div>
             <div>
               <label htmlFor="batas" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>

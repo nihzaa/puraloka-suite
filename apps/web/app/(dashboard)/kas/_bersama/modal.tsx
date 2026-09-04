@@ -17,6 +17,7 @@ import { api } from "@/lib/api";
 import { useIzin } from "@/lib/use-izin";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { C } from "@/lib/warna-ui";
+import { Pilihan } from "@/components/pilihan";
 import {
   type CashAccount, type Category, type Project,
   ACCOUNT_TYPE_LABEL, SOURCE_LABEL, fmt, pesanGalat,
@@ -195,19 +196,19 @@ export function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void
         {(type === "petty_cash" || type === "collector") && (
           <div>
             <label htmlFor="owner-id" style={gayaLabel}>Pemegang Kas {type === "petty_cash" ? <span style={{ color: C.red }}>*</span> : null}</label>
-            <select id="owner-id" aria-label="Pemilik akun kas" value={ownerId} onChange={e => setOwnerId(e.target.value)} style={gayaSelect}>
+            <Pilihan id="owner-id" aria-label="Pemilik akun kas" value={ownerId} onChange={e => setOwnerId(e.target.value)} style={gayaSelect}>
               <option value="">-- Pilih user --</option>
               {users.filter(u => type === "petty_cash" ? (u.role === "pm" || u.role === "admin") : true).map(u => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
-            </select>
+            </Pilihan>
           </div>
         )}
         {type === "petty_cash" && (
           <div>
             <label htmlFor="project-id" style={gayaLabel}>Proyek <span style={{ color: C.red }}>*</span></label>
-            <select id="project-id" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={gayaSelect}>
+            <Pilihan id="project-id" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={gayaSelect}>
               <option value="">-- Pilih proyek --</option>
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            </Pilihan>
           </div>
         )}
         <div>
@@ -284,19 +285,19 @@ export function CreateTransferModal({ accounts, onClose, onSuccess, onNeedAccoun
         <div style={{ display: "grid", gridTemplateColumns: "1fr 32px 1fr", gap: 8, alignItems: "end" }}>
           <div>
             <label htmlFor="from-id" style={gayaLabel}>Dari Akun <span style={{ color: C.red }}>*</span></label>
-            <select id="from-id" aria-label="Kas asal transfer" value={fromId} onChange={e => setFromId(e.target.value)} required style={gayaSelect}>
+            <Pilihan id="from-id" aria-label="Kas asal transfer" value={fromId} onChange={e => setFromId(e.target.value)} required style={gayaSelect}>
               <option value="">-- Pilih --</option>
               {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
+            </Pilihan>
             {fromAcc && <div style={{ fontSize: 11, color: fromAcc.balance < parseFloat(amount || "0") ? C.red : C.green, marginTop: 4 }}>Saldo: {fmt(fromAcc.balance)}</div>}
           </div>
           <div style={{ display: "flex", justifyContent: "center", paddingBottom: 10 }}><ArrowRightLeft size={16} color={C.mid} /></div>
           <div>
             <label htmlFor="to-id" style={gayaLabel}>Ke Akun <span style={{ color: C.red }}>*</span></label>
-            <select id="to-id" aria-label="Kas tujuan transfer" value={toId} onChange={e => setToId(e.target.value)} required style={gayaSelect}>
+            <Pilihan id="to-id" aria-label="Kas tujuan transfer" value={toId} onChange={e => setToId(e.target.value)} required style={gayaSelect}>
               <option value="">-- Pilih --</option>
               {accounts.filter(a => a.id !== fromId).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
+            </Pilihan>
             {toAcc && <div style={{ fontSize: 11, color: C.mid, marginTop: 4 }}>Saldo saat ini: {fmt(toAcc.balance)}</div>}
           </div>
         </div>
@@ -458,10 +459,10 @@ export function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccount
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
             <label htmlFor="project-id-2" style={gayaLabel}>Proyek <span style={{ color: C.red }}>*</span></label>
-            <select id="project-id-2" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} required style={gayaSelect}>
+            <Pilihan id="project-id-2" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} required style={gayaSelect}>
               <option value="">-- Pilih proyek --</option>
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            </Pilihan>
           </div>
           <div>
             <label htmlFor="expense-date" style={gayaLabel}>Tanggal</label>
@@ -498,12 +499,12 @@ export function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccount
         {expenseSource === "petty_cash" && (
           <div>
             <label htmlFor="petty-cash-id" style={gayaLabel}>Kas Kecil <span style={{ color: C.red }}>*</span></label>
-            <select id="petty-cash-id" aria-label="Kas kecil" value={pettyCashId} onChange={e => setPettyCashId(e.target.value)} required={expenseSource === "petty_cash"} style={gayaSelect}>
+            <Pilihan id="petty-cash-id" aria-label="Kas kecil" value={pettyCashId} onChange={e => setPettyCashId(e.target.value)} required={expenseSource === "petty_cash"} style={gayaSelect}>
               <option value="">-- Pilih kas kecil --</option>
               {(projectId ? projectPettyCash : accounts).map(a => (
                 <option key={a.id} value={a.id}>{a.name} — saldo: {fmt(a.balance)}</option>
               ))}
-            </select>
+            </Pilihan>
             {selectedPettyCash && total > 0 && (
               <div style={{ fontSize: 11, marginTop: 4, color: selectedPettyCash.balance < total ? C.red : C.green }}>
                 Saldo: {fmt(selectedPettyCash.balance)} {selectedPettyCash.balance < total ? "⚠ tidak cukup" : "✓ cukup"}
@@ -537,12 +538,12 @@ export function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccount
                 </a>
               </div>
             ) : (
-              <select aria-label="Kas utama" value={mainCashId} onChange={e => setMainCashId(e.target.value)} required={expenseSource === "main_cash"} style={gayaSelect}>
+              <Pilihan aria-label="Kas utama" value={mainCashId} onChange={e => setMainCashId(e.target.value)} required={expenseSource === "main_cash"} style={gayaSelect}>
                 {mainCashAccounts.length > 1 && <option value="">-- Pilih akun kas utama --</option>}
                 {mainCashAccounts.map(a => (
                   <option key={a.id} value={a.id}>{a.name} — saldo: {fmt(a.balance)}</option>
                 ))}
-              </select>
+              </Pilihan>
             )}
             {mainCashId && (() => {
               const acc = mainCashAccounts.find(a => a.id === mainCashId);
@@ -558,7 +559,7 @@ export function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccount
 
         <div>
           <label htmlFor="category-id" style={gayaLabel}>Kategori <span style={{ color: C.red }}>*</span></label>
-          <select id="category-id" aria-label="Kategori pengeluaran" value={categoryId} onChange={e => setCategoryId(e.target.value)} required style={gayaSelect}>
+          <Pilihan id="category-id" aria-label="Kategori pengeluaran" value={categoryId} onChange={e => setCategoryId(e.target.value)} required style={gayaSelect}>
             <option value="">-- Pilih kategori --</option>
             {parentCats.map(p => (
               <optgroup key={p.id} label={p.name}>
@@ -566,7 +567,7 @@ export function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccount
                 {childCats(p.id).length === 0 && <option value={p.id}>{p.name}</option>}
               </optgroup>
             ))}
-          </select>
+          </Pilihan>
         </div>
 
         <div>

@@ -60,6 +60,7 @@ import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel, type Kolom, Galat, Rangka } from "@/components/dasar";
+import { Pilihan } from "@/components/pilihan";
 
 type StatusPerawatan = "aman" | "segera" | "jatuh_tempo" | "belum_ada_acuan";
 
@@ -387,7 +388,7 @@ export default function JadwalPerawatanPage() {
           marginBottom: "var(--gap-grid)",
         }}>
           <label htmlFor="saring-status" style={{ fontSize: 12, color: C.mid }}>Status</label>
-          <select
+          <Pilihan
             id="saring-status"
             value={saring}
             onChange={(e) => setSaring(e.target.value as "" | StatusPerawatan)}
@@ -401,7 +402,7 @@ export default function JadwalPerawatanPage() {
             <option value="segera">Segera</option>
             <option value="aman">Aman</option>
             <option value="belum_ada_acuan">Belum ada acuan</option>
-          </select>
+          </Pilihan>
           <span style={{ fontSize: 12, color: C.muted }}>
             {terlihat.length} dari {jadwal.length} jadwal · {ringkas.alatTerjadwal} alat terjadwal
           </span>

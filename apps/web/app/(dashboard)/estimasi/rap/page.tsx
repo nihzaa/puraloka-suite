@@ -44,6 +44,7 @@ import {
 import { Modal, StatusBadge, btnPrimary, btnGhost } from "../_bersama/kerangka";
 import { LayarKosong } from "@/components/layar-kosong";
 import { tanya } from "@/components/tanya";
+import { Pilihan } from "@/components/pilihan";
 
 const fmtRp = formatRupiah;
 const lbl: React.CSSProperties = {
@@ -201,15 +202,15 @@ function RapTab() {
       {err && <div style={{ background: C.redBg, color: C.red, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px 12px", fontSize: 12, marginBottom: 10 }}>{err}</div>}
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
-        <select className="isian-fokus" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={{ ...GAYA_ISIAN, width: 280 }}>
+        <Pilihan className="isian-fokus" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={{ ...GAYA_ISIAN, width: 280 }}>
           <option value="">— Pilih proyek —</option>
           {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
+        </Pilihan>
         {projectId && rapList.length > 0 && (
-          <select className="isian-fokus" aria-label="Pilih RAP" value={rapId} onChange={e => setRapId(e.target.value)} style={{ ...GAYA_ISIAN, width: 260 }}>
+          <Pilihan className="isian-fokus" aria-label="Pilih RAP" value={rapId} onChange={e => setRapId(e.target.value)} style={{ ...GAYA_ISIAN, width: 260 }}>
             <option value="">— Pilih RAP —</option>
             {rapList.map(r => <option key={r.id} value={r.id}>{r.name} ({r.status})</option>)}
-          </select>
+          </Pilihan>
         )}
         {projectId && (
           <button style={btnPrimary} onClick={() => setShowNewRap(true)}><Plus size={15} /> RAP Baru</button>
@@ -507,12 +508,12 @@ function NewRapModal({ projectId, onClose, onDone }: { projectId: string; onClos
       <form onSubmit={kirim}>
         {err && <div style={{ marginBottom: 12, padding: "8px 12px", background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 6, fontSize: 12, color: C.text }}>{err}</div>}
         <label htmlFor="version-id" style={lbl}>Versi estimasi (sumber take-off material)</label>
-        <select className="isian-fokus" id="version-id" aria-label="Pilih versi estimasi" value={versionId} onChange={e => setVersionId(e.target.value)} required style={{ ...GAYA_ISIAN, marginBottom: 12 }}>
+        <Pilihan className="isian-fokus" id="version-id" aria-label="Pilih versi estimasi" value={versionId} onChange={e => setVersionId(e.target.value)} required style={{ ...GAYA_ISIAN, marginBottom: 12 }}>
           <option value="">— Pilih versi —</option>
           {allVersions.map(v => (
             <option key={v.id} value={v.id}>{v.scenarioName} · v{v.version_number} ({v.status}) · {fmtRp(Number(v.total_amount))}</option>
           ))}
-        </select>
+        </Pilihan>
         {allVersions.length === 0 && <p style={{ fontSize: 12, color: C.muted, margin: "-6px 0 12px" }}>Belum ada RAB di proyek ini — susun dulu di halaman Susun RAB.</p>}
         <label htmlFor="name" style={lbl}>Nama RAP</label>
         <input className="isian-fokus" id="name" value={name} onChange={e => setName(e.target.value)} style={{ ...GAYA_ISIAN, marginBottom: 12 }} />

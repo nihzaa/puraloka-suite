@@ -42,6 +42,7 @@ import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
+import { Pilihan } from "@/components/pilihan";
 
 type StatusTs = "draf" | "diajukan" | "disetujui" | "ditolak";
 
@@ -438,7 +439,7 @@ export default function TimesheetPage() {
             fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
             marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
           }}>Pegawai</label>
-          <select
+          <Pilihan
             id="ts-pegawai" value={pegawaiId} onChange={(e) => setPegawaiId(e.target.value)}
             style={{
               padding: "8px 10px", borderRadius: 6, border: `1px solid ${C.border}`,
@@ -452,7 +453,7 @@ export default function TimesheetPage() {
                 {p.jabatan ? ` — ${p.jabatan}` : ""}
               </option>
             ))}
-          </select>
+          </Pilihan>
         </div>
 
         <div className="rise" style={{ ...kartu, padding: "12px 16px", minWidth: 180, flex: "0 1 220px" }}>
@@ -692,7 +693,7 @@ export default function TimesheetPage() {
               fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Dibebankan ke proyek</label>
-            <select
+            <Pilihan
               id="ts-proyek" value={fProyek} onChange={(e) => setFProyek(e.target.value)}
               style={{
                 width: "100%", padding: "8px 10px", borderRadius: 6, fontSize: 13,
@@ -701,7 +702,7 @@ export default function TimesheetPage() {
             >
               <option value="">— overhead kantor (tak melekat proyek) —</option>
               {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            </Pilihan>
             <p style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
               Kosongkan kalau waktunya memang overhead kantor. Memilih proyek asal
               justru merusak angka yang dicari.

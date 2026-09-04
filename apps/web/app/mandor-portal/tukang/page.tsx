@@ -11,6 +11,7 @@ import KepalaPortal from "@/components/portal/KepalaPortal";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import SegmentedTab from "@/components/portal/SegmentedTab";
+import { Pilihan } from "@/components/pilihan";
 
 const TIPE_META: Record<string, { label: string; warna: string }> = {
   tukang: { label: "Tukang", warna: "var(--info)" },
@@ -282,7 +283,7 @@ export default function DaftarTukangPage() {
               <label htmlFor="tipe" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
                 Tipe
               </label>
-              <select
+              <Pilihan
                 id="tipe"
                 aria-label="Tipe pekerja"
                 value={form.tipe}
@@ -297,7 +298,7 @@ export default function DaftarTukangPage() {
                 <option value="tukang">Tukang</option>
                 <option value="laden">Laden</option>
                 <option value="kenek">Kenek</option>
-              </select>
+              </Pilihan>
             </div>
             <div>
               <label htmlFor="phone" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>

@@ -45,6 +45,7 @@ import { Tabel, type Kolom, KepalaHalaman } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
 import { formatRupiah } from "@/lib/format";
 import { minta } from "@/components/tanya";
+import { Pilihan } from "@/components/pilihan";
 
 type Proyek = { id: string; name: string };
 
@@ -421,9 +422,9 @@ export default function RegisterKontrakPage() {
           }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 240, flex: 1 }}>
               <label htmlFor="kt-proyek" style={labelGaya}>Proyek</label>
-              <select id="kt-proyek" value={dipilih} onChange={(e) => setDipilih(e.target.value)} style={isianGaya}>
+              <Pilihan id="kt-proyek" value={dipilih} onChange={(e) => setDipilih(e.target.value)} style={isianGaya}>
                 {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
+              </Pilihan>
             </div>
 
             <button type="button" onClick={() => bukaDialog("induk")} style={{
@@ -578,11 +579,11 @@ export default function RegisterKontrakPage() {
           {fJenis === "addendum" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 4, gridColumn: "1 / -1" }}>
               <label htmlFor="kt-induk" style={labelGaya}>Kontrak induk yang diubah</label>
-              <select id="kt-induk" value={fInduk} onChange={(e) => setFInduk(e.target.value)} style={isianGaya}>
+              <Pilihan id="kt-induk" value={fInduk} onChange={(e) => setFInduk(e.target.value)} style={isianGaya}>
                 {indukTersedia.map((k) => (
                   <option key={k.id} value={k.id}>{k.nomor} — {k.judul}</option>
                 ))}
-              </select>
+              </Pilihan>
             </div>
           )}
 

@@ -57,6 +57,7 @@ import { C } from "@/lib/warna-ui";
 import {
   Halaman, KepalaHalaman, Kartu, Medan, gayaInput, Tombol,
 } from "@/components/dasar";
+import { Pilihan } from "@/components/pilihan";
 
 type Keadaan = "utuh" | "berubah" | "belum_ditandatangani";
 
@@ -156,10 +157,10 @@ export default function HalamanVerifikasiTtd() {
         <div style={{ display: "grid", gap: 12 }}>
           <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,2fr)", gap: 12 }}>
             <Medan id="ttd-jenis" label="Jenis dokumen" anak={
-              <select id="ttd-jenis" value={jenis} onChange={(e) => setJenis(e.target.value)}
+              <Pilihan id="ttd-jenis" value={jenis} onChange={(e) => setJenis(e.target.value)}
                 style={gayaInput}>
                 {JENIS.map((j) => <option key={j.nilai} value={j.nilai}>{j.label}</option>)}
-              </select>
+              </Pilihan>
             } />
             <Medan id="ttd-objek" label="ID dokumen" wajib anak={
               <input id="ttd-objek" value={objekId} onChange={(e) => setObjekId(e.target.value)}

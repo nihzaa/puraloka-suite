@@ -40,6 +40,7 @@ import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
+import { Pilihan } from "@/components/pilihan";
 
 type StatusIpc = "draft" | "disetujui" | "ditagihkan" | "ditolak" | "batal";
 
@@ -327,7 +328,7 @@ export default function SertifikatIpcPage() {
               <label htmlFor="ipc-pilih" style={{ fontSize: 12, fontWeight: 600, color: C.mid }}>
                 Sertifikat
               </label>
-              <select
+              <Pilihan
                 id="ipc-pilih" value={aktif.id}
                 onChange={(e) => setTerpilih(e.target.value)}
                 style={{
@@ -340,7 +341,7 @@ export default function SertifikatIpcPage() {
                     {s.nomor} — {s.proyek?.name ?? "—"} · {persen(s.progres_diakui_pct)}
                   </option>
                 ))}
-              </select>
+              </Pilihan>
             </div>
 
             <button

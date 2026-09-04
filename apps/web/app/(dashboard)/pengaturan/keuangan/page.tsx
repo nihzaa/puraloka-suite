@@ -9,6 +9,7 @@ import { Landmark, Plus, Check, X, CalendarClock, AlertTriangle, Info } from "lu
 // ─── Design tokens (konsisten Architectural Precision, sama dgn /pengaturan/roles) ──
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
+import { Pilihan } from "@/components/pilihan";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: "1px solid var(--border)",
@@ -492,10 +493,10 @@ export default function KeuanganSettingsPage() {
               </div>
               <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Basis denda</span>
-                <select aria-label="Basis perhitungan denda" value={pBasis} onChange={(e) => setPBasis(e.target.value)}
+                <Pilihan aria-label="Basis perhitungan denda" value={pBasis} onChange={(e) => setPBasis(e.target.value)}
                   style={{ padding: "8px 12px", borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box", background: C.surface }}>
                   {Object.entries(BASIS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </select>
+                </Pilihan>
               </label>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
                 <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>

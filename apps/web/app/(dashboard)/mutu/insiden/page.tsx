@@ -45,6 +45,7 @@ import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Tabel, KepalaHalaman } from "@/components/dasar";
 import { formatRupiah } from "@/lib/format";
+import { Pilihan } from "@/components/pilihan";
 
 interface Insiden {
   id: string;
@@ -224,7 +225,7 @@ export default function HalamanInsiden() {
         <label htmlFor="saring-proyek" style={{ fontSize: 12, fontWeight: 600, color: C.mid }}>
           Proyek
         </label>
-        <select
+        <Pilihan
           id="saring-proyek" value={proyekId}
           onChange={(e) => setProyekId(e.target.value)}
           style={{
@@ -237,12 +238,12 @@ export default function HalamanInsiden() {
           {(dataProyek?.projects ?? []).map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
-        </select>
+        </Pilihan>
 
         <label htmlFor="saring-jenis" style={{ fontSize: 12, fontWeight: 600, color: C.mid }}>
           Jenis
         </label>
-        <select
+        <Pilihan
           id="saring-jenis" value={jenisSaring}
           onChange={(e) => setJenisSaring(e.target.value)}
           style={{
@@ -255,7 +256,7 @@ export default function HalamanInsiden() {
           {Object.entries(JENIS).map(([k, v]) => (
             <option key={k} value={k}>{v.label}</option>
           ))}
-        </select>
+        </Pilihan>
 
         <span style={{ marginLeft: "auto", fontSize: 12, color: C.mid }}>
           {memuat ? "memuat…" : `${insiden.length} insiden`}

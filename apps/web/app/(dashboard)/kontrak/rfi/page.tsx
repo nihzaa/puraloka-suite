@@ -12,6 +12,7 @@ import {
   ChevronDown, Loader2, FileText, Ban,
 } from "lucide-react";
 import { minta } from "@/components/tanya";
+import { Pilihan } from "@/components/pilihan";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // REQUEST FOR INFORMATION — pertanyaan resmi ke konsultan / pemberi kerja.
@@ -212,14 +213,14 @@ export default function RfiPage() {
         />
         <div className="rf-kepala-aksi">
           <label className="rf-pilih-bungkus">
-            <select
+            <Pilihan
               className="rf-pilih"
               aria-label="Pilih proyek yang RFI-nya ditampilkan"
               value={proyekId}
               onChange={(e) => setProyekId(e.target.value)}
             >
               {proyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            </Pilihan>
             <ChevronDown size={16} className="rf-pilih-ikon" aria-hidden />
           </label>
           <button className="rf-tombol-utama" onClick={() => bukaForm(true)} disabled={!proyekId}>

@@ -42,6 +42,7 @@ import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
+import { Pilihan } from "@/components/pilihan";
 
 type JenisCuti = "tahunan" | "sakit" | "melahirkan" | "penting" | "besar" | "tanpa_gaji";
 type StatusCuti = "diajukan" | "disetujui" | "ditolak" | "dibatalkan";
@@ -455,7 +456,7 @@ export default function CutiPage() {
             fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
             marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
           }}>Pegawai</label>
-          <select
+          <Pilihan
             id="ct-pegawai" value={pegawaiId} onChange={(e) => setPegawaiId(e.target.value)}
             style={{
               padding: "8px 10px", borderRadius: 6, border: `1px solid ${C.border}`,
@@ -469,7 +470,7 @@ export default function CutiPage() {
                 {p.jabatan ? ` — ${p.jabatan}` : ""}
               </option>
             ))}
-          </select>
+          </Pilihan>
         </div>
 
         <div className="rise" style={{ ...kartu, padding: "12px 16px", flex: "0 1 160px" }}>
@@ -649,7 +650,7 @@ export default function CutiPage() {
               fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Jenis</label>
-            <select
+            <Pilihan
               id="ct-jenis" value={fJenis} onChange={(e) => setFJenis(e.target.value as JenisCuti)}
               style={{
                 width: "100%", padding: "8px 10px", borderRadius: 6, fontSize: 13,
@@ -659,7 +660,7 @@ export default function CutiPage() {
               {(Object.keys(JENIS) as JenisCuti[]).map((k) => (
                 <option key={k} value={k}>{JENIS[k].label}</option>
               ))}
-            </select>
+            </Pilihan>
             <p style={{
               fontSize: 11, marginTop: 4, lineHeight: 1.5,
               color: JENIS[fJenis].jatah ? C.mid : "var(--success)",

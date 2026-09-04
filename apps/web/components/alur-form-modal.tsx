@@ -45,6 +45,7 @@ import { DialogBersama } from "@/components/dialog-bersama";
 import { Tombol } from "@/components/dasar";
 import { PilihanKartu } from "@/components/pilihan-kartu";
 import { Saklar } from "@/components/saklar";
+import { Pilihan } from "@/components/pilihan";
 
 export interface AlurUntukForm {
   id?: string;
@@ -316,7 +317,7 @@ export function AlurFormModal({
             <p style={bantu}>Memuat daftar dari n8n…</p>
           ) : katalogN8n.length > 0 ? (
             <>
-              <select
+              <Pilihan
                 id="alur-n8n"
                 style={isian}
                 value={n8nId}
@@ -330,7 +331,7 @@ export function AlurFormModal({
                     {w.terdaftar && w.id !== awal?.n8n_id ? " — sudah dipakai alur lain" : ""}
                   </option>
                 ))}
-              </select>
+              </Pilihan>
               <p style={bantu}>
                 Dipilih dari daftar, bukan diketik: id yang salah ketik tak menghasilkan
                 galat — alurnya hanya diam selamanya.
@@ -355,7 +356,7 @@ export function AlurFormModal({
 
         <div>
           <label style={label} htmlFor="alur-kategori">Kategori</label>
-          <select
+          <Pilihan
             id="alur-kategori"
             style={isian}
             value={kategori}
@@ -364,7 +365,7 @@ export function AlurFormModal({
             {KATEGORI.map((k) => (
               <option key={k} value={k}>{k}</option>
             ))}
-          </select>
+          </Pilihan>
         </div>
 
         {/*

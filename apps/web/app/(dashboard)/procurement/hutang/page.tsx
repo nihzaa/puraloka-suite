@@ -25,6 +25,7 @@ import {
   Badge, Btn, Card, Input, KotakGalat, Memuat, Modal, Select,
   STATUS_BADGE, fmt, fmtDate, fmtRingkas, pesanError,
 } from "../_bersama/ui";
+import { Pilihan } from "@/components/pilihan";
 
 interface SupplierInvoice {
   id: string;
@@ -139,14 +140,14 @@ export default function HutangPage() {
       </div>
 
       <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-        <select
+        <Pilihan
           aria-label="Saring status tagihan supplier" value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
           style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: C.surface, color: C.text }}
         >
           <option value="">Semua Status</option>
           {["unpaid", "partial", "paid"].map(s => <option key={s} value={s}>{STATUS_BADGE[s]?.label}</option>)}
-        </select>
+        </Pilihan>
       </div>
 
       {loading ? <Memuat /> : (

@@ -37,6 +37,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { C } from "@/lib/warna-ui";
+import { Pilihan, type PropsPilihan } from "@/components/pilihan";
 
 /**
  * Gaya dasar kotak isian. Diekspor supaya `<select>` dan `<textarea>` yang
@@ -143,12 +144,18 @@ export function KotakIsian(
 }
 
 /** `<select>` dengan bentuk yang sama — supaya form tak bercampur dua gaya. */
-export function PilihanIsian(
-  props: React.SelectHTMLAttributes<HTMLSelectElement>,
-) {
+/*
+  Tipe props mengikuti komponen, bukan elemen DOM.
+
+  Sampai 2026-09-04 isinya `<select>` asli, jadi SelectHTMLAttributes
+  tepat. Sesudah 236 dropdown diganti `<Pilihan>`, meneruskan seluruh
+  handler bertipe HTMLSelectElement tak lagi benar — dan tsc menolaknya
+  dengan alasan yang tepat, karena yang dirender kini <button>.
+*/
+export function PilihanIsian(props: PropsPilihan) {
   const { style, className, ...sisa } = props;
   return (
-    <select
+    <Pilihan
       {...sisa}
       className={`isian-fokus ${className ?? ""}`.trim()}
       style={{ ...GAYA_ISIAN, ...style }}

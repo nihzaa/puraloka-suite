@@ -25,6 +25,7 @@ import {
 
 import { C } from "@/lib/warna-ui";
 import { GAYA_KARTU } from "@/components/ui-dasar";
+import { Pilihan } from "@/components/pilihan";
 
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -710,7 +711,7 @@ function RoleFormModal({ role, roles, onClose, onSaved, setToast }: {
           {!isEdit && (
             <div style={{ marginBottom: 20 }}>
               <label htmlFor="copy-from" style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Salin Permission dari Role</label>
-              <select id="copy-from"
+              <Pilihan id="copy-from"
                 aria-label="Salin permission dari role lain"
                 value={copyFrom}
                 onChange={e => setCopyFrom(e.target.value)}
@@ -720,7 +721,7 @@ function RoleFormModal({ role, roles, onClose, onSaved, setToast }: {
                 {roles.map(r => (
                   <option key={r.id} value={r.name}>{r.label}</option>
                 ))}
-              </select>
+              </Pilihan>
               <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Semua permission dari role tersebut akan disalin ke role baru ini.</div>
             </div>
           )}

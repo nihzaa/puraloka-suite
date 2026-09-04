@@ -44,6 +44,7 @@ import BottomSheet from "@/components/portal/BottomSheet";
 import SegmentedTab from "@/components/portal/SegmentedTab";
 import type { RespAlatOperasional, RespPenyusutanAset, ProyekPM, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 interface RespProyek { projects: ProyekPM[] }
 const LABEL_JATUH_TEMPO: Record<string, string> = {
@@ -288,13 +289,13 @@ export default function PmAsetDetailPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jenis</span>
-            <select value={form.jenis} onChange={(e) => setForm((f) => ({ ...f, jenis: e.target.value }))}
+            <Pilihan value={form.jenis} onChange={(e) => setForm((f) => ({ ...f, jenis: e.target.value }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
               <option value="bbm">BBM</option>
               <option value="operator">Operator</option>
               <option value="suku_cadang">Suku Cadang</option>
               <option value="lainnya">Lainnya</option>
-            </select>
+            </Pilihan>
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jumlah</span>
@@ -313,11 +314,11 @@ export default function PmAsetDetailPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek Tujuan (kosong = kembali ke gudang)</span>
-            <select value={form.to_project_id} onChange={(e) => setForm((f) => ({ ...f, to_project_id: e.target.value }))}
+            <Pilihan value={form.to_project_id} onChange={(e) => setForm((f) => ({ ...f, to_project_id: e.target.value }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
               <option value="">— Kembali ke gudang —</option>
               {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            </Pilihan>
           </label>
           {galatForm && <div role="alert" style={{ fontSize: 12, color: "var(--on-danger-bg)", padding: 10, borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>{galatForm}</div>}
           <button type="button" onClick={() => void kirimAksi()} disabled={mengirim}

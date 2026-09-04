@@ -9,6 +9,7 @@ import { GitBranch, Plus, Trash2, Check, X, AlertTriangle, Info } from "lucide-r
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { Kosong } from "@/components/ui-dasar";
+import { Pilihan } from "@/components/pilihan";
 
 const card: React.CSSProperties = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "var(--naik-1)" };
 const input: React.CSSProperties = { width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", background: "var(--surface)", color: C.text, boxSizing: "border-box", fontFamily: "inherit" };
@@ -188,10 +189,10 @@ function ChainCard({ chain, perms, canManage, onToggle, onAdd, onPatch, onDelete
             <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr", gap: 8 }}>
               <div>
                 <label htmlFor={`new-perm-${chain.entity_type}`} style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Siapa yang berhak (permission)</label>
-                <select id={`new-perm-${chain.entity_type}`} aria-label="Permission yang berhak menyetujui langkah ini" value={newPerm} onChange={e => setNewPerm(e.target.value)} style={input}>
+                <Pilihan id={`new-perm-${chain.entity_type}`} aria-label="Permission yang berhak menyetujui langkah ini" value={newPerm} onChange={e => setNewPerm(e.target.value)} style={input}>
                   <option value="">— pilih permission —</option>
                   {perms.map(p => <option key={p.key} value={p.key}>{p.label ? `${p.label} (${p.key})` : p.key}</option>)}
-                </select>
+                </Pilihan>
               </div>
               <div>
                 <label htmlFor={`new-min-${chain.entity_type}`} style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Lantai — berlaku bila ≥ (opsional)</label>
@@ -246,9 +247,9 @@ function StepRow({ step, perms, canManage, isLast, connector, onPatch, onDelete 
       {editing ? (
         <div>
           <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr auto", gap: 8, alignItems: "end" }}>
-            <select aria-label="Ubah permission langkah approval" value={perm} onChange={e => setPerm(e.target.value)} style={input}>
+            <Pilihan aria-label="Ubah permission langkah approval" value={perm} onChange={e => setPerm(e.target.value)} style={input}>
               {perms.map(p => <option key={p.key} value={p.key}>{p.label ? `${p.label} (${p.key})` : p.key}</option>)}
-            </select>
+            </Pilihan>
             <input aria-label="Lantai — langkah berlaku bila nilai lebih besar atau sama dengan ini" inputMode="numeric"
               value={min} onChange={e => setMin(e.target.value.replace(/[^0-9]/g, ""))} placeholder="lantai (kosong = selalu)" style={input} />
             <input aria-label="Plafon — langkah berlaku bila nilai lebih kecil atau sama dengan ini" inputMode="numeric"

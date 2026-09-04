@@ -24,6 +24,7 @@ import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import type { RespSumberLaporan, RespHasilLaporanSusun, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
+import { Pilihan } from "@/components/pilihan";
 
 export default function PmSusunLaporanPage() {
   const [sumberKunci, setSumberKunci] = useState("");
@@ -90,7 +91,7 @@ export default function PmSusunLaporanPage() {
         <>
           <label htmlFor="pm-laporan-sumber" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Sumber Data</span>
-            <select
+            <Pilihan
               id="pm-laporan-sumber"
               value={sumberKunci}
               onChange={(e) => pilihSumber(e.target.value)}
@@ -110,7 +111,7 @@ export default function PmSusunLaporanPage() {
                   {s.label}
                 </option>
               ))}
-            </select>
+            </Pilihan>
           </label>
 
           {sumberAktif && (
