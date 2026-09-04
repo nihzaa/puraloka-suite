@@ -5,6 +5,75 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-04 (lanjutan) — lima permintaan founder, dan penjaga yang berbohong empat kali
+
+Founder mengirim lima permintaan berturut-turut di tengah sesi. Semuanya
+selesai dan tayang. Yang paling layak dicatat bukan pekerjaannya, melainkan
+POLA KEGAGALAN yang muncul berulang di dalamnya.
+
+### Yang dikerjakan
+
+| # | Permintaan | Hasil |
+|---|---|---|
+| 1 | link keabsahan dokumen jangan hardcode | `lib/url-dokumen.ts` baca `window.location.origin` |
+| 2 | kartu proyek "kaya social distancing" | jarak 12px rata (sebelumnya sisa ruang dibagi jadi jarak) |
+| 3 | pajak bisa dimatikan | migrasi 566 + saklar; tarif terbukti 0% |
+| 4 | RAB/RAP dari halaman proyek | tombol + jalan keluar dari keadaan kosong |
+| 5 | dialog & dropdown jangan bawaan | 45 dialog + 236 dropdown diganti |
+
+### Tiga cacat yang ditemukan SAMBIL mengerjakan, bukan yang diminta
+
+- **QR code invoice menunjuk domain mati.** Founder melaporkan teks footernya;
+  QR-nya tak disebut, dan ia menunjuk `puraloka.app` juga. Klien yang memindai
+  untuk memastikan invoice asli mendapat halaman mati.
+- **`/verify` menuntut login** — 307 ke `/login`. Halaman pembuktian keaslian
+  yang menolak pembacanya, padahal yang membukanya KLIEN, yang tak punya akun.
+- **Pajak "dimatikan" tetap dipotong 2%.** Kedua `getTaxRate` berbunyi
+  `scheme === 'ppn' ? 11% : 2%`, jadi nilai baru jatuh ke cabang else. Angkanya
+  sah, jurnalnya seimbang, invoicenya rapi — yang salah cuma jumlah uang yang
+  ditagihkan ke klien.
+
+### Pola yang berulang EMPAT kali: penjaga yang hijau atas cacatnya sendiri
+
+Tiap penjaga baru diuji dengan mengembalikan kode ke bentuk cacatnya. **Empat
+kali** hasilnya HIJAU, dan tiap kali sebabnya berbeda:
+
+1. **Regex rakus.** `[a-z0-9.-]*` menelan `.app/verify/invoice/` sampai habis,
+   lalu TLD tak lagi di ujung. Penjaga URL lolos pada bentuk PERSIS yang
+   dilaporkan founder.
+2. **Menilai per-berkas, bukan per-panggilan.** Satu `clearCookie` yang benar
+   meloloskan seluruh berkas — termasuk jalur `/auth/refresh` yang masih rusak.
+3. **Komentar ikut terbaca.** `includes('tanpa_pajak')` menemukan namanya di
+   komentar yang MENJELASKAN baris yang baru saja dihapus.
+4. **Syarat tak pernah tersisip.** `assert` gagal membatalkan skrip suntingan,
+   dan syarat "logout SAMA-ORIGIN" tak pernah masuk — mutasi yang paling
+   menentukan LOLOS.
+
+Yang membongkar keempatnya: **menguji tiap syarat sendiri-sendiri, bukan
+sekali borongan.** Uji borongan akan memperlihatkan merah dan saya akan
+menyimpulkan penjaganya bekerja.
+
+### Dan pelajaran yang lebih tajam
+
+**Penjaga wajib diuji terhadap bentuk ASLI cacatnya**, bukan mutasi karangan.
+Nomor 1 lolos justru karena saya mengarang mutasi ber-`https://`, sedangkan
+footer PDF menulisnya tanpa skema.
+
+**Penjaga yang memerahkan dokumentasi tentang dirinya sendiri mengajari orang
+menghapus dokumentasi itu.** Tiga penjaga sempat menuduh komentar yang
+menjelaskan kenapa mereka ada. Semuanya kini mengosongkan komentar sebelum
+memindai — dikosongkan, bukan dihapus, supaya nomor baris temuan tetap benar.
+
+### Catatan cara kerja
+
+Skrip suntingan yang melapor GAGAL empat kali ternyata benar tiap kali — ia
+memang tak paham bentuknya: `<select` diikuti baris baru (185 kemunculan),
+penyebutan dalam komentar, komentar JSX berkurung-kurawal, dan self-closing.
+Yang salah bukan laporannya, melainkan asumsi saya bahwa satu pola cukup.
+
+**Skrip yang diam soal kegagalannya membuat "tidak ada yang tertinggal"
+mustahil diperiksa.** Yang melapor gagal justru yang bisa dipercaya.
+
 ## 2026-09-04 (mobile, lanjutan) — riset dulu, lalu empat layar yang ternyata kosong atau rusak
 
 Founder minta UI sekelas frontend engineer profesional, dan minta riset
