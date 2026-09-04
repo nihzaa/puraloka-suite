@@ -109,13 +109,44 @@ const AMBANG = { select: 0, button: 0 }
  * yang terukur dan tercatat di ROADMAP, bukan yang disembunyikan.
  */
 
+/*
+  Berkas TEST dikecualikan — kemunculan KELIMA dari kelas cacat yang sama.
+
+  Riwayat berkas ini menceritakannya sendiri:
+
+      e4bda005  "penjaga merah untuk komentar, bukan cacat — keempat kalinya"
+      af7ab37b  "menuntut aria-label untuk select yang SUDAH berlabel benar"
+      ae54f299  "118 laporan palsu <select>"
+
+  2026-09-05, bentuk baru: `pilihan.test.tsx:46` merah atas
+
+      it("mengirim value lewat onChange, bentuknya sama seperti <select>", ...)
+
+  Sebuah STRING di judul test. Nol JSX di berkas itu — dua kemunculan, keduanya
+  teks (satu komentar, satu judul). Pemeriksaan per-baris sudah mengenali
+  komentar, tapi tak bisa mengenali kutipan.
+
+  ── Kenapa dikecualikan, bukan ditambal lagi
+
+  Penjaga ini menilai ANTARMUKA YANG DILIHAT PENGGUNA. Berkas test tak pernah
+  dirender ke siapa pun: tak ada pembaca layar yang membacanya, dan `aria-label`
+  di sana tak menolong seorang pun.
+
+  Menambal pengenal kutipan akan menutup bentuk ini dan membuka bentuk keenam —
+  template literal, JSX di dalam string, komentar di dalam kutipan. Empat
+  tambalan sebelumnya membuktikan pola itu tak berujung.
+
+  Yang HILANG karena pengecualian ini: cacat a11y di dalam komponen yang hanya
+  ada di test. Itu himpunan kosong — komponen yang dipakai orang tinggal di
+  berkas biasa, dan berkas itu tetap dipindai.
+*/
 function berkasTsx(dir) {
   const h = []
   for (const e of readdirSync(dir, { withFileTypes: true })) {
     if (e.name === 'node_modules' || e.name.startsWith('.')) continue
     const p = join(dir, e.name)
     if (e.isDirectory()) h.push(...berkasTsx(p))
-    else if (e.name.endsWith('.tsx')) h.push(p)
+    else if (e.name.endsWith('.tsx') && !e.name.endsWith('.test.tsx')) h.push(p)
   }
   return h
 }
