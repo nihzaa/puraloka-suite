@@ -2051,6 +2051,37 @@ jobs:
       - name: Bentuk balasan mobile cocok rutenya
         run: node scripts/audit-bentuk-balasan-mobile.mjs
 
+      # Tiap Pressable wajib memberi umpan balik saat ditekan. Diukur
+      # 2026-09-04: 17 dipakai, 1 berumpan, 16 TELANJANG. Pressable
+      # BAWAANNYA diam total - tak ada ripple, tak ada pudar - kecuali
+      # style ditulis sebagai fungsi ({ pressed }) atau android_ripple
+      # dipasang. Itu membuatnya LEBIH berbahaya daripada TouchableOpacity:
+      # keduanya terlihat sama di kode, hanya satu yang diam.
+      #
+      # Tiga dari enam berkas terdampak adalah layar TULIS (ncr/lapor,
+      # punch/lapor, izin-kerja/ajukan). Mandor bersarung tangan menekan
+      # lagi karena tekanan pertama tak terasa terjadi - dua NCR dari satu
+      # temuan, tanpa satu pun galat.
+      #
+      # Kelas cacat yang bahkan MEMOTRET tak bisa temukan: umpan balik
+      # hanya hidup 100ms saat jari menempel.
+      - name: Pressable mobile berumpan balik
+        run: node scripts/audit-tekan-berumpan.mjs
+
+      # Daftar panjang wajib FlatList, bukan ScrollView + .map(). Diukur
+      # 2026-09-04: NOL FlatList di seluruh apps/mobile, 14 layar memakai
+      # ScrollView + map. Lalu diukur ke API produksi: kasbons 67 baris,
+      # pekerjaan 63, notifications 30. Ambang virtualisasi 50 (pedoman
+      # stack react-native, severity High).
+      #
+      # ScrollView menahan SELURUH anaknya di memori, termasuk yang tak
+      # pernah tergulir. Tak ada galat - yang muncul cuma gulir tersendat
+      # yang MAKIN PARAH seiring bertambahnya data, jadi ia paling buruk
+      # persis saat aplikasinya paling dipakai. Di perangkat penguji
+      # dengan 5 baris, semuanya terasa mulus.
+      - name: Daftar mobile tervirtualisasi
+        run: node scripts/audit-daftar-mobile-virtual.mjs
+
       # Versi paket mobile wajib cocok dengan Expo SDK. Diukur 2026-08-31,
       # PERTAMA kalinya `expo export` dijalankan di repo ini: bundling GAGAL,
       # dan sebelas paket tak cocok — React 18 (butuh 19), React Native 0.76

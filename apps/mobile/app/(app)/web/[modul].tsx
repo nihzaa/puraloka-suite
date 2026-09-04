@@ -1,6 +1,7 @@
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { Tekan } from '@/components/ui/Tekan';
 import { storage } from '@/lib/storage';
 
 /*
@@ -287,9 +288,9 @@ function Pesan({ judul, isi }: { judul: string; isi: string }) {
     <View style={s.tengah}>
       <Text style={s.judul}>{judul}</Text>
       <Text style={s.isi}>{isi}</Text>
-      <Pressable style={s.tombol} onPress={() => router.back()} accessibilityRole="button">
+      <Tekan style={s.tombol} onPress={() => router.back()} accessibilityRole="button">
         <Text style={s.tombolTeks}>Kembali</Text>
-      </Pressable>
+      </Tekan>
     </View>
   );
 }

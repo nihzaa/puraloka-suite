@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert, StyleSheet,
+  View, Text, ScrollView, TextInput, ActivityIndicator, Alert, StyleSheet,
 } from 'react-native';
+import { Tekan } from '@/components/ui/Tekan';
 import { router } from 'expo-router';
 import { api } from '@/lib/api';
 import { antrekan } from '@/lib/antrean';
@@ -230,7 +231,7 @@ export default function InputAbsensi() {
       ) : (
         <View style={s.pilihanBaris}>
           {scopes.map((sc) => (
-            <Pressable
+            <Tekan
               key={sc.id}
               onPress={() => setScopeId(sc.id)}
               style={[s.chip, scopeId === sc.id && s.chipAktif]}
@@ -241,7 +242,7 @@ export default function InputAbsensi() {
                 {sc.nama}
               </Text>
               <Text style={[s.chipSub, scopeId === sc.id && s.chipTeksAktif]}>{sc.proyek}</Text>
-            </Pressable>
+            </Tekan>
           ))}
         </View>
       )}
@@ -261,7 +262,7 @@ export default function InputAbsensi() {
           const hadir = e?.hadir ?? false;
           return (
             <View key={t.id} style={[s.kartu, hadir && s.kartuAktif]}>
-              <Pressable
+              <Tekan
                 style={s.kartuKepala}
                 onPress={() => ubah(t.id, { hadir: !hadir })}
                 accessibilityRole="checkbox"
@@ -275,13 +276,13 @@ export default function InputAbsensi() {
                   <Text style={s.nama}>{t.name}</Text>
                   {t.tipe ? <Text style={s.tipe}>{t.tipe}</Text> : null}
                 </View>
-              </Pressable>
+              </Tekan>
 
               {hadir && (
                 <View style={s.rinci}>
                   <View style={s.pilihanBaris}>
                     {PORSI.map((p) => (
-                      <Pressable
+                      <Tekan
                         key={p.nilai}
                         onPress={() => ubah(t.id, { porsi: p.nilai })}
                         style={[s.chipKecil, e?.porsi === p.nilai && s.chipAktif]}
@@ -293,7 +294,7 @@ export default function InputAbsensi() {
                         >
                           {p.label}
                         </Text>
-                      </Pressable>
+                      </Tekan>
                     ))}
                   </View>
                   <View style={s.lemburBaris}>
@@ -315,7 +316,7 @@ export default function InputAbsensi() {
         })
       )}
 
-      <Pressable
+      <Tekan
         onPress={simpan}
         disabled={menyimpan || !scopeId || hadirCount === 0}
         style={[s.simpan, (menyimpan || !scopeId || hadirCount === 0) && s.simpanMati]}
@@ -324,7 +325,7 @@ export default function InputAbsensi() {
         <Text style={s.simpanTeks}>
           {menyimpan ? 'Menyimpan…' : `Simpan absensi (${hadirCount})`}
         </Text>
-      </Pressable>
+      </Tekan>
 
       <Text style={s.catatan}>
         Tersimpan di HP dulu, lalu terkirim sendiri saat ada sinyal.

@@ -1,8 +1,9 @@
 import React, { useCallback, useState } from 'react';
 import {
-  View, Text, ScrollView, Pressable, ActivityIndicator,
+  View, Text, ScrollView, ActivityIndicator,
   RefreshControl, StyleSheet,
 } from 'react-native';
+import { Tekan } from '@/components/ui/Tekan';
 import { router, useFocusEffect } from 'expo-router';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
@@ -578,7 +579,7 @@ export default function PekerjaanSaya() {
           })}
 
           {selesai.length > 0 && (
-            <Pressable
+            <Tekan
               onPress={() => setTampilSelesai((v) => !v)}
               style={s.tombolSelesai}
               accessibilityRole="button"
@@ -588,7 +589,7 @@ export default function PekerjaanSaya() {
                   ? `Sembunyikan ${selesai.length} yang selesai`
                   : `Tampilkan ${selesai.length} yang selesai`}
               </Text>
-            </Pressable>
+            </Tekan>
           )}
         </>
       )}
@@ -603,13 +604,13 @@ export default function PekerjaanSaya() {
         izin kerja dilakukan di portal oleh QC/PM — pengaju dan pemutus wajib orang berbeda.
       </Text>
 
-      <Pressable
+      <Tekan
         onPress={() => router.push('/lainnya')}
         style={s.tautan}
         accessibilityRole="button"
       >
         <Text style={s.tautanTeks}>Lapor yang baru →</Text>
-      </Pressable>
+      </Tekan>
     </ScrollView>
   );
 }

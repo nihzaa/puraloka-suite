@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert, StyleSheet,
+  View, Text, ScrollView, TextInput, ActivityIndicator, Alert, StyleSheet,
 } from 'react-native';
+import { Tekan } from '@/components/ui/Tekan';
 import { router } from 'expo-router';
 import { api } from '@/lib/api';
 import { antrekan } from '@/lib/antrean';
@@ -252,7 +253,7 @@ export default function AjukanIzinKerja() {
       ) : (
         <View style={s.pilihanBaris}>
           {proyek.map((p) => (
-            <Pressable
+            <Tekan
               key={p.id}
               onPress={() => setProyekId(p.id)}
               style={[s.chip, proyekId === p.id && s.chipAktif]}
@@ -260,7 +261,7 @@ export default function AjukanIzinKerja() {
               accessibilityState={{ selected: proyekId === p.id }}
             >
               <Text style={[s.chipTeks, proyekId === p.id && s.chipTeksAktif]}>{p.nama}</Text>
-            </Pressable>
+            </Tekan>
           ))}
         </View>
       )}
@@ -270,7 +271,7 @@ export default function AjukanIzinKerja() {
         {JENIS.map((j) => {
           const aktif = jenis === j.nilai;
           return (
-            <Pressable
+            <Tekan
               key={j.nilai}
               onPress={() => setJenis(j.nilai)}
               style={[s.jenisKotak, aktif && s.jenisKotakAktif]}
@@ -280,7 +281,7 @@ export default function AjukanIzinKerja() {
             >
               <Text style={[s.jenisJudul, aktif && s.jenisJudulAktif]}>{j.label}</Text>
               <Text style={[s.jenisKet, aktif && s.jenisKetAktif]}>{j.ket}</Text>
-            </Pressable>
+            </Tekan>
           );
         })}
       </View>
@@ -356,7 +357,7 @@ export default function AjukanIzinKerja() {
         </Text>
       </View>
 
-      <Pressable
+      <Tekan
         onPress={simpan}
         disabled={menyimpan || !siap}
         style={[s.simpan, (menyimpan || !siap) && s.simpanMati]}
@@ -365,7 +366,7 @@ export default function AjukanIzinKerja() {
         <Text style={s.simpanTeks}>
           {menyimpan ? 'Mengirim…' : 'Kirim untuk persetujuan'}
         </Text>
-      </Pressable>
+      </Tekan>
 
       {/*
         Batas yang paling penting disebutkan lagi di sini, dan alasannya

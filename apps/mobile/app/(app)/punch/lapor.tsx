@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert, StyleSheet,
+  View, Text, ScrollView, TextInput, ActivityIndicator, Alert, StyleSheet,
 } from 'react-native';
+import { Tekan } from '@/components/ui/Tekan';
 import { router } from 'expo-router';
 import { api } from '@/lib/api';
 import { antrekan } from '@/lib/antrean';
@@ -170,7 +171,7 @@ export default function LaporTemuan() {
       ) : (
         <View style={s.pilihanBaris}>
           {proyek.map((p) => (
-            <Pressable
+            <Tekan
               key={p.id}
               onPress={() => setProyekId(p.id)}
               style={[s.chip, proyekId === p.id && s.chipAktif]}
@@ -178,7 +179,7 @@ export default function LaporTemuan() {
               accessibilityState={{ selected: proyekId === p.id }}
             >
               <Text style={[s.chipTeks, proyekId === p.id && s.chipTeksAktif]}>{p.nama}</Text>
-            </Pressable>
+            </Tekan>
           ))}
         </View>
       )}
@@ -208,7 +209,7 @@ export default function LaporTemuan() {
         {SEVERITY.map((sv) => {
           const aktif = severity === sv.nilai;
           return (
-            <Pressable
+            <Tekan
               key={sv.nilai}
               onPress={() => setSeverity(sv.nilai)}
               style={[s.chip, aktif && { backgroundColor: sv.warna, borderColor: sv.warna }]}
@@ -216,7 +217,7 @@ export default function LaporTemuan() {
               accessibilityState={{ selected: aktif }}
             >
               <Text style={[s.chipTeks, aktif && s.chipTeksAktif]}>{sv.label}</Text>
-            </Pressable>
+            </Tekan>
           );
         })}
       </View>
@@ -232,14 +233,14 @@ export default function LaporTemuan() {
         accessibilityLabel="Keterangan temuan"
       />
 
-      <Pressable
+      <Tekan
         onPress={simpan}
         disabled={menyimpan || !proyekId || !judul.trim()}
         style={[s.simpan, (menyimpan || !proyekId || !judul.trim()) && s.simpanMati]}
         accessibilityRole="button"
       >
         <Text style={s.simpanTeks}>{menyimpan ? 'Menyimpan…' : 'Simpan temuan'}</Text>
-      </Pressable>
+      </Tekan>
 
       {/*
         Batasnya DISEBUTKAN, bukan didiamkan. Mandor yang mengira fotonya

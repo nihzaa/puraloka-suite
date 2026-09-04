@@ -134,7 +134,28 @@ try {
     hal.on('pageerror', (e) => galatJs.push(String(e.message).slice(0, 120)))
 
     await hal.goto(`${BASIS}/login`, { waitUntil: 'networkidle', timeout: 60_000 }).catch(() => {})
-    await hal.waitForTimeout(2500)
+    /*
+      ⚠ MENUNGGU KEADAAN, bukan durasi.
+
+      Versi sebelumnya `waitForTimeout(2500)` dan itu MENIPU dengan cara
+      yang paling mahal: lebar `kecil` dijalankan lebih dulu, saat Metro
+      baru selesai membundel, jadi halamannya lebih lambat siap daripada
+      lebar `besar` yang menyusul. Hasilnya "LOGIN GAGAL @kecil" sementara
+      @besar lolos — terbaca persis seperti cacat yang bergantung LEBAR
+      LAYAR, dan sempat saya kejar ke arah itu.
+
+      Diukur terpisah, keduanya identik: 2 input, tombol ada. Yang berbeda
+      cuma momennya.
+
+      Menunggu isian benar-benar ada menghapus balapan itu sekaligus
+      memberi diagnosis yang jujur bila memang tak pernah muncul.
+    */
+    await hal
+      .locator('input')
+      .nth(1)
+      .waitFor({ state: 'visible', timeout: 30_000 })
+      .catch(() => {})
+    await hal.waitForTimeout(600)
 
     // Isian login — RN Web merender TextInput sebagai <input>.
     const isian = hal.locator('input')
