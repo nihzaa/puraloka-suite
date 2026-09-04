@@ -1,16 +1,14 @@
 {
-  "berkas": 11,
+  "berkas": 9,
   "daftar": [
     "app/(app)/absensi/input.tsx",
     "app/(app)/dashboard.tsx",
     "app/(app)/izin-kerja/ajukan.tsx",
     "app/(app)/kasbon/ajukan.tsx",
     "app/(app)/lainnya.tsx",
-    "app/(app)/mandor/index.tsx",
     "app/(app)/ncr/lapor.tsx",
     "app/(app)/progress/input.tsx",
     "app/(app)/proyek/[id].tsx",
-    "app/(app)/proyek/index.tsx",
     "app/(app)/punch/lapor.tsx"
   ]
 }
