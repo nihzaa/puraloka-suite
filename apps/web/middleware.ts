@@ -4,6 +4,28 @@ import type { NextRequest } from "next/server";
 const PUBLIC_ROUTES = [
   "/login",
   "/auth/callback",
+  /*
+    `/verify/*` WAJIB publik — dan sampai 2026-09-04 ia tidak.
+
+    Halaman itu adalah tempat penerima dokumen memastikan invoice yang
+    dipegangnya ASLI: alamatnya tercetak di footer PDF dan tertanam di QR
+    code. Yang membukanya adalah KLIEN, dan klien bukan pengguna aplikasi
+    ini — mereka tak punya akun.
+
+    Terukur di produksi sebelum baris ini ada:
+
+        GET /verify/invoice/<id>  ->  307  location: /login
+
+    Jadi halaman pembuktian keaslian justru meminta orang login. Yang lebih
+    buruk daripada tautan mati: dokumen tagihan yang tautan verifikasinya
+    menolak pembacanya terbaca seperti dokumen palsu — kebalikan persis
+    dari gunanya.
+
+    Rutenya SUDAH dirancang publik (`app/verify/invoice/[id]/page.tsx`
+    memanggil endpoint publik sendiri, tanpa token). Yang kurang cuma
+    pendaftarannya di sini. Dijaga `audit-verify-publik.mjs` (ambang NOL).
+  */
+  "/verify",
   // `/uji-gulir` hanya di luar produksi — halaman uji `useVirtualList` yang
   // butuh viewport & scroll sungguhan (lihat `e2e/gulir-virtual.spec.ts`).
   // Halamannya sendiri juga merender `null` saat produksi; dua lapis, karena
@@ -198,8 +220,26 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Sudah login + akses public route → redirect ke home role
-  if (token && isPublic) {
+  /*
+    Sudah login + akses public route → redirect ke home role.
+
+    ⚠ `TANPA_ALIH_SAAT_LOGIN` dikecualikan. Dua jenis rute publik yang
+    perilakunya BERLAWANAN, dan menyamakannya melahirkan cacat:
+
+      · `/login` — sudah login berarti tak perlu di sini lagi. Dialihkan.
+      · `/verify/*` — halaman yang SENGAJA dibuka siapa pun, termasuk orang
+        yang kebetulan punya akun. Mengalihkannya berarti staf sendiri tak
+        pernah bisa membuka tautan verifikasi yang mereka kirimkan ke klien,
+        dan yang mereka lihat cuma dashboard — tanpa penjelasan apa pun.
+
+    Diperiksa 2026-09-04 saat `/verify` didaftarkan publik: tanpa
+    pengecualian ini, memperbaiki 307-ke-login justru menciptakan
+    307-ke-dashboard untuk separuh penggunanya.
+  */
+  const TANPA_ALIH_SAAT_LOGIN = ["/verify"];
+  const bolehSaatLogin = TANPA_ALIH_SAAT_LOGIN.some((r) => cocokRute(pathname, r));
+
+  if (token && isPublic && !bolehSaatLogin) {
     const home = role ? (ROLE_HOME[role] ?? "/dashboard") : "/dashboard";
     return NextResponse.redirect(new URL(home, request.url));
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { urlVerifikasiTampil } from "@/lib/url-dokumen";
 import {
   Document, Page, View, Text, Image, StyleSheet, 
 } from "@react-pdf/renderer";
@@ -465,7 +466,7 @@ export function InvoicePDF({ invoice, company, qrDataUrl }: InvoicePDFProps) {
 
         {/* ── Verification footer ── */}
         <Text style={styles.verifyText}>
-          Dokumen ini diterbitkan oleh {comp.company_name}. Verifikasi keabsahan dokumen: puraloka.app/verify/invoice/{inv.id}
+          Dokumen ini diterbitkan oleh {comp.company_name}. Verifikasi keabsahan dokumen: {urlVerifikasiTampil("invoice", inv.id)}
         </Text>
 
       </Page>

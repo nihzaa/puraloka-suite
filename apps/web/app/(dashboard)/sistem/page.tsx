@@ -164,8 +164,8 @@ export default function SistemPage() {
               </p>
               <div style={{ background: "var(--surface-subtle)", borderRadius: 6, padding: "8px 12px", fontFamily: "monospace", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.8 }}>
                 RESEND_API_KEY=re_xxxxxxxxxxxx<br />
-                EMAIL_FROM=Puraloka Suite &lt;noreply@puraloka.id&gt;<br />
-                APP_URL=https://app.puraloka.id
+                EMAIL_FROM=Puraloka Suite &lt;noreply@contoh.id&gt;<br />
+                APP_URL=https://app.contoh.id
               </div>
               <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8 }}>
                 Jika <code>RESEND_API_KEY</code> tidak diset, email dinonaktifkan (no-op). Notifikasi in-app tetap berjalan.
