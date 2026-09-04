@@ -1032,6 +1032,47 @@ await seed('worker x2 (bahan uji tukang & beban mandor)', async () => {
 })
 
 /*
+  Kategori biaya proyek — bahan uji otomasi biaya.
+
+  `otomasi-biaya-pola` dan `otomasi-biaya-pencilan` mati di `beforeAll`:
+
+      TypeError: Cannot read properties of undefined (reading 'id')
+      di `SELECT id FROM project_expense_categories LIMIT 1` -> rows[0].id
+
+  Bentuk klasik `rows[0]` atas query nol baris. Tak satu pun seed membuat
+  kategori ini (diukur: 0 kemunculan di berkas ini), dan tabelnya butuh
+  `project_id` — jadi ia bergantung pada proyek fixture di atas.
+
+  Galat `undefined (reading 'id')` tak menyebut tabel maupun query-nya. Yang
+  membacanya harus menelusuri nomor baris test lebih dulu untuk tahu apa yang
+  kurang — dan itu di berkas yang berbeda dari tempat kekurangannya.
+
+  `type` diisi 'material' dan 'labor', dua nilai yang benar-benar dipakai di
+  basis (diukur lewat SELECT DISTINCT, bukan ditebak dari nama kolom).
+
+  ⚠ Cast `::expense_category_type` WAJIB. Kolomnya enum, dan `VALUES` memberi
+  `text` — Postgres menolak dengan "column is of type expense_category_type
+  but expression is of type text". Ketahuan karena diuji, bukan diasumsikan.
+*/
+await seed('kategori biaya proyek (bahan uji otomasi biaya)', async () => {
+  await c.query(
+    `INSERT INTO project_expense_categories (project_id, name, type, sort_order, is_active)
+     SELECT p.id, v.nama, v.jenis::expense_category_type, v.urut, true
+       FROM projects p
+       CROSS JOIN (VALUES
+         ('CI Seed Material', 'material', 1),
+         ('CI Seed Upah',     'labor',    2)
+       ) AS v(nama, jenis, urut)
+      WHERE p.name = 'CI Seed Project'
+        AND NOT EXISTS (
+          SELECT 1 FROM project_expense_categories x
+           WHERE x.project_id = p.id AND x.name = v.nama)`)
+
+  const { rows } = await c.query(`SELECT count(*)::int n FROM project_expense_categories`)
+  if (rows[0].n === 0) throw new Error('nol kategori biaya sesudah seed — proyek fixture ada?')
+})
+
+/*
   Mitra + satu tukang yang TERTAUT padanya.
 
   `mitra.test.ts` menolak berjalan tanpa itu, dengan pesan yang menuduh
