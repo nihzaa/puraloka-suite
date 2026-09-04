@@ -1068,6 +1068,35 @@ await seed('worker x2 (bahan uji tukang & beban mandor)', async () => {
 })
 
 /*
+  Material — bahan uji pencocokan GR (goods receipt).
+
+  `otomasi-gr-matching` menolak berjalan tanpa satu material milik tenant uji:
+
+      Error: company akun uji tak punya material
+
+  Tak satu pun seed membuatnya (diukur: 0 kemunculan `INTO materials` di
+  berkas ini). Kolom wajib lain (`min_stock`, `konversi_ke_resource`,
+  `is_active`) punya DEFAULT — diperiksa lewat `column_default`, jadi cukup
+  `company_id`, `name`, `unit`.
+
+  Satuan `m³` mengikuti material nyata di basis, bukan ditebak: penjaga
+  `audit-harga-satuan-waras` memeriksa kewajaran harga TERHADAP SATUANNYA,
+  dan satuan karangan bisa membangunkannya tanpa sebab.
+*/
+await seed('material (bahan uji pencocokan GR)', async () => {
+  await c.query(
+    `INSERT INTO materials (company_id, name, unit)
+     SELECT (SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1),
+            'CI Seed Pasir Cor', 'm³'
+      WHERE NOT EXISTS (SELECT 1 FROM materials WHERE name = 'CI Seed Pasir Cor')
+        AND EXISTS (SELECT 1 FROM companies WHERE parent_company_id IS NULL)`)
+
+  const { rows } = await c.query(
+    `SELECT count(*)::int n FROM materials WHERE company_id IS NOT NULL`)
+  if (rows[0].n === 0) throw new Error('nol material ber-company_id sesudah seed')
+})
+
+/*
   Kategori biaya proyek — bahan uji otomasi biaya.
 
   `otomasi-biaya-pola` dan `otomasi-biaya-pencilan` mati di `beforeAll`:
