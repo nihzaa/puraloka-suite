@@ -135,7 +135,26 @@ export function Tekan({
           sedang ditekannya.
         */
         pressed && !tanpaUmpan && Platform.OS !== 'android' && { opacity: 0.6 },
-        disabled && gaya.mati,
+        /*
+          ⚠ Pudar HANYA saat `disabled` DAN masih dimaksudkan sebagai
+          tombol — bukan saat `tanpaUmpan` juga dipasang.
+
+          Terlihat dari potret RAB: baris item yang tak punya anak dipasang
+          `disabled` (tak ada yang bisa dibuka-tutup) plus `tanpaUmpan`,
+          dan seluruh barisnya memudar jadi 0.45. Nama pekerjaan, harga,
+          dan persentase progres ikut pucat — pada baris yang justru paling
+          banyak dibaca di layar itu.
+
+          Bedanya nyata: `disabled` sendirian berarti "tombol ini sedang
+          tak bisa ditekan" (dan memang harus terlihat begitu). `disabled`
+          + `tanpaUmpan` berarti "ini bukan tombol sama sekali" — isinya
+          tetap harus terbaca penuh.
+
+          Kelas yang sama dengan pil status yang ikut memerah di
+          `pekerjaan.tsx`: satu isyarat visual dipakai untuk dua arti,
+          dan yang kalah adalah arti yang lebih sering muncul.
+        */
+        disabled && !tanpaUmpan && gaya.mati,
       ]}
     >
       {children}

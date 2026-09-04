@@ -151,6 +151,29 @@ const PASANGAN = [
     rute: 'notifications.ts',
     tipe: 'Notification',
   },
+  /*
+    Ditambahkan 2026-09-05, sesudah cacat KETIGA dari kelas yang sama —
+    dan yang terbesar sejauh ini.
+
+    `proyek/[id].tsx` adalah layar terkaya di aplikasi (tiga tab, RAB
+    berhierarki, milestone, log progres). Diukur ke API produksi:
+
+        ProgressLog membaca `log_date`  → yang ada `logged_at`
+                                          (20 log bertanggal "—")
+        RabItem membaca `uraian`        → yang ada `name`
+                `no_urut`               → yang ada `category_code`
+                `level` sebagai ANGKA   → nilainya string 'category' |
+                                          'subcategory' | 'item'
+
+    Yang terakhir tak bisa ditangkap penjaga ini (ia memeriksa NAMA kunci,
+    bukan tipenya) — batas yang sudah tertulis di kepala berkas. Tapi tiga
+    yang pertama bisa, dan ketiganya kelas SALAH NAMA.
+  */
+  {
+    layar: 'app/(app)/proyek/[id].tsx',
+    rute: 'projects.ts',
+    tipe: 'ProgressLog',
+  },
 ]
 
 const temuan = []

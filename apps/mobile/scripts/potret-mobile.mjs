@@ -124,6 +124,33 @@ const LAYAR = [
   ['lainnya', '/lainnya'],
 ]
 
+/**
+ * Layar berparameter `[id]` — jalurnya dirakit dari data NYATA.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA INI TERPISAH, DAN KENAPA ID-NYA DICARI
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * `/proyek/[id]` adalah layar terkaya di aplikasi — tiga tab, RAB
+ * berhierarki, milestone, log progres. Ia juga yang paling lama tak pernah
+ * dipotret, karena butuh id yang sah.
+ *
+ * ⚠ Dan id yang ASAL bukan pengganti yang sah. Diukur 2026-09-05: 20 proyek
+ * di basis, tetapi hanya DUA yang punya RAB, dan yang terkaya punya **287
+ * baris**. Memotret proyek pertama yang kebetulan muncul menghasilkan layar
+ * kosong yang lulus semua pengukuran — "berisi teks, tak menggulir
+ * mendatar, tak ada teks kecil" — sementara tab RAB-nya tak pernah teruji.
+ *
+ * Yang dicari: proyek dengan isi TERBANYAK. Bukan supaya potretnya bagus,
+ * melainkan supaya kelas cacat yang hanya muncul pada data padat (hierarki
+ * dalam, teks panjang, angka besar) benar-benar ikut terpotret.
+ *
+ * Kalau pencariannya gagal, layar ini DILEWATI dengan pesan — bukan
+ * dipotret dengan id karangan. Potret dari id yang tak ada adalah layar
+ * galat yang terbaca seperti layar sah.
+ */
+const LAYAR_BERPARAM = [['proyek-detail', (id) => `/proyek/${id}`]]
+
 /** Dua lebar yang mewakili sisi berlawanan dari rentang HP nyata. */
 const LEBAR = [
   ['kecil', 360, 800],
@@ -294,7 +321,90 @@ try {
       continue
     }
 
-    for (const [nama, jalur] of LAYAR) {
+    /*
+      Id proyek TERKAYA dicari lewat aplikasi yang sudah login — bukan
+      lewat curl terpisah dengan token sendiri.
+
+      Alasannya: token yang dipakai peramban dan token yang dipakai skrip
+      bisa milik pengguna berbeda, dan proyek yang terlihat oleh satu belum
+      tentu terlihat oleh yang lain (RLS per-tenant). Id yang sah bagi
+      skrip lalu menghasilkan layar "tidak ditemukan" di peramban — potret
+      yang lulus semua pengukuran atas layar galat.
+
+      `fetch` dijalankan DI DALAM halaman, memakai sesi yang sama persis
+      dengan yang memotret.
+    */
+    let idProyek = null
+    if (LAYAR_BERPARAM.length > 0) {
+      idProyek = await hal
+        .evaluate(async (basisApi) => {
+          try {
+            /*
+              ⚠ Token dari `localStorage`, BUKAN `credentials: 'include'`.
+
+              Versi pertama memakai cookie, dan pencariannya gagal untuk
+              KEDUA lebar — aplikasi mobile tak pernah memakai cookie:
+              `lib/api.ts:58` membaca `puraloka_token` dari penyimpanan
+              lalu mengirimnya sebagai header `Authorization`. Itu justru
+              seluruh alasan header `X-Client` ada.
+
+              Kegagalannya tertangkap dua alat sekaligus (pesan `masalah`
+              dan hitungan 14 dari 16), dan itu yang membedakannya dari
+              "hijau atas layar yang tak pernah dibuka".
+            */
+            let token = null
+            try {
+              for (const k of Object.keys(localStorage)) {
+                if (/puraloka_token/.test(k)) {
+                  token = localStorage.getItem(k)
+                  break
+                }
+              }
+            } catch {
+              token = null
+            }
+            if (!token) return null
+
+            const ambil = (u) =>
+              fetch(u, {
+                headers: { Authorization: `Bearer ${token}`, 'X-Client': 'mobile' },
+              }).then((r) => (r.ok ? r.json() : null))
+            const daftar = await ambil(`${basisApi}/api/v1/projects`)
+            const proyek = daftar?.projects ?? []
+            if (proyek.length === 0) return null
+
+            /* Yang paling padat isinya, bukan yang pertama. */
+            let terbaik = null
+            let skorTerbaik = -1
+            for (const p of proyek.slice(0, 25)) {
+              const rab = await ambil(`${basisApi}/api/v1/projects/${p.id}/rab`)
+              const skor = rab?.data?.length ?? 0
+              if (skor > skorTerbaik) {
+                skorTerbaik = skor
+                terbaik = p.id
+              }
+            }
+            return skorTerbaik > 0 ? terbaik : proyek[0].id
+          } catch {
+            return null
+          }
+        }, process.env.EXPO_PUBLIC_API_URL ?? 'https://api.puraloka-suite.duckdns.org')
+        .catch(() => null)
+
+      if (!idProyek) {
+        masalah.push(
+          `@${namaLebar}: id proyek tak ditemukan — layar berparameter DILEWATI. ` +
+            'Ini bukan kelulusan: layar terkaya di aplikasi tak teruji.'
+        )
+      }
+    }
+
+    const semuaLayar = [
+      ...LAYAR,
+      ...(idProyek ? LAYAR_BERPARAM.map(([n, f]) => [n, f(idProyek)]) : []),
+    ]
+
+    for (const [nama, jalur] of semuaLayar) {
       try {
         await hal.goto(`${BASIS}${jalur}`, { waitUntil: 'networkidle', timeout: 45_000 })
         await hal.waitForTimeout(2000)
@@ -458,7 +568,18 @@ if (masalah.length) {
   Cakupan wajib disebut bersama angkanya (CLAUDE.md §8a.2): 5 dari 10
   bukan "5 potret", ia "separuh matriks hilang".
 */
-const DIHARAPKAN = LAYAR.length * LEBAR.length
+/*
+  Layar berparameter IKUT dihitung.
+
+  Kalau tidak, kegagalan mencari id proyek membuat matriks kurang dua
+  potret sementara `dipotret === DIHARAPKAN` tetap terpenuhi — dan layar
+  terkaya di aplikasi lolos tanpa teruji, dengan laporan hijau.
+
+  Kegagalannya sudah dicatat sebagai `masalah` di atas, tapi angka yang
+  konsisten adalah lapis kedua: dua alat yang menunjuk hal yang sama lebih
+  sulit dilewati daripada satu.
+*/
+const DIHARAPKAN = (LAYAR.length + LAYAR_BERPARAM.length) * LEBAR.length
 
 if (dipotret === 0) {
   console.error('')
