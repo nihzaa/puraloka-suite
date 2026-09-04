@@ -157,11 +157,24 @@ async function clearAuthAndRedirect() {
     menahan orang di halaman yang sudah tak bisa memuat apa pun.
   */
   try {
-    await axios.post(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/logout`,
-      {},
-      { withCredentials: true }
-    );
+    /*
+      SAMA-ORIGIN, bukan `NEXT_PUBLIC_API_URL`. Ini yang sesungguhnya
+      memutus putaran — lihat blok penjelasan di atas fungsi ini.
+
+      Cookie dipasang saat login lewat `api` (baseURL ""), jadi domainnya
+      `app.puraloka-suite.duckdns.org`. Memanggil logout ke
+      `api.puraloka-suite.duckdns.org` menghapus cookie DOMAIN ITU — yang
+      tak pernah ada. Cookie di `app` tak tersentuh, dan sesinya hidup terus.
+
+      Terukur 2026-09-04, sesudah header `Secure` diperbaiki di server:
+
+          set-cookie: puraloka_token=; Max-Age=0; ... HttpOnly; Secure
+          → balasan 200, header BENAR
+          → cookie akhir di peramban: ['puraloka_token','puraloka_refresh']
+
+      Header yang sempurna, dikirim ke domain yang salah.
+    */
+    await api.post("/api/v1/auth/logout", {});
   } catch {
     /* diabaikan sengaja — lihat komentar di atas */
   }
@@ -188,7 +201,16 @@ api.interceptors.response.use(
     // dimuat ulang → pesan "Email atau password salah" IKUT TERHAPUS sebelum
     // sempat terbaca. Itulah sebabnya form terlihat diam saja saat login gagal.
     const url: string = originalRequest?.url ?? "";
-    if (/\/auth\/(login|refresh|google-callback)/.test(url)) {
+    /*
+      `logout` WAJIB ada di daftar ini sejak ia dipanggil lewat `api`
+      (sama-origin) alih-alih `axios` telanjang.
+
+      Tanpa itu, logout yang membalas 401 masuk ke interceptor ini →
+      memanggil refresh → gagal → `clearAuthAndRedirect` → logout lagi.
+      Rekursi yang bentuknya sama persis dengan putaran yang sedang
+      diperbaiki, cuma lebih dalam.
+    */
+    if (/\/auth\/(login|logout|refresh|google-callback)/.test(url)) {
       return Promise.reject(error);
     }
 
@@ -207,11 +229,13 @@ api.interceptors.response.use(
     try {
       // Kirim refresh request — server baca HttpOnly cookie puraloka_refresh
       // dan set ulang kedua cookie dengan token baru
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/refresh`,
-        {},
-        { withCredentials: true }
-      );
+      /*
+        SAMA-ORIGIN juga, dan alasannya sama seperti logout: `/auth/refresh`
+        MEMASANG cookie baru saat berhasil, dan MENGHAPUSNYA saat gagal.
+        Lewat domain lain, keduanya meleset — cookie baru mendarat di domain
+        yang tak dibaca middleware, dan penghapusannya tak mengenai apa pun.
+      */
+      await api.post("/api/v1/auth/refresh", {});
 
       processQueue(null);
       return api(originalRequest);
