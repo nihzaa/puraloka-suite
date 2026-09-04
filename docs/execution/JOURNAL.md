@@ -5,6 +5,110 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-05 (mobile) — layar terkaya di aplikasi, dan RAB 287 baris yang berbunyi "belum ada"
+
+`proyek/[id]` adalah layar terkompleks di aplikasi mobile: tiga tab, RAB
+berhierarki, milestone, log progres. Ia juga yang paling lama tak pernah
+dipotret, karena butuh id yang sah.
+
+### Yang ditemukan begitu dibuka
+
+    Ringkasan   171 huruf — nama proyek hilang, "— → —", "Rp 0", 0%
+    Tab RAB     "Belum ada RAB untuk proyek ini"  atas **287 baris**
+    Tab Progres 20 log, semuanya bertanggal "—"
+
+Enam nama medan meleset, dan tiap satunya sendirian cukup mengosongkan
+bagiannya:
+
+    setProject(res.data)          API membungkus: { project: {...} }
+    res.data?.tree ?? .rab        yang ada `data`
+    log_date                      yang ada `logged_at`
+    uraian / no_urut              yang ada `name` / `category_code`
+    level sebagai ANGKA           nilainya 'category'|'subcategory'|'item'
+    children                      tak ada — datanya DATAR, 137 dari 287
+                                  punya parent_id
+
+Yang terakhir paling halus: `level === 1/2/3` SELALU false, jadi tak ada
+baris yang mendapat gaya kategori, blok harga+progres tak pernah dirender,
+dan blok bobot dirender untuk semua baris termasuk yang seharusnya
+menampilkan harga. Tiga cacat dari satu perbandingan.
+
+`tsc` hijau untuk semuanya — `res.data` bertipe `any` dari axios, dan
+`level: number` ditulis dari tebakan.
+
+Sesudah: Ringkasan 570 huruf · RAB **9.372** · Progres 1.499.
+
+### Potret berparameter, dan kenapa id ASAL tak cukup
+
+`potret-mobile.mjs` kini bisa memotret rute `[id]`. Idnya dicari dari
+aplikasi yang SUDAH login (bukan lewat curl bertoken sendiri — RLS
+per-tenant membuat proyek yang terlihat oleh skrip belum tentu terlihat
+oleh peramban), dan yang dicari proyek dengan RAB TERBANYAK.
+
+Diukur: 20 proyek, hanya DUA yang punya RAB. Memotret proyek pertama yang
+kebetulan muncul menghasilkan layar kosong yang lulus semua pengukuran
+sementara tab RAB-nya tak pernah teruji.
+
+Percobaan pertama memakai `credentials: 'include'` dan gagal untuk kedua
+lebar — aplikasi ini tak pernah memakai cookie; token ada di
+`localStorage` dan dikirim sebagai header `Authorization`. Itu justru
+seluruh alasan header `X-Client` ada.
+
+### Tiga cacat visual dari melihat potretnya
+
+1. **Harga, batang, dan persen bertumpuk** — tiga baris untuk satu item.
+   Dibuat sejajar mendatar.
+2. **"100%" pecah jadi dua baris.** Dihitung 30,6px untuk lebar 32px —
+   "muat" di atas kertas. Diukur di DOM: tingginya **28px** sementara
+   "10%" 14px. Estimasi lebar glif tak bisa diandalkan; yang bisa cuma
+   mengukurnya.
+3. **Nama pekerjaan pucat** — dan sebabnya `Tekan` yang saya tulis
+   sendiri: ia memudarkan seluruh baris `disabled` jadi 0.45. Baris RAB
+   tanpa anak memang `disabled`, tapi "tak bisa ditekan" bukan "tak
+   aktif". Sekarang pudar hanya kalau `disabled` TANPA `tanpaUmpan`.
+
+Yang ketiga kelas yang sama dengan pil status yang ikut memerah kemarin:
+satu isyarat visual dipakai untuk dua arti, dan yang kalah adalah arti
+yang lebih sering muncul.
+
+### Saya meneruskan tuduhan alat tanpa memeriksanya
+
+`a11y-ratchet` merah dengan "`<select>` tanpa nama: pilihan.test.tsx:46".
+Saya verifikasi bahwa itu bukan regresi saya (benar — commit e8251c35 dari
+sesi lain), lalu meneruskan laporannya apa adanya.
+
+Sesi itu membuka berkasnya: **nol JSX**. Dua kemunculan, keduanya TEKS —
+satu komentar dan satu STRING di judul test. Penjaganya yang salah, untuk
+kelima kalinya.
+
+Saya seharian mengejar kelas cacat "alat ukur yang menuduh produk", dan
+tetap meneruskan tuduhan alat tanpa membuka berkasnya.
+
+### Enam berkas saya tersapu ke commit orang lain
+
+Commit `82e97ce5` (perbaikan a11y sesi lain) ikut menelan enam berkas
+mobile saya — 788 baris di `proyek/[id].tsx` saja. Isinya SELAMAT dan
+hijau; yang terjadi cuma tersembunyi di balik pesan tentang a11y.
+
+Dicatat di sini supaya bisa ditelusuri nanti. Bentuk yang persis
+diperingatkan §8a.1: `git status` si penyapu bersih sesudahnya, jadi nol
+gejala dari sisinya.
+
+Dan satu kesalahan saya sendiri di jalan yang sama: `git restore --staged`
+tanpa pathspec melepas SELURUH stage, bukan satu berkas.
+
+### Terukur
+
+    penjaga CI          234 hijau · 0 MERAH · 0 tak ketemu   (dari 230)
+    tsc mobile          exit 0
+    potret terang+gelap 16/16 keduanya
+    hex tulisan tangan  264 → 224
+    fontFamily dipakai  88 → 113
+    proyek-detail       171 → 570 huruf (Ringkasan)
+    tab RAB             "belum ada" → 9.372 huruf
+
+---
+
 ## 2026-09-04 (lanjutan) — lima permintaan founder, dan penjaga yang berbohong empat kali
 
 Founder mengirim lima permintaan berturut-turut di tengah sesi. Semuanya
