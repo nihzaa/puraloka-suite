@@ -32,6 +32,34 @@
  * Batas itu disebutkan supaya potret yang bagus tak dibaca sebagai
  * "mobile sudah beres".
  *
+ * ── ⚠ SATU ARTEFAK YANG SUDAH MEMAKAN WAKTU: label bilah tab terpotong
+ *
+ * Pada potret mana pun dari skrip ini, label bilah tab ("Beranda",
+ * "Proyek", …) tampak TERPOTONG di tengah huruf. Itu artefak
+ * `react-native-web`, BUKAN cacat aplikasi.
+ *
+ * Ditelusuri sampai sumbernya (2026-09-04):
+ *
+ *     node_modules/react-native-web/dist/exports/Text/index.js
+ *     styles.textOneLine = { overflow: 'hidden', whiteSpace: 'nowrap', … }
+ *
+ * Bilah tab expo-router menyetel `numberOfLines={1}` pada labelnya. Di web
+ * itu memakai `textOneLine`, dan elemennya berakhir dengan
+ * `height: 5px; overflow: hidden` untuk teks 11px — terukur di DOM. Di
+ * React Native sungguhan `numberOfLines` hanya membatasi JUMLAH BARIS; ia
+ * tak memotong tinggi.
+ *
+ * Yang sudah DICOBA dan tidak menolong, supaya tak diulang:
+ *
+ *     tinggi bilah 44 → 58px      label tetap 5px
+ *     `lineHeight: 14` eksplisit  diterapkan (terlihat di inline style),
+ *                                 label tetap 5px
+ *
+ * Aturan yang berlaku di sini sama seperti "nol hasil bukan bukti
+ * ketiadaan": **cacat yang hanya muncul di alat ukur bukan cacat produk.**
+ * Sebelum memperbaiki apa pun yang terlihat di potret, tanyakan dulu apakah
+ * ia juga ada di APK sungguhan.
+ *
  * ── Lebar yang dipotret
  *
  *     360×800   Android kelas menengah — yang paling banyak dipakai mandor

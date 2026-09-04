@@ -15,6 +15,8 @@ import { Galat } from '@/components/ui/Galat';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
 import { pesanGalat } from '@/lib/galat';
+import { useTema } from '@/hooks/useTema';
+import { FONT, HURUF, RADIUS, SPASI, type Palet } from '@/lib/tema';
 
 /**
  * Bentuk balasan `/api/v1/dashboard`.
@@ -77,6 +79,8 @@ function fmt(n: number) {
 
 export default function DashboardScreen() {
   const { user, logout } = useAuth();
+  const { c } = useTema();
+  const styles = gaya(c);
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -102,7 +106,7 @@ export default function DashboardScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color="#003366" />
+        <ActivityIndicator size="large" color={c.navy} />
       </SafeAreaView>
     );
   }
@@ -111,13 +115,18 @@ export default function DashboardScreen() {
     <SafeAreaView style={styles.safe}>
       <ScrollView
         contentContainerStyle={styles.container}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#003366" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.navy} />}
       >
         <PenandaAntrean />
         {galat ? <Galat judul="Ringkasan tidak bisa dimuat" pesan={galat} /> : null}
         <View style={styles.topRow}>
           <View>
-            <Text style={styles.greeting}>Halo, {user?.name?.split(' ')[0]} 👋</Text>
+            {/*
+              Emoji 👋 dibuang: rupanya berbeda di tiap HP, dan sebagian
+              Android lama menggambar kotak kosong tepat di sebelah nama
+              penggunanya. Sapaan tak butuh gambar untuk terbaca ramah.
+            */}
+            <Text style={styles.greeting}>Halo, {user?.name?.split(' ')[0]}</Text>
             <Text style={styles.role}>{user?.role?.toUpperCase()}</Text>
           </View>
           <TouchableOpacity onPress={logout} style={styles.logoutBtn} accessibilityRole="button">
@@ -165,24 +174,72 @@ export default function DashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F8F9FA' },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8F9FA' },
-  container: { padding: 16, gap: 12 },
-  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  greeting: { fontSize: 20, fontWeight: '700', color: '#111827' },
-  role: { fontSize: 12, color: '#6B7280', fontWeight: '500', marginTop: 2 },
-  logoutBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB' },
-  logoutText: { fontSize: 13, color: '#6B7280' },
-  sectionTitle: { fontSize: 14, fontWeight: '600', color: '#374151', marginTop: 8 },
-  kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  kpiCard: { width: '47%', padding: 14 },
-  kpiLabel: { fontSize: 12, color: '#6B7280', fontWeight: '500', marginBottom: 6 },
-  kpiValue: { fontSize: 28, fontWeight: '700', color: '#003366' },
-  kpiValueSm: { fontSize: 14, fontWeight: '700', color: '#003366' },
-  projCard: { gap: 8 },
-  projName: { fontSize: 14, fontWeight: '600', color: '#111827' },
-  progressBar: { height: 6, backgroundColor: '#E5E7EB', borderRadius: 3, overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: '#003366', borderRadius: 3 },
-  progressLabel: { fontSize: 12, color: '#6B7280', textAlign: 'right' },
-});
+/**
+ * Gaya dashboard.
+ *
+ * ── Ruang atas: 16 → 24
+ *
+ * `SafeAreaView` menyediakan inset notch di perangkat sungguhan, tetapi 16px
+ * di ATAS inset itu membuat sapaan menempel ke tepi — dan pada HP berpunch-
+ * hole tengah (mayoritas Android kelas menengah), teks 20px di posisi itu
+ * berdesakan dengan kameranya.
+ */
+function gaya(c: Palet) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: c.surfaceSubtle },
+    centered: {
+      flex: 1, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: c.surfaceSubtle,
+    },
+    container: {
+      paddingHorizontal: SPASI.lg,
+      paddingTop: SPASI.xxl,
+      paddingBottom: SPASI.lg,
+      gap: SPASI.md,
+    },
+    topRow: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', marginBottom: SPASI.sm,
+    },
+    greeting: { fontSize: HURUF.xl, fontFamily: FONT.judul, color: c.textPrimary },
+    role: {
+      fontSize: HURUF.xs, fontFamily: FONT.isiTebal,
+      color: c.textSecondary, marginTop: 2, letterSpacing: 0.3,
+    },
+    logoutBtn: {
+      paddingHorizontal: SPASI.md, paddingVertical: 6,
+      borderRadius: RADIUS.sm, borderWidth: 1, borderColor: c.border,
+    },
+    logoutText: { fontSize: HURUF.sm, fontFamily: FONT.isi, color: c.textSecondary },
+    sectionTitle: {
+      fontSize: HURUF.sm + 1, fontFamily: FONT.isiTebal,
+      color: c.textPrimary, marginTop: SPASI.sm,
+    },
+    kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    kpiCard: { width: '47%', padding: 14 },
+    kpiLabel: {
+      fontSize: HURUF.xs, fontFamily: FONT.isi,
+      color: c.textSecondary, marginBottom: 6,
+    },
+    /*
+      Angka KPI memakai `FONT.judul` — keluarga display, bukan font isi yang
+      ditebalkan. Angka adalah yang dicari mata lebih dulu di layar ini, dan
+      digit Bricolage Grotesque lebih tegas pada ukuran besar.
+    */
+    kpiValue: { fontSize: 28, fontFamily: FONT.judul, color: c.navy },
+    kpiValueSm: { fontSize: HURUF.sm + 1, fontFamily: FONT.judul, color: c.navy },
+    projCard: { gap: SPASI.sm },
+    projName: {
+      fontSize: HURUF.sm + 1, fontFamily: FONT.isiTebal, color: c.textPrimary,
+    },
+    progressBar: {
+      height: 6, backgroundColor: c.surfaceHover,
+      borderRadius: 3, overflow: 'hidden',
+    },
+    progressFill: { height: '100%', backgroundColor: c.navy, borderRadius: 3 },
+    progressLabel: {
+      fontSize: HURUF.xs, fontFamily: FONT.isi,
+      color: c.textSecondary, textAlign: 'right',
+    },
+  });
+}

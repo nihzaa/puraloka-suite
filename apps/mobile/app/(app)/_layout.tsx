@@ -1,23 +1,82 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/useAuth';
+import { useTema } from '@/hooks/useTema';
+import { FONT } from '@/lib/tema';
 
-function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
-  return <Text style={{ fontSize: focused ? 22 : 20, opacity: focused ? 1 : 0.6 }}>{emoji}</Text>;
+/**
+ * Ikon bilah tab.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA BUKAN EMOJI LAGI
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Versi sebelumnya: `<Text>{emoji}</Text>` dengan 🏠 🏗️ 📷 💵 👷 🔔 ⋯ 🗓️.
+ *
+ * Yang MEMOTONG LABEL, dan angkanya tegas. Diukur di viewport 360×800:
+ *
+ *     ikon emoji fontSize 22  →  tinggi terender 30px
+ *     label fontSize 11       →  tinggi terender  6px   ← DIPERAS
+ *     bilah tab                  tinggi           44px
+ *
+ * Emoji punya metrik font yang jauh lebih tinggi daripada huruf biasa —
+ * 30px untuk fontSize 22, bukan ~22px. Ikon + padding menghabiskan ruang,
+ * dan label 11px berakhir dalam kotak setinggi 6px: terpotong di tengah
+ * huruf, di SETIAP layar aplikasi.
+ *
+ * Tiga alasan lain, dan semuanya sudah berlaku sebelum diukur:
+ *
+ *   1. RUPANYA BERBEDA DI TIAP HP. 🏗️ di Samsung, Xiaomi, dan Android 9
+ *      adalah tiga gambar berbeda; sebagian perangkat lama tak punya
+ *      glifnya sama sekali dan menggambar kotak kosong.
+ *
+ *   2. TAK BISA DIBERI WARNA. Keadaan aktif hanya bisa ditandai dengan
+ *      opasitas dan ukuran — dua isyarat yang lemah. `tabBarActiveTintColor`
+ *      navy tak berpengaruh sama sekali pada emoji.
+ *
+ *   3. `ui-ux-pro-max` menyebutnya anti-pattern eksplisit ("Emoji as icons",
+ *      prioritas 4).
+ *
+ * `@expo/vector-icons` sudah ada di package.json sejak awal dan tak pernah
+ * dipakai sekali pun.
+ */
+function TabIcon({
+  nama,
+  focused,
+  warna,
+}: {
+  nama: React.ComponentProps<typeof Ionicons>['name'];
+  focused: boolean;
+  warna: string;
+}) {
+  /*
+    Varian `-outline` saat tak aktif, padat saat aktif — konvensi iOS dan
+    Material yang sama-sama dikenali. Bersama warna, keadaan aktif punya DUA
+    isyarat, jadi ia tetap terbaca oleh pengguna yang tak membedakan warna.
+  */
+  return <Ionicons name={nama} size={22} color={warna} />;
 }
 
 /*
-  `gray` dipakai sebagai `tabBarInactiveTintColor` — label tab yang tak
-  aktif, 11px, dan hadir di SETIAP layar.
+  Warna bilah tab datang dari `useTema()`, bukan konstanta.
 
-  Dihitung, bukan ditaksir: #9CA3AF pada putih = 2.54:1, gagal WCAG AA yang
-  menuntut 4.5:1 untuk teks normal. #6B7280 = 4.83:1.
+  Riwayat yang tak boleh hilang bersama konstantanya: `tabBarInactiveTintColor`
+  pernah `#9CA3AF` — label tab 11px yang hadir di SETIAP layar, dan DIHITUNG
+  2.54:1 pada putih. Gagal WCAG AA yang menuntut 4.5:1.
 
-  Repo ini punya preseden kenapa dihitung: `kontras-situs.mjs` lahir karena
-  tiga angka kontras yang ditulis dari taksiran ketiganya meleset.
+  Penggantinya waktu itu `#6B7280` (4.83:1). Sekarang `c.textSecondary`, yang
+  DIHITUNG lebih baik di kedua mode:
+
+      terang  #5A616B pada #FFFFFF   6.26:1
+      gelap   #9098B8 pada #212536   5.33:1
+
+  Bukan warna yang sama dengan #6B7280 — lebih gelap, jadi naik dari 4.83
+  ke 6.26 di mode terang.
+
+  Repo ini punya preseden kenapa DIHITUNG, bukan ditaksir: `kontras-situs.mjs`
+  lahir karena tiga angka kontras yang ditulis dari taksiran ketiganya meleset.
 */
-const C = { navy: '#003366', gray: '#6B7280' };
 
 /*
   ══════════════════════════════════════════════════════════════════════════
@@ -57,6 +116,7 @@ const C = { navy: '#003366', gray: '#6B7280' };
 */
 export default function AppLayout() {
   const { punyaIzin } = useAuth();
+  const { c } = useTema();
 
   const bolehKasbon = punyaIzin('mandor:kasbon:create');
   const bolehProgres = punyaIzin('reports:progress') && punyaIzin('mandor:kasbon:create');
@@ -66,12 +126,22 @@ export default function AppLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: C.navy,
-        tabBarInactiveTintColor: C.gray,
+        tabBarActiveTintColor: c.navy,
+        tabBarInactiveTintColor: c.textSecondary,
         tabBarStyle: {
-          borderTopColor: '#E5E7EB',
-          backgroundColor: '#fff',
-          paddingTop: 4,
+          borderTopColor: c.border,
+          backgroundColor: c.surfaceRaised,
+          paddingTop: 6,
+          /*
+            Tinggi DINYATAKAN, bukan diserahkan ke bawaan.
+
+            Bawaan (44px) memeras label 11px jadi kotak setinggi 6px —
+            terukur, dan terlihat di potret sebagai huruf terpotong di
+            tengah. 58px memberi ikon 22px + label 11px + jarak, dengan
+            ruang untuk `paddingBottom` perangkat bergestur.
+          */
+          height: 58,
+          paddingBottom: 6,
         },
         /*
           TETAP 11px, dan itu keputusan yang dihitung — bukan kelalaian.
@@ -96,21 +166,43 @@ export default function AppLayout() {
           dilakukan pada 13 gaya lain hari ini. Kalau nanti bilahnya
           berkurang jadi enam tab (60px per tab), 12px muat untuk semuanya.
         */
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '500' },
+        /*
+          `lineHeight` WAJIB dinyatakan, dan itu bukan soal selera.
+
+          Tanpanya, `react-native-web` memberi elemen label
+          `height: 5px; overflow: hidden` untuk teks 11px — terukur di DOM.
+          Hurufnya terpotong di tengah, di SETIAP layar aplikasi, dan
+          menaikkan tinggi BILAH tak memperbaikinya sama sekali (dicoba:
+          bilah 44 → 58px, label tetap 5px).
+
+          Sebabnya label mewarisi `lineHeight: normal` dari induk ber-fontSize
+          16px, lalu tingginya dihitung dari sesuatu yang bukan fontSize-nya
+          sendiri. 14 = 11px + ruang pangkal huruf turun (g, y, p).
+        */
+        tabBarLabelStyle: {
+          fontSize: 11,
+          lineHeight: 14,
+          fontFamily: FONT.isiTebal,
+          marginTop: 2,
+        },
       }}
     >
       <Tabs.Screen
         name="dashboard"
         options={{
           title: 'Beranda',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
+          tabBarIcon: ({ focused, color }) => (
+                  <TabIcon nama={focused ? 'home' : 'home-outline'} focused={focused} warna={color} />
+                ),
         }}
       />
       <Tabs.Screen
         name="proyek/index"
         options={{
           title: 'Proyek',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🏗️" focused={focused} />,
+          tabBarIcon: ({ focused, color }) => (
+                  <TabIcon nama={focused ? 'business' : 'business-outline'} focused={focused} warna={color} />
+                ),
         }}
       />
       <Tabs.Screen
@@ -125,7 +217,9 @@ export default function AppLayout() {
           bolehProgres
             ? {
                 title: 'Progres',
-                tabBarIcon: ({ focused }) => <TabIcon emoji="📷" focused={focused} />,
+                tabBarIcon: ({ focused, color }) => (
+                  <TabIcon nama={focused ? 'camera' : 'camera-outline'} focused={focused} warna={color} />
+                ),
               }
             : { href: null }
         }
@@ -136,7 +230,9 @@ export default function AppLayout() {
           bolehKasbon
             ? {
                 title: 'Kasbon',
-                tabBarIcon: ({ focused }) => <TabIcon emoji="💵" focused={focused} />,
+                tabBarIcon: ({ focused, color }) => (
+                  <TabIcon nama={focused ? 'cash' : 'cash-outline'} focused={focused} warna={color} />
+                ),
               }
             : { href: null }
         }
@@ -153,7 +249,9 @@ export default function AppLayout() {
           bolehMandor
             ? {
                 title: 'Mandor',
-                tabBarIcon: ({ focused }) => <TabIcon emoji="👷" focused={focused} />,
+                tabBarIcon: ({ focused, color }) => (
+                  <TabIcon nama={focused ? 'people' : 'people-outline'} focused={focused} warna={color} />
+                ),
               }
             : { href: null }
         }
@@ -163,7 +261,9 @@ export default function AppLayout() {
         name="notifications/index"
         options={{
           title: 'Notif',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🔔" focused={focused} />,
+          tabBarIcon: ({ focused, color }) => (
+                  <TabIcon nama={focused ? 'notifications' : 'notifications-outline'} focused={focused} warna={color} />
+                ),
         }}
       />
 
@@ -179,7 +279,9 @@ export default function AppLayout() {
         name="lainnya"
         options={{
           title: 'Lainnya',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="⋯" focused={focused} />,
+          tabBarIcon: ({ focused, color }) => (
+                  <TabIcon nama={focused ? 'ellipsis-horizontal' : 'ellipsis-horizontal-outline'} focused={focused} warna={color} />
+                ),
         }}
       />
 
@@ -205,7 +307,9 @@ export default function AppLayout() {
           punyaIzin('mandor:wage:create')
             ? {
                 title: 'Absensi',
-                tabBarIcon: ({ focused }) => <TabIcon emoji="🗓️" focused={focused} />,
+                tabBarIcon: ({ focused, color }) => (
+                  <TabIcon nama={focused ? 'calendar' : 'calendar-outline'} focused={focused} warna={color} />
+                ),
               }
             : { href: null }
         }
