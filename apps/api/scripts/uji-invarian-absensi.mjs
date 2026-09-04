@@ -73,32 +73,42 @@ const SID = scope[0].id
 const WID = worker[0].id
 
 /*
-  ⚠ BERSIHKAN SISA JALAN SEBELUMNYA — ditambahkan 2026-09-04.
+  ⚠ BERSIHKAN SISA JALAN SEBELUMNYA — 2026-09-04, dua kali diperbaiki.
 
-  Tiap uji menghapus barisnya sendiri SESUDAH berhasil (baris ~116, ~145,
-  ~181). Tetapi kalau satu jalan terputus di tengah — galat tak terduga,
-  timeout, atau run CI yang dibatalkan push berikutnya — barisnya TERTINGGAL.
+  Tiap uji menghapus barisnya sendiri SESUDAH berhasil. Tetapi kalau satu
+  jalan terputus di tengah — galat tak terduga, timeout, atau run CI yang
+  dibatalkan push berikutnya — barisnya TERTINGGAL, dan jalan berikutnya
+  menabraknya SELAMANYA sampai seseorang membersihkan basis dengan tangan.
 
-  Jalan berikutnya lalu menabraknya, dan gejalanya menuduh invariannya:
+  Gejalanya menuduh invariannya, dua lapis berbeda:
 
       ✗ DITOLAK PADAHAL SAH  porsi 0.5 (setengah hari):
-        duplicate key value violates unique constraint
-        "uq_absensi_scope_worker_tanggal"
+        duplicate key ... "uq_absensi_scope_worker_tanggal"
 
-  Kalimat "DITOLAK PADAHAL SAH" terbaca seperti CHECK yang terlalu ketat —
-  padahal yang menolak justru keunikan, dan barisnya milik penjaga ini
-  sendiri. Penjaga yang terhalang sisa dirinya sendiri akan merah selamanya
-  sampai seseorang membersihkan basis dengan tangan.
+  "DITOLAK PADAHAL SAH" terbaca seperti CHECK yang terlalu ketat — padahal
+  yang menolak keunikan, dan barisnya milik penjaga ini sendiri.
 
-  Tanggal ujinya deterministik (2021-01-02 dan seterusnya, lihat
-  `tanggalUji()`), jadi rentangnya bisa disapu tanpa menyentuh data lain:
-  tahun 2021 tak dipakai data uji mana pun di repo ini.
+  ⚠ SAPUAN PERTAMA MENGUNCI KE SID/WID, dan itu tak cukup.
+
+  `SID`/`WID` dipilih `LIMIT 1` TANPA `ORDER BY` — jalan berikutnya bisa
+  mendapat scope/worker LAIN, dan sapuan yang terkunci ke pasangan hari ini
+  tak menyentuh sisa milik pasangan kemarin.
+
+  Ketahuan dari CI: bagian `porsi_hari` LOLOS (perbaikan pertama bekerja),
+  lalu mati di bagian keunikan — yang insert PERTAMANYA ada DI LUAR `try`,
+  sehingga bentrok di situ mematikan proses, bukan dihitung sebagai bocor.
+
+  Sapuan kini hanya menyaring RENTANG TANGGAL. Tahun 2021 tak dipakai data
+  uji lain di repo ini, jadi ia tetap sempit — dan tak lagi bergantung pada
+  scope/worker mana yang kebetulan terpilih.
+
+  (Tanggal masa depan TIDAK perlu disapu: CHECK `absensi_tanggal` menolaknya,
+  jadi baris seperti itu mustahil tersisa. Diuji langsung — percobaan menanam
+  satu ditolak `23514`.)
 */
 const { rowCount: sisa } = await db.query(
   `DELETE FROM absensi_harian
-    WHERE scope_id = $1 AND worker_id = $2
-      AND tanggal >= DATE '2021-01-01' AND tanggal < DATE '2022-01-01'`,
-  [SID, WID],
+    WHERE tanggal >= DATE '2021-01-01' AND tanggal < DATE '2022-01-01'`,
 )
 if (sisa > 0) console.log(`  (dibersihkan ${sisa} baris sisa jalan sebelumnya)`)
 
