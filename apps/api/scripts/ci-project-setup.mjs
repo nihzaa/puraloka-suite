@@ -986,6 +986,37 @@ await seed('rab_items kategori (bahan uji portofolio biaya)', async () => {
   const { rows } = await c.query(
     `SELECT count(*)::int n FROM rab_items WHERE level = 'category'`)
   if (rows[0].n < 1) throw new Error('nol rab_items level category')
+
+  /*
+    ANAK berbobot & berjadwal — menutup TIGA kegagalan sekaligus.
+
+    Kategori tanpa anak membuat tiga test menolak berjalan:
+
+        Error: Butuh satu kategori RAB beranak untuk test ini
+        Error: tak ada proyek dengan rab_items ber-planned_start
+        AssertionError: nol proyek ber-EVM (aktif 4, tak terhitung 4)
+
+    Yang ketiga paling halus: EVM menandai proyek "tak terhitung" bila SPI dan
+    CPI keduanya nol (`otomasi-terjadwal.ts:1495`), dan itu terjadi persis
+    ketika RAB-nya tak punya `qty`/`unit_price`/`planned_start`. Seed lama
+    hanya mengisi `name` dan `level`.
+
+    `progress_pct` 50 dipilih supaya SPI dan CPI keduanya BUKAN nol —
+    perbandingan EVM baru menguji sesuatu bila ada nilai untuk dibandingkan.
+  */
+  await c.query(
+    `INSERT INTO rab_items (project_id, parent_id, name, level, qty, unit_price,
+                            planned_start, planned_end, progress_pct)
+     SELECT $1::uuid, k.id, 'CI seed item RAB', 'item',
+            10, 150000, CURRENT_DATE - 30, CURRENT_DATE + 30, 50
+       FROM rab_items k
+      WHERE k.name = $2::text AND k.level = 'category'
+        AND NOT EXISTS (SELECT 1 FROM rab_items WHERE name = 'CI seed item RAB')`,
+    [pr.id, 'CI seed kategori RAB'])
+
+  const { rows: anak } = await c.query(
+    `SELECT count(*)::int n FROM rab_items WHERE parent_id IS NOT NULL`)
+  if (anak[0].n < 1) throw new Error('nol rab_items beranak sesudah seed')
 })
 
 /*
