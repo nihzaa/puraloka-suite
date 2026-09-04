@@ -261,7 +261,7 @@ export function KartuKPI({
           }}>{ikon}</span>
         )}
         <span style={{
-          fontSize: 11, fontWeight: 600, letterSpacing: ".03em",
+          fontSize: "var(--t-kecil)", fontWeight: 600, letterSpacing: ".03em",
           textTransform: "uppercase", minWidth: 0,
           color: sorot ? "rgba(255,255,255,.78)" : C.muted,
         }}>{label}</span>
@@ -298,7 +298,7 @@ export function KartuKPI({
 
       {keterangan && (
         <div style={{
-          fontSize: 11, marginTop: 3,
+          fontSize: "var(--t-kecil)", marginTop: 3,
           color: sorot ? "rgba(255,255,255,.7)" : C.muted,
         }}>{keterangan}</div>
       )}
@@ -388,7 +388,7 @@ export function Panel({
             fontFamily: "var(--font-display, inherit)",
           }}>{judul}</h2>
           {keterangan && (
-            <p style={{ margin: "2px 0 0", fontSize: 11, color: C.muted }}>
+            <p style={{ margin: "2px 0 0", fontSize: "var(--t-kecil)", color: C.muted }}>
               {keterangan}
             </p>
           )}
@@ -555,7 +555,7 @@ export function GrafikBatang({
                 />
               </div>
               <span style={{
-                fontSize: 10, color: d.sorot ? C.text : C.muted,
+                fontSize: "var(--t-mikro)", color: d.sorot ? C.text : C.muted,
                 fontWeight: d.sorot ? 600 : 400, whiteSpace: "nowrap",
               }}>{d.label}</span>
             </div>
@@ -613,7 +613,7 @@ export function Donat({
         flexDirection: "column", alignItems: "center", justifyContent: "center",
         pointerEvents: "none",
       }}>
-        <span style={{ fontSize: 10, color: C.muted }}>{label}</span>
+        <span style={{ fontSize: "var(--t-mikro)", color: C.muted }}>{label}</span>
         <span style={{
           fontSize: 20, fontWeight: 700, color: C.text, marginTop: 1,
           fontVariantNumeric: "tabular-nums",

@@ -104,12 +104,12 @@ export function Isian({
       {galat ? (
         <p
           role="alert"
-          style={{ margin: 0, fontSize: 11.5, color: C.danger, lineHeight: 1.5 }}
+          style={{ margin: 0, fontSize: "var(--t-kecil)", color: C.danger, lineHeight: 1.5 }}
         >
           {galat}
         </p>
       ) : bantuan ? (
-        <p style={{ margin: 0, fontSize: 11.5, color: C.muted, lineHeight: 1.5 }}>
+        <p style={{ margin: 0, fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.5 }}>
           {bantuan}
         </p>
       ) : null}

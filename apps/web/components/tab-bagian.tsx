@@ -131,7 +131,7 @@ export function TabBagian<T extends string>({
                 aria-label={b.artiJumlah ? `${b.jumlah} ${b.artiJumlah}` : undefined}
                 role={b.artiJumlah ? 'img' : undefined}
                 style={{
-                  fontSize: 11, fontWeight: 700, padding: "1px 6px",
+                  fontSize: "var(--t-kecil)", fontWeight: 700, padding: "1px 6px",
                   borderRadius: 999, lineHeight: 1.6,
                   color: b.mendesak ? "var(--danger)" : C.mid,
                   background: b.mendesak ? "var(--danger-bg)" : "var(--surface-subtle)",

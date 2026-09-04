@@ -388,7 +388,7 @@ function ProyekRingkasan() {
             masih bisa dikejar, dan tak akan terlihat di angka &ldquo;lewat tenggat&rdquo;.
           </span>
           <button onClick={lompatKeLewatTenggat} style={{
-            marginLeft: "auto", fontSize: 11, color: C.onWarningBg, fontWeight: 700,
+            marginLeft: "auto", fontSize: "var(--t-kecil)", color: C.onWarningBg, fontWeight: 700,
             background: "none", border: "none", cursor: "pointer", whiteSpace: "nowrap",
           }}>
             Urutkan menurut tenggat →
@@ -411,7 +411,7 @@ function ProyekRingkasan() {
           keterangan="serapan RAB dibanding waktu kontrak yang sudah berjalan · proyek aktif"
           aksi={
             <Link href="/proyek/keterlambatan" style={{
-              fontSize: 11, fontWeight: 600, color: C.navy, textDecoration: "none",
+              fontSize: "var(--t-kecil)", fontWeight: 600, color: C.navy, textDecoration: "none",
               whiteSpace: "nowrap",
             }}>
               Analisa keterlambatan (dengan EOT) →
@@ -515,7 +515,7 @@ function ProyekRingkasan() {
                 >
                   {tab.label}
                   <span style={{
-                    fontSize: 10, fontWeight: 700,
+                    fontSize: "var(--t-mikro)", fontWeight: 700,
                     // 18% → 10%: di mode gelap latar 18% terlalu terang untuk teks
                     // `--navy` di atasnya (4,05:1, ambang 4,5). Diukur axe di
                     // /proyek. 10% memberi 4,79:1 dengan perubahan paling kecil.
@@ -683,7 +683,7 @@ function GrafikSelisih({ baris }: { baris: BarisSelisih[] }) {
               flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}>{b.name}</Link>
             <span style={{
-              fontSize: 11, fontWeight: 700, color: C.red,
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.red,
               fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap",
             }}>
               {b.selisih.toFixed(1)} poin
@@ -712,14 +712,14 @@ function GrafikSelisih({ baris }: { baris: BarisSelisih[] }) {
             }} />
           </div>
 
-          <div style={{ display: "flex", gap: 12, marginTop: 4, fontSize: 10, color: C.muted }}>
+          <div style={{ display: "flex", gap: 12, marginTop: 4, fontSize: "var(--t-mikro)", color: C.muted }}>
             <span>serapan {b.nyata.toFixed(1)}%</span>
             <span>jadwal {b.seharusnya.toFixed(1)}%</span>
           </div>
         </li>
       ))}
 
-      <li style={{ fontSize: 10, color: C.muted, lineHeight: 1.5, marginTop: 2 }}>
+      <li style={{ fontSize: "var(--t-mikro)", color: C.muted, lineHeight: 1.5, marginTop: 2 }}>
         <Clock size={10} aria-hidden="true" style={{ verticalAlign: "-1px", marginRight: 4 }} />
         Garis jadwal dihitung lurus dari tanggal mulai ke tanggal akhir kontrak.
         Konstruksi berjalan kurva S, bukan lurus — jadi angka ini mengurutkan

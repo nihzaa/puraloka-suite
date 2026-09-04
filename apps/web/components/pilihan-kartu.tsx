@@ -245,7 +245,7 @@ export function PilihanKartu({
                 <span
                   style={{
                     display: "block",
-                    fontSize: 11.5,
+                    fontSize: "var(--t-kecil)",
                     color: C.mid,
                     marginTop: 2,
                     lineHeight: 1.45,
@@ -259,7 +259,7 @@ export function PilihanKartu({
                 <span
                   style={{
                     display: "block",
-                    fontSize: 11.5,
+                    fontSize: "var(--t-kecil)",
                     color: C.muted,
                     marginTop: 5,
                     lineHeight: 1.5,
@@ -273,7 +273,7 @@ export function PilihanKartu({
                 <span
                   style={{
                     display: "block",
-                    fontSize: 11,
+                    fontSize: "var(--t-kecil)",
                     color: C.mid,
                     marginTop: 5,
                     fontWeight: 550,
@@ -290,7 +290,7 @@ export function PilihanKartu({
       {keterangan ? (
         <p
           style={{
-            fontSize: 11.5,
+            fontSize: "var(--t-kecil)",
             color: C.muted,
             lineHeight: 1.55,
             margin: "8px 0 0",

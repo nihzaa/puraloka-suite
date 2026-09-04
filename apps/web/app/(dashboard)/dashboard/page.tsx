@@ -214,13 +214,13 @@ function SectionHeader({
         <span style={{ width: 3, height: 16, background: C.navy, borderRadius: 0, flexShrink: 0 }} />
         <h2 style={{ fontSize: 13, fontWeight: 600, color: C.text, margin: 0 }}>{title}</h2>
         {count !== undefined && count > 0 && (
-          <span style={{ fontSize: 11, fontWeight: 700, background: C.navy, color: C.onNavy, borderRadius: 99, padding: "0px 6px" }}>{count}</span>
+          <span style={{ fontSize: "var(--t-kecil)", fontWeight: 700, background: C.navy, color: C.onNavy, borderRadius: 99, padding: "0px 6px" }}>{count}</span>
         )}
       </div>
       {linkHref && linkLabel && (
         <button
           onClick={() => router.push(linkHref)}
-          style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.navy, background: "none", border: "none", cursor: "pointer", fontWeight: 500 }}
+          style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "var(--t-kecil)", color: C.navy, background: "none", border: "none", cursor: "pointer", fontWeight: 500 }}
         >
           {linkLabel} <ChevronRight size={12} />
         </button>
@@ -482,7 +482,7 @@ function DashboardContent() {
         <div style={{ flex: 1, minWidth: 0 }}>
           <SectionHeader title="Arus Kas" linkLabel="Lihat detail" linkHref="/kas" />
         </div>
-        <span style={{ fontSize: 11, color: C.muted, flexShrink: 0 }}>{PERIOD_LABEL[period]}</span>
+        <span style={{ fontSize: "var(--t-kecil)", color: C.muted, flexShrink: 0 }}>{PERIOD_LABEL[period]}</span>
       </div>
       <div style={{ display: "flex", gap: "var(--gap-grid)", marginBottom: 12 }}>
         <LegendDot color={C.navy} label="Pemasukan" />
@@ -519,8 +519,8 @@ function DashboardContent() {
                 <stop offset="100%" stopColor="var(--aksen-terang)" />
               </linearGradient>
             </defs>
-            <XAxis dataKey="week_label" stroke="transparent" tick={{ fill: "var(--text-muted)", fontSize: 10 }} axisLine={false} tickLine={false} />
-            <YAxis stroke="transparent" tick={{ fill: "var(--text-muted)", fontSize: 10 }} tickFormatter={v => fmtShort(v)} width={44} axisLine={false} tickLine={false} />
+            <XAxis dataKey="week_label" stroke="transparent" tick={{ fill: "var(--text-muted)", fontSize: "var(--t-mikro)" }} axisLine={false} tickLine={false} />
+            <YAxis stroke="transparent" tick={{ fill: "var(--text-muted)", fontSize: "var(--t-mikro)" }} tickFormatter={v => fmtShort(v)} width={44} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={ttStyle} formatter={((v: number, name: string) => [fmt(v), name === "income" ? "Pemasukan" : "Pengeluaran"]) as never} />
             <Area type="monotone" dataKey="income"  stroke="url(#garis-masuk)" strokeWidth={2.5} fill="url(#ig)" dot={false} />
             <Area type="monotone" dataKey="expense" stroke={C.red}  strokeWidth={2} fill="url(#eg)" dot={false} />
@@ -582,14 +582,14 @@ function DashboardContent() {
                 <div style={{ fontSize: 20, fontWeight: 800, color: C.text, lineHeight: 1 }}>
                   {(data?.status_distribution ?? []).reduce((s, e) => s + e.count, 0)}
                 </div>
-                <div style={{ fontSize: 10, color: C.muted }}>Proyek</div>
+                <div style={{ fontSize: "var(--t-mikro)", color: C.muted }}>Proyek</div>
               </div>
             </div>
             <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
               {(data?.status_distribution ?? []).map(e => (
                 <div key={e.status} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ width: 6, height: 6, borderRadius: "50%", background: STATUS_COLOR[e.status] ?? C.muted, flexShrink: 0 }} />
-                  <span style={{ fontSize: 11, color: C.mid, flex: 1 }}>{STATUS_LABEL[e.status] ?? e.status}</span>
+                  <span style={{ fontSize: "var(--t-kecil)", color: C.mid, flex: 1 }}>{STATUS_LABEL[e.status] ?? e.status}</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{e.count}</span>
                 </div>
               ))}
@@ -648,7 +648,7 @@ function DashboardContent() {
                   </div>
                   <ProgressBar pct={p.progress_pct} />
                   {(urgent || overdue) && (
-                    <div style={{ fontSize: 10, color: overdue ? C.red : C.yellow, marginTop: 3, fontWeight: 500 }}>
+                    <div style={{ fontSize: "var(--t-mikro)", color: overdue ? C.red : C.yellow, marginTop: 3, fontWeight: 500 }}>
                       {overdue ? `${Math.abs(days!)}h terlambat` : `selesai ${days}h lagi`}
                     </div>
                   )}
@@ -656,7 +656,7 @@ function DashboardContent() {
               );
             })}
             {(data.active_progress.length > 5) && (
-              <button onClick={() => router.push("/proyek")} style={{ fontSize: 11, color: C.muted, background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: 0 }}>
+              <button onClick={() => router.push("/proyek")} style={{ fontSize: "var(--t-kecil)", color: C.muted, background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: 0 }}>
                 +{data.active_progress.length - 5} proyek lainnya →
               </button>
             )}
@@ -714,7 +714,7 @@ function DashboardContent() {
                       display: "inline-block",
                       borderLeft: overdue ? `3px solid ${C.red}` : urgent ? `3px solid ${C.yellow}` : "3px solid transparent",
                       paddingLeft: 8,
-                      color: C.navy, fontSize: 11, fontWeight: 600,
+                      color: C.navy, fontSize: "var(--t-kecil)", fontWeight: 600,
                     }}>{inv.invoice_number}</span>
                   );
                 },
@@ -724,7 +724,7 @@ function DashboardContent() {
                 render: inv => (
                   <>
                     <div style={{ fontWeight: 500 }}>{inv.projects?.name ?? "—"}</div>
-                    <div style={{ fontSize: 10, color: C.muted }}>{inv.projects?.clients?.contact_person ?? "—"}</div>
+                    <div style={{ fontSize: "var(--t-mikro)", color: C.muted }}>{inv.projects?.clients?.contact_person ?? "—"}</div>
                   </>
                 ),
               },
@@ -739,7 +739,7 @@ function DashboardContent() {
                   const overdue = days < 0, urgent = days >= 0 && days <= 3;
                   return (
                     <span style={{
-                      fontSize: 11,
+                      fontSize: "var(--t-kecil)",
                       color: overdue ? C.red : urgent ? C.yellow : C.muted,
                       fontWeight: overdue || urgent ? 600 : 400,
                     }}>
@@ -752,7 +752,7 @@ function DashboardContent() {
           />
           {data.outstanding_invoices.length > 5 && (
             <div style={{ padding: "8px 16px", borderTop: "1px solid var(--border)" }}>
-              <button onClick={() => router.push("/keuangan")} style={{ fontSize: 11, color: C.muted, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+              <button onClick={() => router.push("/keuangan")} style={{ fontSize: "var(--t-kecil)", color: C.muted, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
                 +{data.outstanding_invoices.length - 5} invoice lainnya →
               </button>
             </div>
@@ -859,7 +859,7 @@ function DashboardContent() {
           />
           {data!.pending_kasbons.length > 5 && (
             <div style={{ padding: "8px 16px", borderTop: "1px solid var(--border)" }}>
-              <button onClick={() => router.push("/mandor")} style={{ fontSize: 11, color: C.muted, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+              <button onClick={() => router.push("/mandor")} style={{ fontSize: "var(--t-kecil)", color: C.muted, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
                 +{data!.pending_kasbons.length - 5} kasbon lainnya →
               </button>
             </div>
@@ -932,14 +932,14 @@ function DashboardContent() {
                   bisa ditanya.
                 */}
                 <div style={{
-                  fontSize: 11, color: C.mid, marginTop: 2,
+                  fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2,
                   overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                 }}>
                   {a.notes?.trim() || `Progres ${Number(a.pct_overall ?? 0).toFixed(1)}%`}
                 </div>
                 {a.reporter?.name && (
                   <div style={{
-                    fontSize: 11, color: C.muted, marginTop: 2,
+                    fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2,
                     overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                   }}>
                     {a.reporter.name}
@@ -947,7 +947,7 @@ function DashboardContent() {
                 )}
               </div>
               <span style={{
-                fontSize: 11, color: C.muted, flexShrink: 0, whiteSpace: "nowrap",
+                fontSize: "var(--t-kecil)", color: C.muted, flexShrink: 0, whiteSpace: "nowrap",
               }}>
                 {formatRelatif(a.logged_at)}
               </span>
@@ -1033,7 +1033,7 @@ function DashboardContent() {
                   {p.judul}
                 </span>
                 <span style={{
-                  display: "block", fontSize: 11, color: C.mid, marginTop: 2,
+                  display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2,
                   overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                 }}>
                   {p.sub}
@@ -1041,7 +1041,7 @@ function DashboardContent() {
               </span>
               {/* Teks, bukan cuma warna — WCAG 1.4.1. */}
               <span style={{
-                flexShrink: 0, fontSize: 10, fontWeight: 700,
+                flexShrink: 0, fontSize: "var(--t-mikro)", fontWeight: 700,
                 padding: "2px 7px", borderRadius: "var(--rad-pil)",
                 background: p.tingkat === "tinggi" ? C.redBg : C.yellowBg,
                 color: p.tingkat === "tinggi" ? "var(--danger)" : "var(--warning)",
@@ -1106,14 +1106,14 @@ function DashboardContent() {
                     {m.title}
                   </span>
                   <span style={{
-                    display: "block", fontSize: 11, color: C.mid, marginTop: 2,
+                    display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2,
                     overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                   }}>
                     {m.projects?.name ?? "—"}
                   </span>
                 </span>
                 <span style={{
-                  flexShrink: 0, fontSize: 11, fontWeight: 700, whiteSpace: "nowrap",
+                  flexShrink: 0, fontSize: "var(--t-kecil)", fontWeight: 700, whiteSpace: "nowrap",
                   color: lewat ? "var(--danger)" : C.mid,
                 }}>
                   {lewat ? `${Math.abs(sisa)}h lewat` : `${sisa}h lagi`}
@@ -1341,7 +1341,7 @@ function DashboardContent() {
               const active = period === opt.value;
               return (
                 <button key={opt.value} onClick={() => setPeriod(opt.value)} aria-pressed={active} style={{
-                  padding: "4px 12px", borderRadius: 999, fontSize: 11,
+                  padding: "4px 12px", borderRadius: 999, fontSize: "var(--t-kecil)",
                   fontWeight: active ? 700 : 500,
                   /*
                     Pil aktif memakai pasangan `--navy` / `--on-navy`, BUKAN
@@ -1590,7 +1590,7 @@ function LegendDot({ color, label }: { color: string; label: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: color }} />
-      <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{label}</span>
+      <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{label}</span>
     </div>
   );
 }
@@ -1598,7 +1598,7 @@ function LegendDot({ color, label }: { color: string; label: string }) {
 function MiniMetric({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div style={{ background: "var(--surface-subtle)", border: "1px solid var(--border)", borderRadius: 6, padding: "6px 12px", flex: 1 }}>
-      <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-muted)", marginBottom: 3 }}>{label}</div>
       <div style={{ fontSize: 13, fontWeight: 700, color }}>{value}</div>
     </div>
   );
@@ -1612,7 +1612,7 @@ function ActionBtn({ disabled, bg, color, border, onClick, children }: {
       onClick={onClick} disabled={disabled}
       style={{
         display: "inline-flex", alignItems: "center", gap: 4,
-        padding: "4px 8px", borderRadius: 6, fontSize: 11, fontWeight: 500,
+        padding: "4px 8px", borderRadius: 6, fontSize: "var(--t-kecil)", fontWeight: 500,
         background: bg, color, border: `1px solid ${border}`,
         cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.5 : 1,
       }}
@@ -1628,14 +1628,14 @@ function TaxCard({ label, value, sub, color, icon }: {
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "16px 16px", boxShadow: "var(--naik-1)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-        <span style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>{label}</span>
+        <span style={{ fontSize: "var(--t-mikro)", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>{label}</span>
         <span style={{ color, opacity: 0.5 }}>{icon}</span>
       </div>
       {value === null
         ? <Skeleton h={24} w={60} />
         : <div style={{ fontSize: 26, fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>{value}</div>
       }
-      <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>{sub}</div>
+      <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-muted)", marginTop: 4 }}>{sub}</div>
     </div>
   );
 }
@@ -1651,7 +1651,7 @@ function TaxDeadlineBanner() {
       borderRadius: 6, padding: "8px 12px", display: "flex", alignItems: "center", gap: 8, marginBottom: 10,
     }}>
       <Landmark size={12} style={{ color: "var(--warning)", flexShrink: 0 }} />
-      <span style={{ fontSize: 11, color: "var(--on-warning-bg)" }}>
+      <span style={{ fontSize: "var(--t-kecil)", color: "var(--on-warning-bg)" }}>
         Batas setor PPh Final: <strong style={{ color: "var(--warning)" }}>10 {deadline.toLocaleDateString("id-ID", { month: "long" })}</strong> ({days} hari lagi)
       </span>
     </div>
