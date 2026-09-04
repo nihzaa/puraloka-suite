@@ -5,6 +5,102 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-04 (mobile) — memotret aplikasi HP untuk pertama kalinya, dan enam cacat yang tak satu pun alat bisa lihat
+
+Aplikasi mobile tak pernah sekali pun dipotret. Web punya potret sejak lama
+dan itu terbukti menemukan cacat yang lolos semua test; mobile buta terhadap
+kelas yang sama.
+
+Membuat `apps/mobile/scripts/potret-mobile.mjs` (360×800 dan 430×932, terang
+dan gelap) dan `bingkai-hp.mjs` (membungkusnya jadi mockup HP, seperti
+emulator Android Studio yang butuh 8 GB dan tak ada di mesin ini).
+
+### Cacat pertama ada di alat ukurnya sendiri
+
+Jalan pertama melapor:
+
+    ✅ Semua layar terisi, nol gulir mendatar, nol teks di bawah 12px.
+
+Kesepuluh potret adalah layar login yang sama. Ketiga pengukurannya lulus
+dengan jujur — layar login memang berisi teks (78 huruf), memang tak
+menggulir mendatar, memang tak punya teks kecil.
+
+Dua sebab berlapis, dan keduanya butuh dibongkar sendiri-sendiri:
+
+1. **CORS menolak `X-Client`.** Header itu ditambahkan 2026-09-01 supaya
+   `/auth/login` memulangkan token di badan, dan tak pernah didaftarkan di
+   `allowedHeaders`. Nol gejala tiga hari karena aplikasi NATIVE tak
+   mengirim preflight sama sekali. Preflight OPTIONS menjawab **204** —
+   status sukses — dengan origin yang diizinkan, dan `curl` POST menjawab
+   200. Dua pengukuran yang keduanya benar untuk dirinya sendiri.
+
+2. **Skrip menekan Enter, bukan tombol.** Kebiasaan dari skrip potret web,
+   tempat isian hidup di dalam `<form>`. React Native tak punya form.
+   Terukur saat mendiagnosis: pageerror 0, requestfailed 0, localStorage
+   kosong — semua alat menjawab "tak ada yang salah", karena memang tak ada
+   yang salah, cuma tak ada yang terjadi.
+
+Skrip sekarang MEMBUKTIKAN login (isian sandi hilang + jejak sesi ada), dan
+gagal berarti nol potret disimpan: potret layar login bukan potret aplikasi,
+dan menyimpannya membuat berkasnya terbaca seperti bukti.
+
+### Enam cacat dari potret yang akhirnya nyata
+
+| Cacat | Kenapa tak bergejala |
+|---|---|
+| dashboard **NOL untuk SEMUA** KPI; API mengirim 15 proyek & Rp 7,14 M | API bersarang `{kpis:{…}}`, layar membaca datar; `?? 0` menelan seluruhnya. Nol yang salah tak bisa dibedakan dari nol yang benar. `res.data` bertipe `any`, jadi tsc hijau |
+| **341 teks di bawah 12px** (tercatat 18 sebelumnya) | penjaga membaca gaya; angka ini dari RENDER, tempat satu gaya terulang di puluhan kartu. Ternyata cuma 4 gaya |
+| tombol MATI terlihat sama persis dengan tombol HIDUP | `disabled` MEMANG diteruskan benar — dan itu yang diperiksa test |
+| isian putih menyala di mode gelap | mode gelapnya baru lahir hari itu |
+| emoji sebagai ikon tab memeras label jadi 6px | emoji fontSize 22 terender 30px |
+| dua pil merah berdampingan: "Berat" + "Menunggu Pengecekan" | keduanya benar sendiri-sendiri; yang salah artinya BERSAMA |
+
+Ditambah empat pasangan kontras yang GAGAL AA dan semuanya di luar
+jangkauan `audit-kontras-mobile.mjs` (ia memindai `color:` di gaya;
+keempatnya masuk lewat `Record` atau prop JSX): `#DC2626` 3.48:1 ·
+`#B91C1C` 2.60:1 · `#9CA3AF` 2.54:1 · Badge `warning` 2.86:1. Yang terakhir
+adalah lencana "Menunggu" — status yang paling banyak hadir di daftar
+approval dan satu-satunya yang menuntut tindakan.
+
+### Saya salah dua kali, keduanya soal angka
+
+Menulis "3.4:1" untuk `#059669` dari perkiraan; terhitung 4.46:1 — dan yang
+sesungguhnya gagal justru `#DC2626`/`#B91C1C`, dua keparahan TERTINGGI.
+Menulis "5.13:1" dan "warna yang sama"; terhitung 5.33:1 dan warnanya
+berbeda. Keduanya ketahuan karena menghitung sebelum menulis komentarnya —
+kalau tidak, dua angka salah akan tertinggal di kode sebagai fakta.
+
+### Satu batas yang dicatat, bukan dikejar
+
+Label bilah tab tampak terpotong di tiap potret. Dua percobaan gagal (tinggi
+bilah 44→58px, `lineHeight` eksplisit) sebelum sumbernya ketemu:
+`react-native-web/dist/exports/Text/index.js`, `styles.textOneLine` dengan
+`overflow: hidden` untuk `numberOfLines={1}`. Di React Native asli
+`numberOfLines` tak memotong tinggi.
+
+**Cacat yang hanya muncul di alat ukur bukan cacat produk.** Ditulis di
+kepala `potret-mobile.mjs` supaya sesi berikutnya tak mengejarnya lagi.
+
+### Terukur
+
+    penjaga CI          227 hijau · 0 merah · 0 tak ketemu   (dari 225)
+    tsc mobile          exit 0 (dari MERAH — galat pra-ada di lainnya.tsx)
+    hex tulisan tangan  445 → 319
+    fontFamily dipakai  0 → 51
+    teks < 12px         341 → 0
+    potret              10 layar × 2 mode, keduanya hijau
+
+Tiga penjaga baru, ketiganya terdaftar di ci.yml dan terbukti bisa merah
+lewat mutasi: `audit-warna-mobile-bertoken` · `audit-font-mobile-terpakai` ·
+`audit-bentuk-balasan-mobile`.
+
+Uji mutasi yang terakhir MEMBATASI klaimnya sendiri: ia menangkap kunci
+salah NAMA, tapi kunci salah SARANG lolos. Ditulis di kepala berkasnya
+alih-alih diperbaiki — penjaga yang sempit tapi jujur lebih berguna
+daripada penjaga yang salah merah.
+
+---
+
 ## 2026-09-04 (lanjutan 4) — suite API BERJALAN, dan apa yang tersingkap di baliknya
 
 Rantai migrasi tuntas: **565 migrasi diputar dari nol, nol HARD FAIL**. Lalu

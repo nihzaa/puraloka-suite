@@ -349,7 +349,10 @@ sebelum menyentuh kode terkait** — bukan sekadar daftar isi.
 | `audit-versi-expo-cocok.mjs` | versi paket mobile wajib cocok Expo SDK — diukur 2026-08-31 saat `expo export` pertama kali dijalankan: bundling GAGAL, 11 paket tak cocok, aplikasi TAK PERNAH bisa jadi APK. `tsc` hijau selama itu karena typecheck tak menjalankan Metro. Mayor+minor wajib sama, patch boleh lebih tinggi (ambang NOL) |
 | `audit-modul-mobile-nyata.mjs` | tiap modul WebView mobile wajib menunjuk halaman web yang ADA — jalur tanpa `page.tsx` membuka 404 di dalam bingkai aplikasi, tanpa tombol kembali. Peta di `web/[modul].tsx`, halaman di `apps/web/app/(dashboard)/`: dua tempat, tak ada yang menghubungkan. Pada jalan pertamanya menemukan `/sdm` sudah buntu sejak dibuat (ambang NOL) |
 | `audit-antrean-punya-rute.mjs` | tiap kiriman antrean mobile wajib menunjuk rute API yang ADA — mandor mengisi laporan, layar berkata "tersimpan" (benar: tersimpan di HP), server menjawab 404, antrean menahannya, dan tak seorang pun tahu. Lahir dari temuan foto progres yang TAK PERNAH sampai (multipart vs JSON, `project_photos` nol dalam 30 hari). Yang dijaga JALURNYA, bukan bentuk muatannya (ambang NOL) |
-| `audit-auth-mobile-utuh.mjs` | kontrak login mobile wajib utuh di KEDUA sisi — diukur 2026-09-01 aplikasi mobile TAK PERNAH bisa login: token hanya dikirim lewat cookie HttpOnly, mobile menyimpan `undefined`, setiap permintaan 401, dan layar login menuduh kredensial. Ikut menjaga token diberikan HANYA bagi klien ber-`X-Client` — memberikannya ke semua membuang perlindungan XSS (ambang NOL) |
+| `audit-auth-mobile-utuh.mjs` | kontrak login mobile wajib utuh di KEDUA sisi — diukur 2026-09-01 aplikasi mobile TAK PERNAH bisa login: token hanya dikirim lewat cookie HttpOnly, mobile menyimpan `undefined`, setiap permintaan 401, dan layar login menuduh kredensial. Ikut menjaga token diberikan HANYA bagi klien ber-`X-Client` — memberikannya ke semua membuang perlindungan XSS. Sejak 2026-09-04 menjaga SISI KETIGA: `X-Client` wajib ada di `allowedHeaders` CORS — ia tak pernah didaftarkan, dan nol gejala selama tiga hari karena aplikasi NATIVE tak mengirim preflight sama sekali. Dua pengukuran yang keduanya BENAR melewatkannya: preflight OPTIONS menjawab **204** (status sukses) dengan origin yang diizinkan, dan `curl` POST menjawab 200 — `curl` tak menegakkan CORS, dan OPTIONS yang lolos origin masih bisa menolak HEADER-nya (ambang NOL) |
+| `audit-bentuk-balasan-mobile.mjs` | kunci yang dibaca layar mobile wajib benar-benar DIKIRIM rutenya — diukur 2026-09-04, potret pertama dashboard yang berhasil login: "Proyek Aktif 0 · Total Kontrak Rp 0", sementara API pada detik yang sama mengirim 15 proyek dan Rp 7.135.525.000. API bersarang `{kpis:{…}}`, layar membaca datar, dan `?? 0` menelan seluruhnya — **nol yang salah tak bisa dibedakan dari nol yang benar**. `tsc` hijau karena `res.data` bertipe `any` dari axios. ⚠ Ia menangkap kunci SALAH NAMA, BUKAN kunci SALAH SARANG (terukur lewat mutasi; batasnya tertulis di kepala berkas) (ambang NOL) |
+| `audit-warna-mobile-bertoken.mjs` | warna mobile wajib dari token, bukan hex diketik — diukur 2026-09-04 sebelum `lib/tema.ts` ada: 39 hex unik di 445 tempat, `#003366` sendiri 88 kali, nol token, nol mode gelap. Web punya 105 token berriwayat WCAG; mobile mewarisi nol, sehingga dua hal MUSTAHIL: ganti merek tanpa ratusan suntingan, dan mode gelap tanpa membuka ulang tiap layar (ratchet) |
+| `audit-font-mobile-terpakai.mjs` | font merek yang DIMUAT wajib DIPAKAI — diukur 2026-09-04 tepat sesudah dua keluarga font dipasang dan splash ditahan menunggunya: `fontFamily` di seluruh layar **NOL**. Biaya penuh (dua unduhan + splash menunggu), nol hasil, dan tsc/Metro/a11y/kontras semuanya hijau karena tak ada yang SALAH — cuma tak ada yang memanggilnya. Kembaran cacat `useData()` di web. Merah untuk TIGA keadaan: dimuat-tapi-nol-dipakai, dipakai-tapi-tak-dimuat (RN jatuh diam-diam ke bawaan), dan pemakaian yang TURUN (ratchet naik) |
 | `audit-hook-eas-utuh.mjs` | rantai hook build EAS wajib utuh — SEMBILAN build APK gagal karena celah dua versi pnpm (server 9.15.5, lokal 11.11.0): `overrides` di `pnpm-workspace.yaml` adalah fitur pnpm 10+, dan pnpm 9 tak membacanya lalu menolak dengan galat yang menuduh lockfile. Menghapus satu mata rantai tak menggagalkan tsc maupun test; yang gagal cuma build di server 20 menit kemudian (ambang NOL) |
 | `audit-versi-pnpm-satu-suara.mjs` | versi pnpm dideklarasikan di **SEPULUH** tempat — dua di `package.json` (`packageManager` + `devEngines`) dan delapan `version:` di `ci.yml`/`ci-isolation`/`ci-keepalive`. `pnpm/action-setup` membaca dua sumber dan MENOLAK bila berbeda (*"Multiple versions of pnpm specified"*). Diukur 2026-09-04: menaikkan pnpm hanya di `package.json` memerahkan SEPULUH job di langkah setup — termasuk tiga yang tak menyentuh kode. Lokal semuanya hijau; tak satu pun alat di sini membandingkan kesepuluh angka itu (ambang NOL) |
 
@@ -910,10 +913,47 @@ tahu apa-apa soal kontras warna, urutan fokus, atau ukuran sasaran sentuh
 yang sesungguhnya di perangkat. Jadi hijaunya BUKAN berarti "mobile sudah
 teraudit a11y" — ia menjaga satu hal yang bisa dijaga tanpa emulator.
 
-Yang belum terjaga dan sudah terukur: **18 tempat ber-`fontSize` di bawah
-12px** pada teks bacaan (tiga di antaranya 9–10px). Tak diubah karena
-mengubah ukuran huruf menggeser tata letak, dan itu perlu dilihat di layar
-sungguhan — bukan disunting massal.
+**Sekarang ada cara MELIHAT layar mobile, dan ia menemukan yang tak bisa
+dilihat penjaga mana pun.**
+
+```bash
+# Expo web harus hidup di 8081 (matikan lagi sesudahnya — founder minta
+# nol server lokal). Kredensial dari apps/web/.env.local.
+UJI_BASIS=http://localhost:8081 node apps/mobile/scripts/potret-mobile.mjs
+UJI_BASIS=http://localhost:8081 node apps/mobile/scripts/potret-mobile.mjs --gelap
+
+# Membungkusnya jadi mockup HP (bezel, punch-hole, tombol samping) —
+# untuk DILIHAT, bukan diukur. Menolak jalan kalau potretnya belum lulus.
+node apps/mobile/scripts/bingkai-hp.mjs
+node apps/mobile/scripts/bingkai-hp.mjs --gelap
+```
+
+Jalan pertamanya (2026-09-04) menemukan enam cacat yang lolos `tsc`,
+seluruh test, dan 227 penjaga:
+
+| Cacat | Kenapa tak bergejala |
+|---|---|
+| dashboard menampilkan **NOL untuk SEMUA** KPI sementara API mengirim 15 proyek & Rp 7,14 M | API bersarang `{kpis:{…}}`, layar membaca datar; `?? 0` menelan seluruhnya, dan **nol yang salah tak bisa dibedakan dari nol yang benar**. `res.data` bertipe `any` dari axios, jadi tsc hijau |
+| **341 teks di bawah 12px** (bukan 18 seperti tercatat sebelumnya) | penjaga membaca `fontSize` di gaya; angka ini dari RENDER, tempat satu gaya terulang di puluhan kartu |
+| tombol MATI terlihat sama persis dengan tombol HIDUP | `disabled` MEMANG diteruskan dengan benar — dan itu yang diperiksa test |
+| isian putih menyala di mode gelap | tak ada mode gelap sebelum hari itu, jadi tak ada yang bisa melihatnya |
+| emoji sebagai ikon tab memeras label jadi **6px** | emoji fontSize 22 terender 30px; metrik font emoji jauh lebih tinggi dari huruf |
+| dua pil merah berdampingan — "Berat" dan "Menunggu Pengecekan" | keduanya benar sendiri-sendiri; yang salah artinya BERSAMA |
+
+⚠ **Cacat yang hanya muncul di alat ukur bukan cacat produk.** Label bilah
+tab tampak terpotong di tiap potret — itu `styles.textOneLine` milik
+`react-native-web` (`overflow:hidden` untuk `numberOfLines={1}`), yang di
+React Native asli tak memotong tinggi. Dua percobaan perbaikan gagal
+(tinggi bilah 44→58px, `lineHeight` eksplisit) sebelum sumbernya
+ditelusuri. Sebelum memperbaiki apa pun yang terlihat di potret, tanyakan
+dulu apakah ia juga ada di APK sungguhan.
+
+⚠ **Skrip potret pernah melapor HIJAU atas sepuluh layar login.** Ketiga
+pengukurannya lulus dengan jujur — layar login memang berisi teks, memang
+tak menggulir mendatar, memang tak punya teks kecil. Sekarang login wajib
+DIBUKTIKAN (isian sandi hilang + jejak sesi ada), dan gagal berarti nol
+potret disimpan: potret layar login bukan potret aplikasi, dan
+menyimpannya membuat berkasnya terbaca seperti bukti.
 
 Kredensial akun ujinya sudah tersimpan di `apps/web/.env.local`
 (`LAYAR_EMAIL`/`LAYAR_SANDI`/`LAYAR_BASIS`) — berkas itu ter-gitignore, jadi
