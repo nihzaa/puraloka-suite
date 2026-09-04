@@ -94,7 +94,7 @@ interface Invoice {
 }
 interface Project {
   id: string; name: string; description: string | null; location: string;
-  contract_model: "termin" | "komisi"; tax_scheme: "pph_final" | "ppn";
+  contract_model: "termin" | "komisi"; tax_scheme: "pph_final" | "ppn" | "tanpa_pajak";
   contract_value: number; commission_pct: number | null;
   retention_pct: number; retention_amount: number;
   start_date: string; end_date: string; actual_end_date: string | null;
@@ -536,7 +536,7 @@ function ProjectDetailContent() {
                 fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em",
                 background: C.navyLight, color: C.navy,
               }}>
-                {p.tax_scheme === "pph_final" ? "PPh Final" : "PPN"}
+                {p.tax_scheme === "pph_final" ? "PPh Final" : p.tax_scheme === "ppn" ? "PPN" : "Tanpa Pajak"}
               </span>
             </div>
             <h1 style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 800, color: C.text, marginBottom: 8, lineHeight: 1.2 }}>

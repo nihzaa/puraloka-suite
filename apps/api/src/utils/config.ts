@@ -68,6 +68,21 @@ export async function getTaxRate(
   companyId: string,
   scheme: string | null | undefined
 ): Promise<number> {
+  /*
+    `tanpa_pajak` → tarif NOL, dan ini harus di sini bukan di pemanggil.
+
+    Ditambahkan bersama migrasi 566 atas permintaan founder ("pas bikin
+    proyek juga bisa gapake pajak"). Tanpa cabang ini, pola lama
+    `scheme === 'ppn' ? ppn : pph_final` memperlakukan `tanpa_pajak`
+    sebagai PPh FINAL — proyek yang pajaknya sengaja dimatikan tetap
+    dipotong 2%, dan tak ada satu pun galat karena angkanya sah.
+
+    Ditaruh di fungsi tarif, bukan di tiap pemanggil: ada dua `getTaxRate`
+    dan belasan tempat yang memakainya. Satu yang terlewat = pajak yang
+    tak pernah ditagihkan muncul di invoice klien.
+  */
+  if (scheme === 'tanpa_pajak') return 0
+
   const key = scheme === 'ppn' ? 'tax.ppn_rate' : 'tax.pph_final_rate'
   const raw = await getConfig<number>(companyId, key)
   const rate = typeof raw === 'number' ? raw : Number(raw)

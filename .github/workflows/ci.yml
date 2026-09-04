@@ -1122,6 +1122,32 @@ jobs:
       - name: URL verifikasi dokumen tak dipaku
         run: node scripts/audit-url-dokumen-tak-dipaku.mjs
 
+      # Tiap nilai enum `tax_scheme` wajib tertangani di tarif, label, dan tipe.
+      #
+      # Migrasi 566 menambah `tanpa_pajak` atas permintaan founder ("pas bikin
+      # proyek juga bisa gapake pajak"). Menambah nilai enum itu SATU baris;
+      # yang tak terlihat, belasan tempat memakai pola
+      #
+      #     scheme === 'ppn' ? A : B
+      #
+      # yang diam-diam memperlakukan nilai BARU sebagai cabang else. Diukur saat
+      # 566 ditulis: KEDUA `getTaxRate` berbunyi begitu, jadi proyek yang
+      # pajaknya sengaja dimatikan tetap dipotong PPh Final 2%. Tak ada galat —
+      # angkanya sah, jurnalnya seimbang, yang salah cuma jumlah uang yang
+      # ditagihkan ke klien.
+      #
+      # Nilai berikutnya pasti ada (PPN 12%, PPh 21, bebas-PPN kawasan), dan
+      # cacatnya akan berbentuk sama persis.
+      #
+      # Bukti merah: ketiga sumber penanganan dibuang sendiri-sendiri → exit 1.
+      # Penjaganya sempat LOLOS karena komentar yang menjelaskan baris yang
+      # dihapus masih menyebut nilainya — komentar kini dibuang sebelum
+      # dipindai. (ambang NOL)
+      - name: Skema pajak tertangani lengkap
+        run: node scripts/audit-skema-pajak-lengkap.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       # Keputusan persetujuan hanya lewat SATU pintu (utils/approval.ts).
       # Menulis `approved_by` langsung berarti entitas yang menurut
       # konfigurasi butuh dua level bisa lolos dengan satu ketukan — dan

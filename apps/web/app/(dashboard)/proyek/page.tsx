@@ -609,11 +609,27 @@ function ProyekRingkasan() {
             //
             // `auto-fill` menambah KOLOM saat ruang cukup, dan batas atas 400px
             // menahan kartu di lebar yang dirancang.
-            gridTemplateColumns: "repeat(auto-fill,minmax(340px,400px))",
-            // Sisa ruang yang tak cukup untuk satu kolom lagi dibagi rata jadi
-            // jarak antar-kartu, bukan ditumpuk jadi rongga di ujung kanan.
-            justifyContent: "space-between",
-            gap: "var(--gap-bagian)",
+            gridTemplateColumns: "repeat(auto-fill,minmax(320px,1fr))",
+            /*
+              ⚠ `justifyContent: "space-between"` DIBUANG, dan batas atas 400px
+              bersamanya. Keduanya ditulis untuk menahan kartu tetap seukuran
+              rancangannya — niat yang benar dengan akibat yang tak terlihat
+              sampai dipakai di layar lebar.
+
+              Dilaporkan founder 2026-09-04: kartunya "kaya social distancing".
+              Sebabnya persis dua baris itu. `space-between` MEMBAGI RATA sisa
+              ruang yang tak cukup untuk satu kolom lagi menjadi jarak
+              antar-kartu — di layar 2K sisa itu ratusan piksel, dan hasilnya
+              kartu-kartu yang saling berjauhan dengan rongga di tengah.
+
+              Yang menggantikan: `1fr` dengan lantai 320px. Kolom bertambah
+              saat ruang cukup, dan sisa yang tak cukup dipakai MELEBARKAN
+              kartu sedikit — bukan disebar jadi jarak. Kekhawatiran lama
+              (kartu membengkak ~420px sementara isinya tetap di tempat) sudah
+              tak berlaku: isi kartu kini `space-between` di dalam barisnya
+              sendiri, jadi nilai kontrak dan tenggat ikut merentang.
+            */
+            gap: 12,
           }}
         >
           {filtered.map(p => (
