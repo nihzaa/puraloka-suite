@@ -529,6 +529,55 @@ await seed('client', async () => {
 })
 
 // 1 cost_code (CECEP) — created_by admin.
+/*
+  Satu user yang jadi anggota DUA badan usaha — bahan uji portofolio grup.
+
+  `ai-tool-portofolio-grup.test.ts` menolak berjalan tanpa ini, dengan pesan
+  yang menyebut obatnya: "Jalankan: node scripts/seed-grup-usaha.mjs
+  --execute". Skrip itu TAK PERNAH dijalankan CI, jadi test-nya selalu mati di
+  `beforeAll` — dan selama ini tak terlihat karena suite API tak pernah sampai
+  berjalan (ia mati lebih dulu di penyiapan basis).
+
+  Yang disemai di sini MINIMAL: satu company kedua + keanggotaan admin di
+  keduanya. `seed-grup-usaha.mjs` (289 baris) membuat jauh lebih banyak —
+  induk-anak, proyek, RAB — dan memanggilnya dari sini menambah ketergantungan
+  antar-skrip untuk kebutuhan yang cuma "user beranggota >1 company".
+
+  Idempoten lewat `code` yang tetap + `ON CONFLICT DO NOTHING`.
+
+  ⚠ `code` HURUF KECIL — CHECK `companies_code_format` menuntut
+  `^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$`. Versi pertama memakai `CI-GRUP-2`
+  dan ditolak basis.
+*/
+await seed('company kedua + keanggotaan ganda (bahan uji portofolio grup)', async () => {
+  const adminId = (await c.query(
+    `SELECT id FROM public.users WHERE email='ci-admin@puraloka.test' LIMIT 1`)).rows[0]?.id
+  if (!adminId) throw new Error('admin CI belum ada')
+
+  const roleId = (await c.query(
+    `SELECT role_id FROM company_members WHERE user_id=$1 AND is_active LIMIT 1`,
+    [adminId])).rows[0]?.role_id
+  if (!roleId) throw new Error('admin CI belum punya keanggotaan pertama')
+
+  await c.query(
+    `INSERT INTO companies (code, name, legal_name, created_by, updated_by)
+     SELECT 'ci-grup-2', 'CI Seed Badan Usaha 2', 'PT CI Seed Dua', $1, $1
+      WHERE NOT EXISTS (SELECT 1 FROM companies WHERE code='ci-grup-2')`,
+    [adminId])
+
+  await c.query(
+    `INSERT INTO company_members (company_id, user_id, role_id, is_default, is_active, created_by)
+     SELECT c2.id, $1, $2, false, true, $1
+       FROM companies c2 WHERE c2.code='ci-grup-2'
+     ON CONFLICT (company_id, user_id) DO NOTHING`,
+    [adminId, roleId])
+
+  const { rows: cek } = await c.query(
+    `SELECT count(DISTINCT company_id)::int n FROM company_members
+      WHERE user_id=$1 AND is_active`, [adminId])
+  if (cek[0].n < 2) throw new Error(`admin CI masih anggota ${cek[0].n} company, butuh >=2`)
+})
+
 await seed('cost_code', async () => {
   await c.query(
     /*
