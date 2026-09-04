@@ -40,7 +40,8 @@
  *
  * ── Yang diperiksa
  *
- *   1. logout DITUNGGU (`await axios.post(... /auth/logout ...)`)
+ *   1. logout DITUNGGU (`await api.post('/api/v1/auth/logout')`) — dan
+ *      SAMA-ORIGIN, lihat syarat ke-5
  *   2. `puraloka_role` dihapus di klien — ia bukan HttpOnly, jadi server
  *      tak bisa menghapusnya, dan middleware memakainya memilih home
  *   3. ada penahan agar banyak 401 berbarengan tak mengalihkan berkali-kali
@@ -102,7 +103,7 @@ const badan = isi.slice(mulai, akhir + 1)
 const syarat = [
   {
     nama: 'logout DITUNGGU',
-    ok: /await\s+axios\.post\([^)]*auth\/logout/s.test(badan),
+    ok: /await\s+(?:axios|api)\.post\([^)]*auth\/logout/s.test(badan),
     kenapa: 'tanpa `await`, window.location menang balapan dan cookie HttpOnly '
       + 'belum terhapus saat halaman berpindah — middleware lalu melempar '
       + '/login balik ke home, dan putarannya lahir.',
@@ -126,6 +127,46 @@ const syarat = [
       + 'dari ujung yang lain.',
   },
 ]
+
+/*
+  Dua syarat berikut hidup di LUAR fungsi, jadi diperiksa terhadap SELURUH
+  berkas — bukan `badan`. Keduanya lahir dari akar yang sebenarnya, dan
+  keduanya baru ketahuan sesudah dua perbaikan lain gagal:
+
+  Cookie dipasang saat login lewat `api` (baseURL ""), jadi domainnya
+  `app.puraloka-suite.duckdns.org`. Memanggil logout/refresh ke
+  `api.puraloka-suite.duckdns.org` menghapus cookie DOMAIN ITU — yang tak
+  pernah ada. Terukur 2026-09-04:
+
+      set-cookie: puraloka_token=; Max-Age=0; ... HttpOnly; Secure   ← BENAR
+      balasan 200                                                    ← BENAR
+      cookie akhir di peramban: ['puraloka_token','puraloka_refresh'] ← UTUH
+
+  Header yang sempurna, dikirim ke domain yang salah.
+*/
+syarat.push(
+  {
+    nama: 'logout SAMA-ORIGIN',
+    ok: !/NEXT_PUBLIC_API_URL\}[^`]*auth\/logout/.test(isi),
+    kenapa: 'cookie berdomain `app.*` (dipasang login lewat baseURL ""). '
+      + 'Logout ke `api.*` menghapus cookie domain ITU — yang tak pernah ada. '
+      + 'Inilah akar putaran 2026-09-04: header hapus SEMPURNA, balasan 200, '
+      + 'cookie tetap utuh.',
+  },
+  {
+    nama: 'refresh SAMA-ORIGIN',
+    ok: !/NEXT_PUBLIC_API_URL\}[^`]*auth\/refresh/.test(isi),
+    kenapa: '`/auth/refresh` MEMASANG cookie saat berhasil dan MENGHAPUSNYA '
+      + 'saat gagal. Lewat domain lain, keduanya meleset.',
+  },
+  {
+    nama: 'logout dikecualikan dari interceptor 401',
+    ok: /\(login\|logout\|refresh/.test(isi),
+    kenapa: 'sejak logout lewat `api`, logout yang membalas 401 masuk ke '
+      + 'interceptor → refresh → gagal → clearAuthAndRedirect → logout lagi. '
+      + 'Rekursi dengan bentuk yang sama, cuma lebih dalam.',
+  },
+)
 
 const gagal = syarat.filter((s) => !s.ok)
 
