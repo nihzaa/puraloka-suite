@@ -600,10 +600,46 @@
    * lebar untuk hierarki terbaca. Yang lebih besar dari itu memaksa
    * lompatan yang membuang ruang vertikal.
    */
-  --t-mikro:   10px;   /* label kolom tabel, keterangan satuan */
-  --t-kecil:   11px;   /* keterangan sekunder */
-  --t-data:    12px;   /* isi tabel — yang paling sering dibaca */
-  --t-badan:   13px;   /* teks antarmuka umum */
+  /*
+    ⚠ SELURUH tingkat bawah dinaikkan 2026-09-05, dan alasannya bukan selera.
+
+    Diukur di produksi, delapan halaman: 238 teks BACAAN berukuran 10–11px —
+    bukan label sumbu grafik atau inisial avatar, melainkan yang dibaca orang:
+
+        "Proyek Aktif"          11px   label kartu angka
+        "Pendapatan Diterima"   10px   label kartu angka
+        "Dari Tanggal"          10px   label isian tanggal
+        "Rp 7.1M nilai kontrak berjalan · 20 proyek total"   11px
+
+    CLAUDE.md §8a.3 menyebut pengguna aplikasi ini banyak yang berperangkat
+    lama dan berliterasi digital rendah. 10px menyulitkan mereka membaca hal
+    yang justru paling sering dilihat — nama angka di kartu ringkasan.
+
+    ── Kenapa SEMUA tingkat bawah, bukan cuma dua yang terkecil
+
+    Menaikkan `--t-mikro` 10→11 dan `--t-kecil` 11→12 saja membuat `--t-kecil`
+    dan `--t-data` sama-sama 12px: dua token yang tak lagi bisa dibedakan
+    mata, jadi hierarkinya hilang dan yang berikutnya menyunting harus menebak
+    mana yang dimaksud. Skalanya dinaikkan utuh supaya tetap berjenjang.
+
+        sebelum  10 · 11 · 12 · 13 · 15 · 20 · 26 · 28
+        sesudah  11 · 12 · 13 · 14 · 15 · 20 · 26 · 28
+
+    Rasio antar-tingkat tetap 1,07–1,09 di bawah (rapat, untuk antarmuka
+    padat) dan melompat 1,3 di atas (hierarki judul). Nol token kembar.
+
+    ── Batas yang disadari
+
+    Ini hanya menyentuh yang memakai TOKEN — 43 tempat. Diukur hari yang sama:
+    2.066 kemunculan `fontSize: 10`/`11` dipaku langsung di 320 berkas, dan
+    itu tak ikut berubah dari sini. Yang dipaku dikerjakan terpisah, bertahap,
+    dengan potret layar tiap tahap: menaikkan ukuran mengubah tinggi kartu dan
+    pembungkusan teks, dan hasilnya harus dilihat mata.
+  */
+  --t-mikro:   11px;   /* label kolom tabel, keterangan satuan */
+  --t-kecil:   12px;   /* keterangan sekunder */
+  --t-data:    13px;   /* isi tabel — yang paling sering dibaca */
+  --t-badan:   14px;   /* teks antarmuka umum */
   --t-sedang:  15px;   /* judul kartu */
   --t-judul:   20px;   /* judul bagian */
   --t-halaman: 26px;   /* judul halaman */
