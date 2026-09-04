@@ -306,7 +306,7 @@ export default function LaporanPage() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8, marginBottom: 20 }}>
               {BUCKET.map(b => (
                 <div key={b.key} style={{ background: b.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 12px", textAlign: "center" }}>
-                  <div style={{ fontSize: 10, color: C.mid, marginBottom: 6, textTransform: "uppercase", letterSpacing: ".04em" }}>{b.label}</div>
+                  <div style={{ fontSize: "var(--t-mikro)", color: C.mid, marginBottom: 6, textTransform: "uppercase", letterSpacing: ".04em" }}>{b.label}</div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: b.color, fontVariantNumeric: "tabular-nums" }}>
                     {fmt(aging.buckets?.[b.key] ?? 0)}
                   </div>

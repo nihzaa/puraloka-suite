@@ -167,16 +167,16 @@ export default function PmKasPage() {
       {dataSummary && (
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <div style={{ background: "var(--surface)", borderRadius: 16, padding: 14, border: "1px solid var(--border)", flex: "1 1 140px" }}>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Total Saldo</div>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Total Saldo</div>
             <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>{fmtRupiah(dataSummary.totalBalance)}</div>
           </div>
           <div style={{ background: "var(--surface)", borderRadius: 16, padding: 14, border: "1px solid var(--border)", flex: "1 1 140px" }}>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Kas Kecil Beredar</div>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Kas Kecil Beredar</div>
             <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>{fmtRupiah(dataSummary.pettyBalance)}</div>
           </div>
           {dataSummary.pendingExpenseCount > 0 && (
             <div style={{ background: "var(--warning-bg)", borderRadius: 16, padding: 14, border: "1px solid var(--warning-border)", flex: "1 1 140px" }}>
-              <div style={{ fontSize: 11, color: "var(--on-warning-bg)" }}>Menunggu Persetujuan</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--on-warning-bg)" }}>Menunggu Persetujuan</div>
               <div style={{ fontSize: 17, fontWeight: 700, color: "var(--on-warning-bg)" }}>{dataSummary.pendingExpenseCount} pengeluaran</div>
             </div>
           )}
@@ -245,7 +245,7 @@ export default function PmKasPage() {
                       <StatusBadge status={VARIAN_STATUS_EXP[e.status] ?? "netral"} label={LABEL_STATUS_EXP[e.status] ?? e.status} />
                     </div>
                     <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{e.projects?.name ?? "—"} · {e.category?.name ?? "—"} · {fmtTanggal(e.expense_date)}</div>
-                    {e.vendor_name && <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{e.vendor_name}</div>}
+                    {e.vendor_name && <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{e.vendor_name}</div>}
                   </div>
                   <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>{fmtRupiah(e.total_amount)}</span>
                 </div>

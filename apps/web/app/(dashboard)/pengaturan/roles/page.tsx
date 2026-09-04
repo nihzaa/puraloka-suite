@@ -356,12 +356,12 @@ function RolesContent() {
                     <div style={{ fontSize: 13, fontWeight: 600, color: isSelected ? C.navy : C.text, display: "flex", alignItems: "center", gap: 6 }}>
                       {role.label}
                       {role.is_builtin && (
-                        <span style={{ fontSize: 10, padding: "0px 6px", borderRadius: 6, background: "var(--surface-hover)", color: C.muted, fontWeight: 500 }}>
+                        <span style={{ fontSize: "var(--t-mikro)", padding: "0px 6px", borderRadius: 6, background: "var(--surface-hover)", color: C.muted, fontWeight: 500 }}>
                           bawaan
                         </span>
                       )}
                     </div>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 1, display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 1, display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{ display: "flex", alignItems: "center", gap: 2 }}>
                         <Shield size={10} /> {role.permission_count ?? 0} permission
                       </span>
@@ -466,7 +466,7 @@ function RolesContent() {
                           <span style={{ fontSize: 12, fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: "0.08em" }}>
                             {MODULE_LABELS[group.module] ?? group.module}
                           </span>
-                          <span style={{ fontSize: 11, color: C.muted, marginLeft: 4 }}>
+                          <span style={{ fontSize: "var(--t-kecil)", color: C.muted, marginLeft: 4 }}>
                             ({allIds.filter(id => dirtyPerms.has(id)).length}/{allIds.length})
                           </span>
                         </button>
@@ -474,7 +474,7 @@ function RolesContent() {
                           <button
                             onClick={() => toggleAllInModule(group.module, allIds)}
                             style={{
-                              fontSize: 11, padding: "2px 8px", borderRadius: 6,
+                              fontSize: "var(--t-kecil)", padding: "2px 8px", borderRadius: 6,
                               border: `1px solid ${allSelected ? C.navy : C.border}`,
                               background: allSelected ? C.navyLight : "var(--surface)",
                               color: allSelected ? C.navy : C.mid,
@@ -522,11 +522,11 @@ function RolesContent() {
                                   <div style={{ fontSize: 13, fontWeight: 500, color: checked ? C.navy : C.text }}>
                                     {perm.label}
                                   </div>
-                                  <div style={{ fontSize: 11, color: C.muted, marginTop: 1, fontFamily: "monospace" }}>
+                                  <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 1, fontFamily: "monospace" }}>
                                     {perm.key}
                                   </div>
                                   {perm.description && (
-                                    <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                                    <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>
                                       {perm.description}
                                     </div>
                                   )}
@@ -659,7 +659,7 @@ function RoleFormModal({ role, roles, onClose, onSaved, setToast }: {
                 disabled={isEdit}
                 style={{ width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box", fontFamily: "monospace" }}
               />
-              <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Hanya huruf kecil, angka, dan tanda hubung. Tidak bisa diubah setelah dibuat.</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4 }}>Hanya huruf kecil, angka, dan tanda hubung. Tidak bisa diubah setelah dibuat.</div>
             </div>
           )}
 
@@ -722,7 +722,7 @@ function RoleFormModal({ role, roles, onClose, onSaved, setToast }: {
                   <option key={r.id} value={r.name}>{r.label}</option>
                 ))}
               </Pilihan>
-              <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Semua permission dari role tersebut akan disalin ke role baru ini.</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4 }}>Semua permission dari role tersebut akan disalin ke role baru ini.</div>
             </div>
           )}
 

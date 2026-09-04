@@ -149,7 +149,7 @@ export default function PmRabDaftarPage() {
                 <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
                   {b.scenario_name ?? "Utama"} · revisi {b.version_number}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
                   {b.edition_code ?? "edisi belum dipilih"}
                 </div>
               </div>

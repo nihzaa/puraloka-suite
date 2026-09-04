@@ -497,7 +497,7 @@ function LoginPageInner() {
 
               <div className="login-divider">
                 <div className="login-divider-line" />
-                <span style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>atau</span>
+                <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>atau</span>
                 <div className="login-divider-line" />
               </div>
 
@@ -536,7 +536,7 @@ function LoginPageInner() {
               </p>
               <div style={{
                 display: "flex", alignItems: "center", gap: 6,
-                fontSize: 11, color: "var(--text-muted)",
+                fontSize: "var(--t-kecil)", color: "var(--text-muted)",
               }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                   strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"

@@ -247,7 +247,7 @@ export default function PmGlPage() {
                     <StatusBadge status={VARIAN_STATUS_JURNAL[j.status] ?? "netral"} label={LABEL_STATUS_JURNAL[j.status] ?? j.status} />
                   </div>
                   <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{j.description}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                  <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
                     {fmtTanggal(j.entry_date)}{j.source ? ` · ${j.source}` : ""}
                   </div>
                 </div>
@@ -280,10 +280,10 @@ export default function PmGlPage() {
                   <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{a.code}</span>
                   <span style={{ fontSize: 13, color: "var(--text-secondary)", marginLeft: 8 }}>{a.name}</span>
                   {!a.is_active && (
-                    <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 8 }}>(nonaktif)</span>
+                    <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginLeft: 8 }}>(nonaktif)</span>
                   )}
                 </div>
-                <span style={{ fontSize: 11, color: "var(--text-secondary)", flexShrink: 0 }}>
+                <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", flexShrink: 0 }}>
                   {LABEL_TIPE_AKUN[a.type] ?? a.type}
                 </span>
               </div>

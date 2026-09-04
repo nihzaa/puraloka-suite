@@ -280,7 +280,7 @@ export default function PmContingencyPage() {
                 </div>
               </div>
 
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
                 {p.jumlah_penarikan} penarikan
                 {p.penarikan_terakhir && ` · terakhir ${fmtTanggal(p.penarikan_terakhir)}`}
                 {p.porsi_kontrak_pct !== null && ` · ${p.porsi_kontrak_pct.toFixed(1)}% dari nilai kontrak`}
@@ -299,7 +299,7 @@ export default function PmContingencyPage() {
           ))}
 
           {data.proyek_tanpa_pos.length > 0 && (
-            <div style={{ fontSize: 11, color: "var(--text-secondary)", padding: "8px 0" }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", padding: "8px 0" }}>
               {data.proyek_tanpa_pos.length} proyek belum punya pos cadangan.
             </div>
           )}
@@ -379,7 +379,7 @@ export default function PmContingencyPage() {
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}
             />
             {posTarik && Number(nilaiTarik) > posTarik.sisa && (
-              <span role="status" style={{ fontSize: 11, color: "var(--on-warning-bg)" }}>
+              <span role="status" style={{ fontSize: "var(--t-kecil)", color: "var(--on-warning-bg)" }}>
                 Melebihi sisa {fmtRupiah(posTarik.sisa)} — pos akan berstatus Terlampaui. Tetap bisa dicatat.
               </span>
             )}
@@ -408,7 +408,7 @@ export default function PmContingencyPage() {
                 </option>
               ))}
             </Pilihan>
-            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+            <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
               {!coSumber
                 ? "Memuat change order…"
                 : coSumber.layak.length === 0

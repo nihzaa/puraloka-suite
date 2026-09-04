@@ -243,17 +243,17 @@ export default function PmPengadaanLanjutanPage() {
                     <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{k.nomor}</div>
                     <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{k.judul ?? "—"} · {k.pemasok_nama ?? "—"}</div>
                   </div>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: WARNA_STATUS_PAYUNG[k.statusNyata], flexShrink: 0 }}>
+                  <span style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: WARNA_STATUS_PAYUNG[k.statusNyata], flexShrink: 0 }}>
                     {LABEL_STATUS_PAYUNG[k.statusNyata]}
                   </span>
                 </div>
                 {k.aktifTapiTakBisaDipakai && (
-                  <div style={{ fontSize: 11, color: "var(--danger)", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+                  <div style={{ fontSize: "var(--t-kecil)", color: "var(--danger)", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
                     <AlertTriangle size={12} aria-hidden="true" />
                     Berstatus aktif tapi tak bisa dipakai — PO berikutnya akan ditagih di luar harga kontrak.
                   </div>
                 )}
-                <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6 }}>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 6 }}>
                   {fmtTanggal(k.berlaku_dari)} – {fmtTanggal(k.berlaku_sampai)}
                   {k.sisaHari !== null && ` (${k.sisaHari >= 0 ? `${k.sisaHari} hari lagi` : "kedaluwarsa"})`}
                 </div>
@@ -268,7 +268,7 @@ export default function PmPengadaanLanjutanPage() {
                       <div
                         key={it.id}
                         style={{
-                          display: "flex", justifyContent: "space-between", fontSize: 11,
+                          display: "flex", justifyContent: "space-between", fontSize: "var(--t-kecil)",
                           color: it.habis ? "var(--danger)" : it.hampirHabis ? "var(--on-warning-bg)" : "var(--text-secondary)",
                         }}
                       >
@@ -299,7 +299,7 @@ export default function PmPengadaanLanjutanPage() {
             >
               <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{e.po_number ?? "—"}</span>
-                <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{e.pemasok_nama ?? "—"}</span>
+                <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{e.pemasok_nama ?? "—"}</span>
               </div>
               <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>
                 Butuh {fmtTanggal(e.butuh_tanggal)} · Janji vendor {fmtTanggal(e.janji_vendor)}
@@ -311,12 +311,12 @@ export default function PmPengadaanLanjutanPage() {
                 </div>
               )}
               {e.janjiSudahTelat && (
-                <div style={{ fontSize: 11, color: "var(--on-warning-bg)", marginTop: 2 }}>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--on-warning-bg)", marginTop: 2 }}>
                   Vendor menjanjikan tanggal yang sudah lebih lambat dari kebutuhan kita.
                 </div>
               )}
               {e.sebab_tertahan && (
-                <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>Tertahan: {e.sebab_tertahan}</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 2 }}>Tertahan: {e.sebab_tertahan}</div>
               )}
             </div>
           ))}
@@ -356,11 +356,11 @@ export default function PmPengadaanLanjutanPage() {
                   </span>
                 </div>
                 <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{n.pemasok_nama ?? "—"} · {fmtTanggal(n.tanggal)}</div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", marginTop: 4 }}>
+                <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: "var(--text-secondary)", marginTop: 4 }}>
                   {LABEL_STATUS_NOTA[n.status] ?? n.status}
                 </div>
                 {n.menggantung && (
-                  <div style={{ fontSize: 11, color: "var(--danger)", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+                  <div style={{ fontSize: "var(--t-kecil)", color: "var(--danger)", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
                     <AlertTriangle size={12} aria-hidden="true" />
                     Disetujui {n.umurSetujuHari} hari lalu, belum diterapkan — potongan disepakati tapi tagihan penuh tetap dibayar.
                   </div>

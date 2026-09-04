@@ -232,7 +232,7 @@ export default function LaporanHarianPage() {
 function Kartu({ label, nilai, keterangan }: { label: string; nilai: string; keterangan: string }) {
   return (
     <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", flex: "1 1 190px", minWidth: 175 }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+      <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
         {label}
       </div>
       <div style={{ fontSize: 24, fontWeight: 700, color: C.text, marginTop: 4, fontVariantNumeric: "tabular-nums" }}>
@@ -302,7 +302,7 @@ function KartuHari({ hari, namaProyek }: { hari: Hari; namaProyek: Map<string, s
               <MessageSquareText size={14} aria-hidden="true" style={{ color: C.muted, marginTop: 2, flexShrink: 0 }} />
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.55 }}>{c.teks}</div>
-                <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3 }}>
+                <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 3 }}>
                   {namaProyek.get(c.proyek_id) ?? "Proyek"}
                   {c.pelapor && ` · ${c.pelapor}`}
                 </div>

@@ -125,7 +125,7 @@ export function WidgetSerapan() {
                 }}>
                   {r.persen}%
                 </div>
-                <div style={{ fontSize: 10, color: C.muted }}>terpakai</div>
+                <div style={{ fontSize: "var(--t-mikro)", color: C.muted }}>terpakai</div>
               </div>
             </div>
 
@@ -143,7 +143,7 @@ export function WidgetSerapan() {
             paguya memang belum ada.
           */}
           {(r.lewatPagu > 0 || r.tanpaPagu > 0) && (
-            <p style={{ margin: 0, fontSize: 11, color: C.muted, lineHeight: 1.45 }}>
+            <p style={{ margin: 0, fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.45 }}>
               {r.lewatPagu > 0 && (
                 <><strong style={{ color: "var(--danger)", fontWeight: 700 }}>{r.lewatPagu} proyek</strong> melewati pagunya. </>
               )}
@@ -189,7 +189,7 @@ function SectionJudul() {
 function Baris({ label, nilai, warna }: { label: string; nilai: string; warna?: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-      <span style={{ fontSize: 11, color: C.mid, flex: 1, minWidth: 0 }}>{label}</span>
+      <span style={{ fontSize: "var(--t-kecil)", color: C.mid, flex: 1, minWidth: 0 }}>{label}</span>
       <span style={{
         fontSize: 12, fontWeight: 700, color: warna ?? C.text,
         fontVariantNumeric: "tabular-nums", flexShrink: 0,

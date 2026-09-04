@@ -77,11 +77,11 @@ export default function PmRekonsiliasiPage() {
         <>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             <div style={{ padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 45%", minWidth: 130 }}>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Susut Keseluruhan</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Susut Keseluruhan</div>
               <div style={{ fontSize: 18, fontWeight: 700, color: "var(--navy)" }}>{data.susut_pct_keseluruhan != null ? `${data.susut_pct_keseluruhan}%` : "—"}</div>
             </div>
             <div style={{ padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 45%", minWidth: 130 }}>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Bermasalah</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Bermasalah</div>
               <div style={{ fontSize: 18, fontWeight: 700, color: "var(--danger)" }}>{data.jumlah_susut_tinggi + data.jumlah_lebih_beli}</div>
             </div>
           </div>
@@ -98,7 +98,7 @@ export default function PmRekonsiliasiPage() {
             <div key={b.material_id} style={{ display: "flex", justifyContent: "space-between", padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{b.material_name}</div>
-                <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Dibeli {b.dibeli} · Dipakai {b.dipakai} · Sisa {b.sisa}{b.susut_pct != null ? ` · Susut ${b.susut_pct}%` : ""}</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Dibeli {b.dibeli} · Dipakai {b.dipakai} · Sisa {b.sisa}{b.susut_pct != null ? ` · Susut ${b.susut_pct}%` : ""}</div>
               </div>
               <StatusBadge status={VARIAN_STATUS[b.status]} label={LABEL_STATUS[b.status]} />
             </div>

@@ -60,7 +60,7 @@ export function Modal({ title, onClose, children }: {
 
 export const label = (t: string) => (
   <label style={{
-    display: "block", fontSize: 11, fontWeight: 600,
+    display: "block", fontSize: "var(--t-kecil)", fontWeight: 600,
     color: C.mid, margin: "10px 0 4px",
   }}>{t}</label>
 );
@@ -95,7 +95,7 @@ export function StatusBadge({ s }: { s: string }) {
   const [fg, bg] = peta[s] ?? [C.mid, C.bg];
   return (
     <span style={{
-      fontSize: 11, fontWeight: 700, color: fg, background: bg,
+      fontSize: "var(--t-kecil)", fontWeight: 700, color: fg, background: bg,
       border: `1px solid ${C.border}`, borderRadius: "var(--radius-pill)",
       padding: "var(--pad-lencana)",
     }}>{s}</span>

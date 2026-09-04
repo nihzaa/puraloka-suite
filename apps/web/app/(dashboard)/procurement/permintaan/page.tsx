@@ -284,7 +284,7 @@ export default function PermintaanPage() {
                   {mr.rejection_notes && <div style={{ fontSize: 12, color: C.danger, marginTop: 4 }}>Alasan ditolak: {mr.rejection_notes}</div>}
                   <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 4 }}>
                     {(mr.items ?? []).map(item => (
-                      <span key={item.id} style={{ fontSize: 11, padding: "2px 8px", background: C.bg, borderRadius: 6, border: `1px solid ${C.border}`, color: C.mid }}>
+                      <span key={item.id} style={{ fontSize: "var(--t-kecil)", padding: "2px 8px", background: C.bg, borderRadius: 6, border: `1px solid ${C.border}`, color: C.mid }}>
                         {item.material?.name} {item.qty_requested} {item.unit}
                       </span>
                     ))}

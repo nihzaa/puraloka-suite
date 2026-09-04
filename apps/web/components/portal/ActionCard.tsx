@@ -52,7 +52,7 @@ export default function ActionCard({ href, label, icon: Icon, badge }: ActionCar
             borderRadius: "var(--portal-radius-pill)",
             background: "var(--danger-bg)",
             color: "var(--danger)",
-            fontSize: 10,
+            fontSize: "var(--t-mikro)",
             fontWeight: 700,
             display: "flex",
             alignItems: "center",

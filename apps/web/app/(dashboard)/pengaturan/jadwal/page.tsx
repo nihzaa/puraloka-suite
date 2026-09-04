@@ -256,7 +256,7 @@ export default function JadwalPage() {
               >
                 {k.nilai}
               </div>
-              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>{k.label}</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>{k.label}</div>
             </div>
           ))}
         </div>
@@ -315,7 +315,7 @@ export default function JadwalPage() {
                     <span
                       style={{
                         display: "inline-flex", alignItems: "center", gap: 5,
-                        fontSize: 11.5, padding: "var(--pad-lencana)", borderRadius: 999,
+                        fontSize: "var(--t-kecil)", padding: "var(--pad-lencana)", borderRadius: 999,
                         whiteSpace: "nowrap",
                         color: t.terakhir_status === "sukses" ? "var(--success)" : "var(--danger)",
                         background: t.terakhir_status === "sukses" ? "var(--success-bg)" : "var(--danger-bg)",

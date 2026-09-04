@@ -377,7 +377,7 @@ function Konten() {
                   <div
                     style={{
                       display: "flex", gap: 12, flexWrap: "wrap", marginTop: 4,
-                      fontSize: 11.5, color: C.muted,
+                      fontSize: "var(--t-kecil)", color: C.muted,
                       fontVariantNumeric: "tabular-nums",
                     }}
                   >
@@ -390,7 +390,7 @@ function Konten() {
                       aria-expanded={terbuka === p.id}
                       style={{
                         border: "none", background: "none", padding: 0,
-                        color: C.aksen, fontSize: 11.5, cursor: "pointer",
+                        color: C.aksen, fontSize: "var(--t-kecil)", cursor: "pointer",
                         fontFamily: "inherit", textDecoration: "underline",
                       }}
                     >
@@ -415,7 +415,7 @@ function Konten() {
                               paddingLeft: 9,
                             }}
                           >
-                            <div style={{ fontSize: 10.5, color: C.muted, letterSpacing: 0.3 }}>
+                            <div style={{ fontSize: "var(--t-mikro)", color: C.muted, letterSpacing: 0.3 }}>
                               {m.peran === "user" ? "PENANYA" : m.peran === "assistant" ? "ASISTEN" : m.peran.toUpperCase()}
                               {m.ada_galat_tool ? " · TOOL GAGAL" : ""}
                             </div>
@@ -469,7 +469,7 @@ function Konten() {
                       </Lencana>
                       <span
                         style={{
-                          fontSize: 11, color: C.muted, marginLeft: "auto",
+                          fontSize: "var(--t-kecil)", color: C.muted, marginLeft: "auto",
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >

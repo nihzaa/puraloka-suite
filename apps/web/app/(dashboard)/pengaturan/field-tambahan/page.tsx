@@ -167,7 +167,7 @@ export default function Konten() {
             >
               {NAMA_ENTITAS[e] ?? e}
               {n > 0 && (
-                <span style={{ marginInlineStart: 6, fontSize: 11, color: aktif ? C.navy : C.muted, fontVariantNumeric: "tabular-nums" }}>
+                <span style={{ marginInlineStart: 6, fontSize: "var(--t-kecil)", color: aktif ? C.navy : C.muted, fontVariantNumeric: "tabular-nums" }}>
                   {n}
                 </span>
               )}
@@ -211,7 +211,7 @@ export default function Konten() {
         </div>
       ) : (
         <div style={{ ...card, overflow: "hidden" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 160px 110px 90px", gap: 12, padding: "12px 20px", borderBottom: `1px solid ${C.border}`, fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 160px 110px 90px", gap: 12, padding: "12px 20px", borderBottom: `1px solid ${C.border}`, fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>
             <div>Label</div><div>Kunci</div><div>Tipe</div><div style={{ textAlign: "right" }}>Status</div>
           </div>
           {rowsEntitas.map(r => (
@@ -307,7 +307,7 @@ function KartuTambah({ katalog, entitas, adaKunci, onDone, onError }: {
             style={GAYA_ISIAN}
           />
           {kunci && (
-            <div style={{ marginTop: 4, fontSize: 11, color: kembar ? C.red : C.muted }}>
+            <div style={{ marginTop: 4, fontSize: "var(--t-kecil)", color: kembar ? C.red : C.muted }}>
               kunci: <code>{kunci}</code>{kembar && " — sudah dipakai"}
             </div>
           )}
@@ -381,9 +381,9 @@ function Baris({ row, bolehKelola, onSaved, onError }: {
     <div style={{ display: "grid", gridTemplateColumns: "1fr 160px 110px 90px", gap: 12, padding: "12px 20px", borderBottom: `1px solid ${C.border}`, alignItems: "center", fontSize: 13, opacity: row.aktif ? 1 : 0.55 }}>
       <div style={{ color: C.text }}>
         {row.label}
-        {row.wajib && <span style={{ marginInlineStart: 6, fontSize: 11, color: "var(--warning-teks)" }}>wajib</span>}
+        {row.wajib && <span style={{ marginInlineStart: 6, fontSize: "var(--t-kecil)", color: "var(--warning-teks)" }}>wajib</span>}
         {row.tipe === "pilihan" && row.opsi.length > 0 && (
-          <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{row.opsi.join(" · ")}</div>
+          <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>{row.opsi.join(" · ")}</div>
         )}
       </div>
       <div><code style={{ fontSize: 12, color: C.muted }}>{row.kunci}</code></div>

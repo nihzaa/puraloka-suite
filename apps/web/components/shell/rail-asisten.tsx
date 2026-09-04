@@ -716,21 +716,21 @@ function Gelembung({
                 : C.navyLight,
           }}
         >
-          <div style={{ fontSize: 11.5, fontWeight: 600, color: C.text, marginBottom: 2 }}>
+          <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.text, marginBottom: 2 }}>
             {LABEL_JENIS[pesan.usul![0].jenis] ?? pesan.usul![0].jenis}
           </div>
 
           {pesan.usulSelesai === "tersimpan" ? (
-            <div style={{ fontSize: 11.5, color: "var(--success)" }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--success)" }}>
               Tersimpan. Asisten tidak bisa mengubahnya lagi.
             </div>
           ) : pesan.usulSelesai === "dibatalkan" ? (
-            <div style={{ fontSize: 11.5, color: C.muted }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
               Dibatalkan — tidak ada yang tersimpan.
             </div>
           ) : (
             <>
-              <div style={{ fontSize: 11.5, color: C.mid, lineHeight: 1.55, marginBottom: 8 }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.mid, lineHeight: 1.55, marginBottom: 8 }}>
                 Belum tersimpan. Periksa isinya di jawaban di atas, lalu
                 konfirmasi kalau sudah benar.
               </div>
@@ -742,7 +742,7 @@ function Gelembung({
                     display: "inline-flex", alignItems: "center", gap: 5,
                     padding: "6px 12px", borderRadius: "var(--rad-sedang)",
                     border: "none", background: "var(--grad-aksen)", color: C.onNavy,
-                    fontSize: 11.5, fontWeight: 600, cursor: "pointer",
+                    fontSize: "var(--t-kecil)", fontWeight: 600, cursor: "pointer",
                   }}
                 >
                   <Check size={12} /> Simpan
@@ -753,7 +753,7 @@ function Gelembung({
                   style={{
                     padding: "6px 12px", borderRadius: "var(--rad-sedang)",
                     border: `1px solid ${C.border}`, background: "var(--surface)",
-                    color: C.mid, fontSize: 11.5, cursor: "pointer",
+                    color: C.mid, fontSize: "var(--t-kecil)", cursor: "pointer",
                   }}
                 >
                   Batal
@@ -790,21 +790,21 @@ function Gelembung({
                   : "var(--warning-bg)",
           }}
         >
-          <div style={{ fontSize: 11.5, fontWeight: 600, color: C.text, marginBottom: 2 }}>
+          <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.text, marginBottom: 2 }}>
             Persetujuan — {LABEL_SETUJUI[pesan.setujui.jenis] ?? pesan.setujui.jenis}
           </div>
 
           {pesan.setujuiSelesai === "disetujui" ? (
-            <div style={{ fontSize: 11.5, color: "var(--success)" }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--success)" }}>
               Disetujui. Rantai approval berjalan seperti dari halaman biasa.
             </div>
           ) : pesan.setujuiSelesai === "dibatalkan" ? (
-            <div style={{ fontSize: 11.5, color: C.muted }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
               Dibatalkan — tidak ada yang disetujui.
             </div>
           ) : (
             <>
-              <div style={{ fontSize: 11.5, color: C.mid, lineHeight: 1.55, marginBottom: 8 }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.mid, lineHeight: 1.55, marginBottom: 8 }}>
                 Belum disetujui. Periksa rinciannya di jawaban di atas — persetujuan
                 menggerakkan rantai approval dan tak selalu bisa dibatalkan.
               </div>
@@ -816,7 +816,7 @@ function Gelembung({
                     display: "inline-flex", alignItems: "center", gap: 5,
                     padding: "6px 12px", borderRadius: "var(--rad-sedang)",
                     border: "none", background: "var(--grad-aksen)", color: C.onNavy,
-                    fontSize: 11.5, fontWeight: 600, cursor: "pointer",
+                    fontSize: "var(--t-kecil)", fontWeight: 600, cursor: "pointer",
                   }}
                 >
                   <Check size={12} /> Setujui
@@ -827,7 +827,7 @@ function Gelembung({
                   style={{
                     padding: "6px 12px", borderRadius: "var(--rad-sedang)",
                     border: `1px solid ${C.border}`, background: "var(--surface)",
-                    color: C.mid, fontSize: 11.5, cursor: "pointer",
+                    color: C.mid, fontSize: "var(--t-kecil)", cursor: "pointer",
                   }}
                 >
                   Batal
@@ -847,7 +847,7 @@ function Gelembung({
             padding: "6px 8px", borderRadius: "var(--rad-sedang)",
             display: "flex", gap: 6, alignItems: "flex-start",
             background: "var(--warning-bg)", border: "1px solid var(--warning)",
-            fontSize: 11.5, lineHeight: 1.55, color: C.text,
+            fontSize: "var(--t-kecil)", lineHeight: 1.55, color: C.text,
           }}
         >
           <AlertTriangle size={12} style={{ color: "var(--warning)", flexShrink: 0, marginTop: 2 }} />
@@ -866,7 +866,7 @@ function Gelembung({
             data-uji="sumber-jawaban"
             style={{
               background: "none", border: "none", padding: "1px 0",
-              fontSize: 11, color: C.muted, cursor: "pointer",
+              fontSize: "var(--t-kecil)", color: C.muted, cursor: "pointer",
               fontFamily: "inherit", textDecoration: "underline", textUnderlineOffset: 3,
             }}
           >
@@ -879,7 +879,7 @@ function Gelembung({
                 marginTop: 4, padding: "8px 10px",
                 borderRadius: "var(--rad-sedang)",
                 background: "var(--surface-subtle)", border: `1px solid ${C.border}`,
-                fontSize: 11, lineHeight: 1.6, color: C.mid,
+                fontSize: "var(--t-kecil)", lineHeight: 1.6, color: C.mid,
               }}
             >
               {pesan.sumber.ada_galat_tool && (

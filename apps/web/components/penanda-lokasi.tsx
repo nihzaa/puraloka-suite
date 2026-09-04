@@ -92,7 +92,7 @@ export function PenandaLokasi({ foto, proyek, ringkas = false, latarGelap = fals
           display: "inline-flex", alignItems: "center", gap: 4,
           // `C.muted` di latar gelap turun jauh di bawah ambang — cabang ini
           // ikut memakai varian gelap seperti cabang berkoordinat di bawah.
-          fontSize: 11, color: latarGelap ? "var(--pada-gelap-redup)" : C.muted,
+          fontSize: "var(--t-kecil)", color: latarGelap ? "var(--pada-gelap-redup)" : C.muted,
         }}>
         <MapPinOff size={11} aria-hidden="true" />
         {/* "—" tak menerangkan apa pun. Foto tanpa koordinat adalah keadaan
@@ -141,7 +141,7 @@ export function PenandaLokasi({ foto, proyek, ringkas = false, latarGelap = fals
     return (
       <span title={judul} style={{
         display: "inline-flex", alignItems: "center", gap: 4,
-        fontSize: 11, color: warna, fontVariantNumeric: "tabular-nums",
+        fontSize: "var(--t-kecil)", color: warna, fontVariantNumeric: "tabular-nums",
       }}>
         {diLokasi === false
           ? <TriangleAlert size={11} aria-hidden="true" />
@@ -163,7 +163,7 @@ export function PenandaLokasi({ foto, proyek, ringkas = false, latarGelap = fals
   return (
     <div style={{
       display: "flex", flexDirection: "column", gap: 2,
-      fontSize: 11, color: C.mid,
+      fontSize: "var(--t-kecil)", color: C.mid,
     }}>
       <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: warna }}>
         {diLokasi === false
@@ -187,18 +187,18 @@ export function PenandaLokasi({ foto, proyek, ringkas = false, latarGelap = fals
           disamarkan jadi pin yang terlihat sama dengan GPS. */}
       {foto.sumber_lokasi && (
         <span style={{
-          fontSize: 11,
+          fontSize: "var(--t-kecil)",
           color: foto.sumber_lokasi === "manual" ? C.yellow : C.muted,
         }}>{SUMBER_LABEL[foto.sumber_lokasi]}</span>
       )}
 
       {!punyaAcuan && (
-        <span style={{ fontSize: 11, color: C.muted }}>
+        <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
           Isi titik acuan proyek untuk membandingkan jaraknya.
         </span>
       )}
       {punyaAcuan && !akurasiCukup && (
-        <span style={{ fontSize: 11, color: C.muted }}>
+        <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
           Akurasi GPS ({Math.round(foto.akurasi_m!)} m) lebih besar dari radius
           proyek ({radius} m) — jarak tak bisa disimpulkan.
         </span>

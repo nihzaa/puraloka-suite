@@ -254,7 +254,7 @@ export default function GudangIkhtisarPage() {
                         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                       }}>{b.proyek}</span>
                       <span style={{
-                        fontSize: 11, color: C.muted, flexShrink: 0,
+                        fontSize: "var(--t-kecil)", color: C.muted, flexShrink: 0,
                         fontVariantNumeric: "tabular-nums",
                       }}>{b.jenis} jenis · {b.qty} unit</span>
                     </li>
@@ -352,7 +352,7 @@ export default function GudangIkhtisarPage() {
                           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                         }}>{a.nama}</span>
                         <span style={{
-                          display: "block", fontSize: 11, color: C.muted, marginTop: 2,
+                          display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2,
                         }}>{a.kode} · {labelKategori(a.kategori)}</span>
                       </span>
                       <Lencana nada={NADA_KONDISI[a.kondisi] ?? "peringatan"}>
@@ -387,7 +387,7 @@ export default function GudangIkhtisarPage() {
                           display: "block", fontSize: 13, color: C.text, fontWeight: 500,
                         }}>{labelGerak(m.jenis)}</span>
                         <span style={{
-                          display: "block", fontSize: 11, color: C.muted, marginTop: 2,
+                          display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2,
                           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                         }}>
                           {m.dari ?? "—"} → {m.ke ?? "—"}
@@ -420,7 +420,7 @@ export default function GudangIkhtisarPage() {
                           </Lencana>
                         )}
                         <span style={{
-                          fontSize: 11, color: C.muted,
+                          fontSize: "var(--t-kecil)", color: C.muted,
                           fontVariantNumeric: "tabular-nums",
                         }}>{m.hari_lalu !== null ? `${m.hari_lalu}h lalu` : "—"}</span>
                       </span>

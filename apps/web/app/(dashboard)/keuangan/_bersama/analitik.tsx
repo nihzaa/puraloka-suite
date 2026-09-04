@@ -174,7 +174,7 @@ export function AnalitikKeuangan() {
                 <ComposedChart data={data.bulanan} margin={{ top: 8, right: 8, left: 4, bottom: 0 }}>
                   <XAxis
                     dataKey="bulan" tickLine={false} axisLine={false}
-                    tick={{ fontSize: 10, fill: C.muted }}
+                    tick={{ fontSize: "var(--t-mikro)", fill: C.muted }}
                     tickFormatter={labelBulan}
                   />
                   {/*
@@ -185,7 +185,7 @@ export function AnalitikKeuangan() {
                   */}
                   <YAxis
                     tickLine={false} axisLine={false} width={52}
-                    tick={{ fontSize: 10, fill: C.muted }}
+                    tick={{ fontSize: "var(--t-mikro)", fill: C.muted }}
                     tickFormatter={(v: number) => ringkasJt(v)}
                   />
                   <Tooltip
@@ -200,7 +200,7 @@ export function AnalitikKeuangan() {
                   <Legend
                     verticalAlign="top" height={26}
                     formatter={(v: string) => (
-                      <span style={{ fontSize: 11, color: C.mid }}>
+                      <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}>
                         {v === "tagih" ? "Ditagih" : "Dibayar"}
                       </span>
                     )}
@@ -324,7 +324,7 @@ export function AnalitikKeuangan() {
                 </div>
                 <div style={{
                   display: "flex", alignItems: "center", gap: 8,
-                  fontSize: 11, color: C.muted,
+                  fontSize: "var(--t-kecil)", color: C.muted,
                 }}>
                   {/*
                     Bar tertagih terhadap nilai KONTRAK — bukan RAB. Dijepit
@@ -380,7 +380,7 @@ export function AnalitikKeuangan() {
                       overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                     }}>{t.nomor}</span>
                     <span style={{
-                      display: "block", fontSize: 11, color: C.muted, marginTop: 2,
+                      display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2,
                       overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                     }}>{t.proyek ?? "—"}</span>
                   </span>

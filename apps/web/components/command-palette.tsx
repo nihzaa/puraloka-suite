@@ -191,14 +191,14 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
           <kbd style={{
             padding: "2px 6px", borderRadius: 6,
             background: "var(--surface-subtle)", border: "1px solid var(--border)",
-            fontSize: 11, color: "var(--text-muted)", flexShrink: 0,
+            fontSize: "var(--t-kecil)", color: "var(--text-muted)", flexShrink: 0,
           }}>Esc</kbd>
         </div>
 
         {/* Results */}
         <div style={{ maxHeight: 420, overflowY: "auto" }}>
           {/* Section label */}
-          <div style={{ padding: "8px 16px 4px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          <div style={{ padding: "8px 16px 4px", fontSize: "var(--t-mikro)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
             {showQuick ? "Navigasi Cepat" : `${results.length} hasil`}
           </div>
 
@@ -207,7 +207,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             <div style={{ padding: "24px 16px", textAlign: "center" }}>
               <Search size={24} style={{ color: "var(--text-muted)", marginBottom: 8 }} />
               <div style={{ fontSize: 13, color: "var(--text-muted)" }}>Tidak ada hasil untuk “{query}”</div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>Coba kata kunci lain</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginTop: 4 }}>Coba kata kunci lain</div>
             </div>
           )}
 
@@ -250,7 +250,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
               const cfg = TYPE_CONFIG[type] ?? { icon: <Search size={13} />, label: type, color: "var(--text-secondary)", bg: "var(--surface-hover)" };
               return (
                 <div key={type}>
-                  <div style={{ padding: "6px 16px 2px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ padding: "6px 16px 2px", fontSize: "var(--t-mikro)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ color: cfg.color }}>{cfg.label}</span>
                     <span style={{ opacity: 0.5 }}>·</span>
                     <span>{items.length}</span>
@@ -284,7 +284,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                           <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {result.title}
                           </div>
-                          <div style={{ fontSize: 11, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {result.sub}
                           </div>
                         </div>
@@ -292,7 +292,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                         {/* Meta badge */}
                         {result.meta && (
                           <span style={{
-                            flexShrink: 0, fontSize: 10, fontWeight: 600,
+                            flexShrink: 0, fontSize: "var(--t-mikro)", fontWeight: 600,
                             padding: "2px 6px", borderRadius: 99,
                             color: metaColor(result.meta),
                             background: metaColor(result.meta) + "1A",
@@ -324,13 +324,13 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             { key: "Esc", label: "tutup" },
           ].map(({ key, label }) => (
             <div key={key} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <kbd style={{ padding: "0px 4px", borderRadius: 6, background: "var(--surface)", border: "1px solid var(--border)", fontSize: 10, color: "var(--text-secondary)" }}>{key}</kbd>
-              <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{label}</span>
+              <kbd style={{ padding: "0px 4px", borderRadius: 6, background: "var(--surface)", border: "1px solid var(--border)", fontSize: "var(--t-mikro)", color: "var(--text-secondary)" }}>{key}</kbd>
+              <span style={{ fontSize: "var(--t-mikro)", color: "var(--text-muted)" }}>{label}</span>
             </div>
           ))}
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 }}>
             <Command size={11} style={{ color: "var(--text-muted)" }} />
-            <span style={{ fontSize: 10, color: "var(--text-muted)" }}>K untuk buka</span>
+            <span style={{ fontSize: "var(--t-mikro)", color: "var(--text-muted)" }}>K untuk buka</span>
           </div>
         </div>
       </div>

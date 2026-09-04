@@ -170,17 +170,17 @@ export default function ArusKasPage() {
         {/* Filter Bar */}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20, alignItems: "flex-end" }}>
           <div>
-            <label htmlFor="arus-from" style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Dari</label>
+            <label htmlFor="arus-from" style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Dari</label>
             <input id="arus-from" aria-label="Tanggal mulai" type="date" value={arusFrom} onChange={e => setArusFrom(e.target.value)}
               style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)" }} />
           </div>
           <div>
-            <label htmlFor="arus-to" style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Sampai</label>
+            <label htmlFor="arus-to" style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Sampai</label>
             <input id="arus-to" aria-label="Tanggal akhir" type="date" value={arusTo} onChange={e => setArusTo(e.target.value)}
               style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)" }} />
           </div>
           <div>
-            <label htmlFor="arus-project-id" style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Proyek</label>
+            <label htmlFor="arus-project-id" style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Proyek</label>
             <Pilihan id="arus-project-id" aria-label="Saring proyek pada arus kas" value={arusProjectId} onChange={e => setArusProjectId(e.target.value)}
               style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, background: "var(--surface)", minWidth: 160 }}>
               <option value="">Semua Proyek</option>
@@ -188,7 +188,7 @@ export default function ArusKasPage() {
             </Pilihan>
           </div>
           <div>
-            <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Jenis</label>
+            <label style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Jenis</label>
             <div style={{ display: "flex", gap: 6, padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", flexWrap: "wrap" }}>
               {[
                 { key: "payment",            label: "Pembayaran",    color: C.green },
@@ -208,7 +208,7 @@ export default function ArusKasPage() {
                 //
                 // Aktif/tidak tetap terbaca dari tebal huruf + centang kotaknya,
                 // jadi tak ada informasi yang hilang.
-                <label key={t.key} style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 11, fontWeight: arusTypes.includes(t.key) ? 700 : 500, color: arusTypes.includes(t.key) ? C.text : C.muted, userSelect: "none" }}>
+                <label key={t.key} style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: "var(--t-kecil)", fontWeight: arusTypes.includes(t.key) ? 700 : 500, color: arusTypes.includes(t.key) ? C.text : C.muted, userSelect: "none" }}>
                   <input type="checkbox" checked={arusTypes.includes(t.key)} onChange={() => toggleArusType(t.key)} style={{ accentColor: t.color, width: 12, height: 12 }} />
                   <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 2, background: t.color, flexShrink: 0, opacity: arusTypes.includes(t.key) ? 1 : 0.35 }} />
                   {t.label}
@@ -217,7 +217,7 @@ export default function ArusKasPage() {
             </div>
           </div>
           <div>
-            <label htmlFor="arus-category-id" style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Kategori</label>
+            <label htmlFor="arus-category-id" style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Kategori</label>
             <Pilihan id="arus-category-id" aria-label="Saring kategori pada arus kas" value={arusCategoryId} onChange={e => {
               const id = e.target.value;
               const found = arusCategories.find(c => c.id === id);
@@ -244,7 +244,7 @@ export default function ArusKasPage() {
           {adaSaringanLain && (
             <div style={{ alignSelf: "flex-end" }}>
               <button onClick={() => { setArusProjectId(""); setArusCategoryId(""); setArusCategoryName(""); setArusTypes(["payment","expense","wage","kasbon","progress_payment","settlement_borongan"]); setArusFrom(awalBulan); setArusTo(hariIni); }}
-                style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: 11, fontWeight: 600, color: C.mid, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                 <X size={12} /> Reset
               </button>
             </div>
@@ -257,7 +257,7 @@ export default function ArusKasPage() {
                 { key: "chart",  label: "Chart" },
               ] as const).map(m => (
                 <button key={m.key} onClick={() => setArusViewMode(m.key)}
-                  style={{ padding: "6px 12px", border: "none", fontSize: 11, fontWeight: 600, cursor: "pointer", transition: "all 0.15s",
+                  style={{ padding: "6px 12px", border: "none", fontSize: "var(--t-kecil)", fontWeight: 600, cursor: "pointer", transition: "all 0.15s",
                     background: arusViewMode === m.key ? C.navy : "transparent",
                     color: arusViewMode === m.key ? "var(--surface)" : C.mid }}>
                   {m.label}
@@ -275,18 +275,18 @@ export default function ArusKasPage() {
         ) : arusData && (
           <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
             <div style={{ flex: 1, minWidth: 140, padding: "12px 16px", borderRadius: 10, border: `1px solid ${C.greenBorder}`, background: C.greenBg }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 4 }}>
+              <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 4 }}>
                 <ArrowDownLeft size={12} color={C.green} /> Total Masuk
               </div>
               <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 800, color: C.green, fontFamily: "var(--font-display)" }}>{fmtCompact(arusData.totalIn)}</div>
-              <div style={{ fontSize: 11, color: C.green, marginTop: 2 }}>{arusData.byType.payment > 0 ? `Pembayaran ${fmtCompact(arusData.byType.payment)}` : "Tidak ada pembayaran"}</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.green, marginTop: 2 }}>{arusData.byType.payment > 0 ? `Pembayaran ${fmtCompact(arusData.byType.payment)}` : "Tidak ada pembayaran"}</div>
             </div>
             <div style={{ flex: 1, minWidth: 140, padding: "12px 16px", borderRadius: 10, border: `1px solid ${C.redBorder}`, background: C.redBg }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 4 }}>
+              <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 4 }}>
                 <ArrowUpRight size={12} color={C.red} /> Total Keluar
               </div>
               <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 800, color: C.red, fontFamily: "var(--font-display)" }}>{fmtCompact(arusData.totalOut)}</div>
-              <div style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2 }}>
                 Exp {fmtCompact(arusData.byType.expense)} · Upah {fmtCompact(arusData.byType.wage)} · Kasbon {fmtCompact(arusData.byType.kasbon)}
                 {((arusData.byType.progress_payment ?? 0) > 0 || (arusData.byType.settlement_borongan ?? 0) > 0) && (
                   <> · Prog {fmtCompact(arusData.byType.progress_payment ?? 0)} · Settle {fmtCompact(arusData.byType.settlement_borongan ?? 0)}</>
@@ -294,15 +294,15 @@ export default function ArusKasPage() {
               </div>
             </div>
             <div style={{ flex: 1, minWidth: 140, padding: "12px 16px", borderRadius: 10, border: `1px solid ${arusData.netFlow >= 0 ? C.greenBorder : C.redBorder}`, background: arusData.netFlow >= 0 ? C.greenBg : C.redBg }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Net Flow</div>
+              <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Net Flow</div>
               <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 800, color: arusData.netFlow >= 0 ? C.green : C.red, fontFamily: "var(--font-display)" }}>
                 {arusData.netFlow >= 0 ? "+" : ""}{fmtCompact(arusData.netFlow)}
               </div>
             </div>
             <div style={{ flex: 1, minWidth: 140, padding: "12px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Transaksi</div>
+              <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Transaksi</div>
               <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 800, color: C.text, fontFamily: "var(--font-display)" }}>{arusData.transactions.length}</div>
-              <div style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>entri di periode ini</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2 }}>entri di periode ini</div>
             </div>
           </div>
         )}
@@ -315,10 +315,10 @@ export default function ArusKasPage() {
               <ResponsiveContainer width="100%" height={260}>
                 <ComposedChart data={arusChart} margin={{ top: 4, right: 16, bottom: 4, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-hover)" />
-                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: C.muted }} tickLine={false} axisLine={{ stroke: C.border }} />
-                  <YAxis tickFormatter={v => fmtCompact(v)} tick={{ fontSize: 10, fill: C.muted }} tickLine={false} axisLine={false} width={72} />
+                  <XAxis dataKey="label" tick={{ fontSize: "var(--t-mikro)", fill: C.muted }} tickLine={false} axisLine={{ stroke: C.border }} />
+                  <YAxis tickFormatter={v => fmtCompact(v)} tick={{ fontSize: "var(--t-mikro)", fill: C.muted }} tickLine={false} axisLine={false} width={72} />
                   <Tooltip content={<CashflowTooltip />} />
-                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "var(--t-kecil)", paddingTop: 8 }} />
                   <Bar dataKey="masuk" name="Masuk" fill="var(--success)" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
                   <Bar dataKey="keluar" name="Keluar" fill="var(--danger)" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
                   <Line dataKey="net" name="Net" stroke={C.navy} strokeWidth={2} dot={{ r: 3, fill: C.navy, strokeWidth: 0 }} />
@@ -419,7 +419,7 @@ export default function ArusKasPage() {
               <thead>
                 <tr style={{ background: "var(--surface-subtle)", borderBottom: `1px solid ${C.border}` }}>
                   {["Tanggal", "Keterangan", "Proyek", "Jenis", "Kategori", "Masuk", "Keluar"].map((h, i) => (
-                    <th key={i} style={{ padding: "8px 12px", textAlign: i >= 5 ? "right" : "left", fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h}</th>
+                    <th key={i} style={{ padding: "8px 12px", textAlign: i >= 5 ? "right" : "left", fontSize: "var(--t-kecil)", fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -445,7 +445,7 @@ export default function ArusKasPage() {
                         onMouseEnter={e => { if (!expanded) e.currentTarget.style.background = "var(--surface-subtle)"; }}
                         onMouseLeave={e => { if (!expanded) e.currentTarget.style.background = "transparent"; }}
                       >
-                        <td style={{ padding: "8px 12px", color: C.mid, whiteSpace: "nowrap", fontSize: 11 }}>{dateStr}</td>
+                        <td style={{ padding: "8px 12px", color: C.mid, whiteSpace: "nowrap", fontSize: "var(--t-kecil)" }}>{dateStr}</td>
                         {/* `<th scope="row">` pada Keterangan, bukan pada
                             Tanggal: yang MENAMAI baris ini bagi pembaca layar
                             adalah "Pembayaran termin 2 — Ruko Cimahi", bukan
@@ -454,15 +454,15 @@ export default function ArusKasPage() {
                             gudang/material-klien: Tanggal → Material. */}
                         <th scope="row" style={{ padding: "8px 12px", maxWidth: 240, textAlign: "left", fontWeight: 400 }}>
                           <div style={{ fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tx.label}</div>
-                          {tx.sub_label && <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>{tx.sub_label}</div>}
+                          {tx.sub_label && <div style={{ fontSize: "var(--t-mikro)", color: C.muted, marginTop: 1 }}>{tx.sub_label}</div>}
                         </th>
-                        <td style={{ padding: "8px 12px", color: C.mid, fontSize: 11, whiteSpace: "nowrap" }}>{tx.project?.name ?? "—"}</td>
+                        <td style={{ padding: "8px 12px", color: C.mid, fontSize: "var(--t-kecil)", whiteSpace: "nowrap" }}>{tx.project?.name ?? "—"}</td>
                         <td style={{ padding: "8px 12px" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 600, color: tm.color, background: tm.bg, border: `1px solid ${tm.border}`, whiteSpace: "nowrap" }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 8px", borderRadius: 99, fontSize: "var(--t-mikro)", fontWeight: 600, color: tm.color, background: tm.bg, border: `1px solid ${tm.border}`, whiteSpace: "nowrap" }}>
                             {tm.label}
                           </span>
                         </td>
-                        <td style={{ padding: "8px 12px", fontSize: 11, color: C.mid }}>
+                        <td style={{ padding: "8px 12px", fontSize: "var(--t-kecil)", color: C.mid }}>
                           {tx.category ? (
                             <span>
                               {tx.category.parent_name && <span style={{ color: C.muted }}>{tx.category.parent_name} › </span>}
@@ -482,12 +482,12 @@ export default function ArusKasPage() {
                           <td colSpan={7} style={{ padding: "12px 16px" }}>
                             <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
                               {Object.entries(tx.meta).filter(([, v]) => v != null && v !== "").map(([k, v]) => (
-                                <div key={k} style={{ fontSize: 11 }}>
+                                <div key={k} style={{ fontSize: "var(--t-kecil)" }}>
                                   <span style={{ color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600 }}>{k.replace(/_/g," ")} </span>
                                   <span style={{ color: C.text, fontWeight: 500 }}>{String(v)}</span>
                                 </div>
                               ))}
-                              <div style={{ fontSize: 11 }}>
+                              <div style={{ fontSize: "var(--t-kecil)" }}>
                                 <span style={{ color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600 }}>jumlah </span>
                                 <span style={{ color: tx.direction === "in" ? C.green : C.red, fontWeight: 700 }}>{fmt(tx.amount)}</span>
                               </div>

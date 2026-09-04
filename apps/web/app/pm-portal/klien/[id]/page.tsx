@@ -55,17 +55,17 @@ export default function PmKlienDetailPage() {
           <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>{data.client.address}</div>
         )}
         {!data.client.is_active && (
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", marginTop: 6 }}>Nonaktif</div>
+          <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: "var(--text-muted)", marginTop: 6 }}>Nonaktif</div>
         )}
       </div>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
-          <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Proyek</div>
+          <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Proyek</div>
           <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)" }}>{data.summary.total_projects}</div>
         </div>
         <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
-          <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Nilai Kontrak</div>
+          <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Nilai Kontrak</div>
           <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{fmtRupiah(data.summary.total_contract_value)}</div>
         </div>
       </div>

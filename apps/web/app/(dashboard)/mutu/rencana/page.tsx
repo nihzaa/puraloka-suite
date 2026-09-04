@@ -201,13 +201,13 @@ const buatKolom = (onPeriksa: (t: TitikItp) => void): Array<Kolom<TitikItp>> => 
         }}>
           <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             {t.kode && (
-              <span style={{ fontSize: 11, color: C.muted, fontVariantNumeric: "tabular-nums" }}>{t.kode}</span>
+              <span style={{ fontSize: "var(--t-kecil)", color: C.muted, fontVariantNumeric: "tabular-nums" }}>{t.kode}</span>
             )}
             <strong style={{ fontSize: 13, color: C.text }}>{t.tahap_pekerjaan}</strong>
           </span>
           <span style={{ display: "block", fontSize: 12, color: C.mid, marginTop: 1 }}>{t.uraian}</span>
           {t.acuan && (
-            <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 1 }}>{t.acuan}</span>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 1 }}>{t.acuan}</span>
           )}
         </span>
       );
@@ -222,7 +222,7 @@ const buatKolom = (onPeriksa: (t: TitikItp) => void): Array<Kolom<TitikItp>> => 
           title={j.arti}
           style={{
             display: "inline-flex", alignItems: "center", gap: 4,
-            padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700,
+            padding: "2px 8px", borderRadius: 999, fontSize: "var(--t-kecil)", fontWeight: 700,
             color: j.warna, background: j.bg, border: `1px solid ${j.border}`,
           }}
         >
@@ -244,7 +244,7 @@ const buatKolom = (onPeriksa: (t: TitikItp) => void): Array<Kolom<TitikItp>> => 
         : (
           <span style={{
             display: "inline-flex", alignItems: "center", gap: 4,
-            fontSize: 11, color: "var(--warning-teks)",
+            fontSize: "var(--t-kecil)", color: "var(--warning-teks)",
           }}>
             <TriangleAlert size={11} aria-hidden="true" /> belum ada kriteria
           </span>
@@ -257,12 +257,12 @@ const buatKolom = (onPeriksa: (t: TitikItp) => void): Array<Kolom<TitikItp>> => 
       <span style={{ display: "block" }}>
         <HasilTitik t={t} />
         {t.diperiksa_pada && (
-          <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 1 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 1 }}>
             {tanggal(t.diperiksa_pada)}{t.pemeriksa ? ` · ${t.pemeriksa.name}` : ""}
           </span>
         )}
         {t.lolos === false && t.catatan_hasil && (
-          <span style={{ display: "block", fontSize: 11, color: C.mid, marginTop: 2, maxWidth: "34ch" }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2, maxWidth: "34ch" }}>
             {t.catatan_hasil}
           </span>
         )}
@@ -453,7 +453,7 @@ export default function RencanaMutuPage() {
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
         <div className="rise" style={{ ...kartu, padding: "12px 16px", minWidth: 280, flex: "1 1 280px", maxWidth: 420 }}>
           <label htmlFor="rmp-proyek" style={{
-            fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+            fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
             marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
           }}>Proyek</label>
           <Pilihan
@@ -471,7 +471,7 @@ export default function RencanaMutuPage() {
         {daftar.length > 0 && (
           <div className="rise" style={{ ...kartu, padding: "12px 16px", minWidth: 280, flex: "1 1 280px", maxWidth: 420 }}>
             <label htmlFor="rmp-dokumen" style={{
-              fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Dokumen</label>
             <Pilihan
@@ -571,13 +571,13 @@ export default function RencanaMutuPage() {
               <strong style={{ fontSize: 14, color: C.text }}>{detail.rencana.nomor}</strong>
               <span style={{ fontSize: 12, color: C.muted }}>revisi {detail.rencana.revisi}</span>
               <span style={{
-                padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700,
+                padding: "2px 8px", borderRadius: 999, fontSize: "var(--t-kecil)", fontWeight: 700,
                 color: STATUS[detail.rencana.status].warna,
                 background: STATUS[detail.rencana.status].bg,
                 border: `1px solid ${STATUS[detail.rencana.status].border}`,
               }}>{STATUS[detail.rencana.status].label}</span>
               {detail.rencana.disetujui_pada && (
-                <span style={{ fontSize: 11, color: C.muted }}>
+                <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
                   disetujui {tanggal(detail.rencana.disetujui_pada)}
                   {detail.rencana.penyetuju ? ` · ${detail.rencana.penyetuju.name}` : ""}
                 </span>
@@ -603,7 +603,7 @@ export default function RencanaMutuPage() {
                   {mengajukan ? "Mengajukan…" : "Ajukan untuk persetujuan"}
                 </button>
                 {detail.persetujuan.penghalang.length > 0 && (
-                  <p style={{ fontSize: 11, color: "var(--warning-teks)", marginTop: 6, maxWidth: "60ch", lineHeight: 1.5 }}>
+                  <p style={{ fontSize: "var(--t-kecil)", color: "var(--warning-teks)", marginTop: 6, maxWidth: "60ch", lineHeight: 1.5 }}>
                     Catatan: dokumen ini belum bisa disetujui —{" "}
                     {detail.persetujuan.penghalang.map((p) => p.pesan).join(" ")}
                   </p>
@@ -646,11 +646,11 @@ export default function RencanaMutuPage() {
               { l: "Tidak lolos", v: r.gagal, sub: r.gagal > 0 ? "perlu perbaikan" : "—" },
             ].map((k) => (
               <div key={k.l} style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.l}</div>
                 <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text,
                   fontVariantNumeric: "tabular-nums" }}>{k.v}</div>
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{k.sub}</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>{k.sub}</div>
               </div>
             ))}
           </div>
@@ -751,7 +751,7 @@ export default function RencanaMutuPage() {
 
             <div>
               <label htmlFor="itp-catatan" style={{
-                fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+                fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
                 marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
               }}>
                 Catatan {fLolos === "tidak" && <span style={{ color: "var(--danger)" }}>· wajib</span>}
@@ -772,7 +772,7 @@ export default function RencanaMutuPage() {
 
             <div>
               <label htmlFor="itp-inspeksi" style={{
-                fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+                fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
                 marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
               }}>Tautkan ke inspeksi</label>
               <Pilihan
@@ -788,7 +788,7 @@ export default function RencanaMutuPage() {
                   <option key={i.id} value={i.id}>{i.nomor} — {i.judul}</option>
                 ))}
               </Pilihan>
-              <p style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
+              <p style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
                 Menautkan membuat rencana dan pelaksanaannya bisa ditelusuri dua
                 arah — dari titik ke inspeksi yang menjawabnya, dan sebaliknya.
               </p>

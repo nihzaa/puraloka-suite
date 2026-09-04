@@ -268,7 +268,7 @@ export default function PmRabDetailPage() {
           <StatusBadge status={VARIAN_STATUS[v.status] ?? "netral"} label={LABEL_STATUS[v.status] ?? v.status} />
         </div>
         <div style={{ fontSize: 22, fontWeight: 700, color: "var(--navy)" }}>{fmtRupiah(v.total_amount)}</div>
-        <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{v.items.length} item</div>
+        <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{v.items.length} item</div>
       </div>
 
       {pesanAksi && !galatAksi && (
@@ -394,7 +394,7 @@ export default function PmRabDetailPage() {
           >
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{labelItem}</div>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 2 }}>
                 {it.assembly ? `${fmtVolume(it.quantity)} ${it.assembly.output_unit_code ?? ""}` : "Lumpsum"} · {it.cost_code?.name ?? "—"}
               </div>
             </div>

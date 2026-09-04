@@ -220,7 +220,7 @@ export default function RekapitulasiPage() {
                       </div>
                       <div style={{ display: "flex", gap: "var(--gap-bagian)", flexWrap: "wrap" }}>
                         <div>
-                          <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 2, fontWeight: 700, textTransform: "uppercase" }}>
+                          <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-muted)", marginBottom: 2, fontWeight: 700, textTransform: "uppercase" }}>
                             Earned
                           </div>
                           <div style={{ fontSize: 13, fontWeight: 700, color: "var(--navy)", fontVariantNumeric: "tabular-nums" }}>
@@ -228,7 +228,7 @@ export default function RekapitulasiPage() {
                           </div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 2, fontWeight: 700, textTransform: "uppercase" }}>
+                          <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-muted)", marginBottom: 2, fontWeight: 700, textTransform: "uppercase" }}>
                             Dibayar
                           </div>
                           <div style={{ fontSize: 13, fontWeight: 700, color: "var(--success)", fontVariantNumeric: "tabular-nums" }}>
@@ -237,7 +237,7 @@ export default function RekapitulasiPage() {
                         </div>
                         {outstanding > 0 && (
                           <div>
-                            <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 2, fontWeight: 700, textTransform: "uppercase" }}>
+                            <div style={{ fontSize: "var(--t-mikro)", color: "var(--text-muted)", marginBottom: 2, fontWeight: 700, textTransform: "uppercase" }}>
                               Outstanding
                             </div>
                             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--warning)", fontVariantNumeric: "tabular-nums" }}>

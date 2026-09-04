@@ -303,7 +303,7 @@ export default function KeuanganSettingsPage() {
                       <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: C.navy, lineHeight: 1 }}>
                         {active ? format(Number(active.value)) : "—"}
                       </div>
-                      <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>berlaku sekarang</div>
+                      <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>berlaku sekarang</div>
                     </div>
                     {canEdit && (
                       <button onClick={() => openEdit(key)}
@@ -316,7 +316,7 @@ export default function KeuanganSettingsPage() {
 
                 {/* Signature: timeline periode tarif — tiap tarif = rentang [dari..sampai) */}
                 <div style={{ padding: "12px 20px 16px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: C.muted, marginBottom: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "var(--t-kecil)", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: C.muted, marginBottom: 10 }}>
                     <CalendarClock size={12} /> Riwayat berlaku
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -333,10 +333,10 @@ export default function KeuanganSettingsPage() {
                             <span style={{ fontSize: 12, color: C.mid }}>
                               {fmt(r.effective_from)} <span style={{ color: C.muted }}>→</span> {fmt(r.effective_to)}
                             </span>
-                            {r.note && <span style={{ fontSize: 11, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>· {r.note}</span>}
+                            {r.note && <span style={{ fontSize: "var(--t-kecil)", color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>· {r.note}</span>}
                           </div>
                           {isActive && (
-                            <span style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", color: C.green, background: C.greenBg, padding: "2px 6px", borderRadius: 6 }}>Aktif</span>
+                            <span style={{ fontSize: "var(--t-mikro)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", color: C.green, background: C.greenBg, padding: "2px 6px", borderRadius: 6 }}>Aktif</span>
                           )}
                         </div>
                       );
@@ -430,7 +430,7 @@ export default function KeuanganSettingsPage() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 15, fontWeight: 600, color: C.text }}>Denda Keterlambatan</span>
-                <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: penalty.enabled ? C.green : C.muted, background: penalty.enabled ? C.greenBg : C.bg, padding: "2px 8px", borderRadius: 6 }}>
+                <span style={{ fontSize: "var(--t-mikro)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: penalty.enabled ? C.green : C.muted, background: penalty.enabled ? C.greenBg : C.bg, padding: "2px 8px", borderRadius: 6 }}>
                   {penalty.enabled ? "Aktif" : "Nonaktif"}
                 </span>
               </div>

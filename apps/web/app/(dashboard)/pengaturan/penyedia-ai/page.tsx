@@ -481,7 +481,7 @@ export default function PenyediaAiPage() {
                   onChange={(e) => ubahBatasSemua(e.target.value === "" ? null : Number(e.target.value))}
                   style={GAYA_ISIAN}
                 />
-                <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
+                <p style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
                   Berlaku untuk seluruh asisten digabung.
                 </p>
               </div>
@@ -504,7 +504,7 @@ export default function PenyediaAiPage() {
                   <option value="peringatkan">Tetap jalan, beri peringatan</option>
                   <option value="blokir">Hentikan panggilan AI</option>
                 </Pilihan>
-                <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
+                <p style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
                   {modeGlobal === "blokir"
                     ? "Asisten berhenti menjawab sampai bulan berikutnya."
                     : "Asisten tetap berjalan; biayanya bisa melewati batas."}
@@ -590,7 +590,7 @@ export default function PenyediaAiPage() {
                     <span style={{ color: C.text, fontWeight: 550, minWidth: 130 }}>
                       {PERAN[r.asisten]?.nama ?? r.asisten}
                     </span>
-                    <span style={{ color: C.muted, flex: 1, fontFamily: "var(--font-mono, monospace)", fontSize: 11.5 }}>
+                    <span style={{ color: C.muted, flex: 1, fontFamily: "var(--font-mono, monospace)", fontSize: "var(--t-kecil)" }}>
                       {r.model}
                     </span>
                     <span style={{ color: C.muted, whiteSpace: "nowrap" }}>
@@ -711,7 +711,7 @@ export default function PenyediaAiPage() {
                     {!k.tersimpan && (
                       <span
                         style={{
-                          fontSize: 11, padding: "var(--pad-lencana)", borderRadius: 999,
+                          fontSize: "var(--t-kecil)", padding: "var(--pad-lencana)", borderRadius: 999,
                           whiteSpace: "nowrap", color: C.muted,
                           background: "var(--surface-subtle)", border: `1px solid ${C.border}`,
                         }}
@@ -768,7 +768,7 @@ export default function PenyediaAiPage() {
                         ))}
                       </Pilihan>
                       {metaPenyedia && (
-                        <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
+                        <p style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
                           Kunci <code>{metaPenyedia.kunciKredensial}</code> dipasang di{" "}
                           {/*
                             Bergaris bawah, BUKAN hanya berwarna. Tautan di
@@ -811,7 +811,7 @@ export default function PenyediaAiPage() {
                       {modelDipilih && (
                         <p
                           style={{
-                            fontSize: 11.5, lineHeight: 1.55, margin: "6px 0 0",
+                            fontSize: "var(--t-kecil)", lineHeight: 1.55, margin: "6px 0 0",
                             color: terlaluRingan ? "var(--warning)" : C.muted,
                           }}
                         >
@@ -838,7 +838,7 @@ export default function PenyediaAiPage() {
                         onChange={(e) => ubah(k.asisten, { max_token: Number(e.target.value) })}
                         style={GAYA_ISIAN}
                       />
-                      <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
+                      <p style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
                         Perkiraan {rupiah(perkiraan)} per panggilan.
                       </p>
                     </div>

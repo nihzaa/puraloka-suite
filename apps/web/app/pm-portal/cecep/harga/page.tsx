@@ -108,7 +108,7 @@ export default function PmPriceBookPage() {
                   <div key={h.id} style={{ display: "flex", justifyContent: "space-between", padding: "var(--pad-baris)" }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{h.resource?.name ?? h.resource?.code ?? "—"}</div>
-                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                      <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
                         {h.location ?? "Umum"} · berlaku {fmtTanggal(h.effective_date)}
                         {h.supplier ? ` · ${h.supplier}` : ""}
                       </div>

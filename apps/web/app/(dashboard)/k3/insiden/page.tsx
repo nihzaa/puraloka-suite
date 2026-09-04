@@ -323,14 +323,14 @@ function IsiInsiden() {
         }}>
           <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             {i.nomor && (
-              <span style={{ fontSize: 11, color: C.muted, fontWeight: 700 }}>{i.nomor}</span>
+              <span style={{ fontSize: "var(--t-kecil)", color: C.muted, fontWeight: 700 }}>{i.nomor}</span>
             )}
             <strong style={{ fontSize: 13, color: C.text }}>
               {i.lokasi || "Lokasi tak dicatat"}
             </strong>
           </span>
           <span style={{
-            display: "block", fontSize: 11.5, color: C.mid, marginTop: 1,
+            display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 1,
             maxWidth: "62ch", lineHeight: 1.45,
           }}>{i.kronologi}</span>
           {/* Barisnya HILANG saat tak ada isinya, bukan diisi strip.
@@ -347,7 +347,7 @@ function IsiInsiden() {
               i.jsa_id ? "tertaut JSA" : null,
             ].filter(Boolean).join(" · ");
             return tambahan ? (
-              <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 2 }}>
+              <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>
                 {tambahan}
               </span>
             ) : null;
@@ -369,7 +369,7 @@ function IsiInsiden() {
         <span style={{ display: "block", fontSize: 12, color: C.mid }}>
           {tanggal(i.tanggal)}
           {i.hari_kerja_hilang > 0 && (
-            <span style={{ display: "block", fontSize: 11, color: "var(--danger)" }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: "var(--danger)" }}>
               {i.hari_kerja_hilang} hari kerja hilang
             </span>
           )}
@@ -384,7 +384,7 @@ function IsiInsiden() {
           {i.status === "ditutup" && !i.tindakan_korektif && (
             // Constraint DB melarangnya untuk baris baru, tetapi baris lama
             // bisa saja ada — dan itu dinyatakan, bukan didiamkan.
-            <span style={{ display: "block", fontSize: 11, color: "var(--danger)", marginTop: 2 }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: "var(--danger)", marginTop: 2 }}>
               tanpa tindakan korektif
             </span>
           )}
@@ -438,7 +438,7 @@ function IsiInsiden() {
 
       <Kartu pad="sedang">
         <label htmlFor="k3-proyek" style={{
-          fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+          fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
           marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
         }}>Proyek</label>
         <Pilihan

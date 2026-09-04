@@ -213,7 +213,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
             display: "flex", justifyContent: "space-between", alignItems: "center",
           }}>
             <div>
-              <div style={{ fontSize: 11, color: "var(--info)", fontWeight: 600, marginBottom: 2 }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--info)", fontWeight: 600, marginBottom: 2 }}>
                 Nilai Termin
               </div>
               <div style={{ fontSize: 17, fontWeight: 800, color: C.navy, fontFamily: "var(--font-display)" }}>
@@ -221,7 +221,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 11, color: "var(--info)", fontWeight: 600, marginBottom: 2 }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--info)", fontWeight: 600, marginBottom: 2 }}>
                 % Kontrak
               </div>
               <div style={{ fontSize: 17, fontWeight: 800, color: C.navy, fontFamily: "var(--font-display)" }}>
@@ -276,7 +276,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
                       onBlur={e => { e.target.style.borderColor = C.border; e.target.style.boxShadow = "none"; }}
                     />
                   </div>
-                  <p style={{ fontSize: 11, color: C.muted, marginTop: 3 }}>
+                  <p style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 3 }}>
                     {fmt(parseFloat(amountPaid || "0"))}
                   </p>
                 </div>
@@ -310,7 +310,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
                         kanan: (
                           <span style={{ textAlign: "right", display: "block" }}>
                             {fmt(a.balance)}
-                            <span style={{ display: "block", fontSize: 10, color: C.muted, fontWeight: 400 }}>
+                            <span style={{ display: "block", fontSize: "var(--t-mikro)", color: C.muted, fontWeight: 400 }}>
                               saldo saat ini
                             </span>
                           </span>
@@ -399,7 +399,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
                       <div style={{ fontSize: 12, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {proofFile.name}
                       </div>
-                      <div style={{ fontSize: 11, color: C.muted }}>
+                      <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
                         {(proofFile.size / 1024).toFixed(0)} KB
                       </div>
                     </div>
@@ -440,7 +440,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
                     <p style={{ fontSize: 12, color: C.mid, margin: 0 }}>
                       Klik untuk upload bukti transfer
                     </p>
-                    <p style={{ fontSize: 11, color: C.muted, margin: "3px 0 0" }}>
+                    <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: "3px 0 0" }}>
                       Screenshot mutasi, struk ATM, atau PDF
                     </p>
                   </div>

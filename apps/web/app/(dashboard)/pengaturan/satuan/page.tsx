@@ -100,12 +100,12 @@ export default function SatuanContent() {
       ) : (
         <div style={{ ...card, overflow: "hidden" }}>
           {/* Table header */}
-          <div style={{ display: "grid", gridTemplateColumns: "120px 90px 1fr 70px 90px", gap: 12, padding: "12px 20px", borderBottom: `1px solid ${C.border}`, fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "120px 90px 1fr 70px 90px", gap: 12, padding: "12px 20px", borderBottom: `1px solid ${C.border}`, fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>
             <div>Kode</div><div>Simbol</div><div>Nama</div><div>Urutan</div><div style={{ textAlign: "right" }}>Status</div>
           </div>
           {groups.map(g => (
             <div key={g.value}>
-              <div style={{ padding: "8px 20px", background: "var(--surface-subtle)", fontSize: 11, fontWeight: 700, color: C.mid, letterSpacing: "0.03em" }}>
+              <div style={{ padding: "8px 20px", background: "var(--surface-subtle)", fontSize: "var(--t-kecil)", fontWeight: 700, color: C.mid, letterSpacing: "0.03em" }}>
                 {g.label}
               </div>
               {g.items.map(u => (
@@ -166,7 +166,7 @@ function AddUnitCard({ existing, onDone, onError }: { existing: UnitRow[]; onDon
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1.4fr 1fr", gap: 12, alignItems: "end" }}>
         <Labeled label="Kode (unik)">
           <input className="isian-fokus" value={code} onChange={e => setCode(e.target.value)} placeholder="cth: dus" style={GAYA_ISIAN} />
-          {code && <div style={{ fontSize: 11, color: dup ? C.red : C.muted, marginTop: 3 }}>disimpan sebagai <code>{normalized || "—"}</code>{dup && " (sudah ada)"}</div>}
+          {code && <div style={{ fontSize: "var(--t-kecil)", color: dup ? C.red : C.muted, marginTop: 3 }}>disimpan sebagai <code>{normalized || "—"}</code>{dup && " (sudah ada)"}</div>}
         </Labeled>
         <Labeled label="Simbol"><input className="isian-fokus" value={symbol} onChange={e => setSymbol(e.target.value)} placeholder="cth: dus" style={GAYA_ISIAN} /></Labeled>
         <Labeled label="Nama"><input className="isian-fokus" value={label} onChange={e => setLabel(e.target.value)} placeholder="cth: Dus / Kardus" style={GAYA_ISIAN} /></Labeled>
@@ -244,7 +244,7 @@ function UnitRowItem({ unit, canManage, onSaved, onError }: {
       <span style={{ fontWeight: 600, color: C.text }}>{unit.symbol}</span>
       <span style={{ color: C.mid }}>
         {unit.label}
-        {!unit.is_active && <span style={{ marginLeft: 8, fontSize: 11, color: C.red }}>(nonaktif)</span>}
+        {!unit.is_active && <span style={{ marginLeft: 8, fontSize: "var(--t-kecil)", color: C.red }}>(nonaktif)</span>}
       </span>
       <span style={{ color: C.muted }}>{unit.sort_order}</span>
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
@@ -259,7 +259,7 @@ function UnitRowItem({ unit, canManage, onSaved, onError }: {
             </button>
           </>
         ) : (
-          <span style={{ fontSize: 11, color: unit.is_active ? C.green : C.muted }}>{unit.is_active ? "Aktif" : "Nonaktif"}</span>
+          <span style={{ fontSize: "var(--t-kecil)", color: unit.is_active ? C.green : C.muted }}>{unit.is_active ? "Aktif" : "Nonaktif"}</span>
         )}
       </div>
     </div>
@@ -269,7 +269,7 @@ function UnitRowItem({ unit, canManage, onSaved, onError }: {
 function Labeled({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>{label}</label>
+      <label style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, marginBottom: 5 }}>{label}</label>
       {children}
     </div>
   );

@@ -209,13 +209,13 @@ export default function PetaAkunPage() {
           <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             <strong style={{ fontSize: 13, color: C.text }}>{b.label}</strong>
             {b.wajib && (
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: C.muted, letterSpacing: ".03em" }}>
+              <span style={{ fontSize: "var(--t-mikro)", fontWeight: 700, color: C.muted, letterSpacing: ".03em" }}>
                 WAJIB
               </span>
             )}
           </span>
           <span style={{
-            display: "block", fontSize: 11.5, color: C.mid, marginTop: 2,
+            display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2,
             maxWidth: "54ch", lineHeight: 1.5,
           }}>{b.usul.ringkas}</span>
           {/* Dasar lengkapnya DIBUKA saat dibutuhkan. `<details>` bukan
@@ -223,11 +223,11 @@ export default function PetaAkunPage() {
               dan diumumkan pembaca layar tanpa satu baris ARIA pun. */}
           <details style={{ marginTop: 3 }}>
             <summary style={{
-              fontSize: 11, color: "var(--aksen)", cursor: "pointer",
+              fontSize: "var(--t-kecil)", color: "var(--aksen)", cursor: "pointer",
               fontWeight: 600, width: "fit-content",
             }}>Dasar pemilihannya</summary>
             <span style={{
-              display: "block", fontSize: 11.5, color: C.mid,
+              display: "block", fontSize: "var(--t-kecil)", color: C.mid,
               marginTop: 4, maxWidth: "54ch", lineHeight: 1.55,
             }}>{b.usul.rinci}</span>
           </details>
@@ -261,14 +261,14 @@ export default function PetaAkunPage() {
             {usulAkun && kini !== usulAkun.id && (
               // Usulan DITAWARKAN, tak diisi otomatis. Bawaan yang terisi
               // sendiri tak pernah ditanyakan siapa pun.
-              <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 3 }}>
+              <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 3 }}>
                 Usulan: {usulAkun.code} — {usulAkun.name}{" "}
                 <button
                   type="button"
                   onClick={() => setPilihan((p) => ({ ...p, [b.jenis]: usulAkun.id }))}
                   style={{
                     border: "none", background: "none", padding: 0,
-                    color: "var(--aksen)", fontSize: 11, fontWeight: 600,
+                    color: "var(--aksen)", fontSize: "var(--t-kecil)", fontWeight: 600,
                     textDecoration: "underline", cursor: "pointer",
                   }}
                 >pakai</button>
@@ -290,7 +290,7 @@ export default function PetaAkunPage() {
           ? <Lencana nada="sukses" ikon={<CircleCheck size={11} aria-hidden="true" />}>
               Ditetapkan
             </Lencana>
-          : <span style={{ fontSize: 11.5, color: C.muted }}>—</span>
+          : <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>—</span>
       ),
     },
     {

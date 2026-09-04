@@ -241,7 +241,7 @@ export default function AbsensiPage() {
         display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap",
       }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 240 }}>
-          <label htmlFor="ab-scope" style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          <label htmlFor="ab-scope" style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
             Lingkup kerja
           </label>
           <Pilihan
@@ -260,7 +260,7 @@ export default function AbsensiPage() {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <label htmlFor="ab-tanggal" style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          <label htmlFor="ab-tanggal" style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
             Tanggal
           </label>
           <input
@@ -307,9 +307,9 @@ export default function AbsensiPage() {
               ...kartu, padding: "10px 14px", flex: "1 1 180px", minWidth: 160,
               ...(k.tegang ? { borderColor: C.yellowBorder, background: C.yellowBg } : null),
             }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.label}</div>
+              <div style={{ fontSize: "var(--t-mikro)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.label}</div>
               <div style={{ fontSize: 20, fontWeight: 800, color: k.tegang ? C.yellow : C.text, fontFamily: "var(--font-display)", fontVariantNumeric: "tabular-nums", marginTop: 2 }}>{k.nilai}</div>
-              <div style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>{k.sub}</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2 }}>{k.sub}</div>
             </div>
           ))}
         </div>
@@ -421,9 +421,9 @@ export default function AbsensiPage() {
                       borderLeft: `3px solid ${belum ? C.yellow : "transparent"}`,
                     }}>
                       {w.name}
-                      {w.tipe && <span style={{ fontSize: 11, color: C.mid }}> · {w.tipe}</span>}
+                      {w.tipe && <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}> · {w.tipe}</span>}
                       {belum && (
-                        <span style={{ display: "block", fontSize: 11, color: C.yellow, fontWeight: 600, marginTop: 1 }}>
+                        <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.yellow, fontWeight: 600, marginTop: 1 }}>
                           belum dijawab
                         </span>
                       )}

@@ -233,7 +233,7 @@ function DetailSpk({ spk: s, bolehKelola, onUbah }: { spk: Spk; bolehKelola: boo
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div>
-        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 4 }}>
+        <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 4 }}>
           Lingkup pekerjaan
         </div>
         <div style={{ fontSize: 14, color: "var(--text-primary)", lineHeight: 1.5 }}>{s.lingkup_kerja}</div>
@@ -241,18 +241,18 @@ function DetailSpk({ spk: s, bolehKelola, onUbah }: { spk: Spk; bolehKelola: boo
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Nilai kontrak</div>
+          <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Nilai kontrak</div>
           <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginTop: 3 }}>{rupiah(s.nilai_kontrak)}</div>
         </div>
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Jangka waktu</div>
+          <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Jangka waktu</div>
           <div style={{ fontSize: 13, color: "var(--text-primary)", marginTop: 3 }}>{fmtDate(s.tanggal_mulai)} s.d. {fmtDate(s.tanggal_selesai)}</div>
         </div>
       </div>
 
       {s.denda_per_hari !== null && (
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Sanksi keterlambatan</div>
+          <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Sanksi keterlambatan</div>
           <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 3 }}>
             {rupiah(s.denda_per_hari)}/hari{s.denda_maks_pct !== null && ` · maks ${Number(s.denda_maks_pct)}% nilai kontrak`}
           </div>
@@ -261,7 +261,7 @@ function DetailSpk({ spk: s, bolehKelola, onUbah }: { spk: Spk; bolehKelola: boo
 
       {s.syarat_khusus && (
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Syarat khusus</div>
+          <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Syarat khusus</div>
           <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 3, lineHeight: 1.5 }}>{s.syarat_khusus}</div>
         </div>
       )}
@@ -278,13 +278,13 @@ function DetailSpk({ spk: s, bolehKelola, onUbah }: { spk: Spk; bolehKelola: boo
           berperan sebagai pelaksana — jadi keduanya cukup status di sini. */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "10px 0", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Penerbit</div>
+          <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Penerbit</div>
           <div style={{ fontSize: 12, color: s.ttd_penerbit_url ? "var(--success)" : "var(--text-muted)", marginTop: 3, fontWeight: 600 }}>
             {s.ttd_penerbit_url ? "Sudah ditandatangani" : "Butuh izin Tanda tangani SPK"}
           </div>
         </div>
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Pelaksana</div>
+          <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Pelaksana</div>
           <div style={{ fontSize: 12, color: s.ttd_pelaksana_url ? "var(--success)" : "var(--text-muted)", marginTop: 3, fontWeight: 600 }}>
             {s.ttd_pelaksana_url ? "Sudah ditandatangani" : "Belum ditandatangani"}
           </div>

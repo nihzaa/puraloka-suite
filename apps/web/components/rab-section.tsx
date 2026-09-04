@@ -412,7 +412,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
     const onChange = (v: string) => setEditingSerapan(prev => ({ ...prev, [item.id]: v }));
 
     const hint = !isLeaf && hasLeaves
-      ? <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>{leafList.length} item</div>
+      ? <div style={{ fontSize: "var(--t-mikro)", color: C.muted, marginTop: 1 }}>{leafList.length} item</div>
       : null;
 
     return (
@@ -438,10 +438,10 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
               borderRadius: 6, color: C.text, background: "var(--surface)", outline: "none",
             }}
           />
-          <span style={{ fontSize: 11, color: C.mid }}>%</span>
+          <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}>%</span>
           {isDirty && (
             <button onClick={onSave} disabled={isSaving}
-              style={{ padding: "2px 6px", fontSize: 11, fontWeight: 600, background: "var(--grad-aksen)", color: C.onNavy, border: "none", borderRadius: 6, cursor: "pointer", opacity: isSaving ? 0.6 : 1 }}>
+              style={{ padding: "2px 6px", fontSize: "var(--t-kecil)", fontWeight: 600, background: "var(--grad-aksen)", color: C.onNavy, border: "none", borderRadius: 6, cursor: "pointer", opacity: isSaving ? 0.6 : 1 }}>
               {isSaving ? "..." : "Simpan"}
             </button>
           )}
@@ -478,7 +478,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
               { key: "other", label: "Lain", color: "var(--aksen)" },
             ].map(({ key, label, color }) => (
               <div key={key} style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 10, color, fontWeight: 700, marginBottom: 2 }}>{label}</div>
+                <div style={{ fontSize: "var(--t-mikro)", color, fontWeight: 700, marginBottom: 2 }}>{label}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
                   <input
                     type="number" min="0" max="100" step="0.5"
@@ -488,7 +488,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
                     value={editing[key as keyof typeof editing]}
                     onChange={e => setEditingKomponen(prev => ({ ...prev, [item.id]: { ...prev[item.id], [key]: e.target.value } }))}
                     style={{
-                      width: "100%", padding: "2px 2px", fontSize: 11, textAlign: "center",
+                      width: "100%", padding: "2px 2px", fontSize: "var(--t-kecil)", textAlign: "center",
                       border: `1px solid ${color}`, borderRadius: 6, outline: "none",
                     }}
                   />
@@ -497,16 +497,16 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
             ))}
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
-            <span style={{ fontSize: 10, color: totalOk ? C.green : C.red, fontWeight: 600 }}>
+            <span style={{ fontSize: "var(--t-mikro)", color: totalOk ? C.green : C.red, fontWeight: 600 }}>
               Total: {total.toFixed(1)}%
             </span>
             <div style={{ display: "flex", gap: 2 }}>
               <button onClick={() => { setEditingKomponen(prev => { const n = { ...prev }; delete n[item.id]; return n; }); }}
-                style={{ padding: "2px 6px", fontSize: 10, border: "1px solid var(--border)", borderRadius: 6, background: "var(--surface)", cursor: "pointer", color: C.mid }}>
+                style={{ padding: "2px 6px", fontSize: "var(--t-mikro)", border: "1px solid var(--border)", borderRadius: 6, background: "var(--surface)", cursor: "pointer", color: C.mid }}>
                 Batal
               </button>
               <button onClick={() => saveKomponen(item)} disabled={!totalOk || isSaving}
-                style={{ padding: "2px 6px", fontSize: 10, fontWeight: 600, background: totalOk ? C.navy : "var(--text-muted)", color: "var(--surface)", border: "none", borderRadius: 6, cursor: totalOk ? "pointer" : "not-allowed" }}>
+                style={{ padding: "2px 6px", fontSize: "var(--t-mikro)", fontWeight: 600, background: totalOk ? C.navy : "var(--text-muted)", color: "var(--surface)", border: "none", borderRadius: 6, cursor: totalOk ? "pointer" : "not-allowed" }}>
                 {isSaving ? "..." : "Simpan"}
               </button>
             </div>
@@ -518,7 +518,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
     if (item.komponen_set) {
       return (
         <div style={{ cursor: canEdit ? "pointer" : "default" }} {...dapatDitekan(canEdit ? () => startEditKomponen(item) : null, `Ubah komponen biaya ${item.name}`)}>
-          <div style={{ display: "flex", gap: 6, fontSize: 10, marginBottom: 3, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 6, fontSize: "var(--t-mikro)", marginBottom: 3, flexWrap: "wrap" }}>
             {item.material_pct > 0 && <span style={{ color: "var(--info)" }}>Mat {item.material_pct}%</span>}
             {item.upah_pct > 0 && <span style={{ color: "var(--success)" }}>Upah {item.upah_pct}%</span>}
             {item.alat_pct > 0 && <span style={{ color: "var(--warning)" }}>Alat {item.alat_pct}%</span>}
@@ -529,11 +529,11 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
       );
     }
 
-    if (!canEdit) return <span style={{ fontSize: 10, color: C.muted }}>—</span>;
+    if (!canEdit) return <span style={{ fontSize: "var(--t-mikro)", color: C.muted }}>—</span>;
 
     return (
       <button onClick={() => startEditKomponen(item)}
-        style={{ fontSize: 10, color: C.mid, background: "none", border: "1px dashed var(--border-strong)", borderRadius: 6, padding: "2px 6px", cursor: "pointer", whiteSpace: "nowrap" }}>
+        style={{ fontSize: "var(--t-mikro)", color: C.mid, background: "none", border: "1px dashed var(--border-strong)", borderRadius: 6, padding: "2px 6px", cursor: "pointer", whiteSpace: "nowrap" }}>
         + Isi %
       </button>
     );
@@ -576,9 +576,9 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
               {hasChildren ? (isCollapsed ? <ChevronRight size={13} color={C.navy} /> : <ChevronDown size={13} color={C.navy} />) : null}
             </div>
             <div><span style={{ fontSize: 12, fontWeight: 700, color: C.navy }}>{cat.category_code ? `${cat.category_code}. ` : ""}{cat.name}</span></div>
-            <div style={{ textAlign: "right", fontSize: 11, color: C.mid }}>—</div>
-            <div style={{ textAlign: "right", fontSize: 11, color: C.mid }}>—</div>
-            <div style={{ textAlign: "right", fontSize: 11, color: C.mid }}>—</div>
+            <div style={{ textAlign: "right", fontSize: "var(--t-kecil)", color: C.mid }}>—</div>
+            <div style={{ textAlign: "right", fontSize: "var(--t-kecil)", color: C.mid }}>—</div>
+            <div style={{ textAlign: "right", fontSize: "var(--t-kecil)", color: C.mid }}>—</div>
             <div style={{ textAlign: "right", fontSize: 12, fontWeight: 600, color: C.text }}>{cat.total_price ? fmt(cat.total_price) : "—"}</div>
             <div style={{ textAlign: "right", fontSize: 12, fontWeight: 700, color: C.navy }}>{cat.weight_pct.toFixed(2)}%</div>
             <div {...tanpaTembus}>{renderSerapanCell(cat)}</div>
@@ -606,9 +606,9 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
                       {subChildren.length > 0 ? (subCollapsed ? <ChevronRight size={12} color={C.mid} /> : <ChevronDown size={12} color={C.mid} />) : null}
                     </div>
                     <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{child.category_code ? `${child.category_code}. ` : ""}{child.name}</span>
-                    <div style={{ textAlign: "right", fontSize: 11, color: C.mid }}>—</div>
-                    <div style={{ textAlign: "right", fontSize: 11, color: C.mid }}>—</div>
-                    <div style={{ textAlign: "right", fontSize: 11, color: C.mid }}>—</div>
+                    <div style={{ textAlign: "right", fontSize: "var(--t-kecil)", color: C.mid }}>—</div>
+                    <div style={{ textAlign: "right", fontSize: "var(--t-kecil)", color: C.mid }}>—</div>
+                    <div style={{ textAlign: "right", fontSize: "var(--t-kecil)", color: C.mid }}>—</div>
                     <div style={{ textAlign: "right", fontSize: 12, color: C.mid }}>{child.total_price ? fmt(child.total_price) : "—"}</div>
                     <div />
                     <div {...tanpaTembus}>{renderSerapanCell(child)}</div>
@@ -630,11 +630,11 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
       <div key={item.id} style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, alignItems: "center", padding: `7px 14px 7px ${paddingLeft}px`, background: "var(--surface)", borderBottom: "1px solid var(--surface-hover)" }}>
         <div />
         <span style={{ fontSize: 12, color: C.text }}>{item.category_code ? `${item.category_code}. ` : ""}{item.name}</span>
-        <div style={{ textAlign: "right", fontSize: 11, color: C.mid }}>{item.qty !== null ? item.qty.toLocaleString("id-ID") : "—"}</div>
-        <div style={{ textAlign: "right", fontSize: 11, color: C.mid }}>{item.unit ?? "—"}</div>
-        <div style={{ textAlign: "right", fontSize: 11, color: C.mid }}>{item.unit_price ? fmt(item.unit_price) : "—"}</div>
+        <div style={{ textAlign: "right", fontSize: "var(--t-kecil)", color: C.mid }}>{item.qty !== null ? item.qty.toLocaleString("id-ID") : "—"}</div>
+        <div style={{ textAlign: "right", fontSize: "var(--t-kecil)", color: C.mid }}>{item.unit ?? "—"}</div>
+        <div style={{ textAlign: "right", fontSize: "var(--t-kecil)", color: C.mid }}>{item.unit_price ? fmt(item.unit_price) : "—"}</div>
         <div style={{ textAlign: "right", fontSize: 12, color: C.text }}>{item.total_price ? fmt(item.total_price) : "—"}</div>
-        <div style={{ textAlign: "right", fontSize: 11, color: C.mid }}>{item.weight_pct > 0 ? `${item.weight_pct.toFixed(2)}%` : "—"}</div>
+        <div style={{ textAlign: "right", fontSize: "var(--t-kecil)", color: C.mid }}>{item.weight_pct > 0 ? `${item.weight_pct.toFixed(2)}%` : "—"}</div>
         <div {...tanpaTembus}>{renderSerapanCell(item)}</div>
         {showKomponen && <div {...tanpaTembus}>{renderKomponenCell(item)}</div>}
       </div>
@@ -663,7 +663,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>RAB — Rencana Anggaran Biaya</h3>
               {hasData && (
-                <p style={{ fontSize: 11, color: C.muted, margin: 0 }}>
+                <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: 0 }}>
                   {categories.length} kategori · {itemCount} item · Total {fmt(totalRab)}
                   {canEdit && itemCount > 0 && (
                     <span style={{ marginLeft: 8, color: komponenSetCount === itemCount ? C.green : C.yellow }}>
@@ -676,7 +676,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
           </div>
         )}
         {hideHeader && hasData && (
-          <p style={{ fontSize: 11, color: C.muted, margin: 0 }}>
+          <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: 0 }}>
             {categories.length} kategori · {itemCount} item · Total {fmt(totalRab)}
             {canEdit && itemCount > 0 && (
               <span style={{ marginLeft: 8, color: komponenSetCount === itemCount ? C.green : C.yellow }}>
@@ -702,7 +702,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
               <Percent size={13} />
               {showKomponen ? "Sembunyikan Komponen" : "Isi Komponen Biaya"}
               {komponenSetCount > 0 && komponenSetCount < itemCount && (
-                <span style={{ background: C.yellow, color: "var(--surface)", borderRadius: 10, padding: "0px 4px", fontSize: 10 }}>
+                <span style={{ background: C.yellow, color: "var(--surface)", borderRadius: 10, padding: "0px 4px", fontSize: "var(--t-mikro)" }}>
                   {itemCount - komponenSetCount} belum
                 </span>
               )}
@@ -820,24 +820,24 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
       {hasData && categories.length > 0 && (
         <div style={{ marginBottom: 16, padding: "12px 16px", borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
           <div>
-            <p style={{ fontSize: 11, color: "color-mix(in srgb, var(--on-navy) 80%, transparent)", margin: "0 0 2px" }}>Serapan Dana (Weighted)</p>
+            <p style={{ fontSize: "var(--t-kecil)", color: "color-mix(in srgb, var(--on-navy) 80%, transparent)", margin: "0 0 2px" }}>Serapan Dana (Weighted)</p>
             <p style={{ fontSize: 28, fontWeight: 700, color: "#fff", margin: 0, lineHeight: 1 }}>{overallSerapan.toFixed(1)}%</p>
           </div>
           <div style={{ flex: 1, minWidth: 120 }}>
             <div style={{ height: 8, borderRadius: 6, background: "rgba(255,255,255,0.2)", overflow: "hidden" }}>
               <div style={{ height: "100%", borderRadius: 6, width: `${Math.min(100, overallSerapan)}%`, background: overallSerapan >= 100 ? "var(--success)" : "var(--info)", transition: "width 0.5s ease" }} />
             </div>
-            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", margin: "6px 0 0" }}>Dari {categories.length} kategori RAB</p>
+            <p style={{ fontSize: "var(--t-kecil)", color: "rgba(255,255,255,0.6)", margin: "6px 0 0" }}>Dari {categories.length} kategori RAB</p>
           </div>
           {/* Komponen biaya breakdown */}
           {komponenTotal > 0 && (
             <div style={{ borderLeft: "1px solid rgba(255,255,255,0.2)", paddingLeft: 20 }}>
-              <p style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", margin: "0 0 6px" }}>Serapan Rencana (dari komponen biaya)</p>
+              <p style={{ fontSize: "var(--t-mikro)", color: "rgba(255,255,255,0.6)", margin: "0 0 6px" }}>Serapan Rencana (dari komponen biaya)</p>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                {komponenSummary.mat > 0 && <div><p style={{ fontSize: 10, color: "var(--info-border)", margin: 0 }}>Material</p><p style={{ fontSize: 13, fontWeight: 600, color: "var(--surface)", margin: 0 }}>{fmtCompact(komponenSummary.mat)}</p></div>}
-                {komponenSummary.upah > 0 && <div><p style={{ fontSize: 10, color: "#6EE7B7", margin: 0 }}>Upah</p><p style={{ fontSize: 13, fontWeight: 600, color: "var(--surface)", margin: 0 }}>{fmtCompact(komponenSummary.upah)}</p></div>}
-                {komponenSummary.alat > 0 && <div><p style={{ fontSize: 10, color: "#FCD34D", margin: 0 }}>Alat</p><p style={{ fontSize: 13, fontWeight: 600, color: "var(--surface)", margin: 0 }}>{fmtCompact(komponenSummary.alat)}</p></div>}
-                {komponenSummary.other > 0 && <div><p style={{ fontSize: 10, color: "var(--aksen-terang)", margin: 0 }}>Lain</p><p style={{ fontSize: 13, fontWeight: 600, color: "var(--surface)", margin: 0 }}>{fmtCompact(komponenSummary.other)}</p></div>}
+                {komponenSummary.mat > 0 && <div><p style={{ fontSize: "var(--t-mikro)", color: "var(--info-border)", margin: 0 }}>Material</p><p style={{ fontSize: 13, fontWeight: 600, color: "var(--surface)", margin: 0 }}>{fmtCompact(komponenSummary.mat)}</p></div>}
+                {komponenSummary.upah > 0 && <div><p style={{ fontSize: "var(--t-mikro)", color: "#6EE7B7", margin: 0 }}>Upah</p><p style={{ fontSize: 13, fontWeight: 600, color: "var(--surface)", margin: 0 }}>{fmtCompact(komponenSummary.upah)}</p></div>}
+                {komponenSummary.alat > 0 && <div><p style={{ fontSize: "var(--t-mikro)", color: "#FCD34D", margin: 0 }}>Alat</p><p style={{ fontSize: 13, fontWeight: 600, color: "var(--surface)", margin: 0 }}>{fmtCompact(komponenSummary.alat)}</p></div>}
+                {komponenSummary.other > 0 && <div><p style={{ fontSize: "var(--t-mikro)", color: "var(--aksen-terang)", margin: 0 }}>Lain</p><p style={{ fontSize: 13, fontWeight: 600, color: "var(--surface)", margin: 0 }}>{fmtCompact(komponenSummary.other)}</p></div>}
               </div>
             </div>
           )}
@@ -849,7 +849,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
         <div style={{ borderRadius: 10, border: "1px solid var(--border)", overflow: "hidden" }}>
           <div style={{ display: "grid", gridTemplateColumns: gridCols, gap: 6, padding: "8px 12px", background: "var(--surface-hover)", borderBottom: "1px solid var(--border)" }}>
             {headerCols.map((h, i) => (
-              <div key={i} style={{ fontSize: 11, fontWeight: 700, color: C.mid, textAlign: i >= 2 && i < 8 ? "right" : "left" }}>{h}</div>
+              <div key={i} style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.mid, textAlign: i >= 2 && i < 8 ? "right" : "left" }}>{h}</div>
             ))}
           </div>
 

@@ -72,7 +72,7 @@ const fieldInput: React.CSSProperties = {
 
 const fieldLabel: React.CSSProperties = {
   display: "block",
-  fontSize: 11,
+  fontSize: "var(--t-kecil)",
   fontWeight: 600,
   color: "var(--text-muted)",
   textTransform: "uppercase",
@@ -348,7 +348,7 @@ export function ProgressLogModal({
                   <opt.icon size={14} />
                   <div style={{ textAlign: "left" }}>
                     <div style={{ fontSize: 12, fontWeight: 600 }}>{opt.label}</div>
-                    <div style={{ fontSize: 10 }}>{opt.desc}</div>
+                    <div style={{ fontSize: "var(--t-mikro)" }}>{opt.desc}</div>
                   </div>
                 </button>
               ))}
@@ -387,7 +387,7 @@ export function ProgressLogModal({
                   <div role="group" aria-labelledby="cuaca" style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                     {WEATHER_OPTIONS.map(w => (
                       <button key={w.value} type="button" onClick={() => setWeather(weather === w.value ? "" : w.value)}
-                        style={{ padding: "4px 8px", borderRadius: 6, fontSize: 11, cursor: "pointer", border: `1px solid ${weather === w.value ? "var(--navy)" : "var(--border)"}`, background: weather === w.value ? "var(--navy)" : "var(--surface-subtle)", color: weather === w.value ? "white" : "var(--text-secondary)", fontWeight: weather === w.value ? 600 : 400, lineHeight: 1 }}>
+                        style={{ padding: "4px 8px", borderRadius: 6, fontSize: "var(--t-kecil)", cursor: "pointer", border: `1px solid ${weather === w.value ? "var(--navy)" : "var(--border)"}`, background: weather === w.value ? "var(--navy)" : "var(--surface-subtle)", color: weather === w.value ? "white" : "var(--text-secondary)", fontWeight: weather === w.value ? 600 : 400, lineHeight: 1 }}>
                         {w.emoji} {w.label}
                       </button>
                     ))}
@@ -401,7 +401,7 @@ export function ProgressLogModal({
                   <div>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
                       <label htmlFor="description-2" style={{ ...fieldLabel, margin: 0 }}>Deskripsi Kegiatan *</label>
-                      <span style={{ fontSize: 11, color: description.length > 450 ? "var(--danger)" : "var(--text-muted)" }}>{description.length}/500</span>
+                      <span style={{ fontSize: "var(--t-kecil)", color: description.length > 450 ? "var(--danger)" : "var(--text-muted)" }}>{description.length}/500</span>
                     </div>
                     <textarea id="description-2" value={description} onChange={e => setDescription(e.target.value.slice(0, 500))} placeholder="Tuliskan kegiatan yang dilakukan hari ini…" rows={3}
                       style={{ ...fieldInput, resize: "vertical", minHeight: 80, lineHeight: 1.6 }}
@@ -517,7 +517,7 @@ export function ProgressLogModal({
                       </div>
                       {pctCompletion && !isNaN(parseFloat(pctCompletion)) && (
                         <div style={{ marginTop: 6, padding: "8px 8px", borderRadius: 6, background: "var(--info-bg)", border: "1px solid var(--info-border)" }}>
-                          <span style={{ fontSize: 11, color: "var(--info)", fontWeight: 600 }}>
+                          <span style={{ fontSize: "var(--t-kecil)", color: "var(--info)", fontWeight: 600 }}>
                             Mengatur item ini ke {parseFloat(pctCompletion).toFixed(0)}% akan mempengaruhi progress proyek sekitar ±{(Math.abs(parseFloat(pctCompletion) - selectedRabItem.progress_pct) * selectedRabItem.weight_pct / 100).toFixed(2)}%
                           </span>
                         </div>
@@ -587,7 +587,7 @@ export function ProgressLogModal({
                   >
                     <ImagePlus size={24} style={{ color: dragOver ? "var(--navy)" : "var(--text-muted)", margin: "0 auto 6px" }} />
                     <p style={{ fontSize: 13, fontWeight: 600, color: dragOver ? "var(--navy)" : "var(--text-secondary)", margin: "0 0 3px" }}>Tambah Foto</p>
-                    <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>Drag &amp; drop atau klik · maks 5 foto, 10MB/foto</p>
+                    <p style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", margin: 0 }}>Drag &amp; drop atau klik · maks 5 foto, 10MB/foto</p>
                   </div>
                 )}
                 <input ref={fileInputRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={e => { if (e.target.files) { addFiles(e.target.files); e.target.value = ""; } }} />
@@ -619,8 +619,8 @@ export function ProgressLogModal({
                         </div>
                         <div style={{ padding: "4px 6px" }}>
                           <input type="text" placeholder="Keterangan foto…" value={entry.caption} onChange={e => patchPhoto(entry.id, { caption: e.target.value })}
-                            style={{ width: "100%", fontSize: 11, padding: "2px 4px", border: "1px solid var(--border)", borderRadius: 6, outline: "none", color: "var(--text-secondary)", fontFamily: "inherit", boxSizing: "border-box", background: "var(--surface-subtle)" }} />
-                          {entry.error && <p style={{ fontSize: 10, color: "var(--danger)", margin: "2px 0 0" }}>{entry.error}</p>}
+                            style={{ width: "100%", fontSize: "var(--t-kecil)", padding: "2px 4px", border: "1px solid var(--border)", borderRadius: 6, outline: "none", color: "var(--text-secondary)", fontFamily: "inherit", boxSizing: "border-box", background: "var(--surface-subtle)" }} />
+                          {entry.error && <p style={{ fontSize: "var(--t-mikro)", color: "var(--danger)", margin: "2px 0 0" }}>{entry.error}</p>}
                         </div>
                       </div>
                     ))}

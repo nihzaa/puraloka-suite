@@ -107,13 +107,13 @@ export function GrafikModul({ modul }: { modul: "proyek" | "kas" | "procurement"
                 </defs>
                 <XAxis
                   dataKey="bulan" tickLine={false} axisLine={false}
-                  tick={{ fontSize: 10, fill: C.muted }}
+                  tick={{ fontSize: "var(--t-mikro)", fill: C.muted }}
                   tickFormatter={labelBulanPendek}
                   minTickGap={20}
                 />
                 <YAxis
                   tickLine={false} axisLine={false} width={52}
-                  tick={{ fontSize: 10, fill: C.muted }}
+                  tick={{ fontSize: "var(--t-mikro)", fill: C.muted }}
                   tickFormatter={(v: number) => ringkasNilai(v)}
                 />
                 <Tooltip

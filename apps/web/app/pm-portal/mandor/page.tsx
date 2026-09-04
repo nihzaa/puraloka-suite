@@ -162,11 +162,11 @@ export default function PmMandorPage() {
                           style={aksiNonaktif ? {
                             display: "flex", alignItems: "center", gap: 4, padding: "6px 10px", borderRadius: 8,
                             border: "1px solid var(--border)", background: "var(--surface-subtle)", color: "var(--text-muted)",
-                            cursor: "default", fontSize: 11, fontWeight: 600,
+                            cursor: "default", fontSize: "var(--t-kecil)", fontWeight: 600,
                           } : {
                             display: "flex", alignItems: "center", gap: 4, padding: "6px 10px", borderRadius: 8,
                             border: "1px solid var(--danger-border)", background: "var(--surface)", color: "var(--danger)",
-                            cursor: "pointer", fontSize: 11, fontWeight: 600,
+                            cursor: "pointer", fontSize: "var(--t-kecil)", fontWeight: 600,
                           }}
                         >
                           <XCircle size={13} aria-hidden="true" /> Tolak
@@ -178,11 +178,11 @@ export default function PmMandorPage() {
                           style={aksiNonaktif ? {
                             display: "flex", alignItems: "center", gap: 4, padding: "6px 10px", borderRadius: 8,
                             border: "1px solid var(--border)", background: "var(--surface-subtle)", color: "var(--text-muted)",
-                            cursor: "default", fontSize: 11, fontWeight: 600,
+                            cursor: "default", fontSize: "var(--t-kecil)", fontWeight: 600,
                           } : {
                             display: "flex", alignItems: "center", gap: 4, padding: "6px 10px", borderRadius: 8,
                             border: "none", background: "var(--success)", color: "var(--on-success-bg)",
-                            cursor: "pointer", fontSize: 11, fontWeight: 600,
+                            cursor: "pointer", fontSize: "var(--t-kecil)", fontWeight: 600,
                           }}
                         >
                           <CheckCircle size={13} aria-hidden="true" /> Setuju

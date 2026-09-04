@@ -137,7 +137,7 @@ export default function MaterialKlienPage() {
     borderRadius: 10, boxShadow: "var(--naik-1)",
   };
   const labelGaya: React.CSSProperties = {
-    fontSize: 11, fontWeight: 700, color: C.muted,
+    fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
     textTransform: "uppercase", letterSpacing: "0.05em",
   };
   const isianGaya: React.CSSProperties = {
@@ -216,7 +216,7 @@ export default function MaterialKlienPage() {
                   aria-describedby="mk-satuan"
                   style={isianGaya}
                 />
-                <span id="mk-satuan" style={{ fontSize: 11, color: C.mid }}>
+                <span id="mk-satuan" style={{ fontSize: "var(--t-kecil)", color: C.mid }}>
                   {materialTerpilih?.unit
                     ? `Satuan: ${materialTerpilih.unit}`
                     : "Pilih material untuk melihat satuannya"}
@@ -315,7 +315,7 @@ export default function MaterialKlienPage() {
                   render: (p) => (
                     <>
                       {p.material?.name ?? "—"}
-                      {p.material?.unit && <span style={{ fontSize: 11, color: C.mid }}> · {p.material.unit}</span>}
+                      {p.material?.unit && <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}> · {p.material.unit}</span>}
                     </>
                   ),
                 },
@@ -364,7 +364,7 @@ export default function MaterialKlienPage() {
 
             <p style={{
               margin: 0, padding: "10px 14px", borderTop: `1px solid ${C.border}`,
-              background: "var(--surface-subtle)", fontSize: 11, color: C.mid, lineHeight: 1.55,
+              background: "var(--surface-subtle)", fontSize: "var(--t-kecil)", color: C.mid, lineHeight: 1.55,
             }}>
               Tidak ada kolom harga: material owner tak pernah kita bayar, dan
               angka harga di sini akan mengalir ke laporan biaya sebagai

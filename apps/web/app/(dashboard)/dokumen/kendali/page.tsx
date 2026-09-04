@@ -119,7 +119,7 @@ function Kpi({ label, nilai, keterangan, warna }: {
 }) {
   return (
     <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", flex: "1 1 190px", minWidth: 175 }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+      <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
         {label}
       </div>
       <div style={{
@@ -195,7 +195,7 @@ function IsiKendaliDokumen() {
       render: (g) => (
         <span>
           <span style={{ fontWeight: 600, color: C.text, fontVariantNumeric: "tabular-nums" }}>{g.nomor}</span>
-          {g.judul && <span style={{ display: "block", fontSize: 11, color: C.muted }}>{g.judul}</span>}
+          {g.judul && <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>{g.judul}</span>}
         </span>
       ),
     },
@@ -209,7 +209,7 @@ function IsiKendaliDokumen() {
         <span style={{ fontVariantNumeric: "tabular-nums", color: C.text, fontWeight: 600 }}>
           {String(g.revisi)}
           {g.revisiTertinggi > Number(g.revisi) && (
-            <span style={{ display: "block", fontSize: 11, fontWeight: 400, color: C.mid }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 400, color: C.mid }}>
               terbaru: rev {g.revisiTertinggi}
             </span>
           )}
@@ -228,7 +228,7 @@ function IsiKendaliDokumen() {
         // itulah satu-satunya kolom yang mencegah pekerjaan dibongkar.
         g.usang ? (
           <span style={{
-            padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 700, whiteSpace: "nowrap",
+            padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 700, whiteSpace: "nowrap",
             background: "var(--danger-bg)", color: "var(--danger)", border: "1px solid var(--danger-border)",
           }}>
             Usang — ada rev {g.revisiTertinggi}
@@ -251,7 +251,7 @@ function IsiKendaliDokumen() {
       render: (t) => (
         <span>
           <span style={{ fontWeight: 600, color: C.text, fontVariantNumeric: "tabular-nums" }}>{t.nomor}</span>
-          {t.perihal && <span style={{ display: "block", fontSize: 11, color: C.muted }}>{t.perihal}</span>}
+          {t.perihal && <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>{t.perihal}</span>}
         </span>
       ),
     },
@@ -261,7 +261,7 @@ function IsiKendaliDokumen() {
         <span>
           <span style={{ fontSize: 13, color: C.text }}>{t.tujuan_nama ?? "—"}</span>
           {t.tujuan_organisasi && (
-            <span style={{ display: "block", fontSize: 11, color: C.muted }}>{t.tujuan_organisasi}</span>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>{t.tujuan_organisasi}</span>
           )}
         </span>
       ),
@@ -279,7 +279,7 @@ function IsiKendaliDokumen() {
           <span style={{ color: "var(--success)", fontWeight: 600 }}>
             {tanggalTerbaca(t.diterima_pada)}
             {t.diterima_oleh && (
-              <span style={{ display: "block", fontSize: 11, fontWeight: 400, color: C.mid }}>
+              <span style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 400, color: C.mid }}>
                 oleh {t.diterima_oleh}
               </span>
             )}
@@ -320,7 +320,7 @@ function IsiKendaliDokumen() {
           }}>
             {tanggalTerbaca(t.tenggat)}
             {t.lewatTenggat && (
-              <span style={{ display: "block", fontSize: 11 }}>
+              <span style={{ display: "block", fontSize: "var(--t-kecil)" }}>
                 lewat {Math.abs(t.sisaHari ?? 0)} hari
               </span>
             )}
@@ -338,7 +338,7 @@ function IsiKendaliDokumen() {
             : { label: "Terbuka", warna: "var(--info)", bg: "var(--info-bg)" };
         return (
           <span style={{
-            padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600,
+            padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 600,
             color: meta.warna, background: meta.bg, whiteSpace: "nowrap",
           }}>
             {meta.label}
@@ -354,7 +354,7 @@ function IsiKendaliDokumen() {
       render: (j) => (
         <span>
           <span style={{ fontWeight: 600, color: C.text }}>{j.nama}</span>
-          <span style={{ display: "block", fontSize: 11, color: C.muted, textTransform: "capitalize" }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, textTransform: "capitalize" }}>
             {j.irama}
           </span>
         </span>
@@ -366,7 +366,7 @@ function IsiKendaliDokumen() {
         <span style={{ color: j.macet ? "var(--danger)" : C.mid, fontWeight: j.macet ? 600 : 400 }}>
           {tanggalTerbaca(j.terakhir_dikirim)}
           {j.umurKirimHari != null && (
-            <span style={{ display: "block", fontSize: 11, fontWeight: 400 }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 400 }}>
               {j.umurKirimHari} hari lalu
             </span>
           )}
@@ -381,13 +381,13 @@ function IsiKendaliDokumen() {
         ) : j.macet ? (
           <span>
             <span style={{
-              padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 700,
+              padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 700,
               background: "var(--danger-bg)", color: "var(--danger)", whiteSpace: "nowrap",
             }}>
               Macet
             </span>
             {j.galat_terakhir && (
-              <span style={{ display: "block", fontSize: 11, color: C.mid, marginTop: 3 }}>
+              <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 3 }}>
                 {j.galat_terakhir}
               </span>
             )}

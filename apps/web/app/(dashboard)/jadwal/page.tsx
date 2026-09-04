@@ -126,7 +126,7 @@ function Kpi({ label, nilai, keterangan, warna }: {
 }) {
   return (
     <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", flex: "1 1 190px", minWidth: 175 }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+      <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
         {label}
       </div>
       <div style={{
@@ -157,7 +157,7 @@ function Histogram({ sd }: { sd: SumberDaya }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
         <div>
           <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{sd.nama}</div>
-          <div style={{ fontSize: 11, color: C.muted, textTransform: "capitalize" }}>{sd.jenis}</div>
+          <div style={{ fontSize: "var(--t-kecil)", color: C.muted, textTransform: "capitalize" }}>{sd.jenis}</div>
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{
@@ -166,7 +166,7 @@ function Histogram({ sd }: { sd: SumberDaya }) {
           }}>
             {sd.puncak}
           </div>
-          <div style={{ fontSize: 11, color: C.mid }}>
+          <div style={{ fontSize: "var(--t-kecil)", color: C.mid }}>
             puncak{sd.tersedia != null ? ` · tersedia ${sd.tersedia}` : ""}
           </div>
         </div>
@@ -202,7 +202,7 @@ function Histogram({ sd }: { sd: SumberDaya }) {
         ))}
       </div>
 
-      <div style={{ fontSize: 11, color: C.mid, marginTop: 8, lineHeight: 1.45 }}>
+      <div style={{ fontSize: "var(--t-kecil)", color: C.mid, marginTop: 8, lineHeight: 1.45 }}>
         {sd.mingguKelebihan.length > 0 ? (
           <span style={{ color: "var(--danger)", fontWeight: 600 }}>
             {sd.mingguKelebihan.length} minggu kelebihan beban — mulai {tanggalPendek(sd.mingguKelebihan[0])}
@@ -320,7 +320,7 @@ function IsiJadwal() {
           {p.nama}
           {p.kritis && (
             <span style={{
-              marginLeft: 8, padding: "1px 7px", borderRadius: 20, fontSize: 10, fontWeight: 700,
+              marginLeft: 8, padding: "1px 7px", borderRadius: 20, fontSize: "var(--t-mikro)", fontWeight: 700,
               background: "var(--danger-bg)", color: "var(--danger)", whiteSpace: "nowrap",
             }}>
               kritis
@@ -381,7 +381,7 @@ function IsiJadwal() {
       kunci: "status", judul: "Status",
       render: (m) => (
         <span style={{
-          padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+          padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 600, whiteSpace: "nowrap",
           color: STATUS_MS[m.status].warna, background: STATUS_MS[m.status].bg,
         }}>
           {STATUS_MS[m.status].label}

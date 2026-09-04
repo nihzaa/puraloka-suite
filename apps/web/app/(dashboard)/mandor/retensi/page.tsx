@@ -156,7 +156,7 @@ export default function RetensiPage() {
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 7 }}>
               <span style={{ color: k.warna, display: "flex" }}>{k.ikon}</span>
               <span style={{
-                fontSize: 10, fontWeight: 700, letterSpacing: ".05em",
+                fontSize: "var(--t-mikro)", fontWeight: 700, letterSpacing: ".05em",
                 textTransform: "uppercase", color: C.muted,
               }}>{k.label}</span>
             </div>
@@ -164,7 +164,7 @@ export default function RetensiPage() {
               fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700,
               color: k.warna, lineHeight: 1.1, fontVariantNumeric: "tabular-nums",
             }}>{memuat ? "—" : rpRingkas(k.nilai)}</div>
-            <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{k.sub}</div>
+            <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4 }}>{k.sub}</div>
           </div>
         ))}
       </div>
@@ -235,7 +235,7 @@ export default function RetensiPage() {
                     <th key={h || i} scope="col" style={{
                       padding: "8px 12px",
                       textAlign: i >= 3 && i <= 6 ? "right" : "left",
-                      fontSize: 10, fontWeight: 700, letterSpacing: "0.05em",
+                      fontSize: "var(--t-mikro)", fontWeight: 700, letterSpacing: "0.05em",
                       textTransform: "uppercase", color: C.mid, whiteSpace: "nowrap",
                     }}>{h}</th>
                   ))}
@@ -254,12 +254,12 @@ export default function RetensiPage() {
                     }}>
                       <th scope="row" style={{ padding: "12px var(--pad-kartu-lega)", textAlign: "left", fontWeight: 400 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{s.scope_name}</div>
-                        <div style={{ fontSize: 11, color: C.muted }}>{s.mandor?.name ?? "—"}</div>
+                        <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>{s.mandor?.name ?? "—"}</div>
                       </th>
                       <td style={{ padding: "12px var(--pad-kartu-lega)", color: C.mid }}>{s.project?.name ?? "—"}</td>
                       <td style={{ padding: "12px var(--pad-kartu-lega)" }}>
                         <span style={{
-                          fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 6,
+                          fontSize: "var(--t-kecil)", fontWeight: 600, padding: "2px 8px", borderRadius: 6,
                           background: selesai ? C.greenBg : "var(--surface-hover)",
                           color: selesai ? C.onSuccessBg : C.mid,
                         }}>{selesai ? "Selesai" : s.status}</span>
@@ -285,7 +285,7 @@ export default function RetensiPage() {
                             border: perluCair ? "none" : `1px solid ${C.border}`,
                             background: perluCair ? "var(--grad-aksen)" : "var(--surface)",
                             color: perluCair ? "var(--on-aksen)" : C.mid,
-                            fontSize: 11, fontWeight: 600, cursor: "pointer",
+                            fontSize: "var(--t-kecil)", fontWeight: 600, cursor: "pointer",
                             whiteSpace: "nowrap",
                           }}>Cairkan</button>
                         )}
@@ -399,7 +399,7 @@ function ModalCairkan({ baris, onClose, onSukses }: {
 
         <div>
           <label htmlFor="retensi-jumlah" style={{
-            fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+            fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
             marginBottom: 5, textTransform: "uppercase", letterSpacing: ".05em",
           }}>Jumlah dicairkan</label>
           <input id="retensi-jumlah" type="number" min={0} max={baris.outstanding}
@@ -409,7 +409,7 @@ function ModalCairkan({ baris, onClose, onSukses }: {
               borderColor: lebih ? C.redBorder : C.border,
             }} />
           {lebih && (
-            <p style={{ margin: "5px 0 0", fontSize: 11, color: C.onDangerBg }}>
+            <p style={{ margin: "5px 0 0", fontSize: "var(--t-kecil)", color: C.onDangerBg }}>
               Melebihi sisa yang ditahan ({rp(baris.outstanding)}).
             </p>
           )}
@@ -417,7 +417,7 @@ function ModalCairkan({ baris, onClose, onSukses }: {
 
         <div>
           <label htmlFor="retensi-tanggal" style={{
-            fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+            fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
             marginBottom: 5, textTransform: "uppercase", letterSpacing: ".05em",
           }}>Tanggal pencairan</label>
           <input id="retensi-tanggal" type="date" value={tanggal}
@@ -426,7 +426,7 @@ function ModalCairkan({ baris, onClose, onSukses }: {
 
         <div>
           <label htmlFor="retensi-catatan" style={{
-            fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+            fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
             marginBottom: 5, textTransform: "uppercase", letterSpacing: ".05em",
           }}>Catatan <span style={{ fontWeight: 400, textTransform: "none" }}>(opsional)</span></label>
           <input id="retensi-catatan" value={catatan}

@@ -314,10 +314,10 @@ export function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
                   <div style={{ fontWeight: 700, fontSize: 15, color: C.text, marginBottom: 2 }}>{detail.contact_person}</div>
                   {detail.company_name && <div style={{ fontSize: 12, color: C.mid, marginBottom: 4 }}>{detail.company_name}</div>}
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: detail.client_type === "perusahaan" ? "var(--info-bg)" : C.greenBg, color: detail.client_type === "perusahaan" ? "var(--info)" : C.green, fontWeight: 500 }}>
+                    <span style={{ fontSize: "var(--t-kecil)", padding: "2px 8px", borderRadius: 99, background: detail.client_type === "perusahaan" ? "var(--info-bg)" : C.greenBg, color: detail.client_type === "perusahaan" ? "var(--info)" : C.green, fontWeight: 500 }}>
                       {detail.client_type === "perusahaan" ? "Perusahaan" : "Perorangan"}
                     </span>
-                    <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: detail.is_active ? C.greenBg : "var(--surface-hover)", color: detail.is_active ? C.green : C.muted, fontWeight: 500 }}>
+                    <span style={{ fontSize: "var(--t-kecil)", padding: "2px 8px", borderRadius: 99, background: detail.is_active ? C.greenBg : "var(--surface-hover)", color: detail.is_active ? C.green : C.muted, fontWeight: 500 }}>
                       {detail.is_active ? "Aktif" : "Nonaktif"}
                     </span>
                   </div>
@@ -335,7 +335,7 @@ export function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
                   <a
                     href={waLink(detail.phone)}
                     target="_blank" rel="noopener noreferrer"
-                    style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, background: "var(--success-bg)", color: "var(--success)", fontSize: 11, fontWeight: 600, textDecoration: "none", flexShrink: 0 }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, background: "var(--success-bg)", color: "var(--success)", fontSize: "var(--t-kecil)", fontWeight: 600, textDecoration: "none", flexShrink: 0 }}
                   >
                     <MessageCircle size={11} /> WhatsApp
                   </a>
@@ -349,7 +349,7 @@ export function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
                     </div>
                     <a
                       href={`mailto:${detail.email}`}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, background: "var(--info-bg)", color: "var(--info)", fontSize: 11, fontWeight: 600, textDecoration: "none", flexShrink: 0 }}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, background: "var(--info-bg)", color: "var(--info)", fontSize: "var(--t-kecil)", fontWeight: 600, textDecoration: "none", flexShrink: 0 }}
                     >
                       <ExternalLink size={11} /> Email
                     </a>
@@ -384,7 +384,7 @@ export function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
                   { label: "Nilai Kontrak", value: fmtCurrency(detail.summary.total_contract_value), color: C.text },
                 ].map(s => (
                   <div key={s.label} style={{ background: C.bg, borderRadius: 10, padding: "12px 12px", border: `1px solid ${C.border}` }}>
-                    <div style={{ fontSize: 10, color: C.muted, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>{s.label}</div>
+                    <div style={{ fontSize: "var(--t-mikro)", color: C.muted, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>{s.label}</div>
                     <div style={{ fontSize: 15, fontWeight: 700, color: s.color }}>{s.value}</div>
                   </div>
                 ))}
@@ -393,7 +393,7 @@ export function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
               {/* Invoice summary */}
               {(detail.summary.invoice_total > 0) && (
                 <div style={{ background: C.bg, borderRadius: 10, padding: "12px", border: `1px solid ${C.border}` }}>
-                  <div style={{ fontSize: 10, color: C.muted, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>Ringkasan Invoice</div>
+                  <div style={{ fontSize: "var(--t-mikro)", color: C.muted, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>Ringkasan Invoice</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span style={{ fontSize: 12, color: C.mid }}>Total tagihan</span>
@@ -423,7 +423,7 @@ export function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
                         background: C.green, borderRadius: 99,
                       }} />
                     </div>
-                    <div style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>
+                    <div style={{ fontSize: "var(--t-mikro)", color: C.muted, marginTop: 4 }}>
                       {Math.round((detail.summary.invoice_paid / detail.summary.invoice_total) * 100)}% terbayar
                     </div>
                   </div>
@@ -433,12 +433,12 @@ export function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
               {/* Proyek */}
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
                     Proyek Terkait
                   </div>
                   <button
                     onClick={onCreateProject}
-                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: C.onNavy, fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: C.onNavy, fontSize: "var(--t-kecil)", fontWeight: 600, cursor: "pointer" }}
                   >
                     <Plus size={11} /> Buat Proyek
                   </button>
@@ -467,16 +467,16 @@ export function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 13, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
                               {p.contract_value && (
-                                <div style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>{fmtCurrency(Number(p.contract_value))}</div>
+                                <div style={{ fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2 }}>{fmtCurrency(Number(p.contract_value))}</div>
                               )}
                             </div>
-                            <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: s.bg, color: s.color, fontWeight: 500, flexShrink: 0 }}>
+                            <span style={{ fontSize: "var(--t-kecil)", padding: "2px 8px", borderRadius: 99, background: s.bg, color: s.color, fontWeight: 500, flexShrink: 0 }}>
                               {s.label}
                             </span>
                           </div>
                           {p.status === "active" && (
                             <div>
-                              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: C.muted, marginBottom: 3 }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--t-mikro)", color: C.muted, marginBottom: 3 }}>
                                 <span>Progress</span>
                                 <span style={{ fontWeight: 600, color: C.navy }}>{pct}%</span>
                               </div>

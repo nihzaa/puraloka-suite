@@ -291,7 +291,7 @@ function KeuanganContent() {
                       </div>
                       <div>
                         <div style={{ fontSize: 12, fontWeight: 600, color: C.text, lineHeight: 1.2 }}>{acc.name}</div>
-                        <div style={{ fontSize: 10, color: typeColor, fontWeight: 600 }}>{typeLabel}</div>
+                        <div style={{ fontSize: "var(--t-mikro)", color: typeColor, fontWeight: 600 }}>{typeLabel}</div>
                       </div>
                     </div>
                     <div style={{ fontSize: 17, fontWeight: 800, color: acc.balance < 0 ? C.red : C.text, fontFamily: "var(--font-display)" }}>
@@ -314,7 +314,7 @@ function KeuanganContent() {
 
               {/* Group 1: Biaya Tenaga Kerja */}
               <div style={{ padding: "16px 16px", borderRadius: 10, border: `1px solid ${C.blueBorder}`, background: C.blueBg }}>
-                <h4 style={{ fontSize: 11, fontWeight: 700, color: C.blue, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 4 }}>
+                <h4 style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.blue, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 4 }}>
                   <Banknote size={12} color={C.blue} /> Biaya Tenaga Kerja
                 </h4>
                 {[
@@ -338,7 +338,7 @@ function KeuanganContent() {
 
               {/* Group 2: Material & Operasional */}
               <div style={{ padding: "16px 16px", borderRadius: 10, border: `1px solid ${C.redBorder}`, background: C.redBg }}>
-                <h4 style={{ fontSize: 11, fontWeight: 700, color: C.red, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 4 }}>
+                <h4 style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.red, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 4 }}>
                   <Receipt size={12} color={C.red} /> Material & Operasional
                 </h4>
                 {[
@@ -362,7 +362,7 @@ function KeuanganContent() {
 
               {/* Group 3: Advance Mandor */}
               <div style={{ padding: "16px 16px", borderRadius: 10, border: `1px solid ${C.yellowBorder}`, background: C.yellowBg }}>
-                <h4 style={{ fontSize: 11, fontWeight: 700, color: C.yellow, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 4 }}>
+                <h4 style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.yellow, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 4 }}>
                   <ArrowUpRight size={12} color={C.yellow} /> Advance Mandor (Uang Muka)
                 </h4>
                 <div style={{ padding: "5px 0", borderBottom: "1px solid rgba(253,230,138,0.5)" }}>
@@ -370,7 +370,7 @@ function KeuanganContent() {
                     <span style={{ fontSize: 12, color: C.text }}>Kasbon Beredar (aktif)</span>
                     <span style={{ fontSize: 12, fontWeight: 600, color: C.yellow, fontFamily: "monospace" }}>{fmtCompact(summary.advanceBeredar ?? 0)}</span>
                   </div>
-                  <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>approved, belum dilunasi</div>
+                  <div style={{ fontSize: "var(--t-mikro)", color: C.muted, marginTop: 2 }}>approved, belum dilunasi</div>
                 </div>
                 <div style={{ padding: "5px 0", borderBottom: "1px solid rgba(253,230,138,0.5)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -379,10 +379,10 @@ function KeuanganContent() {
                       {(summary.kasbonSettledPeriod ?? 0) > 0 ? `−${fmtCompact(summary.kasbonSettledPeriod ?? 0)}` : "—"}
                     </span>
                   </div>
-                  <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>settled di periode ini</div>
+                  <div style={{ fontSize: "var(--t-mikro)", color: C.muted, marginTop: 2 }}>settled di periode ini</div>
                 </div>
                 <div style={{ padding: "8px 0 0" }}>
-                  <div style={{ fontSize: 10, color: C.muted, marginBottom: 4 }}>
+                  <div style={{ fontSize: "var(--t-mikro)", color: C.muted, marginBottom: 4 }}>
                     Advance mandor adalah uang muka (aset lancar), bukan biaya langsung. Biaya terjadi saat settlement.
                   </div>
                 </div>
@@ -401,18 +401,18 @@ function KeuanganContent() {
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 12, color: C.muted }}>Total Biaya Nyata:</span>
                 <span style={{ fontSize: 15, fontWeight: 800, color: C.red, fontFamily: "var(--font-display)" }}>{fmtCompact(summary.totalKeluar ?? summary.keluarThisMonth)}</span>
-                <span style={{ fontSize: 10, color: C.muted }}>(labor + material + ops)</span>
+                <span style={{ fontSize: "var(--t-mikro)", color: C.muted }}>(labor + material + ops)</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 12, color: C.muted }}>Advance Beredar:</span>
                 <span style={{ fontSize: 15, fontWeight: 800, color: C.yellow, fontFamily: "var(--font-display)" }}>{fmtCompact(summary.advanceBeredar ?? 0)}</span>
-                <span style={{ fontSize: 10, color: C.muted }}>(tidak termasuk biaya)</span>
+                <span style={{ fontSize: "var(--t-mikro)", color: C.muted }}>(tidak termasuk biaya)</span>
               </div>
             </div>
 
             {/* Ringkasan Invoice di bawah breakdown */}
             <div style={{ marginTop: 14, padding: "12px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
-              <h4 style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 10px" }}>
+              <h4 style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 10px" }}>
                 Ringkasan Invoice
               </h4>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
@@ -423,7 +423,7 @@ function KeuanganContent() {
                   { label: "Jatuh Tempo", value: summary.totalOverdue, color: C.red },
                 ].map(row => (
                   <div key={row.label} style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface-subtle)" }}>
-                    <div style={{ fontSize: 10, color: C.muted, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{row.label}</div>
+                    <div style={{ fontSize: "var(--t-mikro)", color: C.muted, fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>{row.label}</div>
                     <div style={{ fontSize: 15, fontWeight: 800, color: row.color, fontFamily: "var(--font-display)" }}>{fmtCompact(row.value)}</div>
                   </div>
                 ))}
@@ -459,8 +459,8 @@ function KeuanganContent() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-hover)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 11, fill: C.muted }} tickLine={false} axisLine={{ stroke: C.border }} />
-                <YAxis tickFormatter={v => fmtCompact(v)} tick={{ fontSize: 10, fill: C.muted }} tickLine={false} axisLine={false} width={72} />
+                <XAxis dataKey="label" tick={{ fontSize: "var(--t-kecil)", fill: C.muted }} tickLine={false} axisLine={{ stroke: C.border }} />
+                <YAxis tickFormatter={v => fmtCompact(v)} tick={{ fontSize: "var(--t-mikro)", fill: C.muted }} tickLine={false} axisLine={false} width={72} />
                 <Tooltip content={<CashflowTooltip />} cursor={{ fill: "var(--surface-hover)", fillOpacity: 0.5 }} />
                 <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
                 <Bar dataKey="masuk" name="Masuk" fill="url(#gradMasuk)" radius={[4, 4, 0, 0]} maxBarSize={38} />
@@ -487,7 +487,7 @@ function KeuanganContent() {
           margin: "26px 0 12px", display: "flex", alignItems: "center", gap: 6,
         }}>
           <Clock size={14} color={C.navy} aria-hidden="true" /> Umur Piutang
-          <span style={{ fontSize: 11, fontWeight: 400, color: C.muted }}>
+          <span style={{ fontSize: "var(--t-kecil)", fontWeight: 400, color: C.muted }}>
             · sejak kapan uangnya menunggu
           </span>
         </h3>

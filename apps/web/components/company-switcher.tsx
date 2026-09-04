@@ -156,7 +156,7 @@ export function CompanySwitcher() {
           }}
         >
           <div style={{
-            padding: "6px 8px 6px", fontSize: 11, fontWeight: 600,
+            padding: "6px 8px 6px", fontSize: "var(--t-kecil)", fontWeight: 600,
             color: "var(--text-muted)", textTransform: "uppercase",
             letterSpacing: "0.04em",
           }}>

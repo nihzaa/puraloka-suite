@@ -221,7 +221,7 @@ function Mini({
 }) {
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 4, ...metaKecil, fontSize: 11 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 4, ...metaKecil, fontSize: "var(--t-kecil)" }}>
         {Ikon && <Ikon size={12} aria-hidden="true" />}
         {label}
       </div>

@@ -21,7 +21,7 @@ export interface MilestoneModalProps {
 
 const fieldLabel: React.CSSProperties = {
   display: "block",
-  fontSize: 11,
+  fontSize: "var(--t-kecil)",
   fontWeight: 600,
   color: "var(--text-muted)",
   textTransform: "uppercase",

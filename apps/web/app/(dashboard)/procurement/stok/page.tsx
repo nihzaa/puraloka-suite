@@ -110,7 +110,7 @@ export default function StokPage() {
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           {s.material?.name}
           {dibawahMinimum(s) && (
-            <span style={{ fontSize: 10, padding: "0px 6px", background: C.dangerBg, color: C.danger, borderRadius: 99, fontWeight: 700, border: `1px solid ${C.danger}` }}>
+            <span style={{ fontSize: "var(--t-mikro)", padding: "0px 6px", background: C.dangerBg, color: C.danger, borderRadius: 99, fontWeight: 700, border: `1px solid ${C.danger}` }}>
               REORDER
             </span>
           )}
@@ -151,7 +151,7 @@ export default function StokPage() {
       render: m => {
         const cfg = MOVEMENT_CONFIG[m.movement_type] ?? { label: m.movement_type, color: C.mid, bg: "var(--surface-hover)", sign: "" };
         return (
-          <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600, color: cfg.color, background: cfg.bg, whiteSpace: "nowrap" }}>
+          <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: "var(--t-kecil)", fontWeight: 600, color: cfg.color, background: cfg.bg, whiteSpace: "nowrap" }}>
             {cfg.label}
           </span>
         );

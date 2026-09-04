@@ -222,7 +222,7 @@ export default function HalamanVerifikasiTtd() {
           </div>
 
           <Kartu pad="sedang">
-            <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+            <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
               Sidik isi yang dihitung sekarang
             </div>
             {/* Sidiknya DITAMPILKAN, bukan disembunyikan. Yang memverifikasi
@@ -236,7 +236,7 @@ export default function HalamanVerifikasiTtd() {
 
           {hasil.tanda_tangan.length > 0 && (
             <Kartu pad="rapat">
-              <div style={{ padding: "10px var(--pad-kartu-lega) 4px", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              <div style={{ padding: "10px var(--pad-kartu-lega) 4px", fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                 {hasil.tanda_tangan.length === 1
                   ? "1 tanda tangan"
                   : `${hasil.tanda_tangan.length} tanda tangan`}
@@ -266,7 +266,7 @@ export default function HalamanVerifikasiTtd() {
                       satu dari tiga tak cocok, yang perlu diperiksa adalah
                       yang mana — bukan sekadar bahwa ada yang salah. */}
                   <span style={{
-                    fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap",
+                    fontSize: "var(--t-kecil)", fontWeight: 700, whiteSpace: "nowrap",
                     color: t.cocok ? "var(--success)" : "var(--danger)",
                   }}>
                     {t.cocok ? "cocok" : "TIDAK cocok"}

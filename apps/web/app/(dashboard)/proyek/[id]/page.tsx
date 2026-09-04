@@ -200,7 +200,7 @@ function Badge({ status }: { status: string }) {
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 4,
-      padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600,
+      padding: "2px 8px", borderRadius: 99, fontSize: "var(--t-kecil)", fontWeight: 600,
       color: m.color, background: m.bg,
     }}>
       <span style={{ width: 5, height: 5, borderRadius: "50%", background: m.color }} />
@@ -225,7 +225,7 @@ function InfoRow({ icon, label, value, valueColor }: {
     <div style={{ display: "flex", alignItems: "flex-start", gap: 8, paddingBottom: 12, marginBottom: 12, borderBottom: "1px solid var(--surface-subtle)" }}>
       <span style={{ color: C.muted, marginTop: 2, flexShrink: 0 }}>{icon}</span>
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 11, color: C.muted, marginBottom: 2 }}>{label}</div>
+        <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginBottom: 2 }}>{label}</div>
         <div style={{ fontSize: 13, fontWeight: 500, color: valueColor ?? C.text }}>{value}</div>
       </div>
     </div>
@@ -477,7 +477,7 @@ function ProjectDetailContent() {
             key={item.href}
             href={item.href}
             style={{
-              padding: "4px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+              padding: "4px 8px", borderRadius: 6, fontSize: "var(--t-kecil)", fontWeight: 600,
               color: item.label.includes("⚠") ? C.red : C.mid,
               background: item.label.includes("⚠") ? C.redBg : "transparent",
               border: item.label.includes("⚠") ? `1px solid ${C.redBorder}` : "none",
@@ -526,14 +526,14 @@ function ProjectDetailContent() {
               <Badge status={p.status} />
               <span style={{
                 display: "inline-block", padding: "2px 8px", borderRadius: 6,
-                fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em",
+                fontSize: "var(--t-mikro)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em",
                 background: "var(--surface-hover)", color: C.mid,
               }}>
                 {p.contract_model === "termin" ? "TERMIN" : "KOMISI"}
               </span>
               <span style={{
                 display: "inline-block", padding: "2px 8px", borderRadius: 6,
-                fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em",
+                fontSize: "var(--t-mikro)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em",
                 background: C.navyLight, color: C.navy,
               }}>
                 {p.tax_scheme === "pph_final" ? "PPh Final" : p.tax_scheme === "ppn" ? "PPN" : "Tanpa Pajak"}
@@ -626,7 +626,7 @@ function ProjectDetailContent() {
             border: `1px solid ${color}22`, display: "flex", flexDirection: "column", gap: 6,
           }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color }}>{label}</span>
+              <span style={{ fontSize: "var(--t-mikro)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color }}>{label}</span>
               <span style={{ color, opacity: 0.7 }}>{icon}</span>
             </div>
             <div style={{ fontSize: 17, fontWeight: 800, color, fontFamily: "var(--font-display)", lineHeight: 1 }}>{value}</div>
@@ -637,7 +637,7 @@ function ProjectDetailContent() {
                 Warnanya sudah membedakan kartu; keterangan tak perlu
                 diredupkan lagi untuk terlihat sekunder — ukurannya (10px)
                 sudah melakukan itu. */}
-            {sub && <div style={{ fontSize: 10, color }}>{sub}</div>}
+            {sub && <div style={{ fontSize: "var(--t-mikro)", color }}>{sub}</div>}
           </div>
         );
 
@@ -669,7 +669,7 @@ function ProjectDetailContent() {
           const status = takMasukAkal ? "Cek data" : ok ? "Baik" : warn ? "Perhatian" : "Kritis";
           return (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 12px", borderRadius: 10, background: bg, border: `1px solid ${color}33`, minWidth: 80 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", color, letterSpacing: "0.05em", marginBottom: 4 }}>{label}</span>
+              <span style={{ fontSize: "var(--t-mikro)", fontWeight: 700, textTransform: "uppercase", color, letterSpacing: "0.05em", marginBottom: 4 }}>{label}</span>
               <span style={{ fontSize: 17, fontWeight: 800, color, lineHeight: 1 }}>{val.toFixed(2)}</span>
               {/* TANPA `opacity`. Diukur: teks hijau di atas latar hijau muda
                   turun dari 4,79:1 ke 2,82:1 pada `opacity: 0.7` — gagal
@@ -677,7 +677,7 @@ function ProjectDetailContent() {
                   dari 235 pelanggaran a11y lewat `opacity: 0.55` di sidebar.
                   Axe tak menangkapnya di sini karena lencana ini hanya muncul
                   bila ada data EVM, dan halaman `[id]` dilewati pemindai. */}
-              <span style={{ fontSize: 10, color, marginTop: 3 }}>{status}</span>
+              <span style={{ fontSize: "var(--t-mikro)", color, marginTop: 3 }}>{status}</span>
             </div>
           );
         };
@@ -750,7 +750,7 @@ function ProjectDetailContent() {
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginRight: 4 }}>
                   <Activity size={14} style={{ color: C.navy }} />
-                  <span style={{ fontSize: 11, fontWeight: 700, color: C.text }}>Performa EVM</span>
+                  <span style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.text }}>Performa EVM</span>
                 </div>
                 <EVMBadge label="CPI" val={cpi} good={v => v >= 1} />
                 <EVMBadge label="SPI" val={spi} good={v => v >= 1} />
@@ -759,10 +759,10 @@ function ProjectDetailContent() {
                     {evmData.vac >= 0
                       ? <ArrowDownRight size={14} style={{ color: C.green }} />
                       : <ArrowUpRight size={14} style={{ color: C.red }} />}
-                    <span style={{ fontSize: 11, fontWeight: 600, color: evmData.vac >= 0 ? C.green : C.red }}>
+                    <span style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: evmData.vac >= 0 ? C.green : C.red }}>
                       VAC {evmData.vac >= 0 ? "+" : ""}{fmtCompact(evmData.vac)}
                     </span>
-                    <span style={{ fontSize: 10, color: C.muted }}>
+                    <span style={{ fontSize: "var(--t-mikro)", color: C.muted }}>
                       {evmData.vac >= 0 ? "Hemat dari RAB" : "Melebihi RAB"}
                     </span>
                   </div>
@@ -877,7 +877,7 @@ function ProjectDetailContent() {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <SectionTitle style={{ margin: 0 }}>Status Progress</SectionTitle>
                 <span style={{
-                  fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+                  fontSize: "var(--t-kecil)", fontWeight: 700, padding: "2px 8px", borderRadius: 20,
                   background: isOverdue ? "var(--danger-bg)" : p.status === "completed" ? "var(--success-bg)" : "var(--navy-light)",
                   color: isOverdue ? C.red : p.status === "completed" ? C.green : C.navy,
                   border: `1px solid ${isOverdue ? "var(--danger-border)" : p.status === "completed" ? "var(--success-border)" : C.navy}`,
@@ -923,7 +923,7 @@ function ProjectDetailContent() {
                     textAlign: "center", lineHeight: 1.1,
                   }}>
                     <div style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>{fisikPct.toFixed(0)}%</div>
-                    <div style={{ fontSize: 10, color: C.muted }}>fisik</div>
+                    <div style={{ fontSize: "var(--t-mikro)", color: C.muted }}>fisik</div>
                   </div>
                 </div>
 
@@ -934,7 +934,7 @@ function ProjectDetailContent() {
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                         <div style={{ width: 8, height: 8, borderRadius: 0, background: fisikPct >= 80 ? "var(--success)" : C.navy }} />
-                        <span style={{ fontSize: 10, fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: "0.04em" }}>Progress Fisik</span>
+                        <span style={{ fontSize: "var(--t-mikro)", fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: "0.04em" }}>Progress Fisik</span>
                       </div>
                       <span style={{ fontSize: 15, fontWeight: 800, color: fisikPct >= 80 ? C.green : C.navy, lineHeight: 1 }}>{fisikPct.toFixed(1)}%</span>
                     </div>
@@ -945,7 +945,7 @@ function ProjectDetailContent() {
                         transition: "width 0.8s ease",
                       }} />
                     </div>
-                    <div style={{ fontSize: 10, color: C.muted, marginTop: 3 }}>
+                    <div style={{ fontSize: "var(--t-mikro)", color: C.muted, marginTop: 3 }}>
                       Update: {p.progress_logs?.[0]?.logged_at ? fmtDateShort(p.progress_logs[0].logged_at) : "—"}
                     </div>
                   </div>
@@ -955,10 +955,10 @@ function ProjectDetailContent() {
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                         <div style={{ width: 8, height: 8, borderRadius: 0, background: "var(--data-5)" }} />
-                        <span style={{ fontSize: 10, fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: "0.04em" }}>Serapan Dana</span>
+                        <span style={{ fontSize: "var(--t-mikro)", fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: "0.04em" }}>Serapan Dana</span>
                         {canEditProject && (
                           <button onClick={() => setShowAbsorptionModal(true)} style={{
-                            padding: "0px 6px", borderRadius: 6, fontSize: 10, fontWeight: 700,
+                            padding: "0px 6px", borderRadius: 6, fontSize: "var(--t-mikro)", fontWeight: 700,
                             background: "var(--warning-bg)", color: "var(--warning)", border: "1px solid #FED7AA", cursor: "pointer",
                           }}>+ Update</button>
                         )}
@@ -984,7 +984,7 @@ function ProjectDetailContent() {
                       ))}
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
-                      <span style={{ fontSize: 10, color: C.muted }}>
+                      <span style={{ fontSize: "var(--t-mikro)", color: C.muted }}>
                         {serapanPct === null
                           ? "Menghitung dari RAB..."
                           : serap === 0
@@ -993,7 +993,7 @@ function ProjectDetailContent() {
                       </span>
                       {canEditProject && (
                         <button onClick={() => setShowScheduleModal(true)} style={{
-                          fontSize: 10, color: C.mid, background: "none", border: "none", cursor: "pointer", textDecoration: "underline", padding: 0,
+                          fontSize: "var(--t-mikro)", color: C.mid, background: "none", border: "none", cursor: "pointer", textDecoration: "underline", padding: 0,
                         }}>Atur rencana</button>
                       )}
                     </div>
@@ -1010,8 +1010,8 @@ function ProjectDetailContent() {
                   border: `1px solid ${Math.abs(diff) <= 5 ? "var(--success-border)" : diff > 5 ? "var(--warning-border)" : "var(--danger-border)"}`,
                 }}>
                   <div>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: diffColor }}>{diffLabel}</span>
-                    <span style={{ fontSize: 10, color: C.muted, marginLeft: 6 }}>Fisik vs Serapan</span>
+                    <span style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: diffColor }}>{diffLabel}</span>
+                    <span style={{ fontSize: "var(--t-mikro)", color: C.muted, marginLeft: 6 }}>Fisik vs Serapan</span>
                   </div>
                   <span style={{ fontSize: 13, fontWeight: 800, color: diffColor }}>
                     {diff > 0 ? "+" : ""}{diff.toFixed(1)}%
@@ -1028,10 +1028,10 @@ function ProjectDetailContent() {
                 }}>
                   <div style={{ width: 6, height: 6, borderRadius: "50%", background: C.yellow, flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: "var(--on-warning-bg)" }}>{upcomingMilestone.title}</span>
-                    <span style={{ fontSize: 10, color: "var(--warning)", marginLeft: 6 }}>· {fmtDateShort(upcomingMilestone.target_date)}</span>
+                    <span style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: "var(--on-warning-bg)" }}>{upcomingMilestone.title}</span>
+                    <span style={{ fontSize: "var(--t-mikro)", color: "var(--warning)", marginLeft: 6 }}>· {fmtDateShort(upcomingMilestone.target_date)}</span>
                   </div>
-                  <span style={{ fontSize: 10, color: C.muted, flexShrink: 0 }}>Milestone Berikutnya</span>
+                  <span style={{ fontSize: "var(--t-mikro)", color: C.muted, flexShrink: 0 }}>Milestone Berikutnya</span>
                 </div>
               )}
             </div>
@@ -1110,7 +1110,7 @@ function ProjectDetailContent() {
                 <Activity size={15} style={{ color: C.navy }} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: C.text, fontFamily: "var(--font-display)" }}>Aktivitas Terbaru</span>
               </div>
-              <span style={{ fontSize: 11, color: C.muted }}>7 hari terakhir</span>
+              <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>7 hari terakhir</span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
               {sorted.map((ev, i) => (
@@ -1129,9 +1129,9 @@ function ProjectDetailContent() {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12, fontWeight: 500, color: C.text, lineHeight: 1.4 }}>{ev.text}</div>
-                    {ev.sub && <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{ev.sub}</div>}
+                    {ev.sub && <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>{ev.sub}</div>}
                   </div>
-                  <div style={{ fontSize: 10, color: C.muted, flexShrink: 0, paddingTop: 2 }}>
+                  <div style={{ fontSize: "var(--t-mikro)", color: C.muted, flexShrink: 0, paddingTop: 2 }}>
                     {fmtDateShort(ev.date)}
                   </div>
                 </div>
@@ -1168,7 +1168,7 @@ function ProjectDetailContent() {
                 {overdueTermins.length > 0 && (
                   <span style={{
                     display: "inline-flex", alignItems: "center", gap: 4,
-                    padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 700,
+                    padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 700,
                     background: C.redBg, color: C.red, border: `1px solid ${C.redBorder}`,
                   }}>
                     <AlertCircle size={11} />
@@ -1193,7 +1193,7 @@ function ProjectDetailContent() {
                       ? `Termin "${overdueTermins[0].label}" sudah bisa ditagih tapi belum dibuat invoicenya`
                       : `${overdueTermins.length} termin sudah memenuhi syarat penagihan tapi belum ada invoice`}
                   </div>
-                  <div style={{ fontSize: 11, color: C.mid }}>
+                  <div style={{ fontSize: "var(--t-kecil)", color: C.mid }}>
                     {overdueTermins.map(t => {
                       const triggerInfo = t.trigger_type === "on_sign"
                         ? "sejak kontrak ditandatangani"
@@ -1286,7 +1286,7 @@ function ProjectDetailContent() {
                     else if (t.trigger_type === "on_retention") triggerLabel = "Retensi / akhir proyek";
                     return (
                       <span style={{
-                        fontSize: 11,
+                        fontSize: "var(--t-kecil)",
                         color: isOverdueTermin ? C.red : C.mid,
                         fontWeight: isOverdueTermin ? 600 : 400,
                       }}>{triggerLabel}</span>
@@ -1318,7 +1318,7 @@ function ProjectDetailContent() {
                           padding: "4px 12px", borderRadius: 6, border: "none",
                           background: isOverdueTermin ? C.red : C.navyLight,
                           color: isOverdueTermin ? C.onNavy : C.navy,
-                          fontSize: 11, fontWeight: 600, cursor: "pointer",
+                          fontSize: "var(--t-kecil)", fontWeight: 600, cursor: "pointer",
                           transition: "all 0.15s", whiteSpace: "nowrap",
                         }}
                         onMouseEnter={e => {
@@ -1335,7 +1335,7 @@ function ProjectDetailContent() {
                       </button>
                     );
                     if (t.status === "paid") return (
-                      <span style={{ fontSize: 11, color: C.green, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <span style={{ fontSize: "var(--t-kecil)", color: C.green, display: "inline-flex", alignItems: "center", gap: 4 }}>
                         <CheckCircle2 size={13} /> Lunas
                       </span>
                     );
@@ -1357,7 +1357,7 @@ function ProjectDetailContent() {
             </div>
             <div>
               <div style={{ fontSize: 15, fontWeight: 700, color: C.text, fontFamily: "var(--font-display)" }}>RAB — Rencana Anggaran Biaya</div>
-              {rabCollapsed && <div style={{ fontSize: 11, color: C.muted }}>Klik untuk expand</div>}
+              {rabCollapsed && <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>Klik untuk expand</div>}
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1445,7 +1445,7 @@ function ProjectDetailContent() {
             </div>
             <div>
               <div style={{ fontSize: 15, fontWeight: 700, color: C.text, fontFamily: "var(--font-display)" }}>Gantt Chart — Timeline WBS</div>
-              {ganttCollapsed && <div style={{ fontSize: 11, color: C.muted }}>Klik untuk expand</div>}
+              {ganttCollapsed && <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>Klik untuk expand</div>}
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1668,7 +1668,7 @@ function ProjectDetailContent() {
               {
                 kunci: "nomor", judul: "No Invoice", kepalaBaris: true,
                 render: inv => (
-                  <span style={{ color: C.navy, fontFamily: "var(--font-display)", fontSize: 11, fontWeight: 600 }}>
+                  <span style={{ color: C.navy, fontFamily: "var(--font-display)", fontSize: "var(--t-kecil)", fontWeight: 600 }}>
                     {inv.invoice_number}
                   </span>
                 ),
@@ -1880,7 +1880,7 @@ function ProjectDetailContent() {
                   <span>👤 Klien: {(p.clients as any)?.name ?? "—"}</span>
                   <span>🗓 {fmtDate(p.start_date)} — {fmtDate(p.end_date)}</span>
                   <span style={{
-                    padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 700,
+                    padding: "2px 8px", borderRadius: 99, fontSize: "var(--t-kecil)", fontWeight: 700,
                     background: C.navyLight, color: C.navy,
                   }}>{p.status}</span>
                 </div>
@@ -1897,7 +1897,7 @@ function ProjectDetailContent() {
                   { label: "Hari Tersisa", value: daysLeft > 0 ? `${daysLeft} hari` : `${Math.abs(daysLeft)} hari terlambat` },
                 ].map(item => (
                   <div key={item.label} style={{ padding: "12px 12px", borderRadius: 10, background: "var(--surface-subtle)", border: "1px solid var(--border)" }}>
-                    <div style={{ fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>{item.label}</div>
+                    <div style={{ fontSize: "var(--t-mikro)", color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>{item.label}</div>
                     <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{item.value}</div>
                   </div>
                 ))}
@@ -1906,7 +1906,7 @@ function ProjectDetailContent() {
               {/* EVM row */}
               {evmData && (
                 <div style={{ padding: "12px 16px", borderRadius: 10, background: C.navyLight, border: `1px solid ${C.navy}22`, marginBottom: 20 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.navy, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>Earned Value Management</div>
+                  <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.navy, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>Earned Value Management</div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
                     {[
                       { label: "CPI", val: evmData.cpi.toFixed(2), ok: evmData.cpi >= 1 },
@@ -1915,7 +1915,7 @@ function ProjectDetailContent() {
                       { label: "VAC", val: fmtCompact(evmData.vac), ok: evmData.vac >= 0 },
                     ].map(e => (
                       <div key={e.label} style={{ textAlign: "center" }}>
-                        <div style={{ fontSize: 10, color: C.mid, marginBottom: 2 }}>{e.label}</div>
+                        <div style={{ fontSize: "var(--t-mikro)", color: C.mid, marginBottom: 2 }}>{e.label}</div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: e.ok ? C.green : C.red }}>{e.val}</div>
                       </div>
                     ))}
@@ -1932,7 +1932,7 @@ function ProjectDetailContent() {
                       <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 6, background: m.status === "completed" ? C.greenBg : "var(--surface-subtle)", border: "1px solid var(--border)" }}>
                         <span style={{ color: m.status === "completed" ? C.green : C.muted, fontSize: 13 }}>{m.status === "completed" ? "✓" : "○"}</span>
                         <span style={{ flex: 1, fontSize: 12, color: C.text }}>{m.title}</span>
-                        <span style={{ fontSize: 11, color: C.muted }}>{fmtDateShort(m.target_date)}</span>
+                        <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>{fmtDateShort(m.target_date)}</span>
                       </div>
                     ))}
                   </div>
@@ -1947,14 +1947,14 @@ function ProjectDetailContent() {
                     {(p.mandor_assignments ?? []).map(ma => (
                       <div key={ma.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 6, background: "var(--surface-subtle)", border: "1px solid var(--border)" }}>
                         <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{ma.mandor?.name ?? "—"}</span>
-                        <span style={{ fontSize: 11, color: C.muted }}>· {(ma.work_scopes ?? []).length} scope pekerjaan</span>
+                        <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>· {(ma.work_scopes ?? []).length} scope pekerjaan</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              <div style={{ fontSize: 10, color: C.muted, textAlign: "center", paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+              <div style={{ fontSize: "var(--t-mikro)", color: C.muted, textAlign: "center", paddingTop: 12, borderTop: "1px solid var(--border)" }}>
                 Dicetak dari Puraloka Suite · {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
               </div>
             </div>
@@ -1999,7 +1999,7 @@ function KasbonPill({ label, value, color, bg, border }: {
 }) {
   return (
     <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: 10, padding: "12px 16px" }}>
-      <div style={{ fontSize: 11, color, fontWeight: 600, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</div>
+      <div style={{ fontSize: "var(--t-kecil)", color, fontWeight: 600, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</div>
       <div style={{ fontSize: 15, fontWeight: 700, color, fontFamily: "var(--font-display)" }}>{
         new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value)
       }</div>
@@ -2015,7 +2015,7 @@ function QuickStat({ label, value, valueColor, divider }: {
       paddingLeft: divider ? 24 : 0,
       borderLeft: divider ? "1px solid var(--border)" : "none",
     }}>
-      <div style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 500, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
+      <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", fontWeight: 500, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
       <div style={{ fontSize: 17, fontWeight: 700, color: valueColor ?? "var(--text-primary)", fontFamily: "var(--font-display)", lineHeight: 1.2 }}>{value}</div>
     </div>
   );
@@ -2135,9 +2135,9 @@ function ActivityFeed({ project: p }: { project: Project }) {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 500, color: C.text, lineHeight: 1.4 }}>{item.title}</div>
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{item.subtitle}</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>{item.subtitle}</div>
               </div>
-              <div style={{ fontSize: 11, color: C.muted, flexShrink: 0, marginTop: 2 }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.muted, flexShrink: 0, marginTop: 2 }}>
                 {timeAgo(item.date)}
               </div>
             </div>

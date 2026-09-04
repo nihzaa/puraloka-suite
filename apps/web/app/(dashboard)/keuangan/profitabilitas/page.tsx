@@ -47,7 +47,7 @@ function warnaMargin(pct: number) {
 
 const gaya = {
   th: {
-    padding: "8px 12px", fontSize: 10, fontWeight: 700,
+    padding: "8px 12px", fontSize: "var(--t-mikro)", fontWeight: 700,
     letterSpacing: "0.05em", textTransform: "uppercase" as const,
     color: C.mid, whiteSpace: "nowrap" as const,
   },
@@ -60,7 +60,7 @@ const gaya = {
     fontSize: 12, color: C.text, background: "var(--surface)",
   },
   label: {
-    fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+    fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
     marginBottom: 4, textTransform: "uppercase" as const, letterSpacing: "0.05em",
   },
 };
@@ -188,7 +188,7 @@ export default function ProfitabilitasPage() {
                 border: `1px solid ${C.border}`, background: "var(--surface)",
               }}>
                 <div style={{
-                  fontSize: 10, fontWeight: 700, color: C.muted,
+                  fontSize: "var(--t-mikro)", fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4,
                 }}>{s.label}</div>
                 <div style={{
@@ -239,7 +239,7 @@ export default function ProfitabilitasPage() {
                       onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
                       <th scope="row" style={{ padding: "12px 12px", textAlign: "left", fontWeight: 400 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{p.name}</div>
-                        <div style={{ fontSize: 10, color: C.muted, textTransform: "capitalize" }}>
+                        <div style={{ fontSize: "var(--t-mikro)", color: C.muted, textTransform: "capitalize" }}>
                           {p.contract_model.replace("_", " ")} · Kontrak {rp(p.contract_value)}
                         </div>
                       </th>
@@ -263,7 +263,7 @@ export default function ProfitabilitasPage() {
                           <span
                             title={alasanMarginRagu(keandalanMargin(p.gross_margin_pct, p.total_cost)) ?? undefined}
                             style={{
-                              padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                              padding: "2px 8px", borderRadius: 6, fontSize: "var(--t-kecil)", fontWeight: 700,
                               color: C.mid, background: "var(--surface-subtle)",
                               border: `1px dashed ${C.border}`,
                               display: "inline-flex", alignItems: "center", gap: 4,
@@ -275,7 +275,7 @@ export default function ProfitabilitasPage() {
                           </span>
                         ) : (
                           <span style={{
-                            padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                            padding: "2px 8px", borderRadius: 6, fontSize: "var(--t-kecil)", fontWeight: 700,
                             color: wMargin,
                             background: p.gross_margin_pct >= 20 ? C.greenBg : p.gross_margin_pct >= 0 ? C.yellowBg : C.redBg,
                           }}>{p.gross_margin_pct}%</span>
@@ -326,7 +326,7 @@ export default function ProfitabilitasPage() {
                                 ?? "Sebagian proyek belum mencatat biayanya, jadi total ini belum bisa dipakai menilai untung-rugi.")
                             : undefined}
                           style={{
-                            padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                            padding: "2px 8px", borderRadius: 6, fontSize: "var(--t-kecil)", fontWeight: 700,
                             color: raguTotal ? C.mid : warnaMargin(pct),
                             background: raguTotal
                               ? "var(--surface-subtle)"
@@ -357,7 +357,7 @@ export default function ProfitabilitasPage() {
               <span style={{ width: 3, height: 13, background: "var(--grad-aksen)", borderRadius: 0 }} />
               Gross Margin per Proyek
             </h2>
-            <p style={{ fontSize: 11, color: C.muted, marginBottom: 14 }}>
+            <p style={{ fontSize: "var(--t-kecil)", color: C.muted, marginBottom: 14 }}>
               Diurutkan dari margin terendah · sehat ≥20%, waspada 0–20%, merugi &lt;0%
               {" · "}yang abu-abu biayanya belum tercatat, jadi marginnya belum berarti apa-apa
             </p>
@@ -385,7 +385,7 @@ export default function ProfitabilitasPage() {
                             batang abu-abu saja tak menjelaskan apa pun. */}
                         {merugi ? "−" : ""}{Math.abs(p.gross_margin_pct)}%
                         {ragu && (
-                          <span style={{ fontWeight: 600, marginLeft: 6, fontSize: 11 }}>
+                          <span style={{ fontWeight: 600, marginLeft: 6, fontSize: "var(--t-kecil)" }}>
                             · biaya belum lengkap
                           </span>
                         )}

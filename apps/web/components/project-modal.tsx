@@ -345,7 +345,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                   <div style={{
                     width: 28, height: 28, borderRadius: "50%",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 11, fontWeight: 700,
+                    fontSize: "var(--t-kecil)", fontWeight: 700,
                     background: step > s.n ? C.navy : step === s.n ? C.navy : "var(--surface-hover)",
                     color: step >= s.n ? "var(--surface)" : C.muted,
                     transition: "all 0.2s",
@@ -353,7 +353,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                   }}>
                     {step > s.n ? <Check size={13} /> : s.n}
                   </div>
-                  <span style={{ fontSize: 10, fontWeight: step === s.n ? 600 : 400, color: step === s.n ? C.navy : C.muted, whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: "var(--t-mikro)", fontWeight: step === s.n ? 600 : 400, color: step === s.n ? C.navy : C.muted, whiteSpace: "nowrap" }}>
                     {s.label}
                   </span>
                 </div>
@@ -572,7 +572,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontSize: 12, fontWeight: 600, color: C.navy }}>Termin {i + 1}</span>
                         <span style={{
-                          fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
+                          fontSize: "var(--t-mikro)", fontWeight: 600, padding: "2px 8px", borderRadius: 20,
                           background: t.trigger_type === "on_sign" ? "var(--navy-light)" : t.trigger_type === "on_retention" ? "var(--warning-bg)" : C.navyLight,
                           color: t.trigger_type === "on_sign" ? "var(--info)" : t.trigger_type === "on_retention" ? "var(--warning)" : C.navy,
                         }}>
@@ -749,7 +749,7 @@ function Field({ label, error, children }: { label: string; error?: string; chil
     <div>
       <label style={labelStyle}>{label}</label>
       {children}
-      {error && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 4, marginBottom: 0 }}>{error}</p>}
+      {error && <p style={{ fontSize: "var(--t-kecil)", color: "var(--danger)", marginTop: 4, marginBottom: 0 }}>{error}</p>}
     </div>
   );
 }
@@ -787,7 +787,7 @@ function RadioCard({ label, description, checked, onClick }: {
         </div>
         <span style={{ fontSize: 13, fontWeight: 600, color: checked ? "var(--navy)" : "var(--text-secondary)" }}>{label}</span>
       </div>
-      <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0, paddingLeft: 22, lineHeight: 1.4 }}>{description}</p>
+      <p style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", margin: 0, paddingLeft: 22, lineHeight: 1.4 }}>{description}</p>
     </div>
   );
 }

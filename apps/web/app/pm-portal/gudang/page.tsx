@@ -32,7 +32,7 @@ function fmtRupiah(v: string | number | null | undefined): string {
 function KartuKpi({ label, nilai }: { label: string; nilai: string | number }) {
   return (
     <div style={{ padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 45%", minWidth: 130 }}>
-      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{label}</div>
+      <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{label}</div>
       <div style={{ fontSize: 18, fontWeight: 700, color: "var(--navy)", marginTop: 2 }}>{nilai}</div>
     </div>
   );
@@ -78,7 +78,7 @@ export default function PmGudangPage() {
         <div key={g.id} style={{ display: "flex", justifyContent: "space-between", padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{g.kode} · {g.nama}</div>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{g.jumlah_aset} aset · {g.jenis_material} jenis material</div>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{g.jumlah_aset} aset · {g.jenis_material} jenis material</div>
           </div>
         </div>
       ))}
@@ -89,7 +89,7 @@ export default function PmGudangPage() {
         <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
           <div style={{ fontSize: 12, color: "var(--text-primary)" }}>{m.dari ?? "—"} → {m.ke ?? "—"}</div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{m.hari_lalu != null ? `${m.hari_lalu}h lalu` : "—"}</span>
+            <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{m.hari_lalu != null ? `${m.hari_lalu}h lalu` : "—"}</span>
             {m.memburuk && <StatusBadge status="rejected" label="Memburuk" />}
           </div>
         </div>

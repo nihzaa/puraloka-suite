@@ -146,11 +146,11 @@ export default function AdminSuratPage() {
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <div style={{ flex: "1 1 45%", padding: "var(--pad-kartu)", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
             <div style={{ fontSize: 20, fontWeight: 700, color: "var(--danger)" }}>{data.ringkas.kita_belum_menjawab}</div>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Kita belum menjawab</div>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Kita belum menjawab</div>
           </div>
           <div style={{ flex: "1 1 45%", padding: "var(--pad-kartu)", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
             <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)" }}>{data.ringkas.lawan_belum_menjawab}</div>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Lawan belum menjawab</div>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Lawan belum menjawab</div>
           </div>
         </div>
       )}
@@ -165,7 +165,7 @@ export default function AdminSuratPage() {
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{s.nomor}</div>
               <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{s.perihal}</div>
-              {s.project_name && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{s.project_name}</div>}
+              {s.project_name && <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginTop: 2 }}>{s.project_name}</div>}
             </div>
             <StatusBadge status={VARIAN_STATUS[s.status] ?? "netral"} label={LABEL_STATUS[s.status] ?? s.status} />
           </div>
@@ -173,7 +173,7 @@ export default function AdminSuratPage() {
             <div
               role="alert"
               style={{
-                fontSize: 11, fontWeight: 700,
+                fontSize: "var(--t-kecil)", fontWeight: 700,
                 color: s.batas.keadaan === "lewat" || s.batas.keadaan === "mendesak" ? "var(--danger)" : "var(--text-secondary)",
                 alignSelf: "flex-start",
               }}

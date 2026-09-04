@@ -185,7 +185,7 @@ export function ModalSuratPenawaran({ awal, bidId, onClose, onSukses }: {
           <label htmlFor="sp-berlaku" style={gayaLabel}>Berlaku sampai</label>
           <input id="sp-berlaku" type="date" value={berlaku} style={gayaInput}
             onChange={(e) => setBerlaku(e.target.value)} />
-          <p style={{ fontSize: 11, color: C.muted, margin: "4px 0 0", lineHeight: 1.45 }}>
+          <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: "4px 0 0", lineHeight: 1.45 }}>
             Wajib sebelum bisa dikirim. Tanpa batas waktu, harga hari ini mengikat
             untuk pekerjaan tahun depan.
           </p>
@@ -199,7 +199,7 @@ export function ModalSuratPenawaran({ awal, bidId, onClose, onSukses }: {
           <label htmlFor="sp-ppn" style={gayaLabel}>PPN (%)</label>
           <input id="sp-ppn" type="number" min="0" max="100" value={ppn} style={gayaInput}
             onChange={(e) => setPpn(e.target.value)} />
-          <p style={{ fontSize: 11, color: C.muted, margin: "4px 0 0", lineHeight: 1.45 }}>
+          <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: "4px 0 0", lineHeight: 1.45 }}>
             Dikenakan SESUDAH diskon.
           </p>
         </div>
@@ -218,7 +218,7 @@ export function ModalSuratPenawaran({ awal, bidId, onClose, onSukses }: {
       <KakiModal>
         {halangan && (
           <span style={{
-            fontSize: 11.5, color: C.mid, marginRight: "auto",
+            fontSize: "var(--t-kecil)", color: C.mid, marginRight: "auto",
             maxWidth: "42ch", lineHeight: 1.45, alignSelf: "center",
           }}>{halangan}</span>
         )}
@@ -391,7 +391,7 @@ export function ModalRincianPenawaran({ penawaranId, onClose, onSukses }: {
                           disabled={terkunci || baris.length === 1}
                           onClick={() => setBaris((x) => x.filter((_, k) => k !== i))}
                           style={{
-                            padding: "3px 7px", borderRadius: 5, fontSize: 11,
+                            padding: "3px 7px", borderRadius: 5, fontSize: "var(--t-kecil)",
                             border: `1px solid ${C.border}`, background: "var(--surface)",
                             color: terkunci || baris.length === 1 ? C.muted : C.red,
                             cursor: terkunci || baris.length === 1 ? "not-allowed" : "pointer",
@@ -414,7 +414,7 @@ export function ModalRincianPenawaran({ penawaranId, onClose, onSukses }: {
               }}>+ Tambah baris</button>
           )}
 
-          <p style={{ margin: 0, fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.5 }}>
             Baris tanpa volume &amp; harga jadi <strong>baris judul</strong> — dicetak
             tebal tanpa angka. Itu yang memisahkan kelompok pekerjaan di surat.
           </p>
@@ -451,7 +451,7 @@ export function ModalRincianPenawaran({ penawaranId, onClose, onSukses }: {
           <KakiModal>
             {!terkunci && !adaIsi && (
               <span style={{
-                fontSize: 11.5, color: C.mid, marginRight: "auto",
+                fontSize: "var(--t-kecil)", color: C.mid, marginRight: "auto",
                 maxWidth: "42ch", lineHeight: 1.45, alignSelf: "center",
               }}>
                 Isi minimal satu baris. Penawaran tanpa rincian hanya memuat angka
@@ -539,7 +539,7 @@ export function ModalStatusPenawaran({ penawaran, onClose, onSukses }: {
       <KakiModal>
         {halangan && (
           <span style={{
-            fontSize: 11.5, color: C.mid, marginRight: "auto",
+            fontSize: "var(--t-kecil)", color: C.mid, marginRight: "auto",
             lineHeight: 1.45, alignSelf: "center",
           }}>{halangan}</span>
         )}

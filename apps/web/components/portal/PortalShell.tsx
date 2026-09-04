@@ -427,7 +427,7 @@ export default function PortalShell({
                 padding: "8px 4px",
                 color: active ? "var(--navy)" : "var(--text-secondary)",
                 textDecoration: "none",
-                fontSize: 11,
+                fontSize: "var(--t-kecil)",
                 fontWeight: active ? 700 : 500,
               }}
             >
@@ -456,7 +456,7 @@ export default function PortalShell({
                 padding: "8px 4px",
                 color: active ? "var(--navy)" : "var(--text-secondary)",
                 textDecoration: "none",
-                fontSize: 11,
+                fontSize: "var(--t-kecil)",
                 fontWeight: active ? 700 : 500,
               }}
             >

@@ -159,7 +159,7 @@ export default function PmMrDetailPage() {
         <div key={it.id} style={{ display: "flex", justifyContent: "space-between", padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{it.material?.name ?? "—"}</div>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
               Diminta {it.qty_requested} {it.unit}{it.qty_ordered != null ? ` · dipesan ${it.qty_ordered}` : ""}
             </div>
           </div>

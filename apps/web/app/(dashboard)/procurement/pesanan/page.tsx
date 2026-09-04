@@ -102,7 +102,7 @@ export default function PesananPage() {
         <span style={{ color: i.qty_received >= i.qty_ordered ? C.success : C.warning }}>
           {i.qty_received}
           {i.qty_received < i.qty_ordered && (
-            <span style={{ fontSize: 11, marginLeft: 4 }}>(kurang {i.qty_ordered - i.qty_received})</span>
+            <span style={{ fontSize: "var(--t-kecil)", marginLeft: 4 }}>(kurang {i.qty_ordered - i.qty_received})</span>
           )}
         </span>
       ),
@@ -173,7 +173,7 @@ export default function PesananPage() {
                   <div style={{ marginTop: 6, fontSize: 13, fontWeight: 600, color: C.text }}>{fmt(Number(po.total_amount))}</div>
                   <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 4 }}>
                     {(po.items ?? []).map(item => (
-                      <span key={item.id} style={{ fontSize: 11, padding: "2px 8px", background: C.bg, borderRadius: 6, border: `1px solid ${C.border}`, color: C.mid }}>
+                      <span key={item.id} style={{ fontSize: "var(--t-kecil)", padding: "2px 8px", background: C.bg, borderRadius: 6, border: `1px solid ${C.border}`, color: C.mid }}>
                         {item.material?.name} {item.qty_ordered}{item.unit} × {fmt(item.unit_price)}
                       </span>
                     ))}

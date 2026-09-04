@@ -201,7 +201,7 @@ const isian: React.CSSProperties = {
   background: "var(--surface)", color: "var(--text-primary)",
 };
 const pil: React.CSSProperties = {
-  fontSize: 11, fontWeight: 700, padding: "3px 8px",
+  fontSize: "var(--t-kecil)", fontWeight: 700, padding: "3px 8px",
   borderRadius: "var(--portal-radius-pill)", flexShrink: 0,
 };
 const kotakAlasan: React.CSSProperties = {

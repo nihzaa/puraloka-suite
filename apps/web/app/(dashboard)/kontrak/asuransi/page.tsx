@@ -120,7 +120,7 @@ const KOLOM_POLIS: Array<Kolom<Polis>> = [
           borderLeft: mendesak ? `3px solid ${meta.warna}` : "3px solid transparent",
         }}>
           {p.nomor_polis}
-          <span style={{ display: "block", fontSize: 11, color: C.mid, marginTop: 2 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2 }}>
             {p.jenis_label} · {p.penerbit}
           </span>
         </span>
@@ -156,13 +156,13 @@ const KOLOM_POLIS: Array<Kolom<Polis>> = [
     // penuh". Kabar baik palsu kalau keduanya ditulis sama.
     render: (p) =>
       p.celah_hari === null ? (
-        <span style={{ fontSize: 11, color: C.muted }}>tanggal proyek kosong</span>
+        <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>tanggal proyek kosong</span>
       ) : p.celah_hari === 0 ? (
         <span style={{ color: "var(--success)", fontWeight: 600 }}>tertutup penuh</span>
       ) : (
         <>
           <span style={{ color: "var(--danger)", fontWeight: 700 }}>{p.celah_hari} h</span>
-          <span style={{ display: "block", fontSize: 10, color: C.muted }}>
+          <span style={{ display: "block", fontSize: "var(--t-mikro)", color: C.muted }}>
             {p.celah_awal > 0 && `${p.celah_awal} h di awal`}
             {p.celah_awal > 0 && p.celah_akhir > 0 && " · "}
             {p.celah_akhir > 0 && `${p.celah_akhir} h di akhir`}
@@ -174,7 +174,7 @@ const KOLOM_POLIS: Array<Kolom<Polis>> = [
     kunci: "nilai", judul: "Nilai pertanggungan", rata: "kanan",
     render: (p) =>
       p.nilai_pertanggungan === null
-        ? <span style={{ fontSize: 11, color: C.muted }}>belum diisi</span>
+        ? <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>belum diisi</span>
         : <span style={{ color: C.text }}>{rupiah(p.nilai_pertanggungan)}</span>,
   },
   {
@@ -184,7 +184,7 @@ const KOLOM_POLIS: Array<Kolom<Polis>> = [
       return (
         <span title={meta.arti} style={{
           display: "inline-block", padding: "2px 8px", borderRadius: 20,
-          fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+          fontSize: "var(--t-kecil)", fontWeight: 600, whiteSpace: "nowrap",
           color: meta.warna, background: meta.bg, border: `1px solid ${meta.border}`,
         }}>{meta.label}</span>
       );
@@ -258,7 +258,7 @@ export default function AsuransiPage() {
   }
 
     const labelGaya: React.CSSProperties = {
-    fontSize: 11, fontWeight: 700, color: C.muted,
+    fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
     textTransform: "uppercase", letterSpacing: "0.05em",
   };
   const isianGaya: React.CSSProperties = {
@@ -424,7 +424,7 @@ export default function AsuransiPage() {
                       fontSize: 20, fontWeight: 800, color: k.warna, marginTop: 3,
                       fontFamily: "var(--font-display)", fontVariantNumeric: "tabular-nums",
                     }}>{k.nilai}</div>
-                    <div style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>{k.sub}</div>
+                    <div style={{ fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2 }}>{k.sub}</div>
                   </div>
                 ))}
               </div>
@@ -481,7 +481,7 @@ export default function AsuransiPage() {
 
                   <p style={{
                     margin: 0, padding: "10px 14px", borderTop: `1px solid ${C.border}`,
-                    background: "var(--surface-subtle)", fontSize: 11, color: C.mid, lineHeight: 1.55,
+                    background: "var(--surface-subtle)", fontSize: "var(--t-kecil)", color: C.mid, lineHeight: 1.55,
                   }}>
                     <strong>Celah</strong> = hari masa proyek yang tidak tertanggung polis ini,
                     dihitung dua arah: polis yang mulai <em>sesudah</em> proyek jalan

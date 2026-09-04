@@ -189,7 +189,7 @@ export function RfqPenawaranModal({
     fontFamily: "inherit", width: "100%", minHeight: 38,
   };
   const label: React.CSSProperties = {
-    fontSize: 11, fontWeight: 700, color: C.muted,
+    fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
     textTransform: "uppercase", letterSpacing: "0.05em",
   };
 

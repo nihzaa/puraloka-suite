@@ -291,7 +291,7 @@ export default function PerusahaanPage() {
                 <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{b.name}</span>
                 {b.is_akar && (
                   <span style={{
-                    fontSize: 10, fontWeight: 600, padding: "2px 6px", borderRadius: 6,
+                    fontSize: "var(--t-mikro)", fontWeight: 600, padding: "2px 6px", borderRadius: 6,
                     background: "var(--surface-subtle)", color: C.mid,
                   }}>
                     induk
@@ -342,7 +342,7 @@ function Kolom({
       </label>
       {children}
       {petunjuk && (
-        <p style={{ fontSize: 11, color: C.muted, margin: "5px 0 0", lineHeight: 1.5 }}>
+        <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: "5px 0 0", lineHeight: 1.5 }}>
           {petunjuk}
         </p>
       )}

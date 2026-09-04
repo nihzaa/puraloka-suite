@@ -202,7 +202,7 @@ export default function SusutPage() {
           <strong style={{ fontSize: 12.5, color: C.text }}>
             {r.materials?.name ?? "—"}
           </strong>
-          <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 1 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 1 }}>
             {r.materials?.code} · {r.materials?.unit ?? "—"}
           </span>
         </span>
@@ -219,7 +219,7 @@ export default function SusutPage() {
     {
       kunci: "dasar", judul: "Dasar",
       render: (r) => (
-        <span style={{ fontSize: 11.5, color: C.mid, display: "block", maxWidth: "40ch", lineHeight: 1.45 }}>
+        <span style={{ fontSize: "var(--t-kecil)", color: C.mid, display: "block", maxWidth: "40ch", lineHeight: 1.45 }}>
           {/* Susut yang tak bisa dijelaskan akan dibantah orang lapangan
               begitu ia dipakai menilai mereka — dan bantahan itu benar. */}
           {r.dasar ?? <span style={{ color: C.muted }}>belum ada dasar tertulis</span>}
@@ -236,7 +236,7 @@ export default function SusutPage() {
           <strong style={{ fontSize: 12.5, color: C.text }}>
             {p.resources?.name ?? "—"}
           </strong>
-          <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 1 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 1 }}>
             {p.resources?.code} · {p.resources?.unit_code ?? "—"}
           </span>
         </span>
@@ -249,7 +249,7 @@ export default function SusutPage() {
           <strong style={{ fontSize: 12.5, color: C.text }}>
             {p.materials?.name ?? "—"}
           </strong>
-          <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 1 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 1 }}>
             {p.materials?.code} · {p.materials?.unit ?? "—"}
           </span>
         </span>
@@ -337,7 +337,7 @@ export default function SusutPage() {
           gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
         }}>
           <div>
-            <label htmlFor="s-mat" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+            <label htmlFor="s-mat" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
               Material
             </label>
             <Pilihan id="s-mat" style={gayaInput} value={rMaterial}
@@ -349,7 +349,7 @@ export default function SusutPage() {
             </Pilihan>
           </div>
           <div>
-            <label htmlFor="s-pct" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+            <label htmlFor="s-pct" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
               Rencana susut (%)
             </label>
             <input id="s-pct" type="number" min="0" max="100" step="any" style={gayaInput}
@@ -357,7 +357,7 @@ export default function SusutPage() {
           </div>
         </div>
         <div style={{ marginTop: 10 }}>
-          <label htmlFor="s-dasar" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+          <label htmlFor="s-dasar" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
             Dasar (opsional, tapi dicari saat angkanya dibantah)
           </label>
           <input id="s-dasar" style={gayaInput} value={rDasar}
@@ -395,12 +395,12 @@ export default function SusutPage() {
           />
           {belumBerencana.length > 0 && (
             <div style={{ marginTop: 10, display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
-              <span style={{ fontSize: 11.5, color: C.muted }}>Belum berencana:</span>
+              <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>Belum berencana:</span>
               {belumBerencana.slice(0, 12).map((m) => (
                 <Lencana key={m.id} nada="netral">{m.code}</Lencana>
               ))}
               {belumBerencana.length > 12 && (
-                <span style={{ fontSize: 11.5, color: C.muted }}>
+                <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
                   +{belumBerencana.length - 12} lagi
                 </span>
               )}
@@ -416,7 +416,7 @@ export default function SusutPage() {
 
         <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
           <div style={{ flex: "1 1 280px" }}>
-            <label htmlFor="p-cari" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+            <label htmlFor="p-cari" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
               Cari resource AHSP — minimal 2 huruf
             </label>
             <input id="p-cari" style={gayaInput} value={cari}
@@ -440,7 +440,7 @@ export default function SusutPage() {
                   onClick={() => setPResource(aktif ? null : r)}
                   style={{
                     textAlign: "left", padding: "6px 10px", borderRadius: 8,
-                    fontSize: 11.5, cursor: "pointer", maxWidth: 280,
+                    fontSize: "var(--t-kecil)", cursor: "pointer", maxWidth: 280,
                     border: `1px solid ${aktif ? "var(--aksen)" : C.border}`,
                     background: aktif ? "var(--aksen-lembut)" : "transparent",
                     color: C.text,
@@ -467,7 +467,7 @@ export default function SusutPage() {
             gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
           }}>
             <div>
-              <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+              <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
                 Resource terpilih
               </span>
               <span style={{
@@ -475,13 +475,13 @@ export default function SusutPage() {
                 background: "var(--surface-hover)", fontSize: 12.5, color: C.text,
               }}>
                 {pResource.name}
-                <span style={{ display: "block", fontSize: 11, color: C.muted }}>
+                <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>
                   {pResource.code} · {pResource.unit_code ?? "—"}
                 </span>
               </span>
             </div>
             <div>
-              <label htmlFor="p-mat" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+              <label htmlFor="p-mat" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
                 Material gudang
               </label>
               <Pilihan id="p-mat" style={gayaInput} value={pMaterial}
@@ -493,12 +493,12 @@ export default function SusutPage() {
               </Pilihan>
             </div>
             <div>
-              <label htmlFor="p-faktor" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+              <label htmlFor="p-faktor" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
                 Faktor konversi
               </label>
               <input id="p-faktor" type="number" min="0" step="any" style={gayaInput}
                 value={pFaktor} onChange={(e) => setPFaktor(e.target.value)} />
-              <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 3, lineHeight: 1.45 }}>
+              <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 3, lineHeight: 1.45 }}>
                 Berapa satuan <strong>gudang</strong> untuk satu satuan{" "}
                 <strong>AHSP</strong>. Semen: 1 kg = 0,02 sak.
               </span>

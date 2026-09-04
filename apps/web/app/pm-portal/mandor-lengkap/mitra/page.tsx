@@ -266,7 +266,7 @@ export default function PmMitraPage() {
                       )}
                     </div>
                     {m.daftar_hitam && m.alasan_daftar_hitam && (
-                      <div style={{ marginTop: 6, display: "flex", alignItems: "flex-start", gap: 6, fontSize: 11.5, color: "var(--danger)" }}>
+                      <div style={{ marginTop: 6, display: "flex", alignItems: "flex-start", gap: 6, fontSize: "var(--t-kecil)", color: "var(--danger)" }}>
                         <Ban size={12} aria-hidden="true" style={{ flexShrink: 0, marginTop: 1 }} />
                         <span>{m.alasan_daftar_hitam}</span>
                       </div>
@@ -325,7 +325,7 @@ export default function PmMitraPage() {
               <option value="badan_usaha">Badan usaha — PT / CV / UD</option>
             </Pilihan>
             {editMitra && (
-              <span style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginTop: 4 }}>
+              <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", display: "block", marginTop: 4 }}>
                 Bentuk tak bisa diubah — kontrak yang sudah terbit menyebutnya.
               </span>
             )}

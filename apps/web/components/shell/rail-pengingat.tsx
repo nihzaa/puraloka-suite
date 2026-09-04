@@ -100,7 +100,7 @@ export function RailPengingat({
         <span style={{ display: "block", fontSize: "var(--t-badan)", fontWeight: 700, lineHeight: 1.3 }}>
           Pengingat
         </span>
-        <span style={{ display: "block", fontSize: 11, opacity: 0.85, marginTop: 1 }}>
+        <span style={{ display: "block", fontSize: "var(--t-kecil)", opacity: 0.85, marginTop: 1 }}>
           {total === 0
             ? "Tak ada tenggat dalam 2 minggu"
             : lewat > 0

@@ -300,7 +300,7 @@ export default function PmDetailRekonsiliasiBankPage() {
                     {Number(b.kredit) > 0 ? `+${fmtRupiah(b.kredit)}` : `−${fmtRupiah(b.debit)}`}
                   </span>
                 </div>
-                <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{fmtTanggal(b.tanggal)}</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{fmtTanggal(b.tanggal)}</div>
                 {u && koran.status === "terbuka" && (
                   <button
                     type="button"

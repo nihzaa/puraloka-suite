@@ -339,7 +339,7 @@ export default function MandorRingkasanPage() {
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
                     {r.assignment?.mandor?.name ?? "—"} · {r.scope?.scope_name ?? "—"}
                   </div>
-                  <div style={{ fontSize: 11, color: C.muted }}>
+                  <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
                     Upah · {r.assignment?.project?.name ?? "—"} · Minggu {fmtDateShort(r.week_start)}–{fmtDateShort(r.week_end)}
                   </div>
                 </div>
@@ -364,7 +364,7 @@ export default function MandorRingkasanPage() {
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
                     {p.work_scope?.scope_name ?? "—"}
                   </div>
-                  <div style={{ fontSize: 11, color: C.muted }}>
+                  <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
                     Penagihan progress · {p.project?.name ?? "—"} · {p.pct_done}% · diajukan {p.requester?.name ?? "—"}
                   </div>
                 </div>
@@ -398,7 +398,7 @@ export default function MandorRingkasanPage() {
               }}>{b.ikon}</span>
               <span style={{ minWidth: 0 }}>
                 <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: C.text }}>{b.label}</span>
-                <span style={{ display: "block", fontSize: 11, color: C.muted }}>{b.sub}</span>
+                <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>{b.sub}</span>
               </span>
             </Link>
           ))}

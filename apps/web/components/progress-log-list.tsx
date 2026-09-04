@@ -312,7 +312,7 @@ function LogCard({
           <span style={{ fontSize: 22, fontWeight: 800, color: "var(--surface)", lineHeight: 1.1, fontFamily: "var(--font-display)" }}>
             {day}
           </span>
-          <span style={{ fontSize: 10, fontWeight: 600, color: "color-mix(in srgb, var(--on-navy) 80%, transparent)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+          <span style={{ fontSize: "var(--t-mikro)", fontWeight: 600, color: "color-mix(in srgb, var(--on-navy) 80%, transparent)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
             {month}
           </span>
         </div>
@@ -330,12 +330,12 @@ function LogCard({
         }}>
           <div style={{ flex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 11, color: C.muted }}>
+              <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
                 {fmtDateLong(log.logged_at)} · {fmtTime(log.logged_at)}
               </span>
               {log.reporter && (
                 <span style={{
-                  fontSize: 11, color: C.navy, fontWeight: 600,
+                  fontSize: "var(--t-kecil)", color: C.navy, fontWeight: 600,
                   padding: "0px 6px", borderRadius: 99, background: C.navyLight,
                 }}>
                   {log.reporter.name}
@@ -356,7 +356,7 @@ function LogCard({
               {weather && (
                 <span style={{
                   display: "inline-flex", alignItems: "center", gap: 4,
-                  fontSize: 11, color: C.mid, padding: "2px 8px",
+                  fontSize: "var(--t-kecil)", color: C.mid, padding: "2px 8px",
                   borderRadius: 99, background: "var(--surface-subtle)", border: `1px solid ${C.border}`,
                 }}>
                   {weather.icon} {weather.label}
@@ -365,7 +365,7 @@ function LogCard({
 
               {/* Worker count */}
               {log.worker_count !== null && log.worker_count !== undefined && (
-                <span style={{ fontSize: 11, color: C.muted }}>
+                <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
                   👷 {log.worker_count} pekerja
                 </span>
               )}
@@ -390,13 +390,13 @@ function LogCard({
           {/* Confirm delete */}
           {confirmDelete && (
             <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
-              <span style={{ fontSize: 11, color: C.red }}>Hapus log ini?</span>
+              <span style={{ fontSize: "var(--t-kecil)", color: C.red }}>Hapus log ini?</span>
               <button
                 onClick={handleDelete}
                 disabled={deleting}
                 style={{
                   padding: "4px 8px", borderRadius: 6, border: "none",
-                  background: C.red, color: "var(--surface)", fontSize: 11, fontWeight: 600,
+                  background: C.red, color: "var(--surface)", fontSize: "var(--t-kecil)", fontWeight: 600,
                   cursor: deleting ? "not-allowed" : "pointer",
                 }}
               >
@@ -407,7 +407,7 @@ function LogCard({
                 disabled={deleting}
                 style={{
                   padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.border}`,
-                  background: "var(--surface)", color: C.mid, fontSize: 11, cursor: "pointer",
+                  background: "var(--surface)", color: C.mid, fontSize: "var(--t-kecil)", cursor: "pointer",
                 }}
               >
                 Batal

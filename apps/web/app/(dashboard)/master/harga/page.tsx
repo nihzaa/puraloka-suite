@@ -48,7 +48,7 @@ function JenisHarga({ c }: { c: string }) {
   const p = peta[c];
   if (!p) return null;
   return (
-    <span style={{ marginLeft: 6, padding: "0px 6px", borderRadius: 999, fontSize: 10,
+    <span style={{ marginLeft: 6, padding: "0px 6px", borderRadius: 999, fontSize: "var(--t-mikro)",
       fontWeight: 700, color: p.warna, background: p.bg, whiteSpace: "nowrap" }}>
       {p.label}
     </span>
@@ -194,14 +194,14 @@ function HargaTab() {
                       dan bahan diperlakukan berbeda saat memutuskan harga, dan
                       keduanya berdampingan di daftar yang sama. */}
                   {en.resource?.category && <JenisHarga c={en.resource.category} />}
-                  <br /><code style={{ fontSize: 11, color: C.muted }}>{en.resource?.code}</code>
+                  <br /><code style={{ fontSize: "var(--t-kecil)", color: C.muted }}>{en.resource?.code}</code>
                 </th>
                 <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{fmtRp(Number(en.amount))}</td>
                 <td style={td}>{en.resource?.unit_code}</td>
                 <td style={td}>{en.effective_date}{en.expired_date ? ` → ${en.expired_date}` : ""}</td>
                 <td style={td}>{en.location ?? <span style={{ color: C.muted }}>umum</span>}</td>
                 <td style={td}>{en.confidence_level
-                  ? <span style={{ fontSize: 11, fontWeight: 600, color: en.confidence_level === "high" ? C.green : en.confidence_level === "low" ? C.red : C.yellow }}>
+                  ? <span style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: en.confidence_level === "high" ? C.green : en.confidence_level === "low" ? C.red : C.yellow }}>
                       {en.confidence_level === "high" ? "Tinggi" : en.confidence_level === "low" ? "Rendah" : "Sedang"}
                     </span>
                   : <span style={{ color: C.muted }}>—</span>}</td>
@@ -505,7 +505,7 @@ function FormOverride({ proyekId, onTutup, onSimpan }: {
       border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13,
       background: "var(--surface)", color: C.text, fontFamily: "inherit" },
     label: { fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 },
-    bantu: { fontSize: 11, color: C.muted, lineHeight: 1.5, display: "block", marginTop: 4 },
+    bantu: { fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.5, display: "block", marginTop: 4 },
   };
 
   return (
@@ -699,7 +699,7 @@ function PrioritasHarga({ onIsi }: { onIsi: (r: { code: string; name: string; un
               { kunci: "nama", judul: "Bahan / upah", kepalaBaris: true, render: r => (
                 <>
                   {r.name}
-                  <span style={{ color: C.muted, marginLeft: 6, fontSize: 11 }}>{r.unit_code}</span>
+                  <span style={{ color: C.muted, marginLeft: 6, fontSize: "var(--t-kecil)" }}>{r.unit_code}</span>
                 </>
               ) },
               { kunci: "kategori", judul: "Kategori", render: r => <span style={{ color: C.mid }}>{r.category}</span> },
@@ -718,7 +718,7 @@ function PrioritasHarga({ onIsi }: { onIsi: (r: { code: string; name: string; un
             ]}
           />
           {total > data.length && (
-            <p style={{ fontSize: 11, color: C.mid, margin: "8px 2px 0" }}>
+            <p style={{ fontSize: "var(--t-kecil)", color: C.mid, margin: "8px 2px 0" }}>
               Menampilkan {data.length} dari {total} — sisanya dampaknya lebih kecil.
             </p>
           )}

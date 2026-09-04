@@ -195,7 +195,7 @@ function LightboxContent({
               {photo.caption}
             </p>
           )}
-          <p style={{ color: "var(--text-muted)", fontSize: 11, margin: 0 }}>
+          <p style={{ color: "var(--text-muted)", fontSize: "var(--t-kecil)", margin: 0 }}>
             {fmtDate(photo.taken_at ?? photo.uploaded_at)}
             {photo.uploader && ` · ${photo.uploader.name}`}
           </p>
@@ -221,7 +221,7 @@ function LightboxContent({
                   onClick={() => handleCategoryChange(cat)}
                   disabled={updating}
                   style={{
-                    padding: "4px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600,
+                    padding: "4px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 600,
                     border: `2px solid ${photo.category === cat ? "var(--surface)" : "transparent"}`,
                     background: CATEGORY_COLORS[cat].bg, color: CATEGORY_COLORS[cat].color,
                     cursor: "pointer", opacity: updating ? 0.6 : 1,
@@ -230,19 +230,19 @@ function LightboxContent({
                   {CATEGORY_LABEL[cat]}
                 </button>
               ))}
-              <button aria-label="Hapus foto" onClick={() => setEditingCategory(false)} style={{ padding: "4px 8px", borderRadius: 20, fontSize: 11, background: "rgba(255,255,255,0.1)", color: "var(--surface)", border: "none", cursor: "pointer" }}>
+              <button aria-label="Hapus foto" onClick={() => setEditingCategory(false)} style={{ padding: "4px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", background: "rgba(255,255,255,0.1)", color: "var(--surface)", border: "none", cursor: "pointer" }}>
                 <X size={11} />
               </button>
             </div>
           ) : (
             <>
-              <span style={{ padding: "4px 8px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: catStyle.bg, color: catStyle.color }}>
+              <span style={{ padding: "4px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 700, background: catStyle.bg, color: catStyle.color }}>
                 {CATEGORY_LABEL[photo.category] ?? photo.category}
               </span>
               {canEdit && (
                 <button
                   onClick={() => setEditingCategory(true)}
-                  style={{ padding: "4px 8px", borderRadius: 6, fontSize: 11, background: "rgba(255,255,255,0.1)", color: "var(--text-muted)", border: "none", cursor: "pointer" }}
+                  style={{ padding: "4px 8px", borderRadius: 6, fontSize: "var(--t-kecil)", background: "rgba(255,255,255,0.1)", color: "var(--text-muted)", border: "none", cursor: "pointer" }}
                 >
                   Ganti
                 </button>
@@ -318,7 +318,7 @@ export function PhotoGallery({ projectId, userRole, proyek }: Props) {
         </div>
         <div>
           <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Galeri Foto</h3>
-          <p style={{ fontSize: 11, color: C.muted, margin: 0 }}>{photos.length} foto dokumentasi lapangan</p>
+          <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: 0 }}>{photos.length} foto dokumentasi lapangan</p>
         </div>
       </div>
 
@@ -352,7 +352,7 @@ export function PhotoGallery({ projectId, userRole, proyek }: Props) {
                     Ini kali KELIMA `opacity` pada teks menurunkan kontras di
                     sesi ini; semuanya lolos pemindai statis karena kontras
                     hanya terlihat pada nilai terhitung. */}
-                <span style={{ fontSize: 11 }}>({count})</span>
+                <span style={{ fontSize: "var(--t-kecil)" }}>({count})</span>
               </button>
             );
           })}
@@ -426,7 +426,7 @@ export function PhotoGallery({ projectId, userRole, proyek }: Props) {
                 {/* Category badge */}
                 <span style={{
                   position: "absolute", top: 7, right: 7,
-                  padding: "2px 6px", borderRadius: 10, fontSize: 10, fontWeight: 700,
+                  padding: "2px 6px", borderRadius: 10, fontSize: "var(--t-mikro)", fontWeight: 700,
                   background: catColor.bg, color: catColor.color,
                 }}>
                   {CATEGORY_LABEL[photo.category] ?? photo.category}
@@ -434,11 +434,11 @@ export function PhotoGallery({ projectId, userRole, proyek }: Props) {
                 {/* Caption + date */}
                 <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "8px 8px" }}>
                   {photo.caption && (
-                    <p style={{ color: "var(--surface)", fontSize: 11, fontWeight: 600, margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <p style={{ color: "var(--surface)", fontSize: "var(--t-kecil)", fontWeight: 600, margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {photo.caption}
                     </p>
                   )}
-                  <p style={{ color: "color-mix(in srgb, var(--on-navy) 80%, transparent)", fontSize: 10, margin: 0 }}>
+                  <p style={{ color: "color-mix(in srgb, var(--on-navy) 80%, transparent)", fontSize: "var(--t-mikro)", margin: 0 }}>
                     {fmtDate(photo.taken_at ?? photo.uploaded_at)}
                   </p>
                 </div>

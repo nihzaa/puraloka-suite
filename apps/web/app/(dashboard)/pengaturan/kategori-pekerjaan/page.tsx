@@ -70,7 +70,7 @@ export default function KategoriContent() {
         </div>
       ) : (
         <div style={{ ...card, overflow: "hidden" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "160px 1fr 70px 90px", gap: 12, padding: "12px 20px", borderBottom: `1px solid ${C.border}`, fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "160px 1fr 70px 90px", gap: 12, padding: "12px 20px", borderBottom: `1px solid ${C.border}`, fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>
             <div>Kode</div><div>Nama</div><div>Urutan</div><div style={{ textAlign: "right" }}>Status</div>
           </div>
           {rows.map(r => (
@@ -121,12 +121,12 @@ function AddCard({ existing, onDone, onError }: { existing: WorkCategoryRow[]; o
     <div style={{ ...card, marginBottom: 18, padding: "var(--pad-kartu-lega)" }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: 12, alignItems: "end" }}>
         <div>
-          <label htmlFor="code" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Kode (unik)</label>
+          <label htmlFor="code" style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, marginBottom: 5 }}>Kode (unik)</label>
           <input className="isian-fokus" id="code" value={code} onChange={e => setCode(e.target.value)} placeholder="cth: mep" style={GAYA_ISIAN} />
-          {code && <div style={{ fontSize: 11, color: dup ? C.red : C.muted, marginTop: 3 }}>disimpan sebagai <code>{normalized || "—"}</code>{dup && " (sudah ada)"}</div>}
+          {code && <div style={{ fontSize: "var(--t-kecil)", color: dup ? C.red : C.muted, marginTop: 3 }}>disimpan sebagai <code>{normalized || "—"}</code>{dup && " (sudah ada)"}</div>}
         </div>
         <div>
-          <label htmlFor="label" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Nama</label>
+          <label htmlFor="label" style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, marginBottom: 5 }}>Nama</label>
           <input className="isian-fokus" id="label" value={label} onChange={e => setLabel(e.target.value)} placeholder="cth: Mekanikal Elektrikal Plumbing" style={GAYA_ISIAN} />
         </div>
       </div>
@@ -174,7 +174,7 @@ function RowItem({ row, canManage, onSaved, onError }: { row: WorkCategoryRow; c
   return (
     <div style={rowStyle}>
       <code style={{ fontSize: 12, color: C.mid, background: "var(--surface-subtle)", padding: "2px 6px", borderRadius: 6, justifySelf: "start" }}>{row.code}</code>
-      <span style={{ color: C.text, fontWeight: 500 }}>{row.label}{!row.is_active && <span style={{ marginLeft: 8, fontSize: 11, color: C.red }}>(nonaktif)</span>}</span>
+      <span style={{ color: C.text, fontWeight: 500 }}>{row.label}{!row.is_active && <span style={{ marginLeft: 8, fontSize: "var(--t-kecil)", color: C.red }}>(nonaktif)</span>}</span>
       <span style={{ color: C.muted }}>{row.sort_order}</span>
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
         {canManage ? (
@@ -184,7 +184,7 @@ function RowItem({ row, canManage, onSaved, onError }: { row: WorkCategoryRow; c
               {row.is_active ? <EyeOff size={13} /> : <Eye size={13} />}
             </button>
           </>
-        ) : <span style={{ fontSize: 11, color: row.is_active ? C.green : C.muted }}>{row.is_active ? "Aktif" : "Nonaktif"}</span>}
+        ) : <span style={{ fontSize: "var(--t-kecil)", color: row.is_active ? C.green : C.muted }}>{row.is_active ? "Aktif" : "Nonaktif"}</span>}
       </div>
     </div>
   );

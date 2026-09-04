@@ -153,7 +153,7 @@ export function AddendumSpk({ spkId, bolehKelola }: {
         display: "flex", justifyContent: "space-between",
         alignItems: "center", gap: 10, flexWrap: "wrap",
       }}>
-        <span style={{ fontSize: 11.5, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+        <span style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
           Addendum{daftar.length > 0 ? ` (${daftar.length})` : ""}
         </span>
         {bolehKelola && (

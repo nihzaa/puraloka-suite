@@ -199,7 +199,7 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
             Milestone
             {total > 0 && !loading && (
               <span style={{
-                fontSize: 11, fontWeight: 600, color: "var(--navy)",
+                fontSize: "var(--t-kecil)", fontWeight: 600, color: "var(--navy)",
                 background: "var(--navy-light)", padding: "2px 8px", borderRadius: 99,
               }}>
                 {done}/{total} selesai
@@ -348,20 +348,20 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
                       {/* Status badge */}
                       <span style={{
                         display: "inline-flex", alignItems: "center", gap: 4,
-                        fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 99,
+                        fontSize: "var(--t-kecil)", fontWeight: 600, padding: "2px 8px", borderRadius: 99,
                         background: cfg.bg, color: cfg.color,
                       }}>
                         <span style={{ width: 5, height: 5, borderRadius: "50%", background: cfg.dot, flexShrink: 0 }} />
                         {cfg.label}
                       </span>
                       {/* Target date */}
-                      <span style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+                      <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
                         <CalendarDays size={11} />
                         {fmtDate(m.target_date)}
                       </span>
                       {/* Completed date */}
                       {m.completed_at && (
-                        <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                        <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
                           · selesai {fmtDate(m.completed_at)}
                         </span>
                       )}

@@ -287,7 +287,7 @@ export default function KredensialPage() {
                         </label>
                         <span
                           style={{
-                            fontSize: 11, padding: "var(--pad-lencana)", borderRadius: 999,
+                            fontSize: "var(--t-kecil)", padding: "var(--pad-lencana)", borderRadius: 999,
                             whiteSpace: "nowrap",
                             color: meta.warna, background: meta.latar,
                             border: `1px solid ${meta.warna}`,
@@ -409,7 +409,7 @@ export default function KredensialPage() {
                       {k.sumber === "env" && (
                         <p
                           style={{
-                            fontSize: 11.5, color: "var(--on-warning-bg)",
+                            fontSize: "var(--t-kecil)", color: "var(--on-warning-bg)",
                             background: "var(--warning-bg)",
                             border: "1px solid var(--warning-border)",
                             borderRadius: 8, padding: "7px 10px", margin: "8px 0 0",
@@ -424,7 +424,7 @@ export default function KredensialPage() {
                       {/* Menyatakan APA yang akan diuji — nilai yang sedang diketik
                           atau yang tersimpan. Tanpa ini, hasil "valid" ambigu. */}
                       {bolehKelola && (
-                        <p style={{ fontSize: 11.5, color: C.muted, margin: "6px 0 0" }}>
+                        <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: "6px 0 0" }}>
                           {nilaiDraf.trim()
                             ? "Uji Koneksi akan menguji nilai yang sedang diketik, tanpa menyimpannya."
                             : k.sumber === "tidak-ada"

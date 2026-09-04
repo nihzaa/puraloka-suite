@@ -100,7 +100,7 @@ export default function PmKatalogAhspPage() {
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--navy)" }}>{a.code}</div>
             <div style={{ fontSize: 13, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</div>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 2 }}>
               {a.output_unit_code ?? "—"} · {a.components.length} komponen · {a.edition?.code ?? a.source}
             </div>
           </div>

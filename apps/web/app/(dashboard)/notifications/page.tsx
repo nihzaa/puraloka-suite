@@ -408,7 +408,7 @@ export default function NotificationsPage() {
             <div key={group.label}>
               {/* Day label */}
               <div style={{
-                fontSize: 11, fontWeight: 700, color: C.muted,
+                fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
                 textTransform: "uppercase", letterSpacing: "0.06em",
                 marginBottom: 8,
               }}>
@@ -490,21 +490,21 @@ export default function NotificationsPage() {
                           </span>
                           {notif.priority === "urgent" && (
                             <span style={{
-                              fontSize: 10, fontWeight: 700, padding: "0px 4px",
+                              fontSize: "var(--t-mikro)", fontWeight: 700, padding: "0px 4px",
                               borderRadius: 6, background: C.redBg, color: C.red,
                               textTransform: "uppercase",
                             }}>URGEN</span>
                           )}
                           {notif.priority === "high" && (
                             <span style={{
-                              fontSize: 10, fontWeight: 700, padding: "0px 4px",
+                              fontSize: "var(--t-mikro)", fontWeight: 700, padding: "0px 4px",
                               borderRadius: 6, background: C.yellowBg, color: C.yellow,
                               textTransform: "uppercase",
                             }}>PENTING</span>
                           )}
                           {notif.is_actioned && (
                             <span style={{
-                              fontSize: 10, fontWeight: 600, padding: "0px 4px",
+                              fontSize: "var(--t-mikro)", fontWeight: 600, padding: "0px 4px",
                               borderRadius: 6, background: C.greenBg, color: C.green,
                             }}>Sudah Diproses</span>
                           )}
@@ -519,7 +519,7 @@ export default function NotificationsPage() {
                         <p style={{ margin: "0 0 4px", fontSize: 12, color: C.mid, lineHeight: 1.5 }}>
                           {notif.message}
                         </p>
-                        <span style={{ fontSize: 11, color: C.muted }}>
+                        <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
                           {fmtDate(notif.sent_at)} · {fmtTime(notif.sent_at)}
                         </span>
 

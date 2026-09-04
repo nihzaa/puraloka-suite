@@ -370,7 +370,7 @@ export default function TenderPage() {
                 render: (b) => (
                   <>
                     <div style={{ fontWeight: 600, color: C.text }}>{b.title}</div>
-                    {b.bid_number && <div style={{ fontSize: 11, color: C.muted, fontFamily: "ui-monospace, monospace" }}>{b.bid_number}</div>}
+                    {b.bid_number && <div style={{ fontSize: "var(--t-kecil)", color: C.muted, fontFamily: "ui-monospace, monospace" }}>{b.bid_number}</div>}
                   </>
                 ),
               },
@@ -410,7 +410,7 @@ export default function TenderPage() {
                 render: (b) => {
                   const s = STATUS_LABEL[b.status];
                   return (
-                    <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 700, color: s.warna, background: s.bg, border: `1px solid ${s.border}`, whiteSpace: "nowrap" }}>
+                    <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 99, fontSize: "var(--t-kecil)", fontWeight: 700, color: s.warna, background: s.bg, border: `1px solid ${s.border}`, whiteSpace: "nowrap" }}>
                       {s.teks}
                     </span>
                   );
@@ -448,7 +448,7 @@ function DaftarMenggantung({ baris, tertua }: { baris: BarisMenggantung[]; tertu
               fontSize: 12, fontWeight: 600, color: C.text,
               flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}>{b.judul}</span>
-            <span style={{ fontSize: 11, color: C.mid, whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: "var(--t-kecil)", color: C.mid, whiteSpace: "nowrap" }}>
               {b.nilai == null
                 // "Rp 0" akan terbaca sebagai penawaran tanpa nilai, padahal
                 // nilainya hanya belum diisi.
@@ -456,7 +456,7 @@ function DaftarMenggantung({ baris, tertua }: { baris: BarisMenggantung[]; tertu
                 : fmtRp(b.nilai)}
             </span>
             <span style={{
-              fontSize: 11, fontWeight: 700, color: C.red,
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.red,
               fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap",
             }}>
               {b.umurHari} hari
@@ -481,7 +481,7 @@ function DaftarMenggantung({ baris, tertua }: { baris: BarisMenggantung[]; tertu
         </li>
       ))}
 
-      <li style={{ fontSize: 10, color: C.muted, lineHeight: 1.5, marginTop: 2 }}>
+      <li style={{ fontSize: "var(--t-mikro)", color: C.muted, lineHeight: 1.5, marginTop: 2 }}>
         <Clock size={10} aria-hidden="true" style={{ verticalAlign: "-1px", marginRight: 4 }} />
         Panjang batang relatif terhadap penawaran tertua di daftar ini.
         Tender yang menggantung selama ini sering sudah diputuskan tanpa kita

@@ -278,7 +278,7 @@ export default function PayrollPage() {
         {daftar.length > 0 && (
           <div className="rise" style={{ ...kartu, padding: "12px 16px", minWidth: 240, flex: "0 1 320px" }}>
             <label htmlFor="pr-periode" style={{
-              fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Periode</label>
             <Pilihan
@@ -413,11 +413,11 @@ export default function PayrollPage() {
             <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
               <strong style={{ fontSize: 14, color: C.text }}>{namaBulan(p.bulan)}</strong>
               <span style={{
-                padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700,
+                padding: "2px 8px", borderRadius: 999, fontSize: "var(--t-kecil)", fontWeight: 700,
                 color: STATUS[p.status].warna, background: STATUS[p.status].bg,
                 border: `1px solid ${STATUS[p.status].border}`,
               }}>{STATUS[p.status].label}</span>
-              <span style={{ fontSize: 11, color: C.muted }}>
+              <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
                 tarif yang dipakai: yang berlaku pada {p.tanggal_acuan}
               </span>
               {!terkunci && (
@@ -455,11 +455,11 @@ export default function PayrollPage() {
                   { l: "Dibayarkan", v: rp(detail.total.bersih), sub: "gaji bersih" },
                 ].map((k) => (
                   <div key={k.l} style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                    <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
                       textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.l}</div>
                     <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4, color: C.text,
                       fontVariantNumeric: "tabular-nums" }}>{k.v}</div>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{k.sub}</div>
+                    <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>{k.sub}</div>
                   </div>
                 ))}
               </div>
@@ -536,7 +536,7 @@ export default function PayrollPage() {
                           : <ChevronRight size={16} aria-hidden="true" style={{ color: C.muted, flexShrink: 0 }} />}
                         <span style={{ flex: "1 1 200px", minWidth: 0 }}>
                           <strong style={{ fontSize: 13.5 }}>{nama}</strong>
-                          <span style={{ display: "block", fontSize: 11.5, color: C.muted }}>
+                          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>
                             {s.pegawai?.nomor_induk ?? "—"}
                             {s.pegawai?.jabatan ? ` · ${s.pegawai.jabatan}` : ""}
                             {s.status_ptkp ? ` · PTKP ${s.status_ptkp}` : ""}
@@ -547,7 +547,7 @@ export default function PayrollPage() {
                           textAlign: "right", flex: "0 0 auto",
                         }}>
                           <span style={{ display: "block" }}>{rp(s.total_penghasilan)}</span>
-                          <span style={{ display: "block", fontSize: 11, color: "var(--danger)" }}>
+                          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: "var(--danger)" }}>
                             −{rp(s.total_potongan).replace("Rp ", "Rp ")}
                           </span>
                         </span>
@@ -560,7 +560,7 @@ export default function PayrollPage() {
 
                       {buka && (
                         <div style={{ padding: "0 16px 14px 42px" }}>
-                          <p style={{ fontSize: 11, color: C.muted, paddingBottom: 6 }}>
+                          <p style={{ fontSize: "var(--t-kecil)", color: C.muted, paddingBottom: 6 }}>
                             Rincian slip {nama} — {namaBulan(p.bulan)}
                           </p>
                           <Tabel              berpermukaan
@@ -578,7 +578,7 @@ export default function PayrollPage() {
                                     {/* `informasi` = ditanggung perusahaan. Dinyatakan
                                         eksplisit supaya tak terbaca sebagai potongan. */}
                                     {k.jenis === "informasi" && (
-                                      <span style={{ fontSize: 11, color: C.muted }}> · tidak mengurangi</span>
+                                      <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}> · tidak mengurangi</span>
                                     )}
                                   </>
                                 ),
@@ -587,7 +587,7 @@ export default function PayrollPage() {
                                 kunci: "dasar",
                                 judul: "Dasar hitung",
                                 render: (k) => (
-                                  <span style={{ color: C.muted, fontSize: 11.5 }}>
+                                  <span style={{ color: C.muted, fontSize: "var(--t-kecil)" }}>
                                     {k.dasar_hitung ?? "—"}
                                   </span>
                                 ),
@@ -626,7 +626,7 @@ export default function PayrollPage() {
 
                           {(!s.tarif_bpjs_id || !s.tarif_ter_id) && (
                             <p style={{
-                              fontSize: 11.5, color: "var(--warning-teks)", marginTop: 8,
+                              fontSize: "var(--t-kecil)", color: "var(--warning-teks)", marginTop: 8,
                               padding: "8px 10px", borderRadius: 6,
                               background: "var(--warning-bg)", border: "1px solid var(--warning-border)",
                             }}>
@@ -671,7 +671,7 @@ export default function PayrollPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <label htmlFor="pr-bulan" style={{
-              fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Bulan</label>
             <input

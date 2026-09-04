@@ -148,7 +148,7 @@ const ON_BIRU = "#1E40AF";       // --on-info-bg
 const styles = StyleSheet.create({
   page: {
     fontFamily: "Helvetica",
-    fontSize: 10,
+    fontSize: "var(--t-mikro)",
     color: TEKS,
     backgroundColor: PUTIH,
     padding: 40,
@@ -163,14 +163,14 @@ const styles = StyleSheet.create({
   companyDetail: { fontSize: 8, color: MUTED, marginBottom: 1 },
   invoiceBlock: { alignItems: "flex-end" },
   invoiceTitle: { fontFamily: "Helvetica-Bold", fontSize: 20, color: NAVY, letterSpacing: 2 },
-  invoiceNumber: { fontSize: 10, color: MUTED, marginTop: 2, marginBottom: 6 },
+  invoiceNumber: { fontSize: "var(--t-mikro)", color: MUTED, marginTop: 2, marginBottom: 6 },
   invoiceMeta: { fontSize: 8, color: TEKS, marginBottom: 1 },
 
   // ── Client + Status row ──
   clientStatusRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 },
   clientBlock: { flex: 1 },
   sectionLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: NAVY, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 },
-  clientName: { fontFamily: "Helvetica-Bold", fontSize: 10, color: TEKS, marginBottom: 1 },
+  clientName: { fontFamily: "Helvetica-Bold", fontSize: "var(--t-mikro)", color: TEKS, marginBottom: 1 },
   clientDetail: { fontSize: 8, color: MUTED, marginBottom: 1 },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, alignSelf: "flex-end" },
   statusText: { fontFamily: "Helvetica-Bold", fontSize: 8, letterSpacing: 0.5 },
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   // ── Project row ──
   projectRow: { backgroundColor: BG, borderRadius: 6, padding: "8 12", marginBottom: 16 },
   projectLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 },
-  projectName: { fontFamily: "Helvetica-Bold", fontSize: 10, color: TEKS },
+  projectName: { fontFamily: "Helvetica-Bold", fontSize: "var(--t-mikro)", color: TEKS },
   projectLocation: { fontSize: 8, color: MUTED, marginTop: 1 },
 
   // ── Line items ──
@@ -189,27 +189,27 @@ const styles = StyleSheet.create({
   tableRowAlt: { flexDirection: "row", padding: "7 10", borderBottomWidth: 1, borderBottomColor: BORDER, backgroundColor: SUBTLE },
   colDesc: { flex: 1 },
   colAmt: { width: 100, textAlign: "right" },
-  itemLabel: { fontSize: 10, color: TEKS },
+  itemLabel: { fontSize: "var(--t-mikro)", color: TEKS },
   itemSub: { fontSize: 7, color: MUTED, marginTop: 1 },
-  amtText: { fontSize: 10, fontFamily: "Helvetica-Bold", color: TEKS },
-  amtNeg: { fontSize: 10, fontFamily: "Helvetica-Bold", color: RED },
-  amtMuted: { fontSize: 10, color: MUTED },
+  amtText: { fontSize: "var(--t-mikro)", fontFamily: "Helvetica-Bold", color: TEKS },
+  amtNeg: { fontSize: "var(--t-mikro)", fontFamily: "Helvetica-Bold", color: RED },
+  amtMuted: { fontSize: "var(--t-mikro)", color: MUTED },
 
   // ── Total row ──
   totalRow: { flexDirection: "row", padding: "10 10", backgroundColor: NAVY, borderRadius: 0, marginBottom: 2 },
-  totalLabel: { flex: 1, fontFamily: "Helvetica-Bold", fontSize: 10, color: PUTIH },
-  totalAmount: { width: 100, textAlign: "right", fontFamily: "Helvetica-Bold", fontSize: 10, color: PUTIH },
+  totalLabel: { flex: 1, fontFamily: "Helvetica-Bold", fontSize: "var(--t-mikro)", color: PUTIH },
+  totalAmount: { width: 100, textAlign: "right", fontFamily: "Helvetica-Bold", fontSize: "var(--t-mikro)", color: PUTIH },
 
   // ── Footer area ──
   footerRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 20, borderTopWidth: 1, borderTopColor: BORDER, paddingTop: 14 },
   paymentBlock: { flex: 1 },
   payLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 5 },
-  payDetail: { fontSize: 10, color: TEKS, marginBottom: 2 },
+  payDetail: { fontSize: "var(--t-mikro)", color: TEKS, marginBottom: 2 },
   payBold: { fontFamily: "Helvetica-Bold" },
   signatureBlock: { alignItems: "center", minWidth: 120 },
   signatureLabel: { fontSize: 8, color: MUTED, marginBottom: 24 },
   signatureLine: { width: 100, borderBottomWidth: 1, borderBottomColor: TEKS, marginBottom: 4 },
-  signatureName: { fontFamily: "Helvetica-Bold", fontSize: 10, color: TEKS },
+  signatureName: { fontFamily: "Helvetica-Bold", fontSize: "var(--t-mikro)", color: TEKS },
   qrImage: { width: 70, height: 70, marginBottom: 4 },
 
   // ── Notes ──

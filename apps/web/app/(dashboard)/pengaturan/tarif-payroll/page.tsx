@@ -363,7 +363,7 @@ export default function TarifPayrollPage() {
                   </span>
                   {berlaku && (
                     <span style={{
-                      padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700,
+                      padding: "2px 8px", borderRadius: 999, fontSize: "var(--t-kecil)", fontWeight: 700,
                       color: "var(--success)", background: "var(--success-bg)",
                       border: "1px solid var(--success-border)",
                     }}>berlaku hari ini</span>
@@ -400,7 +400,7 @@ export default function TarifPayrollPage() {
                         "berlaku sejak" ini justru perlu DILIHAT — periode
                         yang keliru dibaca adalah cara paling mudah salah
                         menghitung gaji satu perusahaan. */}
-                    <p style={{ fontSize: 11, color: C.muted, paddingBottom: 6 }}>
+                    <p style={{ fontSize: "var(--t-kecil)", color: C.muted, paddingBottom: 6 }}>
                       Baris tarif {j.label} yang berlaku sejak {tanggal(p.berlaku_sejak)}
                     </p>
                     <Tabel              berpermukaan
@@ -499,7 +499,7 @@ export default function TarifPayrollPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
             <label htmlFor="tp-jenis" style={{
-              fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Jenis tarif</label>
             <Pilihan id="tp-jenis" value={fJenis} onChange={(e) => setFJenis(e.target.value as Jenis)}
@@ -511,14 +511,14 @@ export default function TarifPayrollPage() {
                 <option key={k} value={k}>{JENIS[k].label}</option>
               ))}
             </Pilihan>
-            <p style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
+            <p style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
               {JENIS[fJenis].guna} Kuncinya: {JENIS[fJenis].contohKunci}.
             </p>
           </div>
 
           <div>
             <label htmlFor="tp-sejak" style={{
-              fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Berlaku sejak</label>
             <input id="tp-sejak" type="date" value={fSejak} onChange={(e) => setFSejak(e.target.value)}
@@ -530,7 +530,7 @@ export default function TarifPayrollPage() {
 
           <div>
             <label htmlFor="tp-dasar" style={{
-              fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Dasar hukum <span style={{ color: "var(--danger)" }}>· wajib</span></label>
             <input id="tp-dasar" type="text" value={fDasar} onChange={(e) => setFDasar(e.target.value)}
@@ -539,7 +539,7 @@ export default function TarifPayrollPage() {
                 width: "100%", padding: "8px 10px", borderRadius: 6, fontSize: 13,
                 border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text,
               }} />
-            <p style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
+            <p style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
               Tarif tanpa dasar hukum tak bisa dipertanggungjawabkan saat pemeriksaan,
               dan yang memeriksanya tak punya cara tahu dari mana angkanya.
             </p>
@@ -591,14 +591,14 @@ export default function TarifPayrollPage() {
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <div>
-                <label htmlFor="tb-kunci" style={{ fontSize: 11, fontWeight: 700, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <label htmlFor="tb-kunci" style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Kunci <span style={{ color: "var(--danger)" }}>· wajib</span>
                 </label>
                 <input id="tb-kunci" value={bKunci} onChange={(e) => setBKunci(e.target.value)}
                   style={{ width: "100%", padding: "8px 10px", borderRadius: 6, fontSize: 13, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text }} />
               </div>
               <div>
-                <label htmlFor="tb-label" style={{ fontSize: 11, fontWeight: 700, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Label</label>
+                <label htmlFor="tb-label" style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Label</label>
                 <input id="tb-label" value={bLabel} onChange={(e) => setBLabel(e.target.value)}
                   style={{ width: "100%", padding: "8px 10px", borderRadius: 6, fontSize: 13, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text }} />
               </div>
@@ -615,7 +615,7 @@ export default function TarifPayrollPage() {
                 { id: "tb-karyawan", l: "Persen karyawan (%)", v: bKaryawan, s: setBKaryawan, k: "karyawan" },
               ].filter((f) => JENIS[tambahKe.jenis].tampil.includes(f.k as never)).map((f) => (
                 <div key={f.id}>
-                  <label htmlFor={f.id} style={{ fontSize: 11, fontWeight: 700, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>{f.l}</label>
+                  <label htmlFor={f.id} style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>{f.l}</label>
                   <input
                     id={f.id} type="number" step="any" inputMode="decimal"
                     value={f.v} onChange={(e) => f.s(e.target.value)}
@@ -625,7 +625,7 @@ export default function TarifPayrollPage() {
               ))}
             </div>
 
-            <p style={{ fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
+            <p style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.5 }}>
               Kolom yang dikosongkan disimpan sebagai <strong>tak berlaku</strong>,
               bukan nol — jadi kosongkan yang memang tak dipakai jenis ini.
             </p>

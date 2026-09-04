@@ -295,7 +295,7 @@ export default function SusunLaporanPage() {
                   }}
                 >
                   <strong style={{ display: "block", fontSize: 13, color: C.text }}>{s.label}</strong>
-                  <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 2, lineHeight: 1.45 }}>
+                  <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2, lineHeight: 1.45 }}>
                     {s.keterangan}
                   </span>
                 </button>
@@ -365,7 +365,7 @@ export default function SusunLaporanPage() {
                     gridTemplateColumns: "minmax(140px,1.2fr) minmax(110px,.8fr) minmax(140px,1.2fr) auto",
                   }}>
                     <div>
-                      <label htmlFor={`f-kol-${i}`} style={{ display: "block", fontSize: 11, color: C.muted, marginBottom: 3 }}>
+                      <label htmlFor={`f-kol-${i}`} style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginBottom: 3 }}>
                         Kolom
                       </label>
                       <Pilihan id={`f-kol-${i}`} style={{ ...gayaInput, fontSize: 12.5 }}
@@ -388,7 +388,7 @@ export default function SusunLaporanPage() {
                       </Pilihan>
                     </div>
                     <div>
-                      <label htmlFor={`f-op-${i}`} style={{ display: "block", fontSize: 11, color: C.muted, marginBottom: 3 }}>
+                      <label htmlFor={`f-op-${i}`} style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginBottom: 3 }}>
                         Operator
                       </label>
                       <Pilihan id={`f-op-${i}`} style={{ ...gayaInput, fontSize: 12.5 }}
@@ -398,7 +398,7 @@ export default function SusunLaporanPage() {
                       </Pilihan>
                     </div>
                     <div>
-                      <label htmlFor={`f-nil-${i}`} style={{ display: "block", fontSize: 11, color: C.muted, marginBottom: 3 }}>
+                      <label htmlFor={`f-nil-${i}`} style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginBottom: 3 }}>
                         Nilai
                       </label>
                       <input id={`f-nil-${i}`} style={{ ...gayaInput, fontSize: 12.5 }}
@@ -426,7 +426,7 @@ export default function SusunLaporanPage() {
           </JudulKartu>
           <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))" }}>
             <div>
-              <label htmlFor="urut-kol" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+              <label htmlFor="urut-kol" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
                 Urut berdasarkan
               </label>
               <Pilihan id="urut-kol" style={gayaInput} value={urutKolom}
@@ -436,7 +436,7 @@ export default function SusunLaporanPage() {
               </Pilihan>
             </div>
             <div>
-              <label htmlFor="urut-arah" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+              <label htmlFor="urut-arah" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
                 Arah
               </label>
               <Pilihan id="urut-arah" style={gayaInput} value={urutArah}
@@ -447,7 +447,7 @@ export default function SusunLaporanPage() {
               </Pilihan>
             </div>
             <div>
-              <label htmlFor="batas" style={{ display: "block", fontSize: 11.5, color: C.mid, marginBottom: 3 }}>
+              <label htmlFor="batas" style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginBottom: 3 }}>
                 Batas baris
               </label>
               <input id="batas" type="number" min="1" max={muatan?.batas_maks}

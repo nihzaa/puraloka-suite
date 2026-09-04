@@ -453,7 +453,7 @@ export default function HalamanAlurOtomasi() {
             {belumTersambung.length > 0 && (
               <p
                 style={{
-                  margin: "0 0 2px", fontSize: 11.5, color: C.muted,
+                  margin: "0 0 2px", fontSize: "var(--t-kecil)", color: C.muted,
                   lineHeight: 1.5,
                 }}
               >
@@ -673,7 +673,7 @@ export default function HalamanAlurOtomasi() {
             />
           ) : (
             <div>
-              <p style={{ fontSize: 11, color: C.muted, padding: "8px var(--pad-kartu-lega)" }}>
+              <p style={{ fontSize: "var(--t-kecil)", color: C.muted, padding: "8px var(--pad-kartu-lega)" }}>
                 Seluruh alur, terbaru dulu.
               </p>
               <Tabel
@@ -809,7 +809,7 @@ export default function HalamanAlurOtomasi() {
                         menunggu di dalam. */}
                     <span
                       style={{
-                        fontSize: 11.5, color: C.muted, flexShrink: 0,
+                        fontSize: "var(--t-kecil)", color: C.muted, flexShrink: 0,
                         fontVariantNumeric: "tabular-nums",
                       }}
                     >
@@ -1002,7 +1002,7 @@ export default function HalamanAlurOtomasi() {
                           </p>
                         ) : (
                           <div>
-                            <p style={{ fontSize: 11, color: C.muted, paddingBottom: 5 }}>
+                            <p style={{ fontSize: "var(--t-kecil)", color: C.muted, paddingBottom: 5 }}>
                               50 jalan terakhir — {a.nama}
                             </p>
                             <Tabel

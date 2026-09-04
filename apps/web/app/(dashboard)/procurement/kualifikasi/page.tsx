@@ -114,7 +114,7 @@ function Kpi({ label, nilai, keterangan, warna }: {
 }) {
   return (
     <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", flex: "1 1 190px", minWidth: 175 }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+      <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
         {label}
       </div>
       <div style={{
@@ -189,7 +189,7 @@ export default function KualifikasiVendorPage() {
         <span>
           <span style={{ fontWeight: 600, color: C.text }}>{p.vendor?.name ?? "—"}</span>
           {p.vendor?.city && (
-            <span style={{ display: "block", fontSize: 11, color: C.muted }}>{p.vendor.city}</span>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>{p.vendor.city}</span>
           )}
         </span>
       ),
@@ -207,7 +207,7 @@ export default function KualifikasiVendorPage() {
       kunci: "status", judul: "Status",
       render: (p) => (
         <span style={{
-          padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+          padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 600, whiteSpace: "nowrap",
           color: STATUS_META[p.nilai.status].warna,
           background: STATUS_META[p.nilai.status].bg,
         }}>
@@ -227,7 +227,7 @@ export default function KualifikasiVendorPage() {
           <span style={{ color: "var(--danger)", fontWeight: 600 }}>
             Tidak
             {p.nilai.dokumenKedaluwarsa.length > 0 && (
-              <span style={{ display: "block", fontSize: 11, fontWeight: 400, color: C.mid }}>
+              <span style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 400, color: C.mid }}>
                 {p.nilai.dokumenKedaluwarsa.map((d) => d.jenis.toUpperCase()).join(", ")} kedaluwarsa
               </span>
             )}
@@ -275,7 +275,7 @@ export default function KualifikasiVendorPage() {
           <span style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
             {e.nilai.titikLemah.map((t) => (
               <span key={t} style={{
-                padding: "1px 7px", borderRadius: 20, fontSize: 10, fontWeight: 600,
+                padding: "1px 7px", borderRadius: 20, fontSize: "var(--t-mikro)", fontWeight: 600,
                 background: "var(--warning-bg)", color: "var(--warning)", whiteSpace: "nowrap",
               }}>{LABEL_DIMENSI[t] ?? t}</span>
             ))}
@@ -288,7 +288,7 @@ export default function KualifikasiVendorPage() {
         ? <span style={{ color: "var(--success)", fontWeight: 600 }}>Ya</span>
         : (
           <span style={{
-            padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 700,
+            padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 700,
             background: "var(--danger-bg)", color: "var(--danger)",
             border: "1px solid var(--danger-border)", whiteSpace: "nowrap",
           }}>Daftar hitam</span>

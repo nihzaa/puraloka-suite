@@ -176,7 +176,7 @@ function IsiVarians() {
                         {/* `th scope="row"` — cost code adalah identitas barisnya. */}
                         <th scope="row" style={{ ...td, textAlign: "left", fontWeight: 400 }}>
                           <span style={{ color: C.aksen, fontWeight: 600 }}>{b.code}</span>
-                          <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{b.name}</div>
+                          <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>{b.name}</div>
                         </th>
                         <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
                           {b.pagu ? angka(b.pagu) : "—"}
@@ -202,7 +202,7 @@ function IsiVarians() {
             </div>
           </section>
 
-          <p style={{ fontSize: 11, color: C.muted, marginTop: 9, lineHeight: 1.6 }}>
+          <p style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 9, lineHeight: 1.6 }}>
             <b>Pagu</b> = yang boleh dibelanjakan (dari RAP) ·{" "}
             <b>Komitmen</b> = sudah terikat PO/borongan meski belum dibayar ·{" "}
             <b>Aktual</b> = yang benar-benar keluar. Selisih negatif berarti
@@ -241,7 +241,7 @@ function Pemilih({ proyek, nilai, onPilih }: {
 
 const th: React.CSSProperties = {
   textAlign: "left", padding: "var(--pad-baris)",
-  fontSize: 11, fontWeight: 700, letterSpacing: ".04em",
+  fontSize: "var(--t-kecil)", fontWeight: 700, letterSpacing: ".04em",
   textTransform: "uppercase", color: "var(--text-muted)",
   borderBottom: "1px solid var(--border)",
   background: "var(--surface-subtle)", whiteSpace: "nowrap",

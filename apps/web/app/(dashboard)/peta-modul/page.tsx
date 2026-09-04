@@ -112,7 +112,7 @@ export default function PetaModulPage() {
               borderRadius: 12, padding: "var(--pad-kartu)",
               borderLeft: `3px solid ${r.warna}`,
             }}>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", color: C.mid, textTransform: "uppercase" }}>
+              <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, letterSpacing: "0.04em", color: C.mid, textTransform: "uppercase" }}>
                 {r.label}
               </div>
               <div style={{ fontSize: 24, fontWeight: 700, color: C.text, fontVariantNumeric: "tabular-nums", marginTop: 4 }}>
@@ -181,7 +181,7 @@ export default function PetaModulPage() {
                       <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{i.label}</span>
                       {/* Status disebut dengan KATA, bukan cuma warna ikon. */}
                       <span style={{
-                        marginLeft: "auto", fontSize: 10, fontWeight: 700, padding: "1px 6px",
+                        marginLeft: "auto", fontSize: "var(--t-mikro)", fontWeight: 700, padding: "1px 6px",
                         borderRadius: 999, color: r.warna, background: r.bg,
                         border: `1px solid ${r.border}`, whiteSpace: "nowrap",
                       }}>
@@ -192,7 +192,7 @@ export default function PetaModulPage() {
                       <p style={{ fontSize: 12, color: C.mid, margin: 0, lineHeight: 1.5 }}>{i.guna}</p>
                     )}
                     {i.catatan && (
-                      <p style={{ fontSize: 11, color: C.muted, margin: "6px 0 0", lineHeight: 1.5 }}>
+                      <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: "6px 0 0", lineHeight: 1.5 }}>
                         {i.catatan}
                       </p>
                     )}

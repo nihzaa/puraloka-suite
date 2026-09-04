@@ -165,7 +165,7 @@ function Kpi({ label, nilai, keterangan, warna }: {
 }) {
   return (
     <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", flex: "1 1 190px", minWidth: 175 }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+      <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
         {label}
       </div>
       <div style={{
@@ -274,7 +274,7 @@ function IsiPengadaanLanjutan() {
             {k.po_number ?? "—"}
           </span>
           {k.pemasok_nama && (
-            <span style={{ display: "block", fontSize: 11, color: C.muted }}>{k.pemasok_nama}</span>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>{k.pemasok_nama}</span>
           )}
         </span>
       ),
@@ -284,7 +284,7 @@ function IsiPengadaanLanjutan() {
       render: (k) => (
         <span>
           <span style={{
-            padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+            padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 600, whiteSpace: "nowrap",
             color: k.status === "tertahan" ? "var(--danger)"
               : k.sudahTiba ? "var(--success)" : "var(--info)",
             background: k.status === "tertahan" ? "var(--danger-bg)"
@@ -293,12 +293,12 @@ function IsiPengadaanLanjutan() {
             {LABEL_KIRIM[k.status] ?? k.status}
           </span>
           {k.lokasi_terkini && (
-            <span style={{ display: "block", fontSize: 11, color: C.mid, marginTop: 3 }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 3 }}>
               {k.lokasi_terkini}
             </span>
           )}
           {k.sebab_tertahan && (
-            <span style={{ display: "block", fontSize: 11, color: "var(--danger)", marginTop: 3 }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: "var(--danger)", marginTop: 3 }}>
               {k.sebab_tertahan}
             </span>
           )}
@@ -319,7 +319,7 @@ function IsiPengadaanLanjutan() {
         <span style={{ whiteSpace: "nowrap", color: k.janjiSudahTelat ? "var(--warning)" : C.mid }}>
           {tanggalTerbaca(k.janji_vendor)}
           {k.janjiSudahTelat && (
-            <span style={{ display: "block", fontSize: 11, fontWeight: 600 }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 600 }}>
               sudah lebih lambat dari kebutuhan
             </span>
           )}
@@ -342,7 +342,7 @@ function IsiPengadaanLanjutan() {
           }}>
             {k.telatHari} hari
             {k.telatDariJanji != null && k.telatDariJanji !== k.telatHari && (
-              <span style={{ display: "block", fontSize: 11, fontWeight: 400, color: C.mid }}>
+              <span style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 400, color: C.mid }}>
                 {k.telatDariJanji <= 0 ? "tepat janji vendor" : `${k.telatDariJanji} hari dari janji`}
               </span>
             )}
@@ -358,7 +358,7 @@ function IsiPengadaanLanjutan() {
       render: (n) => (
         <span>
           <span style={{ fontWeight: 600, color: C.text, fontVariantNumeric: "tabular-nums" }}>{n.nomor}</span>
-          <span style={{ display: "block", fontSize: 11, color: C.muted }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>
             {n.pemasok_nama ?? "—"} · {LABEL_NOTA[n.jenis] ?? n.jenis}
           </span>
         </span>
@@ -382,14 +382,14 @@ function IsiPengadaanLanjutan() {
         return (
           <span>
             <span style={{
-              padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+              padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 600, whiteSpace: "nowrap",
               color: meta.warna, background: meta.bg,
             }}>
               {meta.label}
             </span>
             {n.menggantung && (
               // Disetujui, tapi potongannya belum mengurangi tagihan apa pun.
-              <span style={{ display: "block", fontSize: 11, color: "var(--danger)", fontWeight: 700, marginTop: 3 }}>
+              <span style={{ display: "block", fontSize: "var(--t-kecil)", color: "var(--danger)", fontWeight: 700, marginTop: 3 }}>
                 belum diterapkan — {n.umurSetujuHari} hari
               </span>
             )}
@@ -604,12 +604,12 @@ function IsiPengadaanLanjutan() {
                           <div style={{ fontWeight: 700, fontSize: 13, color: C.text, fontVariantNumeric: "tabular-nums" }}>
                             {k.nomor}
                           </div>
-                          <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>
+                          <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 1 }}>
                             {k.judul} · {k.pemasok_nama ?? "—"}
                           </div>
                         </div>
                         <span style={{
-                          padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600,
+                          padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 600,
                           color: meta.warna, background: meta.bg, whiteSpace: "nowrap", flexShrink: 0,
                         }}>
                           {meta.label}
@@ -617,7 +617,7 @@ function IsiPengadaanLanjutan() {
                       </div>
 
                       {k.aktifTapiTakBisaDipakai && (
-                        <div style={{ fontSize: 11, color: "var(--danger)", fontWeight: 700, marginTop: 6 }}>
+                        <div style={{ fontSize: "var(--t-kecil)", color: "var(--danger)", fontWeight: 700, marginTop: 6 }}>
                           tercatat &ldquo;aktif&rdquo; — PO berikutnya ditagih di luar harga kontrak
                         </div>
                       )}
@@ -627,7 +627,7 @@ function IsiPengadaanLanjutan() {
                       </div>
 
                       <div style={{
-                        fontSize: 11, color: C.mid, marginTop: 10, lineHeight: 1.5,
+                        fontSize: "var(--t-kecil)", color: C.mid, marginTop: 10, lineHeight: 1.5,
                         display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap",
                       }}>
                         <span>

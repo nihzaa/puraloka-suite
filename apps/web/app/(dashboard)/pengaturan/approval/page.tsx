@@ -155,11 +155,11 @@ function ChainCard({ chain, perms, canManage, onToggle, onAdd, onPatch, onDelete
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{chain.label}</span>
-            <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: tiered ? C.navy : C.muted, background: tiered ? C.navyLight : "var(--surface-subtle)", padding: "2px 8px", borderRadius: 6 }}>
+            <span style={{ fontSize: "var(--t-mikro)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: tiered ? C.navy : C.muted, background: tiered ? C.navyLight : "var(--surface-subtle)", padding: "2px 8px", borderRadius: 6 }}>
               {tiered ? `${steps.length} level` : "1 level"}
             </span>
           </div>
-          <code style={{ fontSize: 11, color: C.muted }}>{chain.entity_type}</code>
+          <code style={{ fontSize: "var(--t-kecil)", color: C.muted }}>{chain.entity_type}</code>
         </div>
         {canManage && (
           <button aria-label={chain.is_active ? "Nonaktifkan rantai" : "Aktifkan rantai"} onClick={() => onToggle(chain.entity_type, !chain.is_active)}
@@ -188,18 +188,18 @@ function ChainCard({ chain, perms, canManage, onToggle, onAdd, onPatch, onDelete
             */}
             <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr", gap: 8 }}>
               <div>
-                <label htmlFor={`new-perm-${chain.entity_type}`} style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Siapa yang berhak (permission)</label>
+                <label htmlFor={`new-perm-${chain.entity_type}`} style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, marginBottom: 5 }}>Siapa yang berhak (permission)</label>
                 <Pilihan id={`new-perm-${chain.entity_type}`} aria-label="Permission yang berhak menyetujui langkah ini" value={newPerm} onChange={e => setNewPerm(e.target.value)} style={input}>
                   <option value="">— pilih permission —</option>
                   {perms.map(p => <option key={p.key} value={p.key}>{p.label ? `${p.label} (${p.key})` : p.key}</option>)}
                 </Pilihan>
               </div>
               <div>
-                <label htmlFor={`new-min-${chain.entity_type}`} style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Lantai — berlaku bila ≥ (opsional)</label>
+                <label htmlFor={`new-min-${chain.entity_type}`} style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, marginBottom: 5 }}>Lantai — berlaku bila ≥ (opsional)</label>
                 <input id={`new-min-${chain.entity_type}`} inputMode="numeric" value={newMin} onChange={e => setNewMin(e.target.value.replace(/[^0-9]/g, ""))} placeholder="mis. 50000000" style={input} />
               </div>
               <div>
-                <label htmlFor={`new-max-${chain.entity_type}`} style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Plafon — berlaku bila ≤ (opsional)</label>
+                <label htmlFor={`new-max-${chain.entity_type}`} style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, marginBottom: 5 }}>Plafon — berlaku bila ≤ (opsional)</label>
                 <input id={`new-max-${chain.entity_type}`} inputMode="numeric" value={newMax} onChange={e => setNewMax(e.target.value.replace(/[^0-9]/g, ""))} placeholder="mis. 5000000" style={input} />
               </div>
             </div>
@@ -265,7 +265,7 @@ function StepRow({ step, perms, canManage, isLast, connector, onPatch, onDelete 
             </div>
           </div>
           {rentangSalah && (
-            <div role="alert" style={{ marginTop: 6, fontSize: 11, color: C.red, display: "flex", alignItems: "center", gap: 5 }}>
+            <div role="alert" style={{ marginTop: 6, fontSize: "var(--t-kecil)", color: C.red, display: "flex", alignItems: "center", gap: 5 }}>
               <AlertTriangle size={12} style={{ flexShrink: 0 }} />
               Plafon di bawah lantai — langkah ini tak akan pernah berlaku untuk nilai apa pun.
             </div>
@@ -277,7 +277,7 @@ function StepRow({ step, perms, canManage, isLast, connector, onPatch, onDelete 
             <div style={{ fontSize: 13, color: C.text, fontWeight: 500 }}>
               {perms.find(p => p.key === step.required_permission)?.label ?? step.required_permission}
             </div>
-            <div style={{ fontSize: 11, color: C.muted }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
               <code>{step.required_permission}</code>
               {/*
                 EMPAT kombinasi, dan keempatnya harus terbaca berbeda. Menulis

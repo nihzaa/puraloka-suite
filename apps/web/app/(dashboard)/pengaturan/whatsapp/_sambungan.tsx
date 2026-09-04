@@ -240,7 +240,7 @@ export default function KartuSambungan({
               <span style={{ fontSize: 13, color: C.mid }}>· +{status.nomor}</span>
             )}
             {status?.instance && (
-              <code style={{ fontSize: 11, color: C.muted }}>{status.instance}</code>
+              <code style={{ fontSize: "var(--t-kecil)", color: C.muted }}>{status.instance}</code>
             )}
           </div>
 

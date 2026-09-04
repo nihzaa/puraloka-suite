@@ -168,7 +168,7 @@ const buatKolom = (
           </span>
         )}
         {a.status === "ditolak" && a.alasan_tolak && (
-          <span style={{ display: "block", fontSize: 11, color: "var(--danger)", marginTop: 2, maxWidth: "38ch" }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: "var(--danger)", marginTop: 2, maxWidth: "38ch" }}>
             Ditolak: {a.alasan_tolak}
           </span>
         )}
@@ -184,7 +184,7 @@ const buatKolom = (
           title={j.arti}
           style={{
             display: "inline-flex", alignItems: "center", gap: 4,
-            padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700,
+            padding: "2px 8px", borderRadius: 999, fontSize: "var(--t-kecil)", fontWeight: 700,
             // Yang MEMOTONG jatah diberi warna; yang tidak, tenang. Bedanya
             // itulah yang paling sering disalahpahami karyawan.
             color: j.jatah ? "var(--navy)" : C.mid,
@@ -210,7 +210,7 @@ const buatKolom = (
           // jumlahnya. Ditemukan dari layar: "2 hari dilewati" masih menuntut
           // hover untuk tahu apakah itu akhir pekan atau libur nasional, dan
           // bedanya penting (yang satu wajar, yang satu perlu diperiksa).
-          <span style={{ display: "block", fontSize: 10, color: C.muted, maxWidth: "22ch" }}>
+          <span style={{ display: "block", fontSize: "var(--t-mikro)", color: C.muted, maxWidth: "22ch" }}>
             {/* Sebab saja, tanpa tanggalnya — tanggal sudah ada di kolom kiri. */}
             −{a.hari_dilewati.split(",")
               .map((x) => x.replace(/^\s*\S+\s*\(/, "").replace(/\)\s*$/, ""))
@@ -228,11 +228,11 @@ const buatKolom = (
         <span style={{ display: "block" }}>
           <span style={{
             display: "inline-block", padding: "2px 8px", borderRadius: 999,
-            fontSize: 11, fontWeight: 700,
+            fontSize: "var(--t-kecil)", fontWeight: 700,
             color: s.warna, background: s.bg, border: `1px solid ${s.border}`,
           }}>{s.label}</span>
           {a.pemutus && (
-            <span style={{ display: "block", fontSize: 10, color: C.muted, marginTop: 2 }}>
+            <span style={{ display: "block", fontSize: "var(--t-mikro)", color: C.muted, marginTop: 2 }}>
               {a.pemutus.name}
             </span>
           )}
@@ -453,7 +453,7 @@ export default function CutiPage() {
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
         <div className="rise" style={{ ...kartu, padding: "12px 16px", minWidth: 260, flex: "1 1 260px", maxWidth: 400 }}>
           <label htmlFor="ct-pegawai" style={{
-            fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+            fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
             marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
           }}>Pegawai</label>
           <Pilihan
@@ -475,7 +475,7 @@ export default function CutiPage() {
 
         <div className="rise" style={{ ...kartu, padding: "12px 16px", flex: "0 1 160px" }}>
           <label htmlFor="ct-tahun" style={{
-            fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+            fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
             marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
           }}>Tahun jatah</label>
           <input
@@ -514,14 +514,14 @@ export default function CutiPage() {
                 // terpakai berlebih harus terlihat.
                 borderColor: k.tonjol && s.sisa < 0 ? "var(--danger-border)" : C.border,
               }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.l}</div>
                 <div style={{
                   fontSize: k.tonjol ? 26 : 22, fontWeight: 700, marginTop: 4,
                   color: k.tonjol && s.sisa < 0 ? "var(--danger)" : C.text,
                   fontVariantNumeric: "tabular-nums",
                 }}>{k.v}</div>
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{k.sub}</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>{k.sub}</div>
               </div>
             ))}
           </div>
@@ -569,7 +569,7 @@ export default function CutiPage() {
           {detail.hak.filter((h) => h.tahun === tahun).length > 0 && (
             <div className="rise" style={{ ...kartu, padding: "14px 18px", marginBottom: 14 }}>
               <div style={{
-                fontSize: 11, fontWeight: 700, color: C.muted, marginBottom: 8,
+                fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, marginBottom: 8,
                 textTransform: "uppercase", letterSpacing: "0.05em",
               }}>Dari mana jatah {tahun} berasal</div>
               <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex",
@@ -587,12 +587,12 @@ export default function CutiPage() {
                       }}>{n > 0 ? "+" : ""}{hari(n)} hari</span>
                       <span style={{ color: C.text }}>{h.alasan}</span>
                       {h.berlaku_sampai && (
-                        <span style={{ fontSize: 11, color: "var(--warning-teks)" }}>
+                        <span style={{ fontSize: "var(--t-kecil)", color: "var(--warning-teks)" }}>
                           hangus {tanggalPendek(h.berlaku_sampai)}
                         </span>
                       )}
                       {h.pemberi && (
-                        <span style={{ fontSize: 11, color: C.muted, marginLeft: "auto" }}>
+                        <span style={{ fontSize: "var(--t-kecil)", color: C.muted, marginLeft: "auto" }}>
                           {h.pemberi.name}
                         </span>
                       )}
@@ -647,7 +647,7 @@ export default function CutiPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <label htmlFor="ct-jenis" style={{
-              fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Jenis</label>
             <Pilihan
@@ -662,7 +662,7 @@ export default function CutiPage() {
               ))}
             </Pilihan>
             <p style={{
-              fontSize: 11, marginTop: 4, lineHeight: 1.5,
+              fontSize: "var(--t-kecil)", marginTop: 4, lineHeight: 1.5,
               color: JENIS[fJenis].jatah ? C.mid : "var(--success)",
             }}>
               {JENIS[fJenis].arti}
@@ -672,7 +672,7 @@ export default function CutiPage() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
               <label htmlFor="ct-mulai" style={{
-                fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+                fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
                 marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
               }}>Mulai</label>
               <input id="ct-mulai" type="date" value={fMulai}
@@ -684,7 +684,7 @@ export default function CutiPage() {
             </div>
             <div>
               <label htmlFor="ct-selesai" style={{
-                fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+                fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
                 marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
               }}>Selesai</label>
               <input id="ct-selesai" type="date" value={fSelesai}
@@ -698,7 +698,7 @@ export default function CutiPage() {
 
           <div>
             <label htmlFor="ct-alasan" style={{
-              fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Alasan</label>
             <input id="ct-alasan" value={fAlasan} onChange={(e) => setFAlasan(e.target.value)}
@@ -764,7 +764,7 @@ export default function CutiPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <label htmlFor="ct-tolak" style={{
-              fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Alasan <span style={{ color: "var(--danger)" }}>· wajib</span></label>
             <textarea id="ct-tolak" rows={3} value={fTolak}
@@ -775,7 +775,7 @@ export default function CutiPage() {
                 border: `1px solid ${C.border}`, background: "var(--surface)",
                 color: C.text, resize: "vertical", fontFamily: "inherit",
               }} />
-            <p style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
+            <p style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
               Cuti yang ditolak tanpa alasan akan diajukan lagi dengan bentuk
               yang sama.
             </p>
@@ -818,7 +818,7 @@ export default function CutiPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <label htmlFor="ct-hjumlah" style={{
-              fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Jumlah hari</label>
             <input id="ct-hjumlah" type="number" step="0.5" value={hJumlah}
@@ -828,7 +828,7 @@ export default function CutiPage() {
                 width: "100%", padding: "8px 10px", borderRadius: 6, fontSize: 13,
                 border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text,
               }} />
-            <p style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
+            <p style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
               Boleh <strong>negatif</strong> untuk mengoreksi jatah yang terlanjur
               berlebih — koreksi dicatat sebagai baris tersendiri, bukan dengan
               mengubah baris lama.
@@ -837,7 +837,7 @@ export default function CutiPage() {
 
           <div>
             <label htmlFor="ct-halasan" style={{
-              fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
             }}>Alasan <span style={{ color: "var(--danger)" }}>· wajib</span></label>
             <input id="ct-halasan" value={hAlasan} onChange={(e) => setHAlasan(e.target.value)}
@@ -846,7 +846,7 @@ export default function CutiPage() {
                 width: "100%", padding: "8px 10px", borderRadius: 6, fontSize: 13,
                 border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text,
               }} />
-            <p style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
+            <p style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
               Angka jatah tanpa keterangan tak bisa dipertanggungjawabkan saat
               dipertanyakan.
             </p>

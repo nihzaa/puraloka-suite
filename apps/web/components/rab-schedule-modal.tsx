@@ -116,7 +116,7 @@ function PctInput({
         onFocus={e => { e.currentTarget.style.borderColor = color; }}
         onBlur={e => { e.currentTarget.style.borderColor = `${color}33`; }}
       />
-      <span style={{ fontSize: 10, color: C.muted }}>%</span>
+      <span style={{ fontSize: "var(--t-mikro)", color: C.muted }}>%</span>
     </div>
   );
 }
@@ -132,7 +132,7 @@ function TotalBar({ mat, upah, alat, other }: { mat: number; upah: number; alat:
       <div style={{ flex: 1, height: 4, background: "var(--surface-hover)", borderRadius: 0, overflow: "hidden" }}>
         <div style={{ height: "100%", width: `${Math.min(100, total)}%`, background: color, borderRadius: 0, transition: "width 0.2s" }} />
       </div>
-      <span style={{ fontSize: 10, fontWeight: 700, color, minWidth: 30, textAlign: "right" }}>
+      <span style={{ fontSize: "var(--t-mikro)", fontWeight: 700, color, minWidth: 30, textAlign: "right" }}>
         {total > 0 ? `${total.toFixed(0)}%` : "—"}
       </span>
     </div>
@@ -289,7 +289,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                 <div style={{ fontSize: 15, fontWeight: 700, color: C.text, fontFamily: "var(--font-display)" }}>
                   Jadwal Rencana Serapan Dana
                 </div>
-                <div style={{ fontSize: 11, color: C.muted }}>Per item RAB, per komponen, per minggu</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>Per item RAB, per komponen, per minggu</div>
               </div>
             </div>
             <button aria-label="Tutup dialog jadwal RAB" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: C.muted }}>
@@ -301,7 +301,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
         <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
           {/* Pilih item RAB */}
           <div style={{ padding: "16px 24px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>
+            <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>
               Pilih Item Pekerjaan
             </div>
             {loadingItems ? (
@@ -337,19 +337,19 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
             {selectedItem && (
               <div style={{ marginTop: 10, display: "flex", gap: 12 }}>
                 <div style={{ flex: 1, background: C.navyLight, borderRadius: 6, padding: "8px 12px" }}>
-                  <div style={{ fontSize: 10, color: C.mid }}>Nilai Item</div>
+                  <div style={{ fontSize: "var(--t-mikro)", color: C.mid }}>Nilai Item</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>
                     {selectedItem.total_price ? fmt(selectedItem.total_price) : "—"}
                   </div>
                 </div>
                 <div style={{ flex: 1, background: "var(--success-bg)", borderRadius: 6, padding: "8px 12px" }}>
-                  <div style={{ fontSize: 10, color: C.mid }}>Total Dijadwalkan</div>
+                  <div style={{ fontSize: "var(--t-mikro)", color: C.mid }}>Total Dijadwalkan</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: grandTotal > 100.1 ? C.red : grandTotal >= 99.9 ? C.green : C.yellow }}>
                     {grandTotal.toFixed(1)}% {grandTotal >= 99.9 && grandTotal <= 100.1 ? "✓ Lengkap" : grandTotal > 100.1 ? "⚠ Melebihi 100%" : "dari 100%"}
                   </div>
                 </div>
                 <div style={{ flex: 1, background: "var(--bg)", borderRadius: 6, padding: "8px 12px" }}>
-                  <div style={{ fontSize: 10, color: C.mid }}>Sisa Dijadwalkan</div>
+                  <div style={{ fontSize: "var(--t-mikro)", color: C.mid }}>Sisa Dijadwalkan</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
                     {Math.max(0, 100 - grandTotal).toFixed(1)}%
                   </div>
@@ -375,10 +375,10 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                     ].map(c => (
                       <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                         <div style={{ width: 8, height: 8, borderRadius: 0, background: c.color }} />
-                        <span style={{ fontSize: 10, color: C.mid }}>{c.label}</span>
+                        <span style={{ fontSize: "var(--t-mikro)", color: C.mid }}>{c.label}</span>
                       </div>
                     ))}
-                    <span style={{ fontSize: 10, color: C.muted, marginLeft: "auto" }}>
+                    <span style={{ fontSize: "var(--t-mikro)", color: C.muted, marginLeft: "auto" }}>
                       Total per baris harus = 100%
                     </span>
                   </div>
@@ -390,7 +390,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                     borderRadius: 6, marginBottom: 4, border: `1px solid ${C.border}`,
                   }}>
                     {["Minggu", "Material", "Upah", "Alat", "Lain", "Total", "", ""].map((h, i) => (
-                      <div key={i} style={{ fontSize: 10, fontWeight: 600, color: C.mid, textAlign: i > 0 ? "center" : "left" }}>{h}</div>
+                      <div key={i} style={{ fontSize: "var(--t-mikro)", fontWeight: 600, color: C.mid, textAlign: i > 0 ? "center" : "left" }}>{h}</div>
                     ))}
                   </div>
 
@@ -424,7 +424,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                             value={row.week_start}
                             onChange={e => changeWeek(idx, e.target.value)}
                             style={{
-                              width: "100%", padding: "4px 20px 4px 8px", fontSize: 11,
+                              width: "100%", padding: "4px 20px 4px 8px", fontSize: "var(--t-kecil)",
                               border: `1px solid ${C.border}`, borderRadius: 6,
                               color: C.text, background: "var(--surface)", appearance: "none", cursor: "pointer",
                             }}
@@ -457,7 +457,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                             disabled={saving === `${idx}` || !rowOk}
                             title={rowOk ? undefined : "Total komponen harus 100% (atau semuanya 0 jika belum diisi)"}
                             style={{
-                              padding: "4px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                              padding: "4px 8px", borderRadius: 6, fontSize: "var(--t-kecil)", fontWeight: 600,
                               background: "var(--grad-aksen)", color: "var(--surface)", border: "none",
                               cursor: rowOk ? "pointer" : "not-allowed",
                               opacity: saving === `${idx}` || !rowOk ? 0.5 : 1,
@@ -468,7 +468,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                             {saving === `${idx}` ? "..." : "Simpan"}
                           </button>
                         ) : (
-                          <div style={{ fontSize: 10, color: C.green, textAlign: "center" }}>✓ Tersimpan</div>
+                          <div style={{ fontSize: "var(--t-mikro)", color: C.green, textAlign: "center" }}>✓ Tersimpan</div>
                         )}
 
                         {/* Tombol hapus */}
@@ -488,7 +488,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                         <div role="alert" style={{
                           display: "flex", alignItems: "center", gap: 4,
                           padding: "4px 8px 6px", marginBottom: 4,
-                          fontSize: 11, color: C.red,
+                          fontSize: "var(--t-kecil)", color: C.red,
                         }}>
                           <AlertTriangle size={11} style={{ flexShrink: 0 }} />
                           <span>
@@ -698,7 +698,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                 <div style={{ fontSize: 15, fontWeight: 700, color: C.text, fontFamily: "var(--font-display)" }}>
                   Update Serapan Dana
                 </div>
-                <div style={{ fontSize: 11, color: C.muted }}>Input realisasi serapan per item per minggu · history tersimpan</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>Input realisasi serapan per item per minggu · history tersimpan</div>
               </div>
             </div>
             <button aria-label="Tutup dialog serapan" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: C.muted }}>
@@ -710,7 +710,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
         <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
           {/* Pilih item */}
           <div style={{ padding: "16px 24px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>
+            <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>
               Pilih Item Pekerjaan
             </div>
             {loadingItems ? (
@@ -745,19 +745,19 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
             {selectedItem && (
               <div style={{ marginTop: 10, display: "flex", gap: 12 }}>
                 <div style={{ flex: 1, background: C.orangeBg, borderRadius: 6, padding: "8px 12px" }}>
-                  <div style={{ fontSize: 10, color: C.mid }}>Nilai Item</div>
+                  <div style={{ fontSize: "var(--t-mikro)", color: C.mid }}>Nilai Item</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.orange }}>
                     {selectedItem.total_price ? fmt(selectedItem.total_price) : "—"}
                   </div>
                 </div>
                 <div style={{ flex: 1, background: "var(--success-bg)", borderRadius: 6, padding: "8px 12px" }}>
-                  <div style={{ fontSize: 10, color: C.mid }}>Total Terserap</div>
+                  <div style={{ fontSize: "var(--t-mikro)", color: C.mid }}>Total Terserap</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: grandTotal >= 100 ? C.green : C.orange }}>
                     {grandTotal.toFixed(1)}%
                   </div>
                 </div>
                 <div style={{ flex: 1, background: "var(--bg)", borderRadius: 6, padding: "8px 12px" }}>
-                  <div style={{ fontSize: 10, color: C.mid }}>Sisa Belum Terserap</div>
+                  <div style={{ fontSize: "var(--t-mikro)", color: C.mid }}>Sisa Belum Terserap</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
                     {Math.max(0, 100 - grandTotal).toFixed(1)}%
                   </div>
@@ -782,10 +782,10 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                     ].map(c => (
                       <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                         <div style={{ width: 8, height: 8, borderRadius: 0, background: c.color }} />
-                        <span style={{ fontSize: 10, color: C.mid }}>{c.label}</span>
+                        <span style={{ fontSize: "var(--t-mikro)", color: C.mid }}>{c.label}</span>
                       </div>
                     ))}
-                    <span style={{ fontSize: 10, color: C.muted, marginLeft: "auto" }}>
+                    <span style={{ fontSize: "var(--t-mikro)", color: C.muted, marginLeft: "auto" }}>
                       Minggu berjalan & yang sudah lewat
                     </span>
                   </div>
@@ -797,7 +797,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                     borderRadius: 6, marginBottom: 4, border: `1px solid ${C.border}`,
                   }}>
                     {["Minggu", "Material", "Upah", "Alat", "Lain", "Total", "", ""].map((h, i) => (
-                      <div key={i} style={{ fontSize: 10, fontWeight: 600, color: C.mid, textAlign: i > 0 ? "center" : "left" }}>{h}</div>
+                      <div key={i} style={{ fontSize: "var(--t-mikro)", fontWeight: 600, color: C.mid, textAlign: i > 0 ? "center" : "left" }}>{h}</div>
                     ))}
                   </div>
 
@@ -821,7 +821,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                           value={row.week_start}
                           onChange={e => changeWeek(idx, e.target.value)}
                           style={{
-                            width: "100%", padding: "4px 20px 4px 8px", fontSize: 11,
+                            width: "100%", padding: "4px 20px 4px 8px", fontSize: "var(--t-kecil)",
                             border: `1px solid ${C.border}`, borderRadius: 6,
                             color: C.text, background: "var(--surface)", appearance: "none", cursor: "pointer",
                           }}
@@ -850,7 +850,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                           onClick={() => saveRow(idx)}
                           disabled={saving === `${idx}`}
                           style={{
-                            padding: "4px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                            padding: "4px 8px", borderRadius: 6, fontSize: "var(--t-kecil)", fontWeight: 600,
                             background: C.orange, color: "var(--surface)", border: "none", cursor: "pointer",
                             opacity: saving === `${idx}` ? 0.6 : 1,
                             display: "flex", alignItems: "center", gap: 2,
@@ -860,7 +860,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
                           {saving === `${idx}` ? "..." : "Simpan"}
                         </button>
                       ) : (
-                        <div style={{ fontSize: 10, color: C.green, textAlign: "center" }}>
+                        <div style={{ fontSize: "var(--t-mikro)", color: C.green, textAlign: "center" }}>
                           {row.logged_by_user?.name ? (
                             <span title={row.logged_at}>{namaSapaan(row.logged_by_user.name)}</span>
                           ) : "✓"}

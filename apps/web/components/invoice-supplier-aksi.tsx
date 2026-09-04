@@ -111,7 +111,7 @@ export function ModalInvoiceSupplier({ onClose, onSukses }: {
             </option>
           ))}
         </Pilihan>
-        <p style={{ margin: "5px 0 0", fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
+        <p style={{ margin: "5px 0 0", fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.5 }}>
           <strong>Wajib.</strong> Invoice tanpa penerimaan barang adalah tagihan atas
           barang yang tak pernah tercatat diterima — 3-way match PO–GR–Invoice.
           Satu GR hanya boleh ditagih sekali.
@@ -134,7 +134,7 @@ export function ModalInvoiceSupplier({ onClose, onSukses }: {
           <label htmlFor="is-nomor" style={gayaLabel}>Nomor faktur</label>
           <input id="is-nomor" value={nomor} onChange={(e) => setNomor(e.target.value)}
             placeholder="opsional" style={gayaInput} />
-          <p style={{ margin: "5px 0 0", fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
+          <p style={{ margin: "5px 0 0", fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.5 }}>
             Kalau diisi, tak boleh sama dengan faktur lain dari supplier ini —
             nomor kembar adalah tanda tagihan dobel.
           </p>

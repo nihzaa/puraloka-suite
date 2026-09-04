@@ -293,7 +293,7 @@ function KartuOpname({ opname: o, bolehVerifikasi, sibuk, onSetujui, onSengketa 
           <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>
             {o.nomor}
             <span style={{
-              marginInlineStart: 10, fontSize: 11.5, fontWeight: 700,
+              marginInlineStart: 10, fontSize: "var(--t-kecil)", fontWeight: 700,
               color: m.warna, textTransform: "uppercase", letterSpacing: "0.04em",
             }}>
               {m.label}
@@ -317,7 +317,7 @@ function KartuOpname({ opname: o, bolehVerifikasi, sibuk, onSetujui, onSengketa 
           </div>
           {/* Dasar perhitungan disebutkan: rata-rata polos dan tertimbang
               nilai bisa berbeda jauh, dan pembacanya berhak tahu yang mana. */}
-          <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{DASAR_ARTI[o.dasar_pct]}</div>
+          <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>{DASAR_ARTI[o.dasar_pct]}</div>
         </div>
       </div>
 
@@ -333,7 +333,7 @@ function KartuOpname({ opname: o, bolehVerifikasi, sibuk, onSetujui, onSengketa 
       <div style={{
         display: "grid", gridTemplateColumns: "1fr 90px 110px 110px 80px", gap: 12,
         padding: "10px var(--pad-kartu-lega)", borderBottom: `1px solid ${C.border}`,
-        fontSize: 11, fontWeight: 700, color: C.muted,
+        fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
         textTransform: "uppercase", letterSpacing: "0.04em",
       }}>
         <div>Uraian</div><div>Satuan</div>
@@ -350,7 +350,7 @@ function KartuOpname({ opname: o, bolehVerifikasi, sibuk, onSetujui, onSengketa 
         }}>
           <div style={{ color: C.text }}>
             {it.uraian}
-            {it.catatan && <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>{it.catatan}</div>}
+            {it.catatan && <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>{it.catatan}</div>}
           </div>
           <div style={{ color: C.mid }}>{it.satuan}</div>
           <div style={{ textAlign: "right", color: C.mid, fontVariantNumeric: "tabular-nums" }}>

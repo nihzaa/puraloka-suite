@@ -375,7 +375,7 @@ function IsiRisiko() {
         }}>
           <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             {r.kode && (
-              <span style={{ fontSize: 11, color: C.muted, fontWeight: 700 }}>{r.kode}</span>
+              <span style={{ fontSize: "var(--t-kecil)", color: C.muted, fontWeight: 700 }}>{r.kode}</span>
             )}
             <strong style={{ fontSize: 13, color: C.text }}>{r.judul}</strong>
           </span>
@@ -384,7 +384,7 @@ function IsiRisiko() {
               risiko rendah ia memang bukan kekurangan yang perlu diteriakkan.
               Versi pertama halaman ini menulisnya di KEDUA tempat, dan
               "belum ada pemiliknya" muncul dua kali dalam satu baris. */}
-          <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 1 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 1 }}>
             {KATEGORI[r.kategori] ?? r.kategori}
             {" · "}{STRATEGI[r.strategi] ?? r.strategi}
             {r.pemilik ? ` · ${r.pemilik.name}` : ""}
@@ -392,7 +392,7 @@ function IsiRisiko() {
           {r.mendesak && r.alasan_mendesak.length > 0 && (
             // Alasannya ditulis, bukan disembunyikan di balik klik.
             <span style={{
-              display: "block", fontSize: 11, color: "var(--danger)",
+              display: "block", fontSize: "var(--t-kecil)", color: "var(--danger)",
               marginTop: 3, fontWeight: 600,
             }}>{r.alasan_mendesak.join(" · ")}</span>
           )}
@@ -430,7 +430,7 @@ function IsiRisiko() {
               <><span aria-hidden="true" /><span aria-hidden="true" /></>
             )}
           </span>
-          <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 1 }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 1 }}>
             {r.dampak}×{r.kemungkinan}
             {/* `null` dan 0 dibedakan: belum dinilai ulang ≠ dinilai dan tak
                 turun. Menyamakannya menyembunyikan mitigasi yang gagal. */}
@@ -469,7 +469,7 @@ function IsiRisiko() {
       kunci: "aksi", judul: "",
       render: (r) => (
         r.status === "tertutup"
-          ? <span style={{ fontSize: 11, color: C.muted }}>tertutup</span>
+          ? <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>tertutup</span>
           : (
             <Tombol kecil onClick={() => { setMitigasiUntuk(r); setGalatModal(null); }}
               ikon={<Plus size={12} />}>
@@ -494,7 +494,7 @@ function IsiRisiko() {
             <strong style={{ fontSize: 13, color: C.text }}>{t.tindakan}</strong>
             {/* Risikonya ikut ditulis — inilah alasan mitigasi tak berdiri
                 sendiri sebagai halaman. */}
-            <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 1 }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 1 }}>
               menjawab: {t.risiko.judul} (skor {t.risiko.skor})
               {t.penanggung ? ` · ${t.penanggung.name}` : ""}
             </span>
@@ -514,7 +514,7 @@ function IsiRisiko() {
             fontWeight: telat ? 700 : 400,
           }}>
             {tanggal(t.tenggat)}
-            {telat && <span style={{ display: "block", fontSize: 11 }}>lewat tenggat</span>}
+            {telat && <span style={{ display: "block", fontSize: "var(--t-kecil)" }}>lewat tenggat</span>}
           </span>
         );
       },
@@ -598,7 +598,7 @@ function IsiRisiko() {
 
       <Kartu pad="sedang">
         <label htmlFor="rk-proyek" style={{
-          fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+          fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
           marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
         }}>Proyek</label>
         <Pilihan

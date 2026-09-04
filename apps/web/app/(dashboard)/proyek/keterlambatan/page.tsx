@@ -180,7 +180,7 @@ export default function KeterlambatanPage() {
               borderLeft: menonjol ? `3px solid ${meta.warna}` : "3px solid transparent",
             }}>
               {b.title}
-              <span style={{ display: "block", fontSize: 11, color: C.mid, marginTop: 2 }}>
+              <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2 }}>
                 {b.project_name}
               </span>
             </span>
@@ -226,7 +226,7 @@ export default function KeterlambatanPage() {
             {/* "Masih bertambah" ditulis sebagai KATA: angka yang masih
                 tumbuh berbeda maknanya dari angka final. */}
             {b.masih_bertambah && (
-              <span style={{ display: "block", fontSize: 10, fontWeight: 500, color: C.muted }}>
+              <span style={{ display: "block", fontSize: "var(--t-mikro)", fontWeight: 500, color: C.muted }}>
                 masih bertambah
               </span>
             )}
@@ -243,14 +243,14 @@ export default function KeterlambatanPage() {
               // null ≠ 0. null = "tak bisa dihitung" (denda belum aktif);
               // 0 = "sudah dihitung, hasilnya nol".
               b.estimasi_paparan === null ? (
-                <span style={{ fontSize: 11, color: C.muted }}>denda belum aktif</span>
+                <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>denda belum aktif</span>
               ) : b.estimasi_paparan === 0 ? (
                 <span style={{ color: C.mid }}>—</span>
               ) : (
                 <>
                   {rupiah(b.estimasi_paparan)}
                   {b.kena_cap && (
-                    <span style={{ display: "block", fontSize: 10, color: C.muted }}>
+                    <span style={{ display: "block", fontSize: "var(--t-mikro)", color: C.muted }}>
                       batas atas kontrak
                     </span>
                   )}
@@ -265,7 +265,7 @@ export default function KeterlambatanPage() {
           return (
             <span title={meta.arti} style={{
               display: "inline-block", padding: "2px 8px", borderRadius: 20,
-              fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+              fontSize: "var(--t-kecil)", fontWeight: 600, whiteSpace: "nowrap",
               color: meta.warna, background: meta.bg, border: `1px solid ${meta.border}`,
             }}>
               {meta.label}
@@ -282,7 +282,7 @@ export default function KeterlambatanPage() {
     borderRadius: 10, boxShadow: "var(--naik-1)",
   };
   const labelGaya: React.CSSProperties = {
-    fontSize: 11, fontWeight: 700, color: C.muted,
+    fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
     textTransform: "uppercase", letterSpacing: "0.05em",
   };
 
@@ -377,7 +377,7 @@ export default function KeterlambatanPage() {
                 }}>
                   {k.nilai}
                 </div>
-                <div style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>{k.sub}</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: C.mid, marginTop: 2 }}>{k.sub}</div>
               </div>
             ))}
           </div>
@@ -464,7 +464,7 @@ export default function KeterlambatanPage() {
 
             <p style={{
               margin: 0, padding: "10px 14px", borderTop: `1px solid ${C.border}`,
-              background: "var(--surface-subtle)", fontSize: 11, color: C.mid, lineHeight: 1.55,
+              background: "var(--surface-subtle)", fontSize: "var(--t-kecil)", color: C.mid, lineHeight: 1.55,
             }}>
               Telat efektif = telat kotor − EOT yang <strong>disetujui</strong> − masa
               tenggang. EOT yang masih diajukan tidak mengurangi apa pun: ia belum

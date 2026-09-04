@@ -396,7 +396,7 @@ export default function RekonsiliasiBankPage() {
                               <div style={{ fontSize: 13, color: C.text, fontWeight: b.sudah_cocok ? 400 : 600 }}>
                                 {b.keterangan}
                               </div>
-                              <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                              <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>
                                 {tanggal(b.tanggal)}{b.ref_bank ? ` · ${b.ref_bank}` : ""}
                               </div>
                             </div>
@@ -412,7 +412,7 @@ export default function RekonsiliasiBankPage() {
                           {b.sudah_cocok ? (
                             <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
                               <CircleCheck size={13} aria-hidden="true" style={{ color: "var(--success)" }} />
-                              <span style={{ fontSize: 11, color: C.mid }}>Sudah berpasangan</span>
+                              <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}>Sudah berpasangan</span>
                               {cocokId && !terkunci && (
                                 <button
                                   type="button"
@@ -420,7 +420,7 @@ export default function RekonsiliasiBankPage() {
                                   disabled={sibuk}
                                   style={{
                                     marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4,
-                                    padding: "3px 8px", fontSize: 11, fontFamily: "inherit",
+                                    padding: "3px 8px", fontSize: "var(--t-kecil)", fontFamily: "inherit",
                                     border: `1px solid ${C.border}`, borderRadius: 8,
                                     background: "var(--surface)", color: C.mid, cursor: "pointer",
                                   }}
@@ -436,7 +436,7 @@ export default function RekonsiliasiBankPage() {
                               disabled={sibuk}
                               style={{
                                 marginTop: 6, display: "inline-flex", alignItems: "center", gap: 5,
-                                padding: "4px 10px", fontSize: 11, fontFamily: "inherit", fontWeight: 600,
+                                padding: "4px 10px", fontSize: "var(--t-kecil)", fontFamily: "inherit", fontWeight: 600,
                                 border: `1px solid var(--info-border)`, borderRadius: 8,
                                 background: "var(--info-bg)", color: "var(--info)",
                                 cursor: sibuk ? "default" : "pointer",
@@ -450,7 +450,7 @@ export default function RekonsiliasiBankPage() {
                                 : `Cocokkan (nominal sama, beda ${u.selisih_hari} hari)`}
                             </button>
                           ) : (
-                            <div style={{ marginTop: 6, fontSize: 11, color: "var(--warning)" }}>
+                            <div style={{ marginTop: 6, fontSize: "var(--t-kecil)", color: "var(--warning)" }}>
                               Tak ada pasangan di buku — perlu diperiksa
                             </div>
                           )}
@@ -488,7 +488,7 @@ export default function RekonsiliasiBankPage() {
                               <div style={{ fontSize: 13, color: C.text, fontWeight: t.sudah_cocok ? 400 : 600 }}>
                                 {t.keterangan}
                               </div>
-                              <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                              <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>
                                 {tanggal(t.tanggal)} · {NAMA_SUMBER[t.sumber] ?? t.sumber}
                               </div>
                             </div>
@@ -503,10 +503,10 @@ export default function RekonsiliasiBankPage() {
                           {t.sudah_cocok ? (
                             <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
                               <CircleCheck size={13} aria-hidden="true" style={{ color: "var(--success)" }} />
-                              <span style={{ fontSize: 11, color: C.mid }}>Sudah berpasangan</span>
+                              <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}>Sudah berpasangan</span>
                             </div>
                           ) : (
-                            <div style={{ marginTop: 6, fontSize: 11, color: "var(--warning)" }}>
+                            <div style={{ marginTop: 6, fontSize: "var(--t-kecil)", color: "var(--warning)" }}>
                               Belum muncul di koran — setoran dalam perjalanan atau belum dicairkan
                             </div>
                           )}
@@ -565,7 +565,7 @@ function Kpi({ label, nilai, keterangan, warna }: {
       borderLeft: `3px solid ${warna ?? "var(--border)"}`,
     }}>
       <div style={{
-        fontSize: 11, fontWeight: 700, letterSpacing: "0.04em",
+        fontSize: "var(--t-kecil)", fontWeight: 700, letterSpacing: "0.04em",
         color: "var(--text-secondary)", textTransform: "uppercase",
       }}>
         {label}
@@ -576,7 +576,7 @@ function Kpi({ label, nilai, keterangan, warna }: {
       }}>
         {nilai}
       </div>
-      <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
+      <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 2 }}>
         {keterangan}
       </div>
     </div>

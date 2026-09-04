@@ -322,7 +322,7 @@ function KartuSpk({ spk: s, bolehKelola, bolehTtd, sibuk, onTerbitkan, onTtd, on
           <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>
             {s.nomor}
             <span style={{
-              marginInlineStart: 10, fontSize: 11.5, fontWeight: 700, color: m.warna,
+              marginInlineStart: 10, fontSize: "var(--t-kecil)", fontWeight: 700, color: m.warna,
               textTransform: "uppercase", letterSpacing: "0.04em",
             }}>
               {m.label}
@@ -340,7 +340,7 @@ function KartuSpk({ spk: s, bolehKelola, bolehTtd, sibuk, onTerbitkan, onTtd, on
             {rupiah(s.nilai_kontrak)}
           </div>
           {s.denda_per_hari !== null && (
-            <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>
               denda {rupiah(s.denda_per_hari)}/hari
               {s.denda_maks_pct !== null && ` · maks ${Number(s.denda_maks_pct)}%`}
             </div>
@@ -486,7 +486,7 @@ function BarisTtd({ label, ada, bisa, sibuk, onKlik, catatan }: {
 }) {
   return (
     <div>
-      <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+      <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>
         {label}
       </div>
       {ada ? (
@@ -744,7 +744,7 @@ function FormTerbitSpk({ onTutup, onSelesai }: {
           ))}
         </Pilihan>
         {tenderId === "" && (
-          <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
+          <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
             Tanpa tender, lingkup kerjanya belum ditentukan — pilih tender yang
             terhubung ke lingkup kerja, atau terbitkan SPK dari halaman lingkup kerja.
           </div>
@@ -772,7 +772,7 @@ function FormTerbitSpk({ onTutup, onSelesai }: {
             ))}
           </Pilihan>
           {penawaran.length === 0 && (
-            <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 4 }}>
               Tender ini belum punya penawaran. SPK tetap bisa dibuat tanpa merujuk penawaran.
             </div>
           )}
@@ -858,7 +858,7 @@ function FormTerbitSpk({ onTutup, onSelesai }: {
             />
           </div>
         </div>
-        <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
+        <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
           Batas dihitung dari <strong>nilai kontrak</strong>, bukan dari denda yang
           menumpuk — itulah yang membuat batas 5% tetap berarti saat keterlambatannya
           panjang. Kosongkan keduanya bila belum diputuskan.

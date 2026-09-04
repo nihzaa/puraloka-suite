@@ -209,7 +209,7 @@ export function ModalTagihanCo({ onClose, onSukses }: {
               <div style={{ marginTop: 4, fontSize: 15, fontWeight: 700, color: C.text }}>
                 {rupiah(terpilih.total_amount_delta)}
               </div>
-              <div style={{ fontSize: 11, color: C.muted }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
                 diambil dari nilai CO yang disetujui — tak bisa diubah di sini
               </div>
             </div>
@@ -242,7 +242,7 @@ export function ModalTagihanCo({ onClose, onSukses }: {
       <KakiModal>
         {halangan && (
           <span style={{
-            fontSize: 11.5, color: C.mid, marginRight: "auto",
+            fontSize: "var(--t-kecil)", color: C.mid, marginRight: "auto",
             maxWidth: "40ch", lineHeight: 1.45, alignSelf: "center",
           }}>{halangan}</span>
         )}
@@ -272,7 +272,7 @@ export function ModalTagihanCo({ onClose, onSukses }: {
               </li>
             ))}
           </ul>
-          <p style={{ margin: "6px 0 0", fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
+          <p style={{ margin: "6px 0 0", fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.5 }}>
             Ditampilkan dengan sengaja. CO yang hilang dari daftar akan dicari orang,
             tak ketemu, lalu ditagih lewat jalur lain — persis tagihan ganda yang
             seluruh rancangan ini hindari.

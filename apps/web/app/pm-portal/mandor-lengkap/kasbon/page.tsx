@@ -118,13 +118,13 @@ export default function PmKasbonTukangPage() {
                 <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
                   {k.mandor?.name ?? "—"} · {k.project?.name ?? "—"} · {fmtDate(k.kasbon_date)}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginTop: 2 }}>
                   {LABEL_TUJUAN[k.purpose ?? ""] ?? k.purpose ?? "—"}
                 </div>
               </div>
               <div style={{ textAlign: "right", flexShrink: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: k.is_settled ? "var(--success)" : "var(--danger)" }}>{fmt(remaining)}</div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>dari {fmt(k.amount)}</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)" }}>dari {fmt(k.amount)}</div>
               </div>
             </div>
 
@@ -132,7 +132,7 @@ export default function PmKasbonTukangPage() {
               <div style={{ flex: 1, height: 4, borderRadius: 3, background: "var(--border)", overflow: "hidden" }}>
                 <div style={{ height: "100%", background: k.is_settled ? "var(--success)" : "var(--warning)", width: `${pct}%` }} />
               </div>
-              <span style={{ fontSize: 11, color: "var(--text-muted)", flexShrink: 0 }}>{Math.round(pct)}%</span>
+              <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", flexShrink: 0 }}>{Math.round(pct)}%</span>
             </div>
 
             {!k.is_settled && (

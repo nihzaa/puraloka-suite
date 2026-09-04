@@ -280,11 +280,11 @@ export default function PmDokumenKendaliPage() {
               </button>
               <div style={{ display: "flex", gap: 10 }}>
                 <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: 1 }}>
-                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Judul Unik</div>
+                  <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Judul Unik</div>
                   <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)" }}>{data.gambar.jumlahJudul}</div>
                 </div>
                 <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: 1 }}>
-                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Usang</div>
+                  <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Usang</div>
                   <div style={{ fontSize: 17, fontWeight: 700, color: data.gambar.usang > 0 ? "var(--danger)" : "var(--text-primary)" }}>
                     {data.gambar.usang}
                   </div>
@@ -303,7 +303,7 @@ export default function PmDokumenKendaliPage() {
                       <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{g.nomor} — {g.judul ?? "—"}</span>
                       {g.usang && <StatusBadge status="rejected" label="Usang" />}
                     </div>
-                    <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                    <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
                       Rev.{g.revisi} (tertinggi: {g.revisiTertinggi}) · {g.disiplin ?? "—"}
                     </div>
                   </div>
@@ -336,7 +336,7 @@ export default function PmDokumenKendaliPage() {
                     style={{ background: "var(--surface)", borderRadius: 12, padding: 12, border: `1px solid ${t.menggantung ? "var(--warning-border)" : "var(--border)"}` }}
                   >
                     <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{t.nomor}</div>
-                    <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                    <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
                       {t.status}{t.umurHari !== null ? ` · ${t.umurHari} hari` : ""}
                     </div>
                     <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
@@ -387,7 +387,7 @@ export default function PmDokumenKendaliPage() {
                     style={{ background: "var(--surface)", borderRadius: 12, padding: 12, border: `1px solid ${t.lewatTenggat ? "var(--danger-border)" : "var(--border)"}` }}
                   >
                     <div style={{ fontSize: 13, color: "var(--text-primary)" }}>{t.uraian ?? "—"}</div>
-                    <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                    <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
                       {t.pj_nama ?? "Belum ada PJ"}{t.tenggat ? ` · tenggat ${t.tenggat}` : ""}
                     </div>
                   </div>
@@ -421,7 +421,7 @@ export default function PmDokumenKendaliPage() {
                 {data.tandaTangan.map((t) => (
                   <div key={t.id} style={{ background: "var(--surface)", borderRadius: 12, padding: 12, border: "1px solid var(--border)" }}>
                     <div style={{ fontSize: 13, color: "var(--text-primary)" }}>{t.jenis_objek}: {t.objek_id.slice(0, 8)}…</div>
-                    <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                    <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
                       {t.peran_penanda ?? "—"} · {formatTanggalJam(t.ditandatangani_pada)}
                     </div>
                   </div>
@@ -445,11 +445,11 @@ export default function PmDokumenKendaliPage() {
                       <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 600 }}>{d.penerima_nama}</div>
                       {!d.aktif && <StatusBadge status="netral" label="Nonaktif" />}
                     </div>
-                    <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                    <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
                       {d.jenis_dokumen}{d.organisasi ? ` · ${d.organisasi}` : ""}{d.peran ? ` · ${d.peran}` : ""}
                     </div>
                     {d.penerima_email && (
-                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{d.penerima_email}</div>
+                      <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{d.penerima_email}</div>
                     )}
                   </div>
                 ))}
@@ -597,7 +597,7 @@ export default function PmDokumenKendaliPage() {
               <option value="khusus">Khusus</option>
             </Pilihan>
           </label>
-          <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
+          <p style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", margin: 0 }}>
             Butir tindakan ditambahkan lewat versi web (Dokumen → Kendali) — form
             mobile menyederhanakan ke kepala notulen saja.
           </p>

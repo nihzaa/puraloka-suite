@@ -308,14 +308,14 @@ function BarisSurat({ s, sorot }: { s: Surat; sorot?: boolean }) {
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: "flex", gap: 7, alignItems: "center", flexWrap: "wrap" }}>
             <span style={{
-              fontSize: 11.5, fontWeight: 700, color: C.navy,
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.navy,
               fontVariantNumeric: "tabular-nums",
             }}>{s.nomor}</span>
-            <span style={{ fontSize: 11, color: C.muted }}>
+            <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>
               {masuk ? "Masuk" : "Keluar"}
             </span>
             <span style={{
-              fontSize: 10.5, fontWeight: 600, padding: "2px 7px", borderRadius: 999,
+              fontSize: "var(--t-mikro)", fontWeight: 600, padding: "2px 7px", borderRadius: 999,
               color: berat ? C.red : C.mid,
               background: berat ? C.redBg : C.subtle,
               border: `1px solid ${berat ? C.redBorder : C.border}`,
@@ -327,7 +327,7 @@ function BarisSurat({ s, sorot }: { s: Surat; sorot?: boolean }) {
             color: C.text, lineHeight: 1.4,
           }}>{s.perihal}</p>
 
-          <p style={{ margin: "3px 0 0", fontSize: 11.5, color: C.mid }}>
+          <p style={{ margin: "3px 0 0", fontSize: "var(--t-kecil)", color: C.mid }}>
             {masuk ? `Dari ${s.dari_pihak}` : `Ke ${s.kepada_pihak}`}
             {" · "}
             {masuk ? `diterima ${fmtTgl(s.tanggal_terima)}` : `dikirim ${fmtTgl(s.tanggal_kirim)}`}
@@ -336,7 +336,7 @@ function BarisSurat({ s, sorot }: { s: Surat; sorot?: boolean }) {
           {tunggu && s.batas.keadaan !== "tak_perlu" && (
             <span style={{
               display: "inline-flex", alignItems: "center", gap: 5, marginTop: 7,
-              padding: "3px 8px", borderRadius: 999, fontSize: 11, fontWeight: 600,
+              padding: "3px 8px", borderRadius: 999, fontSize: "var(--t-kecil)", fontWeight: 600,
               color: lewat ? C.red : (tunggu === "kita" ? C.yellow : C.mid),
               background: lewat ? C.redBg : (tunggu === "kita" ? C.yellowBg : C.subtle),
               border: `1px solid ${lewat ? C.redBorder : C.border}`,
@@ -403,7 +403,7 @@ function FormSurat({
     }}>
       {/* Arah dipilih DULUAN karena ia mengubah arti medan di bawahnya. */}
       <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
-        <legend style={{ fontSize: 11.5, fontWeight: 600, color: C.mid, marginBottom: 6 }}>
+        <legend style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, marginBottom: 6 }}>
           Arah surat
         </legend>
         <div style={{ display: "flex", gap: 8 }}>
@@ -513,7 +513,7 @@ function Medan({
   return (
     <label style={{ display: "block" }}>
       <span style={{
-        display: "block", fontSize: 11.5, fontWeight: 600,
+        display: "block", fontSize: "var(--t-kecil)", fontWeight: 600,
         color: C.mid, marginBottom: 4,
       }}>
         {label}

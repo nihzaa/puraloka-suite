@@ -129,7 +129,7 @@ function Kpi({ label, nilai, keterangan, warna }: {
 }) {
   return (
     <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", flex: "1 1 190px", minWidth: 175 }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+      <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
         {label}
       </div>
       <div style={{
@@ -216,7 +216,7 @@ export default function OperasionalAlatPage() {
       render: (a) => (
         <span>
           <span style={{ fontWeight: 600, color: C.text }}>{a.name}</span>
-          <span style={{ display: "block", fontSize: 11, color: C.muted }}>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>
             {a.asset_code}
             {a.brand && ` · ${a.brand}${a.model ? " " + a.model : ""}`}
           </span>
@@ -241,12 +241,12 @@ export default function OperasionalAlatPage() {
         return (
           <span>
             <span style={{
-              padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600,
+              padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 600,
               color: m.warna, background: m.bg, whiteSpace: "nowrap",
             }}>
               {m.label}
             </span>
-            <span style={{ display: "block", fontSize: 11, color: C.mid, marginTop: 3 }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 3 }}>
               {a.palingMendesak.nama}
             </span>
           </span>
@@ -268,7 +268,7 @@ export default function OperasionalAlatPage() {
         <span style={{ fontVariantNumeric: "tabular-nums", color: a.biaya.perJam == null ? C.muted : C.text, fontWeight: a.biaya.perJam == null ? 400 : 600 }}>
           {a.biaya.perJam == null ? "—" : rupiah(a.biaya.perJam)}
           {a.biaya.perJam == null && (
-            <span style={{ display: "block", fontSize: 11, fontWeight: 400 }}>belum ada jam operasi</span>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 400 }}>belum ada jam operasi</span>
           )}
         </span>
       ),
@@ -288,7 +288,7 @@ export default function OperasionalAlatPage() {
             }}>
               {k.rasioMendadak.toLocaleString("id-ID", { maximumFractionDigits: 0 })}% mendadak
             </span>
-            <span style={{ display: "block", fontSize: 11, color: C.mid }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid }}>
               {k.servisTerjadwal} terjadwal · {k.servisMendadak} mendadak
             </span>
           </span>
@@ -301,7 +301,7 @@ export default function OperasionalAlatPage() {
         <span style={{ fontVariantNumeric: "tabular-nums", color: C.text }}>
           {rupiah(a.biaya.total)}
           {a.biaya.bbmPerJam != null && (
-            <span style={{ display: "block", fontSize: 11, color: C.mid, fontWeight: 400 }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, fontWeight: 400 }}>
               {a.biaya.bbmPerJam.toLocaleString("id-ID", { maximumFractionDigits: 1 })} L/jam
             </span>
           )}
@@ -316,7 +316,7 @@ export default function OperasionalAlatPage() {
       render: (p) => (
         <span>
           <span style={{ fontWeight: 600, color: C.text }}>{p.alat}</span>
-          <span style={{ display: "block", fontSize: 11, color: C.muted }}>{p.kode}</span>
+          <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>{p.kode}</span>
         </span>
       ),
     },
@@ -676,7 +676,7 @@ function PanelPenyusutan({ alat, onSelesai }: { alat: Alat[]; onSelesai: () => v
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "140px 1fr 150px 160px", gap: 12, padding: "10px 20px", borderBottom: `1px solid ${C.border}`, fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "140px 1fr 150px 160px", gap: 12, padding: "10px 20px", borderBottom: `1px solid ${C.border}`, fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>
         <div>Periode</div><div>Alat</div>
         <div style={{ textAlign: "right" }}>Nilai</div>
         <div style={{ textAlign: "right" }}>Status</div>
@@ -694,7 +694,7 @@ function PanelPenyusutan({ alat, onSelesai }: { alat: Alat[]; onSelesai: () => v
             <div style={{ color: C.mid }}>
               {b.alat} alat
               {belum > 0 && b.terjurnal > 0 && (
-                <span style={{ marginInlineStart: 6, fontSize: 11, color: "var(--warning-teks)" }}>
+                <span style={{ marginInlineStart: 6, fontSize: "var(--t-kecil)", color: "var(--warning-teks)" }}>
                   {belum} belum masuk buku
                 </span>
               )}

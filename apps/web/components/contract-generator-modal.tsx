@@ -187,7 +187,7 @@ export function ContractGeneratorModal({ projectId, projectName, onClose }: Prop
           </div>
 
           <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
+            <p style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
               Data Pelaksana (Pihak Kedua)
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -218,7 +218,7 @@ export function ContractGeneratorModal({ projectId, projectName, onClose }: Prop
           </div>
 
           <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
+            <p style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
               Rekening Pembayaran
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -234,7 +234,7 @@ export function ContractGeneratorModal({ projectId, projectName, onClose }: Prop
           </div>
 
           <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
+            <p style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
               Saksi (Opsional)
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

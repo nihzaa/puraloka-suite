@@ -128,7 +128,7 @@ export function ModalGambarBaru({ onClose, onSukses }: {
           <label htmlFor="gb-revisi" style={gayaLabel}>Revisi</label>
           <input id="gb-revisi" type="number" min={0} step="1" value={revisi}
             onChange={(e) => setRevisi(e.target.value)} style={gayaInput} />
-          <p style={{ margin: "5px 0 0", fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
+          <p style={{ margin: "5px 0 0", fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.5 }}>
             Diketik sesuai kop gambarnya, <strong>bukan</strong> dinaikkan otomatis —
             yang dipercaya orang di lapangan adalah kertas yang dipegangnya.
           </p>
@@ -297,13 +297,13 @@ export function ModalTransmittalBaru({ onClose, onSukses }: {
             gap: 6, marginTop: 8, alignItems: "end",
           }}>
             <div>
-              <label htmlFor={`tm-item-${i}`} style={{ ...gayaLabel, fontSize: 11 }}>Uraian</label>
+              <label htmlFor={`tm-item-${i}`} style={{ ...gayaLabel, fontSize: "var(--t-kecil)" }}>Uraian</label>
               <input id={`tm-item-${i}`} value={it.uraian}
                 onChange={(e) => setItems((p) => p.map((x, n) => n === i ? { ...x, uraian: e.target.value } : x))}
                 placeholder="Gambar STR-201 rev.3" style={gayaInput} />
             </div>
             <div>
-              <label htmlFor={`tm-lembar-${i}`} style={{ ...gayaLabel, fontSize: 11 }}>Lembar</label>
+              <label htmlFor={`tm-lembar-${i}`} style={{ ...gayaLabel, fontSize: "var(--t-kecil)" }}>Lembar</label>
               <input id={`tm-lembar-${i}`} type="number" min={1} step="1" value={it.lembar}
                 onChange={(e) => setItems((p) => p.map((x, n) => n === i ? { ...x, lembar: e.target.value } : x))}
                 style={gayaInput} />
@@ -331,7 +331,7 @@ export function ModalTransmittalBaru({ onClose, onSukses }: {
           <Plus size={12} aria-hidden="true" /> Tambah isi
         </button>
         {barisBelumLengkap > 0 && (
-          <p style={{ margin: "8px 0 0", fontSize: 11, color: "var(--warning)", lineHeight: 1.5 }}>
+          <p style={{ margin: "8px 0 0", fontSize: "var(--t-kecil)", color: "var(--warning)", lineHeight: 1.5 }}>
             {barisBelumLengkap} baris tanpa uraian — transmittal tanpa isi adalah bukti
             kirim atas ketiadaan.
           </p>
@@ -408,7 +408,7 @@ export function ModalStatusTransmittal({ transmittal, onClose, onSukses }: {
           <label htmlFor="tm-diterima-oleh" style={gayaLabel}>Diterima oleh</label>
           <input id="tm-diterima-oleh" value={oleh} onChange={(e) => setOleh(e.target.value)}
             placeholder="Nama penerima di pihak tujuan" style={gayaInput} />
-          <p style={{ margin: "5px 0 0", fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
+          <p style={{ margin: "5px 0 0", fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.5 }}>
             Boleh dikosongkan, tapi nama penerima itulah yang ditanya saat pihak lain
             menyangkal pernah menerimanya.
           </p>
@@ -549,7 +549,7 @@ export function ModalNotulenBaru({ onClose, onSukses }: {
           Tindakan yang disepakati
         </legend>
         {tindakan.length === 0 && (
-          <p style={{ margin: "6px 0 0", fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
+          <p style={{ margin: "6px 0 0", fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.5 }}>
             Boleh kosong untuk rapat informatif. Tindakan yang <strong>ditulis</strong>{" "}
             wajib punya nama dan tenggat — tanpa keduanya ia tak pernah dikerjakan,
             dan hitungan &ldquo;lewat tenggat&rdquo; di halaman ini jadi bohong.
@@ -561,19 +561,19 @@ export function ModalNotulenBaru({ onClose, onSukses }: {
             gap: 6, marginTop: 8, alignItems: "end",
           }}>
             <div>
-              <label htmlFor={`nt-t-${i}-uraian`} style={{ ...gayaLabel, fontSize: 11 }}>Tindakan</label>
+              <label htmlFor={`nt-t-${i}-uraian`} style={{ ...gayaLabel, fontSize: "var(--t-kecil)" }}>Tindakan</label>
               <input id={`nt-t-${i}-uraian`} value={t.uraian}
                 onChange={(e) => setTindakan((p) => p.map((x, n) => n === i ? { ...x, uraian: e.target.value } : x))}
                 style={gayaInput} />
             </div>
             <div>
-              <label htmlFor={`nt-t-${i}-pj`} style={{ ...gayaLabel, fontSize: 11 }}>Penanggung jawab</label>
+              <label htmlFor={`nt-t-${i}-pj`} style={{ ...gayaLabel, fontSize: "var(--t-kecil)" }}>Penanggung jawab</label>
               <input id={`nt-t-${i}-pj`} value={t.pj}
                 onChange={(e) => setTindakan((p) => p.map((x, n) => n === i ? { ...x, pj: e.target.value } : x))}
                 style={gayaInput} />
             </div>
             <div>
-              <label htmlFor={`nt-t-${i}-tenggat`} style={{ ...gayaLabel, fontSize: 11 }}>Tenggat</label>
+              <label htmlFor={`nt-t-${i}-tenggat`} style={{ ...gayaLabel, fontSize: "var(--t-kecil)" }}>Tenggat</label>
               <input id={`nt-t-${i}-tenggat`} type="date" value={t.tenggat}
                 onChange={(e) => setTindakan((p) => p.map((x, n) => n === i ? { ...x, tenggat: e.target.value } : x))}
                 style={gayaInput} />
@@ -599,7 +599,7 @@ export function ModalNotulenBaru({ onClose, onSukses }: {
           <Plus size={12} aria-hidden="true" /> Tambah tindakan
         </button>
         {tindakanBelumLengkap > 0 && (
-          <p style={{ margin: "8px 0 0", fontSize: 11, color: "var(--warning)", lineHeight: 1.5 }}>
+          <p style={{ margin: "8px 0 0", fontSize: "var(--t-kecil)", color: "var(--warning)", lineHeight: 1.5 }}>
             {tindakanBelumLengkap} tindakan belum punya uraian, penanggung jawab, atau
             tenggat.
           </p>
@@ -671,7 +671,7 @@ export function ModalTandaTangan({ jenisObjek, objekId, isi, judul, onClose, onS
           padding: "10px 12px", borderRadius: 6, maxHeight: 220, overflowY: "auto",
           background: "var(--surface-subtle)", border: `1px solid ${C.border}`,
         }}>{isi}</div>
-        <p style={{ margin: "5px 0 0", fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
+        <p style={{ margin: "5px 0 0", fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.5 }}>
           Sidik digital dihitung server dari teks ini persis. Kalau isinya berubah
           kemudian, tanda tangan ini tak lagi cocok — dan ketidakcocokan itulah
           buktinya.

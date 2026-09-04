@@ -96,7 +96,7 @@ export default function PmPoDetailPage() {
           <StatusBadge status={VARIAN_STATUS[po.status] ?? "netral"} label={LABEL_STATUS[po.status] ?? po.status} />
         </div>
         <div style={{ fontSize: 22, fontWeight: 700, color: "var(--navy)" }}>{fmtRupiah(po.total_amount)}</div>
-        {po.mr && <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Dari MR {po.mr.mr_number}</div>}
+        {po.mr && <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Dari MR {po.mr.mr_number}</div>}
       </div>
 
       {galatAksi && <div role="alert" style={{ padding: 10, borderRadius: 10, background: "var(--danger-bg)", color: "var(--on-danger-bg)", fontSize: 12 }}>{galatAksi}</div>}
@@ -127,7 +127,7 @@ export default function PmPoDetailPage() {
         <div key={it.id} style={{ display: "flex", justifyContent: "space-between", padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{it.material?.name ?? "—"}</div>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
               {it.qty_ordered} {it.unit} · diterima {it.qty_received ?? 0}
             </div>
           </div>

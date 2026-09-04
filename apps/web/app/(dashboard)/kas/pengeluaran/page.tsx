@@ -184,7 +184,7 @@ function PengeluaranIsi() {
               </span>
             </span>
             <span aria-hidden="true" style={{
-              fontSize: 11, color: C.muted, display: "inline-block",
+              fontSize: "var(--t-kecil)", color: C.muted, display: "inline-block",
               transform: bukaKategori ? "rotate(90deg)" : "rotate(0)", transition: "transform 0.15s",
             }}>▶</span>
           </button>
@@ -199,14 +199,14 @@ function PengeluaranIsi() {
                     <div key={cat.id} style={{ marginBottom: 10 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <span style={{ fontSize: 11, color: warna, fontWeight: 600, padding: "0px 6px", borderRadius: 6, background: "var(--surface-hover)" }}>
+                          <span style={{ fontSize: "var(--t-kecil)", color: warna, fontWeight: 600, padding: "0px 6px", borderRadius: 6, background: "var(--surface-hover)" }}>
                             {TYPE_LABEL[cat.type] ?? cat.type}
                           </span>
                           <span style={{ fontSize: 12, color: C.text }}>{cat.name}</span>
-                          <span style={{ fontSize: 11, color: C.muted }}>({cat.count}×)</span>
+                          <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>({cat.count}×)</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: 11, color: C.muted }}>{pct}%</span>
+                          <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>{pct}%</span>
                           <span style={{ fontSize: 13, fontWeight: 700, color: warna, fontVariantNumeric: "tabular-nums" }}>
                             {fmtCompact(cat.total)}
                           </span>
@@ -256,7 +256,7 @@ function PengeluaranIsi() {
                       <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 2 }}>
                         Bayar Supplier · {sp.supplier?.name ?? "—"}
                       </div>
-                      <div style={{ display: "flex", gap: 8, fontSize: 11, color: C.muted, flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", gap: 8, fontSize: "var(--t-kecil)", color: C.muted, flexWrap: "wrap" }}>
                         <span style={{ background: C.navyLight, color: C.navy, padding: "0px 6px", borderRadius: 6 }}>
                           dari: {sp.cash_account?.name}
                         </span>
@@ -289,7 +289,7 @@ function PengeluaranIsi() {
                       <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 2 }}>
                         Bayar Progress {pp.pct_completed ?? pp.pct_done ?? 0}% · {pp.scope?.scope_name ?? "—"}
                       </div>
-                      <div style={{ display: "flex", gap: 8, fontSize: 11, color: C.muted, flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", gap: 8, fontSize: "var(--t-kecil)", color: C.muted, flexWrap: "wrap" }}>
                         {pp.scope?.assignment?.mandor && <span>mandor: {pp.scope.assignment.mandor.name}</span>}
                         {pp.requester && <span>· diminta: {pp.requester.name}</span>}
                         <span>· {fmtDate(pp.paid_at ?? pp.created_at)}</span>
@@ -318,7 +318,7 @@ function PengeluaranIsi() {
                       <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 2 }}>
                         Settlement Borongan · {bs.scope?.scope_name ?? "—"}
                       </div>
-                      <div style={{ display: "flex", gap: 8, fontSize: 11, color: C.muted, flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", gap: 8, fontSize: "var(--t-kecil)", color: C.muted, flexWrap: "wrap" }}>
                         {bs.scope?.assignment?.mandor && <span>mandor: {bs.scope.assignment.mandor.name}</span>}
                         <span>· {fmtDate(bs.settled_at ?? bs.created_at)}</span>
                         <span style={{ background: "var(--navy-light)", color: C.purple, padding: "0px 6px", borderRadius: 6, border: `1px solid ${C.purpleBorder}` }}>
@@ -373,7 +373,7 @@ interface BarisSettlement {
 function JudulAliran({ children }: { children: React.ReactNode }) {
   return (
     <h2 style={{
-      fontSize: 11, fontWeight: 700, textTransform: "uppercase",
+      fontSize: "var(--t-kecil)", fontWeight: 700, textTransform: "uppercase",
       letterSpacing: "0.1em", color: C.muted, margin: "0 0 10px",
     }}>{children}</h2>
   );

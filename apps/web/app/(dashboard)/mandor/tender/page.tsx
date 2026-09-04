@@ -198,7 +198,7 @@ function Kpi({ label, nilai, keterangan, warna }: {
 }) {
   return (
     <div style={{ ...kartu, padding: "12px 16px", flex: "1 1 190px", minWidth: 175 }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+      <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
         {label}
       </div>
       <div style={{
@@ -446,7 +446,7 @@ export default function TenderSubkonPage() {
       kunci: "penilaian", judul: "Penilaian",
       render: (p) => (
         <span style={{
-          padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600,
+          padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 600,
           whiteSpace: "nowrap",
           color: NILAI_META[p.penilaian].warna,
           background: NILAI_META[p.penilaian].bg,
@@ -468,17 +468,17 @@ export default function TenderSubkonPage() {
         // tombolnya lalu menolak di server membuat orang mengira aplikasinya
         // rusak — yang tak berlaku sebaiknya tak terlihat sebagai pilihan.
         if (!tenderAktif || tenderAktif.status !== "terkirim") {
-          return <span style={{ color: C.muted, fontSize: 11.5 }}>—</span>;
+          return <span style={{ color: C.muted, fontSize: "var(--t-kecil)" }}>—</span>;
         }
         if (p.menang) {
-          return <span style={{ color: "var(--success)", fontSize: 11.5, fontWeight: 600 }}>Pemenang</span>;
+          return <span style={{ color: "var(--success)", fontSize: "var(--t-kecil)", fontWeight: 600 }}>Pemenang</span>;
         }
         if (p.nilai === null) {
           // Alasannya DINYATAKAN, bukan sekadar tombol yang hilang.
-          return <span style={{ color: C.muted, fontSize: 11.5 }}>tak menawar</span>;
+          return <span style={{ color: C.muted, fontSize: "var(--t-kecil)" }}>tak menawar</span>;
         }
         if (p.status === "gugur") {
-          return <span style={{ color: C.muted, fontSize: 11.5 }}>gugur</span>;
+          return <span style={{ color: C.muted, fontSize: "var(--t-kecil)" }}>gugur</span>;
         }
         return (
           <button type="button" onClick={() => bukaPenetapan(p)} style={{
@@ -614,7 +614,7 @@ export default function TenderSubkonPage() {
                   </span>
                   {/* Status sebagai KATA, bukan hanya warna (WCAG 1.4.1). */}
                   <span style={{
-                    padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600,
+                    padding: "3px 10px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 600,
                     color: STATUS_META[tenderTampil.status].warna,
                     background: STATUS_META[tenderTampil.status].bg,
                     border: `1px solid ${STATUS_META[tenderTampil.status].border}`,
@@ -892,7 +892,7 @@ export default function TenderSubkonPage() {
                                   pembaca layar sama-sama hanya punya teks ini. */}
                               {b.tak_lengkap && (
                                 <span style={{
-                                  display: "block", fontSize: 11, fontWeight: 600,
+                                  display: "block", fontSize: "var(--t-kecil)", fontWeight: 600,
                                   color: "var(--warning)", marginTop: 2,
                                 }}>
                                   tidak diisi semua penawar
@@ -933,12 +933,12 @@ export default function TenderSubkonPage() {
                                       supaya "lebih mahal" tak hanya tersirat
                                       dari warna. */}
                                   {s.selisih_pct !== null && s.selisih_pct > 0 && (
-                                    <span style={{ display: "block", fontSize: 11, color: C.mid, fontWeight: 400 }}>
+                                    <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, fontWeight: 400 }}>
                                       {persenBertanda(s.selisih_pct)}
                                     </span>
                                   )}
                                   {s.termurah && (
-                                    <span style={{ display: "block", fontSize: 11, color: "var(--success)", fontWeight: 600 }}>
+                                    <span style={{ display: "block", fontSize: "var(--t-kecil)", color: "var(--success)", fontWeight: 600 }}>
                                       termurah
                                     </span>
                                   )}
@@ -971,7 +971,7 @@ export default function TenderSubkonPage() {
               marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.border}`,
             }}>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Nilai penawaran
                 </div>
                 <div style={{ fontSize: 17, fontWeight: 700, color: C.text, marginTop: 3 }}>
@@ -979,7 +979,7 @@ export default function TenderSubkonPage() {
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   vs termurah
                 </div>
                 <div style={{
@@ -992,7 +992,7 @@ export default function TenderSubkonPage() {
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Waktu kerja
                 </div>
                 <div style={{ fontSize: 17, fontWeight: 700, color: C.text, marginTop: 3 }}>
@@ -1015,7 +1015,7 @@ export default function TenderSubkonPage() {
             )}
 
             <label htmlFor="td-alasan" style={{
-              display: "block", fontSize: 11, fontWeight: 700, color: C.muted,
+              display: "block", fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
               textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4,
             }}>
               Alasan pemilihan
@@ -1035,7 +1035,7 @@ export default function TenderSubkonPage() {
                 color: C.text, fontSize: 13, fontFamily: "inherit", resize: "vertical",
               }}
             />
-            <p id="td-alasan-bantu" style={{ fontSize: 11, color: C.muted, margin: "5px 0 0", lineHeight: 1.45 }}>
+            <p id="td-alasan-bantu" style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: "5px 0 0", lineHeight: 1.45 }}>
               Tercatat di tender dan ikut terbaca saat diaudit.
               {" "}{alasan.trim().length}/{minAlasan} karakter minimum.
             </p>

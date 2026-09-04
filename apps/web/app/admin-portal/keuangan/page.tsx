@@ -74,7 +74,7 @@ function KartuKpi({ label, nilai, aksen }: { label: string; nilai: string; aksen
   const warna = aksen === "danger" ? "var(--danger)" : aksen === "warning" ? "var(--on-warning-bg)" : "var(--text-primary)";
   return (
     <div style={{ background: "var(--surface)", borderRadius: "var(--portal-radius-card)", padding: "var(--pad-kartu-lega)", border: "1px solid var(--border)", flex: "1 1 140px", minWidth: 140 }}>
-      <div style={{ fontSize: 11, color: "var(--text-secondary)", marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginBottom: 4 }}>{label}</div>
       <div style={{ fontSize: 17, fontWeight: 700, color: warna, fontVariantNumeric: "tabular-nums" }}>{nilai}</div>
     </div>
   );
@@ -247,7 +247,7 @@ export default function AdminDashboardKeuanganPage() {
                     </div>
                   ))}
                 </div>
-                <div style={{ display: "flex", gap: 12, marginTop: 8, fontSize: 11, color: "var(--text-secondary)" }}>
+                <div style={{ display: "flex", gap: 12, marginTop: 8, fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--navy)", display: "inline-block" }} /> Tagih</span>
                   <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--success)", display: "inline-block" }} /> Bayar</span>
                 </div>
@@ -294,7 +294,7 @@ export default function AdminDashboardKeuanganPage() {
                   <div key={i.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{i.nomor}</div>
-                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{i.proyek ?? "—"} · lewat {i.hari_lewat} hari</div>
+                      <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{i.proyek ?? "—"} · lewat {i.hari_lewat} hari</div>
                     </div>
                     <span style={{ fontSize: 13, fontWeight: 700, color: "var(--danger)", fontVariantNumeric: "tabular-nums" }}>{formatRupiah(i.sisa)}</span>
                   </div>

@@ -279,15 +279,15 @@ function RapTab() {
             {detail.data.notes && <p style={{ fontSize: 12, color: C.mid, margin: "8px 0 0" }}>{detail.data.notes}</p>}
             <div style={{ display: "flex", gap: "var(--gap-bagian)", marginTop: 14, flexWrap: "wrap" }}>
               <div>
-                <div style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: .4 }}>Pagu Material</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: C.muted, textTransform: "uppercase", letterSpacing: .4 }}>Pagu Material</div>
                 <div style={{ fontSize: 17, fontWeight: 700, color: C.text, fontFamily: "monospace" }}>{fmtRp(detail.total.material)}</div>
               </div>
               <div>
-                <div style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: .4 }}>Borongan Tenaga Kerja</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: C.muted, textTransform: "uppercase", letterSpacing: .4 }}>Borongan Tenaga Kerja</div>
                 <div style={{ fontSize: 17, fontWeight: 700, color: C.text, fontFamily: "monospace" }}>{fmtRp(detail.total.labor)}</div>
               </div>
               <div>
-                <div style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: .4 }}>Total Pagu</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: C.muted, textTransform: "uppercase", letterSpacing: .4 }}>Total Pagu</div>
                 <div style={{ fontSize: 17, fontWeight: 800, color: C.navy, fontFamily: "monospace" }}>{fmtRp(detail.total.pagu)}</div>
               </div>
             </div>
@@ -297,7 +297,7 @@ function RapTab() {
             <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8 }}>
               <Package size={15} color={C.navy} />
               <strong style={{ fontSize: 13 }}>Material</strong>
-              <span style={{ fontSize: 11, color: C.muted }}>({detail.material.length} item)</span>
+              <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>({detail.material.length} item)</span>
             </div>
             {/*
               KEBUTUHAN MATERIAL — ditaruh SEBELUM tabel penyesuaian.
@@ -420,7 +420,7 @@ function RapTab() {
                        background: "none", border: "none", cursor: "pointer", textAlign: "left" }}>
               <History size={15} color={C.mid} />
               <strong style={{ fontSize: 13, color: C.text }}>Log Perubahan</strong>
-              <span style={{ fontSize: 11, color: C.muted }}>— catatan penyesuaian di luar sistem, tak mengubah pagu tersimpan</span>
+              <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>— catatan penyesuaian di luar sistem, tak mengubah pagu tersimpan</span>
               {showLogTable ? <ChevronDown size={14} color={C.mid} style={{ marginLeft: "auto" }} /> : <ChevronRight size={14} color={C.mid} style={{ marginLeft: "auto" }} />}
             </button>
             {showLogTable && (

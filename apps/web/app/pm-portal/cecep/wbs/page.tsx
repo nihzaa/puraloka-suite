@@ -55,10 +55,10 @@ export default function PmTemplateWbsPage() {
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
               {t.code} · {t.name}
               {t.milik_bersama && (
-                <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: "var(--text-secondary)" }}>· Katalog bersama</span>
+                <span style={{ marginLeft: 6, fontSize: "var(--t-mikro)", fontWeight: 600, color: "var(--text-secondary)" }}>· Katalog bersama</span>
               )}
             </div>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
               Versi {t.version_number} · {t.jumlahNode} baris struktur
             </div>
           </div>

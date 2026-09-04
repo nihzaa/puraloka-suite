@@ -138,15 +138,15 @@ export default function PmAsetDetailPage() {
         <>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Meter</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Meter</div>
               <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{aset.meter ?? "—"}</div>
             </div>
             <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Biaya/Jam</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Biaya/Jam</div>
               <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{aset.biaya.perJam !== null ? fmtRupiah(aset.biaya.perJam) : "—"}</div>
             </div>
             <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Servis Mendadak</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Servis Mendadak</div>
               <div style={{ fontSize: 15, fontWeight: 700, color: aset.kesehatan.preventifGagal ? "var(--danger)" : "var(--text-primary)" }}>
                 {aset.kesehatan.rasioMendadak !== null ? `${aset.kesehatan.rasioMendadak}%` : "—"}
               </div>
@@ -210,7 +210,7 @@ export default function PmAsetDetailPage() {
                       <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Beban Bulan Ini</span>
                       <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{fmtRupiah(dataSusut.meta.beban_bulan_ini)}</span>
                     </div>
-                    {dataSusut.meta.catatan && <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 8 }}>{dataSusut.meta.catatan}</div>}
+                    {dataSusut.meta.catatan && <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 8 }}>{dataSusut.meta.catatan}</div>}
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <button type="button" onClick={() => bukaSheet("catat-susut")}
@@ -335,7 +335,7 @@ export default function PmAsetDetailPage() {
             <input type="month" value={form.periode.slice(0, 7)} onChange={(e) => setForm((f) => ({ ...f, periode: e.target.value + "-01" }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
           </label>
-          <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
+          <p style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", margin: 0 }}>
             Mencatat baris penyusutan periode ini (belum menjurnalkan). Menyimpan
             dua kali untuk periode yang sama akan ditolak — satu periode, satu baris.
           </p>
@@ -354,7 +354,7 @@ export default function PmAsetDetailPage() {
             <input type="month" value={form.periode.slice(0, 7)} onChange={(e) => setForm((f) => ({ ...f, periode: e.target.value + "-01" }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
           </label>
-          <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
+          <p style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", margin: 0 }}>
             Menjurnalkan SELURUH baris penyusutan periode ini yang belum
             dijurnalkan (semua aset tenant, bukan cuma aset ini) ke buku besar.
             Idempoten — memanggil ulang untuk periode yang sama tidak

@@ -105,7 +105,7 @@ export function RailRingkas({
 
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{
-            display: "block", fontSize: 11, fontWeight: 700,
+            display: "block", fontSize: "var(--t-kecil)", fontWeight: 700,
             letterSpacing: ".04em", textTransform: "uppercase", color: C.mid,
           }}>
             {judul}

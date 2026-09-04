@@ -101,7 +101,7 @@ export function StatusBadge({ status }: { status: string }) {
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 4,
-      padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600,
+      padding: "2px 8px", borderRadius: 99, fontSize: "var(--t-kecil)", fontWeight: 600,
       color: m.color, background: m.bg, border: `1px solid ${m.border}`,
     }}>
       <span aria-hidden="true" style={{ width: 5, height: 5, borderRadius: "50%", background: m.color, flexShrink: 0 }} />
@@ -114,7 +114,7 @@ function ModelBadge({ model }: { model: "termin" | "komisi" }) {
   return (
     <span style={{
       display: "inline-block", padding: "2px 8px", borderRadius: 6,
-      fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
+      fontSize: "var(--t-mikro)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
       background: "var(--surface-hover)", color: C.mid, border: "1px solid var(--border)",
     }}>
       {model === "termin" ? "TERMIN" : "KOMISI"}
@@ -207,7 +207,7 @@ export function ProjectCardGrid({ project: p, hariIni, onClick }: {
         {lewat && (
           <span style={{
             marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 2,
-            padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700,
+            padding: "2px 8px", borderRadius: 99, fontSize: "var(--t-mikro)", fontWeight: 700,
             background: C.redBg, color: C.onDangerBg, border: `1px solid ${C.redBorder}`,
           }}>
             <AlertTriangle size={9} aria-hidden="true" /> {Math.abs(sisa)}h terlambat
@@ -216,7 +216,7 @@ export function ProjectCardGrid({ project: p, hariIni, onClick }: {
         {segera && (
           <span style={{
             marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 2,
-            padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700,
+            padding: "2px 8px", borderRadius: 99, fontSize: "var(--t-mikro)", fontWeight: 700,
             background: C.yellowBg, color: C.onWarningBg, border: `1px solid ${C.yellowBorder}`,
           }}>
             <Clock size={9} aria-hidden="true" /> {sisa}h lagi
@@ -241,7 +241,7 @@ export function ProjectCardGrid({ project: p, hariIni, onClick }: {
           <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
             <Avatar name={p.clients.contact_person} size={24} />
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 10, color: C.muted }}>Klien</div>
+              <div style={{ fontSize: "var(--t-mikro)", color: C.muted }}>Klien</div>
               <div style={{ fontSize: 12, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {p.clients.contact_person}
               </div>
@@ -253,7 +253,7 @@ export function ProjectCardGrid({ project: p, hariIni, onClick }: {
           <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
             <Avatar name={p.pm.name} size={24} />
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 10, color: C.muted }}>PM</div>
+              <div style={{ fontSize: "var(--t-mikro)", color: C.muted }}>PM</div>
               <div style={{ fontSize: 12, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {p.pm.name}
               </div>
@@ -264,7 +264,7 @@ export function ProjectCardGrid({ project: p, hariIni, onClick }: {
 
       <div style={{ marginBottom: 10 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
-          <span style={{ fontSize: 11, color: C.muted }}>Serapan Anggaran</span>
+          <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>Serapan Anggaran</span>
           <span style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>{Number(p.progress_pct).toFixed(1)}%</span>
         </div>
         <ProgressBar pct={Number(p.progress_pct)} color="var(--info)" />
@@ -272,11 +272,11 @@ export function ProjectCardGrid({ project: p, hariIni, onClick }: {
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         <div>
-          <div style={{ fontSize: 10, color: C.muted, marginBottom: 2 }}>Nilai Kontrak</div>
+          <div style={{ fontSize: "var(--t-mikro)", color: C.muted, marginBottom: 2 }}>Nilai Kontrak</div>
           <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{fmtCompact(Number(p.contract_value))}</div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 10, color: C.muted, marginBottom: 2 }}>Tenggat</div>
+          <div style={{ fontSize: "var(--t-mikro)", color: C.muted, marginBottom: 2 }}>Tenggat</div>
           <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: lewat ? C.red : C.mid, fontWeight: lewat ? 600 : 400 }}>
             <Calendar size={11} aria-hidden="true" />
             {fmtDate(p.end_date)}
@@ -337,11 +337,11 @@ export function ProjectCardList({ project: p, hariIni, onClick }: {
           {p.name}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 2, fontSize: 11, color: C.muted }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 2, fontSize: "var(--t-kecil)", color: C.muted }}>
             <MapPin size={10} aria-hidden="true" /> {p.location}
           </span>
           {p.clients && (
-            <span style={{ display: "flex", alignItems: "center", gap: 2, fontSize: 11, color: C.muted }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 2, fontSize: "var(--t-kecil)", color: C.muted }}>
               <User size={10} aria-hidden="true" /> {p.clients.contact_person}
             </span>
           )}
@@ -355,7 +355,7 @@ export function ProjectCardList({ project: p, hariIni, onClick }: {
         {p.pm && (
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <Avatar name={p.pm.name} size={18} />
-            <span style={{ fontSize: 11, color: C.mid, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: "var(--t-kecil)", color: C.mid, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {p.pm.name}
             </span>
           </div>
@@ -364,19 +364,19 @@ export function ProjectCardList({ project: p, hariIni, onClick }: {
 
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-          <span style={{ fontSize: 10, color: C.muted }}>Serapan</span>
-          <span style={{ fontSize: 11, fontWeight: 700, color: C.navy }}>{Number(p.progress_pct).toFixed(1)}%</span>
+          <span style={{ fontSize: "var(--t-mikro)", color: C.muted }}>Serapan</span>
+          <span style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.navy }}>{Number(p.progress_pct).toFixed(1)}%</span>
         </div>
         <ProgressBar pct={Number(p.progress_pct)} color="var(--info)" />
       </div>
 
       <div style={{ textAlign: "right" }}>
-        <div style={{ fontSize: 10, color: C.muted, marginBottom: 3 }}>Tenggat</div>
+        <div style={{ fontSize: "var(--t-mikro)", color: C.muted, marginBottom: 3 }}>Tenggat</div>
         <div style={{ fontSize: 12, fontWeight: lewat ? 600 : 400, color: lewat ? C.red : segera ? C.yellow : C.mid }}>
           {fmtDateShort(p.end_date)}
         </div>
-        {lewat && <div style={{ fontSize: 10, color: C.red, marginTop: 2 }}>{Math.abs(sisa)}h terlambat</div>}
-        {segera && <div style={{ fontSize: 10, color: C.yellow, marginTop: 2 }}>{sisa}h lagi</div>}
+        {lewat && <div style={{ fontSize: "var(--t-mikro)", color: C.red, marginTop: 2 }}>{Math.abs(sisa)}h terlambat</div>}
+        {segera && <div style={{ fontSize: "var(--t-mikro)", color: C.yellow, marginTop: 2 }}>{sisa}h lagi</div>}
       </div>
 
       <div aria-hidden="true" style={{

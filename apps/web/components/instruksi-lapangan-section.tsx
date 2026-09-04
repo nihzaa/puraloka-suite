@@ -347,11 +347,11 @@ function Baris({
         <div style={{ minWidth: 0, flex: "1 1 240px" }}>
           <div style={{ display: "flex", gap: 7, alignItems: "center", flexWrap: "wrap" }}>
             <span style={{
-              fontSize: 11.5, fontWeight: 700, color: C.navy,
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.navy,
               fontVariantNumeric: "tabular-nums",
             }}>{i.nomor}</span>
             <span style={{
-              fontSize: 10.5, fontWeight: 600, padding: "2px 7px", borderRadius: 999,
+              fontSize: "var(--t-mikro)", fontWeight: 600, padding: "2px 7px", borderRadius: 999,
               color: C.mid, background: C.subtle, border: `1px solid ${C.border}`,
             }}>{BENTUK[i.bentuk_perintah] ?? i.bentuk_perintah}</span>
           </div>
@@ -360,7 +360,7 @@ function Baris({
             margin: "5px 0 0", fontSize: 13.5, color: C.text, lineHeight: 1.45,
           }}>{i.isi_instruksi}</p>
 
-          <p style={{ margin: "4px 0 0", fontSize: 11.5, color: C.mid }}>
+          <p style={{ margin: "4px 0 0", fontSize: "var(--t-kecil)", color: C.mid }}>
             {i.pemberi_nama}
             {i.pemberi_jabatan && ` (${i.pemberi_jabatan})`}
             {" · "}{i.pemberi_pihak}
@@ -371,7 +371,7 @@ function Baris({
             {l && (
               <span style={{
                 display: "inline-flex", alignItems: "center", gap: 5,
-                padding: "3px 8px", borderRadius: 999, fontSize: 11, fontWeight: 600,
+                padding: "3px 8px", borderRadius: 999, fontSize: "var(--t-kecil)", fontWeight: 600,
                 color: l.warna, background: l.bg, border: `1px solid ${l.border}`,
               }}>{l.ikon}{l.teks}</span>
             )}
@@ -380,7 +380,7 @@ function Baris({
                 sering terlupa. */}
             {i.tindak_lanjut.jalur.map((j) => (
               <span key={j} style={{
-                padding: "3px 8px", borderRadius: 999, fontSize: 11, fontWeight: 600,
+                padding: "3px 8px", borderRadius: 999, fontSize: "var(--t-kecil)", fontWeight: 600,
                 color: C.blue, background: C.blueBg, border: `1px solid ${C.blueBorder}`,
               }}>
                 {j === "klaim" ? "Perlu klaim biaya" : "Perlu EOT"}
@@ -504,7 +504,7 @@ function FormInstruksi({
       <fieldset style={{
         border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px", margin: 0,
       }}>
-        <legend style={{ fontSize: 11.5, fontWeight: 600, color: C.mid, padding: "0 4px" }}>
+        <legend style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, padding: "0 4px" }}>
           Dampaknya
         </legend>
         {/* DUA dampak yang bisa menyala bersamaan — instruksi lapangan sering
@@ -652,7 +652,7 @@ function Medan({
   return (
     <label style={{ display: "block" }}>
       <span style={{
-        display: "block", fontSize: 11.5, fontWeight: 600,
+        display: "block", fontSize: "var(--t-kecil)", fontWeight: 600,
         color: C.mid, marginBottom: 4,
       }}>
         {label}

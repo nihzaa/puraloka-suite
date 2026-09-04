@@ -56,7 +56,7 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
       </div>
     </div>, document.body);
 }
-export const label = (t: string) => <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, margin: "10px 0 4px" }}>{t}</label>;
+export const label = (t: string) => <label style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, margin: "10px 0 4px" }}>{t}</label>;
 export function StatusBadge({ s }: { s: string }) {
   const map: Record<string, [string, string]> = {
     draft: [C.mid, C.bg], under_review: [C.yellow, C.yellowBg], approved: [C.green, C.greenBg],
@@ -65,7 +65,7 @@ export function StatusBadge({ s }: { s: string }) {
     locked: [C.navy, C.bg],
   };
   const [fg, bg] = map[s] ?? [C.mid, C.bg];
-  return <span style={{ fontSize: 11, fontWeight: 700, color: fg, background: bg, border: `1px solid ${C.border}`, borderRadius: 999, padding: "2px 8px" }}>{s}</span>;
+  return <span style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: fg, background: bg, border: `1px solid ${C.border}`, borderRadius: 999, padding: "2px 8px" }}>{s}</span>;
 }
 export const btnPrimary: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, background: "var(--grad-aksen)", color: C.onNavy, border: "none", borderRadius: 6, padding: "8px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
 export const btnGhost: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, background: C.surface, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" };
@@ -203,7 +203,7 @@ export interface RapChangeLogEntry {
 // lebih lega — itu memang arah `ARAH-VISUAL` §4.
 
 export const th: React.CSSProperties = {
-  textAlign: "left", padding: "var(--pad-baris)", fontSize: 11, fontWeight: 700,
+  textAlign: "left", padding: "var(--pad-baris)", fontSize: "var(--t-kecil)", fontWeight: 700,
   color: C.muted, textTransform: "uppercase", letterSpacing: .4,
   borderBottom: `1px solid ${C.border}`,
 };

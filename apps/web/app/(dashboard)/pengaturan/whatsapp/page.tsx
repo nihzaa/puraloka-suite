@@ -337,7 +337,7 @@ export default function WhatsAppPage() {
         */}
         <div style={{ display: "flex", gap: 8, alignItems: "flex-start", flexWrap: "wrap" }}>
           <div style={{ flex: "1 1 200px", minWidth: 0 }}>
-            <label htmlFor="pemilik-baru" style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: C.mid, marginBottom: 4 }}>
+            <label htmlFor="pemilik-baru" style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, marginBottom: 4 }}>
               Nomor ini milik
             </label>
             <Pilihan className="isian-fokus"
@@ -353,12 +353,12 @@ export default function WhatsAppPage() {
                 </option>
               ))}
             </Pilihan>
-            <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
+            <p style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
               Asisten menjawab memakai wewenang orang ini — bukan wewenang Anda.
             </p>
           </div>
           <div style={{ flex: "1 1 220px", minWidth: 0 }}>
-            <label htmlFor="nomor-baru" style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: C.mid, marginBottom: 4 }}>
+            <label htmlFor="nomor-baru" style={{ display: "block", fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, marginBottom: 4 }}>
               Nomor WhatsApp
             </label>
             <input className="isian-fokus"
@@ -370,7 +370,7 @@ export default function WhatsAppPage() {
               disabled={!bolehKelola || sedang === "__daftar__"}
               style={GAYA_ISIAN}
             />
-            <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
+            <p style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
               Kode 6 digit dikirim ke nomor itu. Nomor baru berfungsi setelah kodenya
               dimasukkan — mengetik nomor saja tidak cukup.
             </p>
@@ -516,7 +516,7 @@ export default function WhatsAppPage() {
                   */}
                   <span
                     style={{
-                      fontSize: 11, padding: "var(--pad-lencana)", borderRadius: 999,
+                      fontSize: "var(--t-kecil)", padding: "var(--pad-lencana)", borderRadius: 999,
                       whiteSpace: "nowrap",
                       color: !n.aktif ? C.muted : sudah ? "var(--success)" : "var(--warning)",
                       background: !n.aktif
@@ -540,7 +540,7 @@ export default function WhatsAppPage() {
                     style={{
                       padding: "var(--pad-lencana)", borderRadius: 6,
                       border: `1px solid ${C.border}`, background: "var(--surface-subtle)",
-                      color: C.mid, fontSize: 11.5, fontFamily: "inherit",
+                      color: C.mid, fontSize: "var(--t-kecil)", fontFamily: "inherit",
                       cursor: bolehKelola ? "pointer" : "not-allowed", whiteSpace: "nowrap",
                     }}
                   >
@@ -583,7 +583,7 @@ export default function WhatsAppPage() {
                     </button>
 
                     {n.percobaan_gagal > 0 && (
-                      <span style={{ fontSize: 11.5, color: "var(--warning)", alignSelf: "center", lineHeight: 1.5 }}>
+                      <span style={{ fontSize: "var(--t-kecil)", color: "var(--warning)", alignSelf: "center", lineHeight: 1.5 }}>
                         {n.percobaan_gagal} percobaan gagal
                         {n.percobaan_gagal >= 5 ? " — daftarkan ulang untuk kode baru" : ""}
                       </span>
@@ -596,7 +596,7 @@ export default function WhatsAppPage() {
         </div>
       )}
 
-      <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.6, margin: "14px 2px 0" }}>
+      <p style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.6, margin: "14px 2px 0" }}>
         Nomor terikat ke akun pengguna, bukan sekadar daftar putih. Mencabut keanggotaan
         seseorang di perusahaan ini langsung menutup akses WhatsApp-nya — tanpa perlu
         menghapus nomornya di sini.
@@ -789,7 +789,7 @@ function PanelTemplate({ bolehUbah }: { bolehUbah: boolean }) {
                 <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{t.label}</span>
                 <code
                   style={{
-                    fontSize: 10.5,
+                    fontSize: "var(--t-mikro)",
                     color: C.muted,
                     background: "var(--surface-2)",
                     padding: "1px 6px",
@@ -815,7 +815,7 @@ function PanelTemplate({ bolehUbah }: { bolehUbah: boolean }) {
                 yang terkirim BUKAN yang tertulis di kotak ini.
               */}
               {!t.aktif && (
-                <p style={{ fontSize: 11.5, color: C.warning, margin: 0 }}>
+                <p style={{ fontSize: "var(--t-kecil)", color: C.warning, margin: 0 }}>
                   Nonaktif — yang terkirim adalah teks bawaan sistem, bukan yang di bawah.
                 </p>
               )}
@@ -845,7 +845,7 @@ function PanelTemplate({ bolehUbah }: { bolehUbah: boolean }) {
               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                 {t.variabel.length > 0 ? (
                   <>
-                    <span style={{ fontSize: 11.5, color: C.muted }}>Sisipkan:</span>
+                    <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>Sisipkan:</span>
                     {t.variabel.map((v) => (
                       <button
                         key={v}
@@ -854,7 +854,7 @@ function PanelTemplate({ bolehUbah }: { bolehUbah: boolean }) {
                         onClick={() => sisipkan(t, v)}
                         title={`Sisipkan {{${v}}} — contoh: ${contohNilai(v)}`}
                         style={{
-                          fontSize: 11,
+                          fontSize: "var(--t-kecil)",
                           fontFamily: "var(--font-mono, monospace)",
                           padding: "2px 7px",
                           borderRadius: 999,
@@ -869,10 +869,10 @@ function PanelTemplate({ bolehUbah }: { bolehUbah: boolean }) {
                     ))}
                   </>
                 ) : (
-                  <span style={{ fontSize: 11.5, color: C.muted }}>Tanpa variabel.</span>
+                  <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>Tanpa variabel.</span>
                 )}
                 <span style={{ flex: 1 }} />
-                <span style={{ fontSize: 11, color: C.muted }}>{nilai.length} karakter</span>
+                <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>{nilai.length} karakter</span>
               </div>
 
               {/*
@@ -887,7 +887,7 @@ function PanelTemplate({ bolehUbah }: { bolehUbah: boolean }) {
                 pratinjaunya benar-benar berbeda.
               */}
               {asing.length > 0 ? (
-                <p role="alert" style={{ fontSize: 11.5, color: C.danger, margin: 0, lineHeight: 1.55 }}>
+                <p role="alert" style={{ fontSize: "var(--t-kecil)", color: C.danger, margin: 0, lineHeight: 1.55 }}>
                   Variabel tak dikenal: <code>{asing.map((v) => `{{${v}}}`).join(" ")}</code> —
                   akan ditolak saat disimpan. Yang tersedia:{" "}
                   {t.variabel.map((v) => `{{${v}}}`).join(" ") || "(tidak ada)"}.
@@ -901,7 +901,7 @@ function PanelTemplate({ bolehUbah }: { bolehUbah: boolean }) {
                     gap: 2,
                   }}
                 >
-                  <span style={{ fontSize: 10.5, color: C.muted, letterSpacing: 0.3 }}>
+                  <span style={{ fontSize: "var(--t-mikro)", color: C.muted, letterSpacing: 0.3 }}>
                     YANG DITERIMA
                   </span>
                   <span

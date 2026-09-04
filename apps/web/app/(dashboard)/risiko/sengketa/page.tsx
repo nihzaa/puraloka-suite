@@ -290,11 +290,11 @@ function IsiSengketa() {
           }}>
             <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
               {s.nomor && (
-                <span style={{ fontSize: 11, color: C.muted, fontWeight: 700 }}>{s.nomor}</span>
+                <span style={{ fontSize: "var(--t-kecil)", color: C.muted, fontWeight: 700 }}>{s.nomor}</span>
               )}
               <strong style={{ fontSize: 13, color: C.text }}>{s.judul}</strong>
             </span>
-            <span style={{ display: "block", fontSize: 11.5, color: C.mid, marginTop: 1 }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.mid, marginTop: 1 }}>
               lawan {s.pihak_lawan}
               {s.forum ? ` · ${s.forum}` : ""}
               {/* Tautan ke klaimnya disebut — itulah yang membuat angkanya
@@ -302,7 +302,7 @@ function IsiSengketa() {
               {s.klaim_id ? " · dari klaim yang ditolak" : ""}
             </span>
             {s.status === "selesai" && s.hasil && (
-              <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 2, maxWidth: "46ch" }}>
+              <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2, maxWidth: "46ch" }}>
                 {s.hasil}
               </span>
             )}
@@ -316,14 +316,14 @@ function IsiSengketa() {
         <span style={{ display: "block", fontVariantNumeric: "tabular-nums" }}>
           <span style={{ fontSize: 12.5, color: C.text }}>{rupiah(s.nilai_tuntutan)}</span>
           {s.status === "selesai" && (
-            <span style={{ display: "block", fontSize: 11, color: C.muted }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>
               putusan {rupiah(s.nilai_putusan)}
             </span>
           )}
           {s.nilai_tuntutan == null && s.status !== "selesai" && (
             // Dinyatakan, bukan dibiarkan strip — nilai yang belum dicatat
             // adalah paparan yang belum diketahui, bukan paparan nol.
-            <span style={{ display: "block", fontSize: 11, color: "var(--warning-teks)" }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: "var(--warning-teks)" }}>
               belum dicatat
             </span>
           )}
@@ -336,7 +336,7 @@ function IsiSengketa() {
         <span style={{ display: "block", fontSize: 12, color: C.mid }}>
           {tanggal(s.tanggal_mulai)}
           {s.selesai_pada && (
-            <span style={{ display: "block", fontSize: 11, color: C.muted }}>
+            <span style={{ display: "block", fontSize: "var(--t-kecil)", color: C.muted }}>
               selesai {tanggal(s.selesai_pada)}
             </span>
           )}
@@ -401,7 +401,7 @@ function IsiSengketa() {
 
       <Kartu pad="sedang">
         <label htmlFor="sg-proyek" style={{
-          fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+          fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
           marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
         }}>Proyek</label>
         <Pilihan

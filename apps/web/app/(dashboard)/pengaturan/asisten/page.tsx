@@ -206,7 +206,7 @@ export default function LapisanAiPage() {
             />
             <span style={{ fontSize: 13, color: C.mid }}>hari</span>
           </div>
-          <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "8px 0 0", maxWidth: "62ch" }}>
+          <p style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.55, margin: "8px 0 0", maxWidth: "62ch" }}>
             Percakapan memuat kutipan data operasional. Menyimpannya tanpa batas berarti satu
             kebocoran basis membuka riwayat bertahun-tahun. Kosongkan hanya bila Anda memang wajib
             menyimpannya.

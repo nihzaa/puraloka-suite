@@ -97,7 +97,7 @@ export default function AdminRekonsiliasiBankPage() {
                   {k.belum_cocok > 0 ? `${k.belum_cocok} belum cocok` : "Tuntas"}
                 </span>
               </div>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 4 }}>
                 Saldo akhir koran: {formatRupiah(k.saldo_akhir)}
               </div>
             </div>

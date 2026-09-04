@@ -155,7 +155,7 @@ export function BukuBesar({ akun }: { akun: AkunRingkas[] }) {
       }}>
         <div style={{ flex: "1 1 260px", minWidth: 220 }}>
           <label htmlFor="bb-akun" style={{
-            fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+            fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
             marginBottom: 5, textTransform: "uppercase", letterSpacing: ".05em",
           }}>Akun</label>
           <Pilihan id="bb-akun" value={akunId} onChange={(e) => setAkunId(e.target.value)}
@@ -168,7 +168,7 @@ export function BukuBesar({ akun }: { akun: AkunRingkas[] }) {
         </div>
         <div>
           <label htmlFor="bb-dari" style={{
-            fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+            fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
             marginBottom: 5, textTransform: "uppercase", letterSpacing: ".05em",
           }}>Dari</label>
           <input id="bb-dari" type="date" value={dari}
@@ -176,7 +176,7 @@ export function BukuBesar({ akun }: { akun: AkunRingkas[] }) {
         </div>
         <div>
           <label htmlFor="bb-sampai" style={{
-            fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+            fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted, display: "block",
             marginBottom: 5, textTransform: "uppercase", letterSpacing: ".05em",
           }}>Sampai</label>
           <input id="bb-sampai" type="date" value={sampai}
@@ -255,7 +255,7 @@ export function BukuBesar({ akun }: { akun: AkunRingkas[] }) {
                 background: "var(--surface-subtle)", border: `1px solid ${C.border}`,
               }}>
                 <div style={{
-                  fontSize: 10, fontWeight: 700, color: C.muted,
+                  fontSize: "var(--t-mikro)", fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 4,
                 }}>{k.l}</div>
                 <div style={{
@@ -280,7 +280,7 @@ export function BukuBesar({ akun }: { akun: AkunRingkas[] }) {
                     {["Tanggal", "No. Jurnal", "Keterangan", "Debit", "Kredit", "Saldo"].map((h, i) => (
                       <th key={h} scope="col" style={{
                         padding: "8px 12px", textAlign: i >= 3 ? "right" : "left",
-                        fontSize: 10, fontWeight: 700, letterSpacing: ".05em",
+                        fontSize: "var(--t-mikro)", fontWeight: 700, letterSpacing: ".05em",
                         textTransform: "uppercase", color: C.mid, whiteSpace: "nowrap",
                       }}>{h}</th>
                     ))}
@@ -318,7 +318,7 @@ export function BukuBesar({ akun }: { akun: AkunRingkas[] }) {
             </div>
           </div>
 
-          <p style={{ fontSize: 11, color: C.muted, marginTop: 10, textAlign: "right" }}>
+          <p style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 10, textAlign: "right" }}>
             {denganSaldo.length} baris · hanya jurnal <strong>posted</strong>
             {denganSaldo.length >= 500 && " · dibatasi 500 baris teratas, persempit rentang tanggal"}
           </p>

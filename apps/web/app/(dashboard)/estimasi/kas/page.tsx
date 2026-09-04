@@ -202,7 +202,7 @@ function IsiProyeksiKas() {
             }}>
               {rp(jawab.baseline_total)}
             </div>
-            <div style={{ fontSize: 11, color: C.muted, marginTop: 3 }}>
+            <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 3 }}>
               dibagi rata ke {jawab.periods} periode
             </div>
           </div>
@@ -271,7 +271,7 @@ const gayaIsian: React.CSSProperties = {
 };
 const th: React.CSSProperties = {
   textAlign: "left", padding: "var(--pad-baris)",
-  fontSize: 11, fontWeight: 700, letterSpacing: ".04em",
+  fontSize: "var(--t-kecil)", fontWeight: 700, letterSpacing: ".04em",
   textTransform: "uppercase", color: "var(--text-muted)",
   borderBottom: "1px solid var(--border)",
   background: "var(--surface-subtle)", whiteSpace: "nowrap",

@@ -136,7 +136,7 @@ export default function PiutangPage() {
       render: r => (
         <>
           <div style={{ fontWeight: 600 }}>{r.invoice_number}</div>
-          <div style={{ fontSize: 11, color: C.muted }}>{INVOICE_TYPE_LABEL[r.invoice_type] ?? r.invoice_type}</div>
+          <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>{INVOICE_TYPE_LABEL[r.invoice_type] ?? r.invoice_type}</div>
         </>
       ),
     },
@@ -176,7 +176,7 @@ export default function PiutangPage() {
       render: r => (
         <>
           <div style={{ fontWeight: 600 }}>{r.project.name}</div>
-          <div style={{ fontSize: 11, color: C.muted }}>{r.client?.name ?? "—"}{r.retention_pct ? ` · retensi ${r.retention_pct}%` : ""}</div>
+          <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>{r.client?.name ?? "—"}{r.retention_pct ? ` · retensi ${r.retention_pct}%` : ""}</div>
         </>
       ),
     },
@@ -206,7 +206,7 @@ export default function PiutangPage() {
       render: r => (
         <>
           <div style={{ fontWeight: 600 }}>{r.project.name}</div>
-          <div style={{ fontSize: 11, color: C.muted }}>{r.client?.name ?? "—"}</div>
+          <div style={{ fontSize: "var(--t-kecil)", color: C.muted }}>{r.client?.name ?? "—"}</div>
         </>
       ),
     },
@@ -221,7 +221,7 @@ export default function PiutangPage() {
             <div style={{ flex: 1, height: 7, borderRadius: 6, background: "var(--surface-hover)", overflow: "hidden" }}>
               <div style={{ width: `${pct}%`, height: "100%", background: pct >= 100 ? C.green : C.navy, borderRadius: 6 }} />
             </div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: r.remaining_to_recoup > 0 ? C.text : C.green, whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: r.remaining_to_recoup > 0 ? C.text : C.green, whiteSpace: "nowrap" }}>
               {r.remaining_to_recoup > 0 ? `sisa ${fmt(r.remaining_to_recoup)}` : "selesai"}
             </span>
           </div>
@@ -253,7 +253,7 @@ export default function PiutangPage() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Total Piutang Berjalan</div>
+            <div style={{ fontSize: "var(--t-kecil)", color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Total Piutang Berjalan</div>
             <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 800, color: C.navy }}>{aging ? fmt(aging.total_outstanding) : "—"}</div>
           </div>
           <button aria-label="Muat ulang" onClick={load} disabled={loading} title="Muat ulang"
@@ -398,7 +398,7 @@ export default function PiutangPage() {
               </div>
             )}
           />
-          <div style={{ padding: "8px 20px 12px", fontSize: 11, color: C.muted }}>
+          <div style={{ padding: "8px 20px 12px", fontSize: "var(--t-kecil)", color: C.muted }}>
             Estimasi cair = tanggal selesai proyek + hari retensi termin (bukan tanggal resmi — BAST formal belum dicatat sistem).
           </div>
         </div>
@@ -432,7 +432,7 @@ export default function PiutangPage() {
               </div>
             )}
           />
-          <div style={{ padding: "8px 20px 12px", fontSize: 11, color: C.muted }}>
+          <div style={{ padding: "8px 20px 12px", fontSize: "var(--t-kecil)", color: C.muted }}>
             Sisa DP dipotong dari invoice termin berikutnya lewat form Buat Invoice di halaman Keuangan.
           </div>
         </div>

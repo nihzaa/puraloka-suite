@@ -147,15 +147,15 @@ export default function PmKepatuhanPage() {
         <div style={{ display: "flex", gap: 8, overflowX: "auto" }}>
           <div style={{ flex: "0 0 auto", padding: "10px 14px", borderRadius: 14, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: "var(--on-danger-bg)" }}>{dataIkhtisar.dokumen.kedaluwarsa}</div>
-            <div style={{ fontSize: 11, color: "var(--on-danger-bg)" }}>Dokumen kedaluwarsa</div>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--on-danger-bg)" }}>Dokumen kedaluwarsa</div>
           </div>
           <div style={{ flex: "0 0 auto", padding: "10px 14px", borderRadius: 14, background: "var(--warning-bg)", border: "1px solid var(--warning-border)" }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: "var(--on-warning-bg)" }}>{dataIkhtisar.izin_kerja.menunggu}</div>
-            <div style={{ fontSize: 11, color: "var(--on-warning-bg)" }}>Izin menunggu</div>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--on-warning-bg)" }}>Izin menunggu</div>
           </div>
           <div style={{ flex: "0 0 auto", padding: "10px 14px", borderRadius: 14, background: "var(--surface-subtle)" }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text-primary)" }}>{dataIkhtisar.k3.daftar_hitam}</div>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Daftar hitam</div>
+            <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Daftar hitam</div>
           </div>
         </div>
       )}

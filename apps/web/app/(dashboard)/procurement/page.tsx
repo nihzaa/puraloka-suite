@@ -285,7 +285,7 @@ function ProcurementRingkasan() {
           keterangan="PO yang barangnya ditunggu dan tanggal janjinya sudah terlewat"
           aksi={
             <Link href="/procurement/pesanan" style={{
-              fontSize: 11, fontWeight: 600, color: C.navy,
+              fontSize: "var(--t-kecil)", fontWeight: 600, color: C.navy,
               textDecoration: "none", whiteSpace: "nowrap",
             }}>Semua pesanan →</Link>
           }
@@ -312,7 +312,7 @@ function ProcurementRingkasan() {
           keterangan="porsi nilai PO terbuka per supplier · enam terbesar"
           aksi={
             <Link href="/procurement/supplier" style={{
-              fontSize: 11, fontWeight: 600, color: C.navy,
+              fontSize: "var(--t-kecil)", fontWeight: 600, color: C.navy,
               textDecoration: "none", whiteSpace: "nowrap",
             }}>Daftar supplier →</Link>
           }
@@ -407,7 +407,7 @@ function Spanduk({ ikon, teks, href, tautan, nada }: {
       <span style={{ color: warna.teks, flexShrink: 0, display: "flex" }}>{ikon}</span>
       <span style={{ fontSize: 12, color: warna.teks, fontWeight: 600 }}>{teks}</span>
       <Link href={href} style={{
-        marginLeft: "auto", fontSize: 11, color: warna.teks, fontWeight: 700,
+        marginLeft: "auto", fontSize: "var(--t-kecil)", color: warna.teks, fontWeight: 700,
         whiteSpace: "nowrap", textDecoration: "none",
       }}>{tautan}</Link>
     </div>
@@ -441,7 +441,7 @@ function DaftarTertunggak({ baris, tanpaTanggal }: { baris: BarisTunggu[]; tanpa
               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}>{b.po_number} · {b.supplier}</span>
             <span style={{
-              fontSize: 11, fontWeight: 700, color: C.red,
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.red,
               fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap",
             }}>+{b.hariLewat} hari</span>
           </div>
@@ -462,13 +462,13 @@ function DaftarTertunggak({ baris, tanpaTanggal }: { baris: BarisTunggu[]; tanpa
             }} />
           </div>
 
-          <div style={{ marginTop: 4, fontSize: 10, color: C.muted }}>
+          <div style={{ marginTop: 4, fontSize: "var(--t-mikro)", color: C.muted }}>
             nilai {fmtRingkas(b.nilai)}
           </div>
         </li>
       ))}
 
-      <li style={{ fontSize: 10, color: C.muted, lineHeight: 1.5, marginTop: 2 }}>
+      <li style={{ fontSize: "var(--t-mikro)", color: C.muted, lineHeight: 1.5, marginTop: 2 }}>
         <Clock size={10} aria-hidden="true" style={{ verticalAlign: "-1px", marginRight: 4 }} />
         Dihitung dari tanggal janji kirim yang dicatat saat PO dibuat. Kalau
         tanggalnya sudah direvisi bersama supplier, revisi itu tidak tercatat
@@ -499,9 +499,9 @@ function DaftarKonsentrasi({ baris }: { baris: BarisVendor[] }) {
               fontSize: 12, fontWeight: 600, color: C.text, flex: 1, minWidth: 0,
               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}>{b.nama}</span>
-            <span style={{ fontSize: 10, color: C.muted, whiteSpace: "nowrap" }}>{b.jumlahPo} PO</span>
+            <span style={{ fontSize: "var(--t-mikro)", color: C.muted, whiteSpace: "nowrap" }}>{b.jumlahPo} PO</span>
             <span style={{
-              fontSize: 11, fontWeight: 700, color: C.text,
+              fontSize: "var(--t-kecil)", fontWeight: 700, color: C.text,
               fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap",
             }}>{b.persen.toFixed(0)}%</span>
           </div>
@@ -516,7 +516,7 @@ function DaftarKonsentrasi({ baris }: { baris: BarisVendor[] }) {
               borderRadius: 4, transition: "width 500ms cubic-bezier(.16,1,.3,1)",
             }} />
           </div>
-          <div style={{ marginTop: 4, fontSize: 10, color: C.muted }}>{fmtRingkas(b.nilai)}</div>
+          <div style={{ marginTop: 4, fontSize: "var(--t-mikro)", color: C.muted }}>{fmtRingkas(b.nilai)}</div>
         </li>
       ))}
     </ul>
@@ -550,7 +550,7 @@ function Pintu({ href, ikon, judul, sebab, jumlah, mendesak }: {
         <span style={{ fontSize: 14, fontWeight: 700, color: C.text, flex: 1 }}>{judul}</span>
         {menunggu && (
           <span style={{
-            fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 99,
+            fontSize: "var(--t-kecil)", fontWeight: 700, padding: "2px 8px", borderRadius: 99,
             fontVariantNumeric: "tabular-nums",
             background: mendesak ? "var(--danger-bg)" : "var(--surface-hover)",
             color: mendesak ? "var(--on-danger-bg)" : C.mid,

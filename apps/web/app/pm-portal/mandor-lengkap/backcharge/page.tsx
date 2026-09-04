@@ -151,7 +151,7 @@ export default function PmBackChargePage() {
               <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
                 {b.scope?.scope_name ?? "—"} · {fmtDate(b.tanggal)}
               </div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginTop: 2 }}>
                 {LABEL_KATEGORI[b.kategori] ?? b.kategori}
               </div>
             </div>
@@ -171,7 +171,7 @@ export default function PmBackChargePage() {
           )}
 
           {b.status === "diajukan" && (
-            <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-muted)" }}>
+            <div style={{ marginTop: 8, fontSize: "var(--t-kecil)", color: "var(--text-muted)" }}>
               Persetujuan/pembatalan butuh izin tersendiri — yang mengajukan bukan yang memutuskan. Tidak tersedia dari Portal PM.
             </div>
           )}
@@ -240,7 +240,7 @@ function FormBackCharge({ onBatal, onSukses }: { onBatal: () => void; onSukses: 
             </option>
           ))}
         </Pilihan>
-        <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, lineHeight: 1.4 }}>
+        <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)", marginTop: 4, lineHeight: 1.4 }}>
           Potongan menempel pada lingkup kerja, bukan pada mandornya — satu mandor bisa memegang beberapa lingkup.
         </div>
       </label>
@@ -279,7 +279,7 @@ function FormBackCharge({ onBatal, onSukses }: { onBatal: () => void; onSukses: 
           placeholder="Apa yang harus diperbaiki, kenapa biayanya dibebankan ke mandor"
           style={{ width: "100%", marginTop: 6, padding: 12, borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", resize: "vertical" }}
         />
-        <div style={{ fontSize: 11, color: uraian.trim() === "" ? "var(--warning)" : "var(--text-muted)", marginTop: 4, lineHeight: 1.4 }}>
+        <div style={{ fontSize: "var(--t-kecil)", color: uraian.trim() === "" ? "var(--warning)" : "var(--text-muted)", marginTop: 4, lineHeight: 1.4 }}>
           Wajib. Potongan tanpa sebab tak bisa dijelaskan ke mandor — dan akan disengketakan saat pembayaran.
         </div>
       </label>

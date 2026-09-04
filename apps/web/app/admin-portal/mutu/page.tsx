@@ -229,7 +229,7 @@ function Kpi({
       }}>
         {nilai}
       </div>
-      {sub && <div style={{ ...metaKecil, fontSize: 11 }}>{sub}</div>}
+      {sub && <div style={{ ...metaKecil, fontSize: "var(--t-kecil)" }}>{sub}</div>}
     </div>
   );
 }
@@ -237,7 +237,7 @@ function Kpi({
 function Mini({ label, nilai, sorot }: { label: string; nilai: string; sorot?: boolean }) {
   return (
     <div>
-      <div style={{ ...metaKecil, fontSize: 11 }}>{label}</div>
+      <div style={{ ...metaKecil, fontSize: "var(--t-kecil)" }}>{label}</div>
       <div style={{
         fontSize: 16, fontWeight: 700,
         color: sorot ? "var(--on-danger-bg)" : "var(--text-primary)",
@@ -278,6 +278,6 @@ const baris: React.CSSProperties = {
   gap: 10, padding: "8px 0", borderTop: "1px solid var(--border)",
 };
 const pil: React.CSSProperties = {
-  fontSize: 11, fontWeight: 700, padding: "3px 8px",
+  fontSize: "var(--t-kecil)", fontWeight: 700, padding: "3px 8px",
   borderRadius: "var(--portal-radius-pill)", flexShrink: 0,
 };

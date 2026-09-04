@@ -348,20 +348,20 @@ export default function AdminChangeOrderPage() {
               >
                 {fmtDelta(co.total_amount_delta)}
               </span>
-              <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{co.items.length} item</span>
+              <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{co.items.length} item</span>
             </div>
 
             {co.billing_mode && (
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{LABEL_BILLING[co.billing_mode] ?? co.billing_mode}</div>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{LABEL_BILLING[co.billing_mode] ?? co.billing_mode}</div>
             )}
 
             {co.status === "approved" && co.baseline_contract_value !== null && (
-              <div style={{ fontSize: 11, color: "var(--text-secondary)", padding: "6px 8px", borderRadius: 8, background: "var(--success-bg)" }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", padding: "6px 8px", borderRadius: 8, background: "var(--success-bg)" }}>
                 Nilai kontrak: {formatRupiah(co.baseline_contract_value)} → {formatRupiah(co.baseline_contract_value + co.total_amount_delta)}
               </div>
             )}
             {co.status === "rejected" && co.rejected_reason && (
-              <div style={{ fontSize: 11, color: "var(--on-danger-bg)", padding: "6px 8px", borderRadius: 8, background: "var(--danger-bg)" }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--on-danger-bg)", padding: "6px 8px", borderRadius: 8, background: "var(--danger-bg)" }}>
                 {co.rejected_reason}
               </div>
             )}
@@ -381,8 +381,8 @@ export default function AdminChangeOrderPage() {
                     }}
                   >
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-primary)" }}>{LABEL_ITEM_TYPE[it.item_type] ?? it.item_type}</div>
-                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{it.description}</div>
+                      <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: "var(--text-primary)" }}>{LABEL_ITEM_TYPE[it.item_type] ?? it.item_type}</div>
+                      <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{it.description}</div>
                     </div>
                     <div
                       style={{
@@ -517,7 +517,7 @@ export default function AdminChangeOrderPage() {
               <option value="separate_co">Tagihan CO tersendiri</option>
               <option value="final_account">Final account settlement</option>
             </Pilihan>
-            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+            <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
               Boleh dikosongkan sekarang, tapi WAJIB dipilih sebelum CO ini bisa disetujui — pilihan ini menentukan apakah nilai kontrak naik.
             </span>
           </label>

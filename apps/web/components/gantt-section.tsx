@@ -212,11 +212,11 @@ function EditDateModal({
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <label htmlFor="planned-start" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Mulai Rencana</label>
+            <label htmlFor="planned-start" style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Mulai Rencana</label>
             <input id="planned-start" type="date" value={plannedStart} onChange={e => setPlannedStart(e.target.value)} style={inpStyle} />
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <label htmlFor="planned-end" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Selesai Rencana</label>
+            <label htmlFor="planned-end" style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Selesai Rencana</label>
             <input id="planned-end" type="date" value={plannedEnd} onChange={e => setPlannedEnd(e.target.value)} style={inpStyle} />
           </div>
         </div>
@@ -228,11 +228,11 @@ function EditDateModal({
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <div>Mulai aktual: <strong>{fmtDate(task.actual_start)}</strong></div>
               {task.actual_end
-                ? <div>✅ Selesai earned: <strong>{fmtDate(task.actual_end)}</strong> <span style={{ color: "var(--info-border)", fontSize: 11 }}>(pertama kali 100%)</span></div>
+                ? <div>✅ Selesai earned: <strong>{fmtDate(task.actual_end)}</strong> <span style={{ color: "var(--info-border)", fontSize: "var(--t-kecil)" }}>(pertama kali 100%)</span></div>
                 : <div style={{ color: "var(--info-border)" }}>⏳ Masih berlangsung</div>
               }
               {task.execution_end && task.actual_end && task.execution_end !== task.actual_end && (
-                <div style={{ fontSize: 11, color: "var(--info-border)" }}>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--info-border)" }}>
                   Aktivitas terakhir: {fmtDate(task.execution_end)} (untuk audit, tidak mempengaruhi schedule)
                 </div>
               )}
@@ -242,10 +242,10 @@ function EditDateModal({
 
         {/* Soft dependencies with threshold */}
         <div>
-          <label style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+          <label style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, textTransform: "uppercase", display: "block", marginBottom: 6 }}>
             Dependency (soft — advisory only)
           </label>
-          <div style={{ fontSize: 11, color: C.muted, marginBottom: 10, display: "flex", gap: 4, alignItems: "flex-start" }}>
+          <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginBottom: 10, display: "flex", gap: 4, alignItems: "flex-start" }}>
             <Info size={11} style={{ marginTop: 1, flexShrink: 0 }} />
             <span>Dependency hanya memberi warning, bukan blocker. Centang item, lalu opsional isi threshold % (contoh: 80 = warning jika dependency belum ≥80% saat pekerjaan ini dimulai).</span>
           </div>
@@ -268,13 +268,13 @@ function EditDateModal({
                       <span style={{ fontSize: 12, color: C.text, flex: 1 }}>
                         {t.no_urut ? `${t.no_urut}. ` : ""}{t.uraian}
                       </span>
-                      <span style={{ fontSize: 11, color: C.muted, flexShrink: 0 }}>
+                      <span style={{ fontSize: "var(--t-kecil)", color: C.muted, flexShrink: 0 }}>
                         s/d {fmtDateShort(t.planned_end)}
                       </span>
                     </label>
                     {checked && rule && (
                       <div style={{ padding: "0 10px 9px", display: "grid", gridTemplateColumns: "auto 1fr", gap: "6px 10px", alignItems: "center" }}>
-                        <span style={{ fontSize: 11, color: C.mid, whiteSpace: "nowrap" }}>Threshold %</span>
+                        <span style={{ fontSize: "var(--t-kecil)", color: C.mid, whiteSpace: "nowrap" }}>Threshold %</span>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <input
                             type="number"
@@ -288,10 +288,10 @@ function EditDateModal({
                             style={{ ...smallInp, width: 130 }}
                           />
                           {rule.threshold_pct != null && (
-                            <span style={{ fontSize: 11, color: C.mid }}>% progress dep harus tercapai</span>
+                            <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}>% progress dep harus tercapai</span>
                           )}
                         </div>
-                        <span style={{ fontSize: 11, color: C.mid }}>Label</span>
+                        <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}>Label</span>
                         <input
                           type="text"
                           placeholder="mis. Pedestal siap erection"
@@ -447,7 +447,7 @@ function GanttBar({ task, minDate, totalDays, dayWidth, warnings, taskMap, onEdi
               left: 6,
               top: "50%",
               transform: "translateY(-50%)",
-              fontSize: 10,
+              fontSize: "var(--t-mikro)",
               fontWeight: 700,
               color: "var(--surface)",
               letterSpacing: "0.03em",
@@ -508,7 +508,7 @@ function GanttBar({ task, minDate, totalDays, dayWidth, warnings, taskMap, onEdi
             color: "var(--surface-subtle)",
             borderRadius: 6,
             padding: "8px 12px",
-            fontSize: 11,
+            fontSize: "var(--t-kecil)",
             lineHeight: 1.6,
             whiteSpace: "nowrap",
             boxShadow: "var(--naik-2)",
@@ -528,7 +528,7 @@ function GanttBar({ task, minDate, totalDays, dayWidth, warnings, taskMap, onEdi
             <div style={{ color: "#6EE7B7" }}>⏳ Masih berlangsung</div>
           )}
           {task.execution_end && task.actual_end && task.execution_end !== task.actual_end && (
-            <div style={{ color: "var(--text-muted)", fontSize: 10 }}>📋 Aktivitas terakhir: {fmtDate(task.execution_end)}</div>
+            <div style={{ color: "var(--text-muted)", fontSize: "var(--t-mikro)" }}>📋 Aktivitas terakhir: {fmtDate(task.execution_end)}</div>
           )}
           {progressWidth > 0 && (
             <div>📊 Progress: {Math.round(progressWidth)}%</div>
@@ -675,7 +675,7 @@ function TodayLine({ minDate, totalDays }: { minDate: Date; totalDays: number })
       pointerEvents: "none",
       zIndex: 5,
     }}>
-      <div style={{ position: "absolute", top: 0, left: -18, fontSize: 10, fontWeight: 700, color: C.red, whiteSpace: "nowrap", background: "var(--surface)", padding: "0px 2px", borderRadius: 0 }}>
+      <div style={{ position: "absolute", top: 0, left: -18, fontSize: "var(--t-mikro)", fontWeight: 700, color: C.red, whiteSpace: "nowrap", background: "var(--surface)", padding: "0px 2px", borderRadius: 0 }}>
         Hari ini
       </div>
     </div>
@@ -712,7 +712,7 @@ function TimelineHeader({ minDate, totalDays, viewMode }: { minDate: Date; total
         <div key={i} style={{
           flex: `0 0 ${col.widthPct}%`,
           padding: "6px 4px",
-          fontSize: 10,
+          fontSize: "var(--t-mikro)",
           fontWeight: 600,
           color: C.mid,
           textAlign: "center",
@@ -865,14 +865,14 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
             <thead>
               <tr style={{ background: "var(--surface-subtle)", borderBottom: "1px solid var(--border)" }}>
                 {["No", "Uraian Pekerjaan", "Bobot %", "Progress %", "Mulai Rencana", "Selesai Rencana", canEdit ? "Edit" : ""].map(h => (
-                  <th key={h} style={{ padding: "8px 8px", textAlign: "left", fontSize: 10, fontWeight: 600, textTransform: "uppercase", color: C.muted }}>{h}</th>
+                  <th key={h} style={{ padding: "8px 8px", textAlign: "left", fontSize: "var(--t-mikro)", fontWeight: 600, textTransform: "uppercase", color: C.muted }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {tasks.slice(0, 30).map(t => (
                 <tr key={t.id} className="gantt-row" style={{ borderBottom: "1px solid var(--surface-hover)" }}>
-                  <th scope="row" style={{ textAlign: "left", padding: "6px 8px", color: C.muted, fontWeight: 600, fontSize: 11 }}>{t.no_urut ?? ""}</th>
+                  <th scope="row" style={{ textAlign: "left", padding: "6px 8px", color: C.muted, fontWeight: 600, fontSize: "var(--t-kecil)" }}>{t.no_urut ?? ""}</th>
                   <td style={{ padding: "6px 8px", color: C.text, paddingLeft: t.level === 2 ? 24 : t.level === 3 ? 40 : 10 }}>{t.uraian}</td>
                   <td style={{ padding: "6px 8px", color: C.mid }}>{t.weight_pct > 0 ? `${t.weight_pct.toFixed(2)}%` : "—"}</td>
                   <td style={{ padding: "6px 8px" }}>
@@ -880,7 +880,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
                       <div style={{ width: 48, height: 4, background: "var(--border)", borderRadius: 0 }}>
                         <div style={{ width: `${Math.min(100, t.progress_pct)}%`, height: "100%", background: C.navy, borderRadius: 0 }} />
                       </div>
-                      <span style={{ fontSize: 11, color: C.mid }}>{t.progress_pct}%</span>
+                      <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}>{t.progress_pct}%</span>
                     </div>
                   </td>
                   <td style={{ padding: "6px 8px", color: t.planned_start ? C.text : C.muted }}>{fmtDate(t.planned_start)}</td>
@@ -922,7 +922,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>Gantt Chart</h3>
           <span style={{ fontSize: 12, color: C.muted }}>{tasksWithDates.length} item terjadwal</span>
           {warnings.length > 0 && showWarnings && (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 2, padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600, background: C.yellowBg, color: C.yellow, border: `1px solid ${C.yellowBorder}` }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 2, padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 600, background: C.yellowBg, color: C.yellow, border: `1px solid ${C.yellowBorder}` }}>
               <AlertTriangle size={11} /> {warnings.length} potensi overlap
             </span>
           )}
@@ -931,7 +931,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
           {warnings.length > 0 && (
             <button
               onClick={() => setShowWarnings(w => !w)}
-              style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", fontSize: 11, fontWeight: 600, borderRadius: 6, border: `1px solid ${C.yellowBorder}`, background: showWarnings ? C.yellowBg : "var(--surface)", color: C.yellow, cursor: "pointer" }}
+              style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", fontSize: "var(--t-kecil)", fontWeight: 600, borderRadius: 6, border: `1px solid ${C.yellowBorder}`, background: showWarnings ? C.yellowBg : "var(--surface)", color: C.yellow, cursor: "pointer" }}
             >
               <AlertTriangle size={11} /> {showWarnings ? "Sembunyikan" : "Tampilkan"} Warning
             </button>
@@ -939,7 +939,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
           <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: 6, overflow: "hidden" }}>
             {(["month", "week"] as const).map(mode => (
               <button key={mode} onClick={() => setViewMode(mode)}
-                style={{ padding: "4px 12px", fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer", background: viewMode === mode ? C.navy : "var(--surface)", color: viewMode === mode ? "var(--surface)" : C.mid }}>
+                style={{ padding: "4px 12px", fontSize: "var(--t-kecil)", fontWeight: 600, border: "none", cursor: "pointer", background: viewMode === mode ? C.navy : "var(--surface)", color: viewMode === mode ? "var(--surface)" : C.mid }}>
                 {mode === "month" ? "Bulan" : "Minggu"}
               </button>
             ))}
@@ -959,12 +959,12 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
             }}>
               <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 1 }} />
               <div>{w.message}</div>
-              <div style={{ marginLeft: "auto", fontSize: 10, fontWeight: 600 }}>
+              <div style={{ marginLeft: "auto", fontSize: "var(--t-mikro)", fontWeight: 600 }}>
                 {w.severity === "danger" ? "KRITIS" : "PERHATIAN"}
               </div>
             </div>
           ))}
-          <div style={{ fontSize: 11, color: C.muted, paddingLeft: 4 }}>
+          <div style={{ fontSize: "var(--t-kecil)", color: C.muted, paddingLeft: 4 }}>
             <Info size={10} style={{ display: "inline", marginRight: 3 }} />
             Warning bersifat advisory — PM dapat mengabaikan jika pekerjaan memang paralel
           </div>
@@ -979,7 +979,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
           <div style={{ width: 280, flexShrink: 0, borderRight: "1px solid var(--border)", background: "var(--surface-subtle)" }}>
             {/* Header */}
             <div style={{ padding: "8px 12px", borderBottom: "1px solid var(--border)", background: "var(--surface-subtle)", height: 33, display: "flex", alignItems: "center" }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase" }}>Uraian Pekerjaan</span>
+              <span style={{ fontSize: "var(--t-mikro)", fontWeight: 700, color: C.muted, textTransform: "uppercase" }}>Uraian Pekerjaan</span>
             </div>
             {/* Rows */}
             {visibleTasks.map(task => {
@@ -1099,24 +1099,24 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
 
         {/* Legend */}
         <div style={{ padding: "8px 16px", borderTop: "1px solid var(--border)", background: "var(--surface-subtle)", display: "flex", gap: "var(--gap-bagian)", flexWrap: "wrap", alignItems: "center" }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase" }}>Legenda:</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.mid }}>
+          <span style={{ fontSize: "var(--t-mikro)", fontWeight: 700, color: C.muted, textTransform: "uppercase" }}>Legenda:</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "var(--t-kecil)", color: C.mid }}>
             <div style={{ width: 24, height: 8, border: `2px dashed ${C.navy}`, borderRadius: 0, background: "var(--navy-light)" }} />
             Rencana
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.mid }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "var(--t-kecil)", color: C.mid }}>
             <div style={{ width: 24, height: 8, background: C.navy, borderRadius: 0 }} />
             Aktual
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.mid }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "var(--t-kecil)", color: C.mid }}>
             <div style={{ width: 24, height: 8, background: C.yellow, borderRadius: 0 }} />
             Warning
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.mid }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "var(--t-kecil)", color: C.mid }}>
             <div style={{ width: 2, height: 16, background: C.red, borderRadius: 0 }} />
             Hari ini
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.mid }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "var(--t-kecil)", color: C.mid }}>
             <Link2 size={11} color={C.muted} />
             Ada dependency
           </div>

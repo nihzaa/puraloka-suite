@@ -105,12 +105,12 @@ export default function PmKompetensiSdmPage() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{s.nama}</div>
-                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{s.jenis}{s.kualifikasi ? ` · ${s.kualifikasi}` : ""}</div>
+                      <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{s.jenis}{s.kualifikasi ? ` · ${s.kualifikasi}` : ""}</div>
                     </div>
                     <StatusBadge status={VARIAN_SERTIFIKAT[s.status]} label={LABEL_SERTIFIKAT[s.status]} />
                   </div>
                   {s.sisa_hari !== null && (
-                    <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6 }}>
+                    <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", marginTop: 6 }}>
                       {s.sisa_hari < 0 ? `Kedaluwarsa ${Math.abs(s.sisa_hari)} hari lalu` : `Sisa ${s.sisa_hari} hari`}
                     </div>
                   )}
@@ -131,7 +131,7 @@ export default function PmKompetensiSdmPage() {
           {!memuat && !galat && data && data.kinerja.tren.length > 0 && (
             <>
               <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
-                <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Rata-rata (final)</div>
+                <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>Rata-rata (final)</div>
                 <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)" }}>
                   {data.kinerja.rata_final !== null ? `${data.kinerja.rata_final}%` : "—"}
                 </div>
@@ -163,7 +163,7 @@ export default function PmKompetensiSdmPage() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{l.nama}</div>
-                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{l.posisi}</div>
+                      <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>{l.posisi}</div>
                     </div>
                     <StatusBadge status={VARIAN_TAHAP[l.tahap]} label={LABEL_TAHAP[l.tahap]} />
                   </div>

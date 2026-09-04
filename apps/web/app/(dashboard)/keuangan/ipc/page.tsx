@@ -150,7 +150,7 @@ function Kpi({ label, nilai, keterangan, warna }: {
 }) {
   return (
     <div style={{ ...kartu, padding: "12px 16px", flex: "1 1 190px", minWidth: 175 }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+      <div style={{ fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
         {label}
       </div>
       <div style={{
@@ -257,7 +257,7 @@ export default function SertifikatIpcPage() {
       kunci: "status", judul: "Status",
       render: (s) => (
         <span style={{
-          padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+          padding: "2px 8px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 600, whiteSpace: "nowrap",
           color: STATUS_META[s.status].warna, background: STATUS_META[s.status].bg,
         }}>
           {STATUS_META[s.status].label}
@@ -378,7 +378,7 @@ export default function SertifikatIpcPage() {
               <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{aktif.nomor}</span>
               {/* Status sebagai KATA, bukan hanya warna (WCAG 1.4.1). */}
               <span style={{
-                padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600,
+                padding: "3px 10px", borderRadius: 20, fontSize: "var(--t-kecil)", fontWeight: 600,
                 color: STATUS_META[aktif.status].warna,
                 background: STATUS_META[aktif.status].bg,
                 border: `1px solid ${STATUS_META[aktif.status].border}`,

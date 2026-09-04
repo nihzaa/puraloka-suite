@@ -280,7 +280,7 @@ export default function KatalogOtomasiPage() {
                         }}>
                           <strong style={{ fontSize: 15, color: C.text }}>{e.nama}</strong>
                           {e.nomor && (
-                            <span style={{ fontSize: 11, color: C.muted, fontVariantNumeric: "tabular-nums" }}>
+                            <span style={{ fontSize: "var(--t-kecil)", color: C.muted, fontVariantNumeric: "tabular-nums" }}>
                               #{e.nomor}
                             </span>
                           )}
@@ -370,7 +370,7 @@ export default function KatalogOtomasiPage() {
                               <span style={{
                                 flexShrink: 0, width: 22, height: 22, borderRadius: "50%",
                                 background: C.subtle, color: C.mid,
-                                fontSize: 11, fontWeight: 600, fontVariantNumeric: "tabular-nums",
+                                fontSize: "var(--t-kecil)", fontWeight: 600, fontVariantNumeric: "tabular-nums",
                                 display: "inline-flex", alignItems: "center", justifyContent: "center",
                               }}>
                                 {i + 1}
@@ -390,7 +390,7 @@ export default function KatalogOtomasiPage() {
                                 <span style={{
                                   display: "inline-flex", alignItems: "center", gap: 4,
                                   marginLeft: 8, padding: "1px 7px", borderRadius: 5,
-                                  fontSize: 11, fontWeight: 600,
+                                  fontSize: "var(--t-kecil)", fontWeight: 600,
                                   background: l.di === "sistem" ? C.navyLight : C.subtle,
                                   color: l.di === "sistem" ? C.navy : C.mid,
                                   whiteSpace: "nowrap",

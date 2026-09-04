@@ -254,7 +254,7 @@ export function KpiPerusahaan() {
       </div>
 
       {/* Dasar perhitungan — disebutkan, bukan disembunyikan. */}
-      <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.6, margin: 0 }}>
+      <p style={{ fontSize: "var(--t-kecil)", color: C.muted, lineHeight: 1.6, margin: 0 }}>
         CPI &amp; SPI di sini memakai <strong>{evm.dasar_bac}</strong> sebagai nilai anggaran
         dan rencana <strong>{evm.dasar_pv}</strong>. Kurva-S per proyek memakai pagu RAP dan
         baseline jadwal yang sesungguhnya, jadi angkanya bisa berbeda — keduanya sah untuk
@@ -279,7 +279,7 @@ function KartuIndeks({ judul, nilai, status, ikon, terburuk, bacaTerburuk }: {
       borderColor: w.border, background: w.bg,
     }}>
       <div style={{
-        fontSize: 11, fontWeight: 700, color: C.mid, textTransform: "uppercase",
+        fontSize: "var(--t-kecil)", fontWeight: 700, color: C.mid, textTransform: "uppercase",
         letterSpacing: "0.04em", display: "flex", alignItems: "center", gap: 6,
       }}>
         {ikon} {judul}
@@ -319,7 +319,7 @@ function KartuAngka({ label, nilai, keterangan, ikon }: {
   return (
     <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", flex: "1 1 200px", minWidth: 185 }}>
       <div style={{
-        fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase",
+        fontSize: "var(--t-kecil)", fontWeight: 600, color: C.mid, textTransform: "uppercase",
         letterSpacing: "0.04em", display: "flex", alignItems: "center", gap: 5,
       }}>
         {ikon} {label}

@@ -551,7 +551,7 @@ function DuaPintu({ onSusun, sibuk }: { onSusun: () => void; sibuk: boolean }) {
       >
         <span style={{
           position: "absolute", top: 12, right: 12,
-          fontSize: 10, fontWeight: 700, letterSpacing: ".06em",
+          fontSize: "var(--t-mikro)", fontWeight: 700, letterSpacing: ".06em",
           textTransform: "uppercase", color: C.aksen, background: C.surface,
           padding: "3px 9px", borderRadius: "var(--radius-pill)",
           border: `1px solid ${C.aksen}`,
@@ -619,7 +619,7 @@ function DaftarPilihan({ skenario, versiAktif, onBuka, onRevisi, onPilihanLain, 
         gap: 8, flexWrap: "wrap", marginBottom: 10,
       }}>
         <h2 style={{
-          fontSize: 11, fontWeight: 700, letterSpacing: ".06em",
+          fontSize: "var(--t-kecil)", fontWeight: 700, letterSpacing: ".06em",
           textTransform: "uppercase", color: C.muted,
         }}>
           {skenario.length > 1 ? `${skenario.length} pilihan RAB` : "RAB proyek ini"}
@@ -672,7 +672,7 @@ function DaftarPilihan({ skenario, versiAktif, onBuka, onRevisi, onPilihanLain, 
                         border: `1px solid ${aktif ? C.aksen : C.border}`,
                         background: aktif ? C.aksen : C.surface,
                         color: aktif ? C.onAksen : C.text,
-                        fontSize: 11, fontWeight: 600,
+                        fontSize: "var(--t-kecil)", fontWeight: 600,
                         fontFamily: "inherit", cursor: "pointer",
                       }}
                     >
@@ -753,7 +753,7 @@ function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, onTerapkan, o
           background: C.subtle,
         }}>
           <h2 style={{
-            fontSize: 11, fontWeight: 700, letterSpacing: ".06em",
+            fontSize: "var(--t-kecil)", fontWeight: 700, letterSpacing: ".06em",
             textTransform: "uppercase", color: C.muted,
           }}>
             {items.length} item pekerjaan
@@ -812,14 +812,14 @@ function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, onTerapkan, o
                     {/* Item lump-sum tak punya analisa — dinyatakan, bukan
                         dibiarkan tampak seperti baris yang datanya hilang. */}
                     {!punyaAnalisa(it) && (
-                      <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                      <div style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2 }}>
                         harga langsung{it.notes ? ` · ${it.notes}` : ""}
                       </div>
                     )}
                   </td>
                   <td style={{ ...sel, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
                     {angka(it.quantity, 2)}
-                    <span style={{ fontSize: 11, color: C.muted, marginLeft: 4 }}>
+                    <span style={{ fontSize: "var(--t-kecil)", color: C.muted, marginLeft: 4 }}>
                       {it.assembly?.output_unit_code ?? it.unit ?? ""}
                     </span>
                   </td>
@@ -871,7 +871,7 @@ function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, onTerapkan, o
                     ) : (
                       <span
                         title="Harga langsung — tak ada analisa untuk ditelusuri"
-                        style={{ fontSize: 10, color: C.muted, whiteSpace: "nowrap" }}
+                        style={{ fontSize: "var(--t-mikro)", color: C.muted, whiteSpace: "nowrap" }}
                       >
                         langsung
                       </span>
@@ -924,7 +924,7 @@ function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, onTerapkan, o
           background: C.subtle,
         }}>
           <h2 style={{
-            fontSize: 11, fontWeight: 700, letterSpacing: ".06em",
+            fontSize: "var(--t-kecil)", fontWeight: 700, letterSpacing: ".06em",
             textTransform: "uppercase", color: C.muted,
           }}>Ringkasan</h2>
         </div>
@@ -938,7 +938,7 @@ function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, onTerapkan, o
             borderTop: `2px solid ${C.aksen}`,
           }}>
             <div style={{
-              fontSize: 11, fontWeight: 700, letterSpacing: ".06em",
+              fontSize: "var(--t-kecil)", fontWeight: 700, letterSpacing: ".06em",
               textTransform: "uppercase", color: C.muted, marginBottom: 3,
             }}>
               Total RAB
@@ -951,7 +951,7 @@ function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, onTerapkan, o
             }}>
               {rp(rollup?.grandTotal)}
             </div>
-            <p style={{ fontSize: 11, color: C.muted, marginTop: 6, lineHeight: 1.5 }}>
+            <p style={{ fontSize: "var(--t-kecil)", color: C.muted, marginTop: 6, lineHeight: 1.5 }}>
               {items.length} item
               {kodeEdisi(versi.edition) ? ` · edisi ${kodeEdisi(versi.edition)}` : ""}
             </p>
@@ -977,7 +977,7 @@ function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, onTerapkan, o
                 <Lock size={13} aria-hidden="true" /> Kunci RAB ini
               </button>
               <p style={{
-                fontSize: 11, color: C.muted, marginTop: 7,
+                fontSize: "var(--t-kecil)", color: C.muted, marginTop: 7,
                 textAlign: "center", lineHeight: 1.5,
               }}>
                 Setelah dikunci, angka tak bisa berubah diam-diam
@@ -1013,7 +1013,7 @@ function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, onTerapkan, o
                 <ArrowRightLeft size={13} aria-hidden="true" /> Pakai sebagai RAB proyek
               </button>
               <p style={{
-                fontSize: 11, color: C.muted, marginTop: 7,
+                fontSize: "var(--t-kecil)", color: C.muted, marginTop: 7,
                 textAlign: "center", lineHeight: 1.5,
               }}>
                 Kurva S, EVM &amp; progress fisik akan memakai angka ini
@@ -1041,7 +1041,7 @@ function LencanaStatus({ status }: { status: StatusVersi }) {
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 5, marginTop: 8,
       padding: "var(--pad-lencana)", borderRadius: "var(--radius-pill)",
-      fontSize: 11, fontWeight: 600,
+      fontSize: "var(--t-kecil)", fontWeight: 600,
       background: terkunci ? "var(--success-bg)" : "var(--surface-hover)",
       color: terkunci ? "var(--success)" : C.mid,
       border: `1px solid ${terkunci ? "var(--success-border)" : C.border}`,
@@ -1068,7 +1068,7 @@ function BarisJumlah({ label, nilai }: { label: string; nilai?: number | null })
 
 const th: React.CSSProperties = {
   textAlign: "left", padding: "var(--pad-baris)",
-  fontSize: 11, fontWeight: 700, letterSpacing: ".04em",
+  fontSize: "var(--t-kecil)", fontWeight: 700, letterSpacing: ".04em",
   textTransform: "uppercase", color: "var(--text-muted)",
   borderBottom: `1px solid var(--border)`,
   whiteSpace: "nowrap",

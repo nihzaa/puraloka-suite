@@ -217,7 +217,7 @@ export default function PmPunchListPage() {
               </button>
             </div>
             {isPelaksanaSendiri && (
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+              <div style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
                 Catatan: penutupan ditolak server bila Anda adalah pelaksana yang ditugaskan pada temuan ini.
               </div>
             )}

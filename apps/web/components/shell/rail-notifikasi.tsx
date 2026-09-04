@@ -104,7 +104,7 @@ function BarisNotifikasi({ n, pertama }: { n: Notifikasi; pertama: boolean }) {
           {n.title}
         </span>
         <span style={{
-          display: "block", fontSize: 11, color: C.muted, marginTop: 2,
+          display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2,
           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>
           {formatRelatif(n.sent_at ?? n.created_at)}

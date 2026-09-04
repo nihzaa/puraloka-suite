@@ -265,13 +265,13 @@ export default function LapanganRingkasanPage() {
                       </defs>
                       <XAxis
                         dataKey="tanggal" tickLine={false} axisLine={false}
-                        tick={{ fontSize: 10, fill: C.muted }}
+                        tick={{ fontSize: "var(--t-mikro)", fill: C.muted }}
                         tickFormatter={(t: string) => t.slice(5)}
                         minTickGap={24}
                       />
                       <YAxis
                         tickLine={false} axisLine={false} width={44}
-                        tick={{ fontSize: 10, fill: C.muted }}
+                        tick={{ fontSize: "var(--t-mikro)", fill: C.muted }}
                         domain={[0, 100]} unit="%"
                       />
                       <Tooltip
@@ -305,12 +305,12 @@ export default function LapanganRingkasanPage() {
                     <BarChart data={data.tenaga_kerja.hadir_30_hari} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                       <XAxis
                         dataKey="tanggal" tickLine={false} axisLine={false}
-                        tick={{ fontSize: 10, fill: C.muted }}
+                        tick={{ fontSize: "var(--t-mikro)", fill: C.muted }}
                         tickFormatter={(t: string) => t.slice(5)}
                         minTickGap={20}
                       />
                       <YAxis tickLine={false} axisLine={false} width={34}
-                        tick={{ fontSize: 10, fill: C.muted }} />
+                        tick={{ fontSize: "var(--t-mikro)", fill: C.muted }} />
                       <Tooltip
                         contentStyle={{
                           background: "var(--surface)", border: `1px solid ${C.border}`,
@@ -358,14 +358,14 @@ export default function LapanganRingkasanPage() {
                           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                         }}>{m.judul}</span>
                         <span style={{
-                          display: "block", fontSize: 11, color: C.muted, marginTop: 2,
+                          display: "block", fontSize: "var(--t-kecil)", color: C.muted, marginTop: 2,
                           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                         }}>{m.proyek ?? "—"}</span>
                       </span>
                       {m.terlambat
                         ? <Lencana nada="bahaya">telat</Lencana>
                         : <span style={{
-                            fontSize: 11, color: C.mid, flexShrink: 0,
+                            fontSize: "var(--t-kecil)", color: C.mid, flexShrink: 0,
                             fontVariantNumeric: "tabular-nums",
                           }}>{String(m.tanggal ?? "—").slice(5)}</span>}
                     </li>
@@ -393,7 +393,7 @@ export default function LapanganRingkasanPage() {
                       <YAxis
                         type="category" dataKey="nama" width={96}
                         tickLine={false} axisLine={false}
-                        tick={{ fontSize: 11, fill: C.mid }}
+                        tick={{ fontSize: "var(--t-kecil)", fill: C.mid }}
                         tickFormatter={labelStatus}
                       />
                       <Tooltip

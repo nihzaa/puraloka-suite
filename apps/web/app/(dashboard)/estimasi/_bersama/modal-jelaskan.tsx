@@ -117,7 +117,7 @@ export function JelaskanModal({ itemId, onClose }: { itemId: string; onClose: ()
 
           {data && data.komponen.length > 0 && (
             <div style={{ marginTop: 18 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 8 }}>
+              <div style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 8 }}>
                 Rincian komponen
               </div>
               {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — caption sr-only,

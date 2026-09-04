@@ -173,7 +173,7 @@ export function GrupCiut({
         >
           <div
             style={{
-              padding: "6px 12px 8px", fontSize: 10, fontWeight: 700,
+              padding: "6px 12px 8px", fontSize: "var(--t-mikro)", fontWeight: 700,
               letterSpacing: "0.1em", textTransform: "uppercase",
               color: "var(--text-muted)", whiteSpace: "nowrap",
             }}

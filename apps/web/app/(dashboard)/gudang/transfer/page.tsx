@@ -157,7 +157,7 @@ export default function TransferStokPage() {
     borderRadius: 10, boxShadow: "var(--naik-1)",
   };
   const labelGaya: React.CSSProperties = {
-    fontSize: 11, fontWeight: 700, color: C.muted,
+    fontSize: "var(--t-kecil)", fontWeight: 700, color: C.muted,
     textTransform: "uppercase", letterSpacing: "0.05em",
   };
   const isianGaya: React.CSSProperties = {
@@ -269,7 +269,7 @@ export default function TransferStokPage() {
                   aria-describedby="tr-tersedia"
                   style={{ ...isianGaya, opacity: materialId ? 1 : 0.6 }}
                 />
-                <span id="tr-tersedia" style={{ fontSize: 11, color: C.mid }}>
+                <span id="tr-tersedia" style={{ fontSize: "var(--t-kecil)", color: C.mid }}>
                   {materialId
                     ? `Tersedia ${angka(tersedia)}${stokTerpilih?.material?.unit ? ` ${stokTerpilih.material.unit}` : ""} di proyek asal`
                     : "Pilih material untuk melihat stoknya"}
@@ -366,7 +366,7 @@ export default function TransferStokPage() {
                     render: (t) => (
                       <>
                         {t.material?.name ?? "—"}
-                        {t.material?.unit && <span style={{ fontSize: 11, color: C.mid }}> · {t.material.unit}</span>}
+                        {t.material?.unit && <span style={{ fontSize: "var(--t-kecil)", color: C.mid }}> · {t.material.unit}</span>}
                       </>
                     ),
                   },
