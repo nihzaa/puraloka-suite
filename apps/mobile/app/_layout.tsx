@@ -19,6 +19,12 @@
  */
 import { Slot, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { useFonts } from 'expo-font';
+import { BricolageGrotesque_700Bold } from '@expo-google-fonts/bricolage-grotesque';
+import {
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_600SemiBold,
+} from '@expo-google-fonts/plus-jakarta-sans';
 import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { SplashMerek } from '@/components/SplashMerek';
@@ -37,6 +43,29 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function RootGuard() {
   const { user, loading } = useAuth();
+
+  /*
+    ── Font merek: DITUNGGU, bukan dipasang lalu diharapkan ─────────────
+
+    Sebelum 2026-09-04 aplikasi ini memakai font sistem (Roboto di Android,
+    San Francisco di iOS) sementara web memakai Bricolage Grotesque + Plus
+    Jakarta Sans. Dua produk yang terasa berbeda tanpa ada yang bisa
+    menunjuk sebabnya.
+
+    ⚠ Kalau font gagal dimuat, React Native TIDAK melempar galat — ia diam
+    dan memakai font sistem. Jadi "terlihat jalan" bukan bukti fontnya
+    termuat; yang membuktikan cuma melihat bentuk hurufnya.
+
+    `fontsSiap` ikut menahan splash. Tanpa itu layar pertama tergambar
+    dengan font sistem lalu MELOMPAT saat font tiba — kedipan yang paling
+    terlihat di HP paling lambat, yaitu HP yang dipakai mandor.
+  */
+  const [fontsSiap] = useFonts({
+    BricolageGrotesque_700Bold,
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_600SemiBold,
+  });
+
   const segments = useSegments();
   const router = useRouter();
 
@@ -66,7 +95,7 @@ function RootGuard() {
         dirinya sendiri lewat animasi opacity saat `selesai` jadi true;
         melepasnya dari pohon secara mendadak akan memotong animasi itu.
       */}
-      <SplashMerek selesai={!loading} />
+      <SplashMerek selesai={!loading && fontsSiap} />
     </View>
   );
 }

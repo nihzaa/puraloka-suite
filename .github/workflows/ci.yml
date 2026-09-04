@@ -2011,6 +2011,31 @@ jobs:
       - name: Kontras teks mobile
         run: node scripts/audit-kontras-mobile.mjs
 
+      # Warna mobile wajib datang dari token, bukan hex yang diketik. Diukur
+      # 2026-09-04, sebelum `lib/tema.ts` dibuat: 39 hex unik di 445 tempat,
+      # `#003366` sendiri 88 kali, nol token, nol mode gelap. Web punya 105
+      # token dengan riwayat WCAG tertulis; mobile mewarisi nol.
+      #
+      # Akibatnya dua hal MUSTAHIL: mengubah merek tanpa ratusan suntingan,
+      # dan menambah mode gelap tanpa membuka ulang setiap layar.
+      #
+      # RATCHET, bukan ambang nol: penjaga yang menuntut nol pada hari
+      # pertama akan dimatikan orang pertama yang terhalang.
+      - name: Warna mobile bertoken
+        run: node scripts/audit-warna-mobile-bertoken.mjs
+
+      # Font merek yang DIMUAT wajib benar-benar DIPAKAI. Diukur 2026-09-04,
+      # tepat sesudah Bricolage Grotesque + Plus Jakarta Sans dipasang dan
+      # splash ditahan sampai keduanya siap: `fontFamily` di seluruh layar
+      # NOL. Aplikasi mengunduh dua keluarga font, menunggu keduanya, lalu
+      # merender semua teks dengan huruf bawaan sistem.
+      #
+      # Biaya penuh, nol hasil - dan tsc, Metro, penjaga a11y serta penjaga
+      # kontras semuanya hijau, karena tak ada yang salah: cuma tak ada yang
+      # memanggilnya. Kembaran cacat `useData()` di web (bagian 6).
+      - name: Font merek mobile terpakai
+        run: node scripts/audit-font-mobile-terpakai.mjs
+
       # Versi paket mobile wajib cocok dengan Expo SDK. Diukur 2026-08-31,
       # PERTAMA kalinya `expo export` dijalankan di repo ini: bundling GAGAL,
       # dan sebelas paket tak cocok — React 18 (butuh 19), React Native 0.76
