@@ -54,10 +54,26 @@ beforeAll(async () => {
   if (!auth) throw new Error('tak ada pengguna ber-role admin untuk test ini')
   adminAuth = auth
 
-  const { rows } = await db.query(`
-    SELECT c.id FROM companies c
-    WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id) LIMIT 1
-  `)
+  /*
+    ⚠ Company DEFAULT milik admin yang login — BUKAN `LIMIT 1` sembarang.
+
+    Rute memakai `request.companyId`, yang datang dari keanggotaan DEFAULT
+    user yang login. `LIMIT 1` tanpa `ORDER BY` memilih company LAIN (diukur
+    2026-09-04: test menyiapkan f7ff1870, rute membaca 0d7743dc), sehingga
+    data yang disiapkan test tak pernah dibaca rute.
+
+    Pola yang sama diperbaiki di `ai-chat.test.ts` — 5 gagal menjadi 13 lulus.
+    Ditiru dari `gudang-kelola.test.ts:56`.
+  */
+  const { rows } = await db.query(
+    `SELECT m.company_id AS id
+       FROM company_members m
+       JOIN users u ON u.id = m.user_id
+      WHERE u.auth_id = $1 AND m.is_default AND m.is_active
+      LIMIT 1`,
+    [adminAuth],
+  )
+  if (!rows.length) throw new Error('admin uji tak punya keanggotaan default')
   companyId = rows[0].id
 
   app = Fastify()
