@@ -16,6 +16,84 @@ try { console.log('Target host:', new URL(url.replace('postgresql://', 'http://'
 const c = new pg.Client({ connectionString: url })
 await c.connect()
 
+/*
+  ── GERBANG SATU-PENYEED, dan kenapa idempotensi tak cukup
+
+  Job `api` adalah matriks 6 shard TANPA `needs`, jadi keenamnya start
+  bersamaan dan masing-masing menjalankan skrip INI. Diukur di run
+  33972614249, seed `resource` selesai di tiga shard dengan selang 48 detik:
+
+      shard 1  14:45:22      shard 5  14:45:43      shard 3  14:46:10
+
+  Yang jadi soal BUKAN baris yang ditulis dua kali — seed ini memang
+  idempoten. Yang merusak: seed shard N berjalan SEMENTARA shard M sudah
+  menguji basis yang sama. `rls-harness.ts` menguji di `public`; env
+  `TEST_SCHEMA` hanya melindungi suite `test-db.ts`, bukan harness itu.
+
+  Gejalanya mudah salah baca: daftar berkas merah BERGANTI tiap run dengan
+  total tetap. Ronde 4 vs 5 pada kode yang sama — 6 sembuh, 6 baru, 38
+  tetap. Yang bergantian bukan cacat; itu tanda balapan. Pembanding lain:
+  13 berkas merah di dev vs 44 di CI, kode identik.
+
+  ── Bagaimana pemenangnya ditentukan
+
+  PRIMARY KEY `run_id`, bukan `matrix.shard == 1` di ci.yml. Bedanya nyata:
+  gerbang di YAML membuat shard 2-6 berjalan TANPA seed sama sekali kalau
+  shard 1 gagal atau lambat. Klaim lewat PK membuat tepat satu shard
+  menyeed dan sisanya MENUNGGU hasilnya.
+
+  ⚠ Tabelnya lahir dari migrasi 567 — yang dijalankan skrip ini juga. Jadi
+  pada basis yang belum punya 567, gerbang ini WAJIB lolos begitu saja,
+  bukan gagal. `to_regclass` memulangkan NULL alih-alih melempar.
+*/
+const RUN = process.env.GITHUB_RUN_ID || ''
+const SHARD = process.env.MATRIX_SHARD || '?'
+let sayaPenyeed = true
+
+if (RUN) {
+  const { rows: ada } = await c.query(
+    `SELECT to_regclass('public.ci_seed_penanda') IS NOT NULL AS ada`)
+  if (ada[0].ada) {
+    const klaim = await c.query(
+      `INSERT INTO ci_seed_penanda (run_id, shard) VALUES ($1, $2)
+       ON CONFLICT (run_id) DO NOTHING`, [RUN, SHARD])
+    sayaPenyeed = klaim.rowCount === 1
+
+    if (!sayaPenyeed) {
+      /*
+        Shard lain menang klaim. Menunggu SELESAINYA, bukan sekadar
+        klaimnya: baris ditulis di AWAL, jadi keberadaannya hanya berarti
+        'ada yang sedang menyeed'. Yang ditunggu `selesai_pada` terisi.
+
+        Batas 12 menit dengan denyut 5 detik. Kalau habis, skrip LANJUT
+        menyeed sendiri — lebih baik dua penyeed daripada nol, dan
+        keadaannya dicetak supaya terbaca, bukan diam.
+      */
+      console.log(`[gerbang] shard ${SHARD}: shard lain menyeed run ${RUN} — menunggu`)
+      const batas = Date.now() + 12 * 60 * 1000
+      let siap = false
+      while (Date.now() < batas) {
+        const { rows } = await c.query(
+          `SELECT selesai_pada IS NOT NULL AS beres FROM ci_seed_penanda WHERE run_id = $1`,
+          [RUN])
+        if (rows[0]?.beres) { siap = true; break }
+        await new Promise((r) => setTimeout(r, 5000))
+      }
+      if (siap) {
+        console.log(`[gerbang] seed run ${RUN} selesai — shard ${SHARD} lanjut tanpa menyeed`)
+        await c.end()
+        process.exit(0)
+      }
+      console.log(`[gerbang] ⚠ 12 menit habis tanpa penanda selesai — shard ${SHARD} menyeed sendiri`)
+      sayaPenyeed = true
+    } else {
+      console.log(`[gerbang] shard ${SHARD} MENYEED run ${RUN}`)
+    }
+  } else {
+    console.log('[gerbang] ci_seed_penanda belum ada (migrasi 567 belum jalan) — menyeed tanpa gerbang')
+  }
+}
+
 // ── 0. (opsional) WIPE — replay BERSIH dari nol. HANYA bila WIPE=1 (project CI disposable).
 if (process.env.WIPE === '1') {
   /*
@@ -1861,6 +1939,26 @@ console.log('[DIAG] get_role_permissions(admin):', await one(`SELECT count(*)::i
 // ── PostgREST reload schema — DROP SCHEMA public bisa menyisakan cache stale ──
 await c.query(`NOTIFY pgrst, 'reload schema'`).catch(() => {})
 console.log('[pgrst] NOTIFY reload schema dikirim')
+
+/*
+  ── TANDAI SELESAI
+
+  Baris klaim ditulis di AWAL supaya shard lain tahu ada yang mengerjakan.
+  `selesai_pada` baru diisi DI SINI, sesudah seluruh seed lewat — sebab yang
+  ditunggu shard lain bukan 'ada yang mulai', melainkan 'basisnya sudah siap'.
+
+  Dua stempel yang dibedakan, dan itu bukan kerapian: menunggu klaim saja
+  membuat shard 2-6 berangkat saat seed baru separuh jalan — persis balapan
+  yang gerbang ini seharusnya tutup, cuma jendelanya lebih sempit.
+*/
+if (RUN && sayaPenyeed) {
+  const { rowCount } = await c.query(
+    `UPDATE ci_seed_penanda SET selesai_pada = now() WHERE run_id = $1`, [RUN])
+    .catch(() => ({ rowCount: 0 }))
+  console.log(rowCount
+    ? `[gerbang] seed run ${RUN} DITANDAI selesai oleh shard ${SHARD}`
+    : `[gerbang] ⚠ penanda selesai gagal ditulis — shard lain akan menunggu sampai batas`)
+}
 
 await c.end()
 // Seed non-fatal: exit 0 supaya migrasi tetap tercatat; isu seed dilaporkan utk ditindak.

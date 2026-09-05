@@ -1751,6 +1751,12 @@ jobs:
         run: node scripts/ci-project-setup.mjs
         env:
           CI_DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+          # Gerbang satu-penyeed: tepat SATU shard menyeed per run, sisanya
+          # menunggu penandanya. Tanpa kedua env ini gerbangnya diam saja dan
+          # keenam shard menyeed bersamaan seperti sebelumnya — alasan
+          # lengkapnya di kepala `ci-project-setup.mjs`.
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          MATRIX_SHARD: ${{ matrix.shard }}
 
       # ── Penjaga yang MENGUKUR KEADAAN BASIS ────────────────────────
       #
