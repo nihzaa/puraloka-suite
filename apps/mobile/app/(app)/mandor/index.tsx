@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Badge, statusLabel, statusVariant } from '@/components/ui/Badge';
+import { KepalaLayar } from '@/components/ui/KepalaLayar';
 import { Card } from '@/components/ui/Card';
 import { api } from '@/lib/api';
 import { pesanGalat } from '@/lib/galat';
@@ -296,9 +297,7 @@ export default function MandorScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Mandor</Text>
-      </View>
+      <KepalaLayar judul="Mandor" penjelas="Laporan upah tim di lapangan" />
       {/*
         `FlatList` — 51 laporan upah hari ini, dan tumbuh tiap minggu kerja
         (`total: 51` dari rutenya sendiri). Ambang virtualisasi 50.
@@ -339,8 +338,6 @@ function gaya(c: Palet) {
       flex: 1, alignItems: 'center', justifyContent: 'center',
       backgroundColor: c.surfaceSubtle,
     },
-    header: { paddingHorizontal: SPASI.lg, paddingTop: SPASI.lg, paddingBottom: SPASI.sm },
-    title: { fontSize: 22, fontFamily: FONT.judul, color: c.textPrimary },
     container: { padding: SPASI.lg, gap: SPASI.md, paddingBottom: 40 },
     sectionTitle: {
       fontSize: HURUF.base, fontFamily: FONT.isiTebal,

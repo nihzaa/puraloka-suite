@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '@/components/ui/Card';
+import { KepalaLayar } from '@/components/ui/KepalaLayar';
 import { Galat } from '@/components/ui/Galat';
 import { Kosong } from '@/components/ui/Kosong';
 import { Tekan } from '@/components/ui/Tekan';
@@ -488,17 +489,17 @@ export default function NotificationsScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Notifikasi</Text>
-          {unread > 0 && <Text style={styles.unreadCount}>{unread} belum dibaca</Text>}
-        </View>
-        {unread > 0 && (
-          <Tekan onPress={markAllRead} style={styles.readAllBtn} accessibilityRole="button">
-            <Text style={styles.readAllText}>Tandai semua</Text>
-          </Tekan>
-        )}
-      </View>
+      <KepalaLayar
+        judul="Notifikasi"
+        penjelas={unread > 0 ? `${unread} belum dibaca` : 'Semua sudah dibaca'}
+        aksi={
+          unread > 0 ? (
+            <Tekan onPress={markAllRead} style={styles.readAllBtn} accessibilityRole="button">
+              <Text style={styles.readAllText}>Tandai semua</Text>
+            </Tekan>
+          ) : undefined
+        }
+      />
       {/*
         `FlatList`, bukan `ScrollView` + `.map()`.
 
@@ -556,14 +557,6 @@ function gaya(c: Palet) {
     centered: {
       flex: 1, alignItems: 'center', justifyContent: 'center',
       backgroundColor: c.surfaceSubtle,
-    },
-    header: {
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      paddingHorizontal: SPASI.lg, paddingTop: SPASI.lg, paddingBottom: SPASI.sm,
-    },
-    title: { fontSize: 22, fontFamily: FONT.judul, color: c.textPrimary },
-    unreadCount: {
-      fontSize: HURUF.xs, fontFamily: FONT.isi, color: c.textSecondary, marginTop: 2,
     },
     readAllBtn: {
       paddingHorizontal: SPASI.md, paddingVertical: 6,

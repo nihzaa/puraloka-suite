@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Badge, statusLabel, statusVariant } from '@/components/ui/Badge';
+import { KepalaLayar } from '@/components/ui/KepalaLayar';
 import { Card } from '@/components/ui/Card';
 import { Galat } from '@/components/ui/Galat';
 import { Kosong } from '@/components/ui/Kosong';
@@ -186,10 +187,10 @@ export default function ProyekListScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Proyek</Text>
-        <Text style={styles.count}>{projects.length} proyek</Text>
-      </View>
+      <KepalaLayar
+        judul="Proyek"
+        penjelas={`${projects.length} proyek yang bisa Anda akses`}
+      />
       {/*
         `FlatList` — 19 proyek hari ini, 11 di antaranya bertambah dalam 30
         hari terakhir (diukur dari basis). Di bawah ambang 50, tetapi
@@ -230,12 +231,6 @@ function gaya(c: Palet) {
       flex: 1, alignItems: 'center', justifyContent: 'center',
       backgroundColor: c.surfaceSubtle,
     },
-    header: {
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      paddingHorizontal: SPASI.lg, paddingTop: SPASI.lg, paddingBottom: SPASI.sm,
-    },
-    title: { fontSize: 22, fontFamily: FONT.judul, color: c.textPrimary },
-    count: { fontSize: HURUF.sm, fontFamily: FONT.isi, color: c.textSecondary },
     list: { padding: SPASI.lg, gap: SPASI.md, paddingBottom: 40 },
     card: { gap: SPASI.sm },
     cardTop: {

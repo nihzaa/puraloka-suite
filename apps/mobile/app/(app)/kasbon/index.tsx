@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Badge, statusLabel, statusVariant } from '@/components/ui/Badge';
+import { KepalaLayar } from '@/components/ui/KepalaLayar';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PenandaAntrean } from '@/components/PenandaAntrean';
@@ -255,14 +256,17 @@ export default function KasbonListScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Kasbon</Text>
-        <Button
-          title="+ Ajukan"
-          onPress={() => router.push('/(app)/kasbon/ajukan')}
-          style={styles.ajukanBtn}
-        />
-      </View>
+      <KepalaLayar
+        judul="Kasbon"
+        penjelas="Pengajuan uang muka Anda dan statusnya"
+        aksi={
+          <Button
+            title="+ Ajukan"
+            onPress={() => router.push('/(app)/kasbon/ajukan')}
+            style={styles.ajukanBtn}
+          />
+        }
+      />
       {/*
         `FlatList`, bukan `ScrollView` + `.map()`.
 
@@ -329,11 +333,6 @@ function gaya(c: Palet) {
       flex: 1, alignItems: 'center', justifyContent: 'center',
       backgroundColor: c.surfaceSubtle,
     },
-    header: {
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      paddingHorizontal: SPASI.lg, paddingTop: SPASI.lg, paddingBottom: SPASI.sm,
-    },
-    title: { fontSize: 22, fontFamily: FONT.judul, color: c.textPrimary },
     /*
       Tetap navy solid — ini SATU-SATUNYA aksi di layar, jadi ia memang CTA
       primer (`ui-ux-pro-max` §4 `primary-action`: satu CTA primer per

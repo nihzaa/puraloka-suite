@@ -2141,6 +2141,18 @@ jobs:
       #
       # RATCHET, bukan ambang nol: penjaga yang menuntut nol pada hari
       # pertama akan dimatikan orang pertama yang terhalang.
+      # Bayangan mobile wajib dari `ELEVASI`, dan TAK BOLEH hitam. `#000` pada
+      # opacity berapa pun MENCUCI warna di bawahnya jadi kelabu; yang benar hue
+      # latar dengan saturation & lightness diturunkan (navy #003366 -> #26425C).
+      #
+      # Yang kedua lebih mahal daripada warna: kartu DAFTAR tak boleh berbayang
+      # sama sekali. Tiap lapis = satu alpha blending, dan Android menggambar
+      # bagian tertutupnya juga. Daftar nyata di aplikasi ini kasbon 67 baris,
+      # pekerjaan 63 — dibayar tiap baris tiap frame, dan paling buruk PERSIS
+      # saat aplikasi paling dipakai.
+      - name: Bayangan mobile bertoken
+        run: node scripts/audit-bayangan-mobile-bertoken.mjs
+
       - name: Warna mobile bertoken
         run: node scripts/audit-warna-mobile-bertoken.mjs
 
