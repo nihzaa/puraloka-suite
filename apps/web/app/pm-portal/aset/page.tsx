@@ -221,14 +221,13 @@ function IsiAsetPage() {
             <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
           </label>
-          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Kepemilikan</span>
-            <Pilihan value={form.ownership} onChange={(e) => setForm((f) => ({ ...f, ownership: e.target.value as "milik" | "sewa" }))}
+          <label htmlFor="kepemilikan-224" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Kepemilikan</span></label>
+            <Pilihan id="kepemilikan-224" value={form.ownership} onChange={(e) => setForm((f) => ({ ...f, ownership: e.target.value as "milik" | "sewa" }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
               <option value="milik">Milik</option>
               <option value="sewa">Sewa</option>
             </Pilihan>
-          </label>
           {galatForm && <div role="alert" style={{ fontSize: 12, color: "var(--on-danger-bg)", padding: 10, borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>{galatForm}</div>}
           <button type="button" onClick={() => void buatAset()} disabled={mengirim}
             style={{

@@ -477,9 +477,9 @@ export default function PmDokumenKendaliPage() {
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}
             />
           </label>
-          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Disiplin</span>
-            <Pilihan
+          <label htmlFor="disiplin-480" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Disiplin</span></label>
+            <Pilihan id="disiplin-480"
               value={formGambar.disiplin}
               onChange={(e) => setFormGambar((f) => ({ ...f, disiplin: e.target.value }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}
@@ -489,7 +489,6 @@ export default function PmDokumenKendaliPage() {
               <option value="mep">MEP</option>
               <option value="lansekap">Lansekap</option>
             </Pilihan>
-          </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Revisi</span>
             <input
@@ -585,9 +584,9 @@ export default function PmDokumenKendaliPage() {
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}
             />
           </label>
-          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jenis</span>
-            <Pilihan
+          <label htmlFor="jenis-588" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jenis</span></label>
+            <Pilihan id="jenis-588"
               value={formNotulen.jenis}
               onChange={(e) => setFormNotulen((f) => ({ ...f, jenis: e.target.value }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}
@@ -596,7 +595,6 @@ export default function PmDokumenKendaliPage() {
               <option value="koordinasi">Koordinasi</option>
               <option value="khusus">Khusus</option>
             </Pilihan>
-          </label>
           <p style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)", margin: 0 }}>
             Butir tindakan ditambahkan lewat versi web (Dokumen → Kendali) — form
             mobile menyederhanakan ke kepala notulen saja.
@@ -619,9 +617,9 @@ export default function PmDokumenKendaliPage() {
 
       <BottomSheet terbuka={sheet === "ttd-buat"} onTutup={() => setSheet(null)} judul="Tanda Tangani Dokumen">
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jenis Objek</span>
-            <Pilihan
+          <label htmlFor="jenis-objek-622" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jenis Objek</span></label>
+            <Pilihan id="jenis-objek-622"
               value={formTtd.jenis_objek}
               onChange={(e) => setFormTtd((f) => ({ ...f, jenis_objek: e.target.value }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}
@@ -631,7 +629,6 @@ export default function PmDokumenKendaliPage() {
               <option value="berita_acara">Berita Acara</option>
               <option value="kontrak">Kontrak</option>
             </Pilihan>
-          </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>ID Objek *</span>
             <input
@@ -667,9 +664,9 @@ export default function PmDokumenKendaliPage() {
 
       <BottomSheet terbuka={sheet === "ttd-verifikasi"} onTutup={() => setSheet(null)} judul="Verifikasi Tanda Tangan">
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jenis Objek</span>
-            <Pilihan
+          <label htmlFor="jenis-objek-670" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jenis Objek</span></label>
+            <Pilihan id="jenis-objek-670"
               value={formTtd.jenis_objek}
               onChange={(e) => setFormTtd((f) => ({ ...f, jenis_objek: e.target.value }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}
@@ -679,7 +676,6 @@ export default function PmDokumenKendaliPage() {
               <option value="berita_acara">Berita Acara</option>
               <option value="kontrak">Kontrak</option>
             </Pilihan>
-          </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>ID Objek *</span>
             <input
