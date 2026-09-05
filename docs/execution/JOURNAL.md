@@ -878,6 +878,87 @@ Jalurnya PR, dan itu yang dibuka — 93 commit, 103 berkas.
 
 ---
 
+## 2026-09-04 — "/dashboard reload terus": TIGA perbaikan, dan hanya yang ketiga yang benar
+
+Founder melaporkan `/dashboard` memuat ulang terus-menerus. Direproduksi
+dengan merusak `puraloka_token` — meniru token yang kedaluwarsa sesudah ~1
+jam sementara cookie-nya sendiri berumur 7 hari.
+
+### Angka yang memaksa saya terus menggali
+
+| Tahap | navigasi / 12–15 detik |
+|---|---|
+| awal | **64** |
+| + perbaikan klien (`e0fc1750`) | 80 |
+| + `Secure` di server (`4ec6294c`) | 86 |
+| + domain yang benar (`14fc4f1c`) | **2** ✅ |
+
+Dua perbaikan pertama BENAR secara isi, dan keduanya tak menyelesaikan apa
+pun. Kalau saya berhenti di salah satunya — komit rapi, komentar panjang,
+penjaga hijau — cacatnya tetap hidup di layar founder.
+
+**Yang menyelamatkan: mengukur ulang sesudah tiap deploy.** Angka yang naik
+dari 64 ke 80 ke 86 adalah satu-satunya yang memberi tahu bahwa saya belum
+selesai.
+
+### Akarnya
+
+```
+cookie puraloka_token  domain=app.puraloka-suite.duckdns.org
+```
+
+Cookie dipasang saat login lewat `api` (baseURL `""`) — sama-origin, jadi
+domainnya `app.*`. Tapi `clearAuthAndRedirect` dan refresh memanggil
+`NEXT_PUBLIC_API_URL` = `api.puraloka-suite.duckdns.org`, **domain lain**.
+
+```
+set-cookie: puraloka_token=; Max-Age=0; ... HttpOnly; Secure   ← BENAR
+balasan 200                                                    ← BENAR
+cookie akhir di peramban: ['puraloka_token','puraloka_refresh'] ← UTUH
+```
+
+**Header yang sempurna, dikirim ke domain yang salah.** Tiap lapisan
+menjawab benar untuk dirinya sendiri — keluarga yang sama dengan `curl` 200
+tapi browser 500, `tsc` hijau tapi Metro gagal, `netstat` LISTENING tapi
+prosesnya mati.
+
+Putarannya lalu: 401 semua API → refresh gagal → logout (cookie bertahan) →
+`middleware.ts` (yang cuma memeriksa cookie ADA atau tidak) melempar `/login`
+balik ke home → `/dashboard` → ulang, ~3× per detik.
+
+### Dua cacat lain yang ikut ketemu
+
+- **`/auth/refresh` yang gagal** juga tak menghapus cookie (baris 447) —
+  nyaris terlewat, padahal justru jalur ITU yang berjalan saat sesi habis.
+- **`logout` tak ada di pengecualian interceptor 401.** Begitu ia lewat
+  `api`, logout yang membalas 401 memicu refresh → gagal → logout lagi.
+  Rekursi berbentuk sama, cuma lebih dalam.
+
+### Penjaganya sendiri salah TIGA kali
+
+1. regex membaca `('puraloka_token'` sebagai "opsi" dan ikut menelan
+   komentar → **hijau atas cacat yang melahirkannya**;
+2. menilai per-BERKAS: satu `clearCookie` yang benar meloloskan seluruh
+   berkas, termasuk jalur refresh yang masih rusak;
+3. syarat "logout SAMA-ORIGIN" **tak pernah tersisip** — mutasi #5 LOLOS,
+   dan itu justru cacat yang paling menentukan.
+
+Yang ketiga ketahuan hanya karena tiap syarat diuji **sendiri-sendiri**,
+bukan sekali borongan. Kalau saya menguji "semua sekaligus lalu lihat merah",
+saya akan menyimpulkan penjaganya bekerja.
+
+### Pelajaran
+
+**Perbaikan yang benar tapi tak cukup terasa persis seperti perbaikan yang
+selesai.** Yang membedakan cuma pengukuran ulang di tempat gejalanya muncul —
+dan itu harus dilakukan SESUDAH deploy, bukan sesudah commit.
+
+Dan: **penjaga wajib diuji terhadap cacat aslinya**, bukan cuma terhadap
+mutasi yang saya karang. Dua dari tiga kesalahan penjaga di atas lolos dari
+uji mutasi biasa; yang membongkarnya adalah mengembalikan kode ke bentuk
+persis yang menyebabkan laporan founder.
+
+
 ## 2026-09-01 (lanjutan 2) — solver rangka DIPAKAI: diagram, rute, mode ketiga
 
 Solver lapis 1-5 sudah benar tapi belum berguna bagi siapa pun. Bagian ini
