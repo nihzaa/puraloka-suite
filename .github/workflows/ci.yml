@@ -2231,6 +2231,8 @@ jobs:
       # mobile memakai peta lain di berkas lain dan tak pernah ikut.
       - name: Status mobile berlabel
         run: node scripts/audit-status-mobile-berlabel.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # Tiap pasangan token mobile wajib >= 7:1 (WCAG AAA), bukan 4.5:1.
       # Aplikasi ini dibaca di LOKASI PROYEK - layar berdebu, matahari
