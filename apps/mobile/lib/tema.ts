@@ -63,6 +63,30 @@ export interface Palet {
   navyMid: string
   navyLight: string
 
+  /**
+   * BIDANG merek — panel besar, bukan teks maupun ikon.
+   *
+   * ⚠ Dipisah dari `navy` pada 2026-09-05 sesudah panel dashboard terender
+   * BIRU MUDA di mode gelap. Sebabnya bukan salah ketik: satu nama dipakai
+   * untuk DUA peran yang menuntut arah berlawanan.
+   *
+   *   `navy` sebagai AKSEN teks/ikon  → di mode gelap wajib TERANG (#73B4FF),
+   *                                     sebab ia dibaca di atas latar gelap
+   *   `navy` sebagai BIDANG merek     → wajib TETAP PEKAT di kedua mode,
+   *                                     sebab ia LATAR bagi teks putih
+   *
+   * Memakai yang pertama untuk yang kedua membalik seluruh rancangan: panel
+   * merek jadi benda paling TERANG di layar gelap, dan teks `onNavy` yang
+   * hampir hitam duduk di atasnya. Tiap token benar untuk perannya sendiri;
+   * yang salah cuma pemakaiannya.
+   *
+   * Di mode gelap nilainya sedikit lebih gelap dari #003366 — bidang navy
+   * penuh di layar gelap terasa menyala kalau dibiarkan sama persis.
+   */
+  merekBidang: string
+  /** Teks/ikon di atas `merekBidang`. Putih di KEDUA mode. */
+  onMerek: string
+
   /* Semantik */
   success: string
   successBg: string
@@ -94,6 +118,9 @@ export const TERANG: Palet = {
   navy: '#003366',
   navyMid: '#0050A0',
   navyLight: '#EBF2FF',
+
+  merekBidang: '#003366',
+  onMerek: '#FFFFFF',
 
   success: '#10612E',
   successBg: '#F0FDF4',
@@ -130,6 +157,14 @@ export const GELAP: Palet = {
   navy: '#73B4FF',
   navyMid: '#5FA9FF',
   navyLight: 'rgba(115,180,255,0.10)',
+
+  /*
+    Sedikit lebih gelap dari #003366: bidang navy penuh di layar gelap
+    terasa menyala kalau dibiarkan sama persis dengan mode terang.
+    Hue & saturation dipertahankan; hanya lightness yang turun.
+  */
+  merekBidang: '#00284F',
+  onMerek: '#FFFFFF',
 
   success: '#24D264',
   successBg: 'rgba(36,210,100,0.10)',
@@ -204,12 +239,92 @@ export const FONT = {
   isiTebal: 'PlusJakartaSans_600SemiBold',
 } as const
 
-/** Radius sudut — tiga langkah, jangan mengarang nilai lain. */
+/**
+ * Radius sudut — jangan mengarang nilai lain.
+ *
+ * `xl` (26) ditambahkan 2026-09-05 untuk panel merek: bidang navy besar
+ * yang menutup bagian atas layar. Radius 16 pada bidang selebar layar
+ * terlihat seperti kartu kebesaran, bukan seperti permukaan.
+ *
+ * ── Concentricity: radius DALAM = radius LUAR − padding
+ *
+ * Apple HIG (WWDC25) menyebutnya prinsip yang membuat kontrol bersarang
+ * terasa dirancang, bukan ditempel. Gratis, nol biaya GPU.
+ *
+ * Praktiknya di sini: kartu ber-`RADIUS.lg` (16) dengan padding 14
+ * seharusnya membungkus isian ber-radius ~2, bukan 16 lagi. Bukan aturan
+ * mati — tetapi kalau dua radius sama sementara ada padding di antaranya,
+ * itu tanda salah satunya belum dipikirkan.
+ */
 export const RADIUS = {
   sm: 8,
   md: 12,
   lg: 16,
+  xl: 26,
   pil: 999,
+} as const
+
+/**
+ * Elevasi — TIGA tingkat, dan bayangannya BERNADA NAVY.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA BUKAN HITAM
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * `#000` pada opacity berapa pun mencuci warna di bawahnya jadi KELABU.
+ * Yang benar: hue latar dengan saturation dan lightness diturunkan. Navy
+ * `#003366` ≈ `hsl(210 100% 20%)`, jadi bayangannya `hsl(210 40% 25%)` —
+ * `#26425C`. Bedanya halus per-elemen dan jelas di satu layar penuh.
+ *
+ * ── Kenapa hanya TIGA, dan kenapa `kartu` TANPA bayangan
+ *
+ * Material 3 memilih *tonal elevation* (pergeseran warna permukaan) sebagai
+ * default dan menyisakan bayangan hanya untuk yang benar-benar mengambang.
+ * Di React Native itu bukan sekadar selera:
+ *
+ *   - tiap lapis bayangan = satu alpha blending, dan Android menggambar
+ *     bagian yang tertutup juga (overdraw). Di daftar 60 baris, bayangan
+ *     per-kartu terbayar 60 kali tiap frame.
+ *   - anggaran satu frame 16ms untuk 60fps. HP mandor bukan perangkat uji.
+ *
+ * Jadi kartu daftar memakai `surfaceRaised` + border 1px — kedalaman dari
+ * WARNA, bukan dari bayangan. Bayangan disediakan untuk yang jumlahnya
+ * satu-dua per layar.
+ *
+ * ── Saat naik: offset↑ blur↑ tetapi OPACITY TURUN
+ *
+ * Yang murah menaikkan opacity saat elevasi naik, dan hasilnya terlihat
+ * seperti noda. Benda yang lebih tinggi melempar bayangan lebih LEBAR dan
+ * lebih SAMAR, bukan lebih pekat.
+ *
+ * ⚠ `shadowOffset`/`shadowRadius` hanya berlaku di iOS; Android memakai
+ * `elevation`, yang TIDAK bisa diberi warna sebelum API 28 dan tetap
+ * mengabaikan `shadowColor` di banyak perangkat. Nilai `elevation` di sini
+ * karena itu perkiraan yang mendekati, bukan padanan persis — dan itulah
+ * alasan tambahan kartu daftar memakai border, yang tampil SAMA di kedua
+ * sistem.
+ */
+export const ELEVASI = {
+  /** Kartu daftar & isian: nol bayangan. Kedalaman dari border + permukaan. */
+  datar: {
+    borderWidth: 1,
+  },
+  /** Kartu ringkasan tunggal — satu per layar, bukan per baris. */
+  angkat: {
+    shadowColor: '#26425C',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  /** Yang benar-benar MENGAMBANG: kartu di atas panel, lembar bawah, FAB. */
+  ambang: {
+    shadowColor: '#26425C',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 7,
+  },
 } as const
 
 /**

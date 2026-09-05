@@ -110,11 +110,11 @@ export default function LoginScreen() {
               memperkenalkan bentuk baru.
             */}
             <View style={styles.panelTekstur} pointerEvents="none">
-              <LambangPuraloka ukuran={220} warna={c.onNavy} />
+              <LambangPuraloka ukuran={220} warna={c.onMerek} />
             </View>
 
             <View style={styles.panelIsi}>
-              <LambangPuraloka ukuran={56} warna={c.onNavy} />
+              <LambangPuraloka ukuran={56} warna={c.onMerek} />
               <Text style={styles.title}>Puraloka Suite</Text>
               {/*
                 Penegas KONTEKS, bukan tagline pemasaran. Riset: satu
@@ -233,7 +233,7 @@ function gaya(c0: Palet) {
     */
     panel: {
       minHeight: 280,
-      backgroundColor: c0.navy,
+      backgroundColor: c0.merekBidang,
       borderBottomLeftRadius: 28,
       borderBottomRightRadius: 28,
       paddingTop: 56,
@@ -260,22 +260,26 @@ function gaya(c0: Palet) {
       opacity: 0.07,
     },
     panelIsi: { gap: SPASI.md },
-    title: { fontSize: 30, fontFamily: FONT.judul, color: c0.onNavy },
+    title: { fontSize: 30, fontFamily: FONT.judul, color: c0.onMerek },
     /*
-      Sub-judul memakai `onNavy` dengan opacity, bukan warna abu-abu.
+      Sub-judul memakai `onMerek` dengan opacity, bukan warna abu-abu.
 
       Abu-abu di atas navy adalah dua warna yang harus dihitung ulang tiap
-      kali salah satunya berubah. `onNavy` + opacity mempertahankan
-      HUBUNGANNYA: apa pun navy-nya, sub-judul tetap satu tingkat lebih
-      redup daripada judulnya.
+      kali salah satunya berubah. `onMerek` + opacity mempertahankan
+      HUBUNGANNYA: apa pun bidang mereknya, sub-judul tetap satu tingkat
+      lebih redup daripada judulnya.
 
-      0.85, bukan lebih rendah: pada mode gelap `onNavy` adalah warna
-      GELAP di atas navy terang, dan opacity rendah di sana membuatnya
-      pudar lebih cepat daripada di mode terang.
+      ⚠ Sampai 2026-09-05 baris ini memakai `onNavy`, dan paragraf ini
+      menerangkan panjang lebar kenapa opacity 0.85 perlu: "pada mode gelap
+      `onNavy` adalah warna GELAP di atas navy terang". Penalaran itu benar
+      untuk keadaan yang SALAH — panel merek memang tak seharusnya jadi
+      biru terang di mode gelap. Sesudah `merekBidang`/`onMerek` dipisah,
+      keduanya putih di atas navy pekat di KEDUA mode, dan 0.85 kini murni
+      soal hierarki, bukan kompensasi.
     */
     subtitle: {
       fontSize: HURUF.base, fontFamily: FONT.isi,
-      color: c0.onNavy, opacity: 0.85, lineHeight: 21,
+      color: c0.onMerek, opacity: 0.85, lineHeight: 21,
     },
     /*
       Form duduk DI BAWAH panel, bukan dipusatkan vertikal.

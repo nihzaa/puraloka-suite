@@ -101,6 +101,19 @@ const PASANGAN = [
   ['textMuted', 'surface'], ['textMuted', 'surfaceRaised'],
   ['navy', 'surface'], ['navy', 'surfaceRaised'], ['navy', 'surfaceSubtle'],
   ['onNavy', 'navy'],
+  /*
+    Bidang merek — panel navy besar di login & dashboard.
+
+    ⚠ Ditambahkan 2026-09-05 bersamaan lahirnya token itu, dan urutannya
+    layak dicatat: penjaga ini HIJAU sebelum pasangannya didaftarkan, sebab
+    ia hanya memeriksa yang ada di daftar ini. Hijaunya tak mengatakan
+    apa pun tentang token baru — nol pemeriksaan terlihat sama persis
+    dengan nol pelanggaran.
+
+    Daftar tulisan tangan punya batas itu secara bawaan. Yang bisa
+    dilakukan: menambahkannya di commit yang SAMA dengan tokennya.
+  */
+  ['onMerek', 'merekBidang'],
   ['success', 'successBg'], ['warning', 'warningBg'],
   ['danger', 'dangerBg'], ['info', 'infoBg'],
   ['success', 'surfaceRaised'], ['warning', 'surfaceRaised'],
