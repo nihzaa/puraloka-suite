@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import { ambilKonten, teks } from '@/lib/konten'
+import { teks } from '@/lib/konten'
+import { ambilKonten } from '@/lib/konten-server'
 import './globals.css'
 
 // Metadata pun datang dari DB — judul dan deskripsi SEO bisa diubah admin

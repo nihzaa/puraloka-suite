@@ -212,8 +212,21 @@ BEGIN
   SELECT id INTO v_user2 FROM users WHERE is_active AND id <> v_user LIMIT 1;
   SELECT company_id INTO v_co FROM projects WHERE company_id IS NOT NULL LIMIT 1;
 
+  /*
+    ⚠ "Tak ada user untuk menguji" BUKAN kegagalan — diperbaiki 2026-09-04.
+
+    Pesannya jujur menyebut sebabnya, tetapi tetap MENGGAGALKAN migrasi. Di
+    schema bersih tak ada satu pun `users`, jadi replay dari nol berhenti di
+    sini atas keadaan yang sepenuhnya wajar.
+
+    Kelas yang sama dengan 252, 254, 256, dan 316: pembuktian yang kehilangan
+    bahannya melapor sebagai kegagalan. Yang dilewati hanya pembuktiannya —
+    pembuatan tabel, RLS, dan indeks di atas TETAP berjalan, dan di
+    lingkungan mana pun yang punya user pembuktian ini berjalan penuh.
+  */
   IF v_user IS NULL THEN
-    RAISE EXCEPTION '438 gagal: tak ada user aktif untuk menguji';
+    RAISE NOTICE '438: belum ada user — pembuktian perangkat push DILEWATI (schema bersih)';
+    RETURN;
   END IF;
 
   -- 1. Tabelnya benar-benar ada, dan RLS-nya HIDUP.

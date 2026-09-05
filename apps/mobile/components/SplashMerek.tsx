@@ -59,15 +59,15 @@
  * menyalakan Reduce Motion melihat lambang yang sudah utuh — bukan animasi
  * yang dipercepat, melainkan TANPA gerak sama sekali.
  */
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef } from 'react'
 import {
-  AccessibilityInfo,
   Animated,
   Easing,
   StyleSheet,
   Text,
   View,
 } from 'react-native'
+import { useKurangiGerak } from '@/hooks/useKurangiGerak'
 
 const NAVY = '#003366'
 
@@ -94,9 +94,77 @@ const TINGGI = 150      // tinggi bidang lambang, dp
 const LEBAR_PILAR = 15
 const JARAK = 11
 
+/**
+ * Lambang STATIS — pilar yang sama, tanpa animasi, bisa diskalakan.
+ *
+ * Dipakai di layar login (sebagai lambang dan sebagai tekstur latar) dan
+ * di mana pun lambang dibutuhkan tanpa gerak.
+ *
+ * ⚠ Dipisah dari `SplashMerek`, bukan disalin. Empat angka proporsi di
+ * `PILAR` adalah bentuk mereknya; dua salinan yang bisa menyimpang berarti
+ * dua lambang yang perlahan jadi berbeda, dan tak ada yang akan
+ * memperhatikan sampai keduanya terlihat berdampingan.
+ *
+ * `warna` diterima sebagai prop supaya ia bisa navy di atas putih DAN
+ * putih di atas navy — tanpa mengulang bentuknya.
+ */
+export function LambangPuraloka({
+  ukuran = 56,
+  warna,
+}: {
+  ukuran?: number
+  warna: string
+}) {
+  /* Skala dari TINGGI acuan, jadi seluruh proporsinya ikut. */
+  const k = ukuran / TINGGI
+  const lebarPilar = LEBAR_PILAR * k
+  const jarak = JARAK * k
+
+  return (
+    <View
+      style={{ height: ukuran, flexDirection: 'row', alignItems: 'flex-end', gap: jarak }}
+      accessibilityElementsHidden
+      importantForAccessibility="no"
+    >
+      {PILAR.map((p, i) => (
+        <View key={i} style={{ width: lebarPilar, height: ukuran, justifyContent: 'flex-end' }}>
+          <View
+            style={{
+              width: lebarPilar,
+              height: ukuran * p.atas,
+              backgroundColor: warna,
+              borderRadius: lebarPilar * 0.22,
+            }}
+          />
+          <View style={{ height: ukuran * p.celah }} />
+          <View
+            style={{
+              width: lebarPilar,
+              height: ukuran * p.alas,
+              backgroundColor: warna,
+              borderRadius: lebarPilar * 0.22,
+            }}
+          />
+        </View>
+      ))}
+    </View>
+  )
+}
+
 export function SplashMerek({ selesai }: { selesai?: boolean }) {
-  const [kurangiGerak, setKurangiGerak] = useState(false)
-  const [siapDicek, setSiapDicek] = useState(false)
+  /*
+    Dulu sepasang state di sini (`kurangiGerak` + `siapDicek`) dengan
+    blok `useEffect` + `.catch`-nya sendiri. Dipindah ke
+    `hooks/useKurangiGerak` saat transisi antar-layar lahir dan
+    membutuhkan pembacaan yang sama — dua salinan berarti dua tempat yang
+    harus diingat bersamaan ketika salah satunya diperbaiki.
+
+    Tri-state hook itu memetakan persis pasangan lama: `null` = belum
+    dibaca (dulu `siapDicek === false`), `true`/`false` = jawabannya.
+  */
+  const kurangiGerakMentah = useKurangiGerak()
+  const siapDicek = kurangiGerakMentah !== null
+  const kurangiGerak = kurangiGerakMentah === true
 
   /*
     Satu nilai per pilar. 0 = belum ada, 1 = penuh. Alas dan wordmark memakai
@@ -108,21 +176,6 @@ export function SplashMerek({ selesai }: { selesai?: boolean }) {
   const kata = useRef(new Animated.Value(0)).current
   const keluar = useRef(new Animated.Value(1)).current
 
-  useEffect(() => {
-    let hidup = true
-    AccessibilityInfo.isReduceMotionEnabled()
-      .then((aktif) => {
-        if (!hidup) return
-        setKurangiGerak(aktif)
-        setSiapDicek(true)
-      })
-      .catch(() => {
-        // Kegagalan membaca preferensi tak boleh membuat splash menggantung
-        // selamanya — layar biru tanpa logo lebih buruk daripada animasi.
-        if (hidup) setSiapDicek(true)
-      })
-    return () => { hidup = false }
-  }, [])
 
   useEffect(() => {
     if (!siapDicek) return

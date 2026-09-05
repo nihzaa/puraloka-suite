@@ -808,7 +808,22 @@ export default async function notificationRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'Subscription tidak valid (butuh endpoint + keys.p256dh + keys.auth)' })
     }
 
-    const { error } = await supabase
+    /*
+     * ⚠ `request.db`, BUKAN `supabase` mentah.
+     *
+     * Penulisan ini SUDAH aman lewat `.eq('id', user.id)` — pengguna hanya
+     * bisa mengubah barisnya sendiri. Jadi kenapa diganti?
+     *
+     * Karena saringan itu satu-satunya lapisan. Kalau `.eq()` hilang dalam
+     * penyuntingan berikutnya (mis. saat menambah kondisi lain dan salah
+     * merangkai), TIDAK ADA yang menahannya — satu pengguna bisa menimpa
+     * langganan push milik siapa pun.
+     *
+     * `request.db` membawa RLS ikut menjaga, jadi lapisannya dua. Uji
+     * kill-switch (ADR-011 §9.5 P2) menuntut tepat ini: matikan satu lapis,
+     * yang lain harus tetap menahan.
+     */
+    const { error } = await request.db!
       .from('users')
       .update({ push_subscription: subscription })
       .eq('id', user.id)
@@ -825,7 +840,8 @@ export default async function notificationRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const user = request.currentUser!
 
-    const { error } = await supabase
+    // `request.db` — alasan sama seperti POST di atas: dua lapis, bukan satu.
+    const { error } = await request.db!
       .from('users')
       .update({ push_subscription: null })
       .eq('id', user.id)

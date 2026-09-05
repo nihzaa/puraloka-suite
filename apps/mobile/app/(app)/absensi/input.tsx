@@ -1,11 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert, StyleSheet,
+  View, Text, ScrollView, TextInput, ActivityIndicator, Alert, StyleSheet,
 } from 'react-native';
+import { Tekan } from '@/components/ui/Tekan';
+import { KepalaLayar } from '@/components/ui/KepalaLayar';
 import { router } from 'expo-router';
 import { api } from '@/lib/api';
 import { antrekan } from '@/lib/antrean';
 import { useAuth } from '@/hooks/useAuth';
+import { useTema } from '@/hooks/useTema';
+import { FONT, HURUF, RADIUS, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
 
 /*
   ══════════════════════════════════════════════════════════════════════════
@@ -53,6 +57,13 @@ const PORSI = [
 ];
 
 export default function InputAbsensi() {
+  /*
+    Gaya dirakit di dalam komponen — `StyleSheet.create` di lingkup
+    modul berjalan sebelum satu hook pun, jadi ia tak bisa membaca
+    `useTema()`. Lihat catatan panjangnya di `pekerjaan.tsx`.
+  */
+  const { c } = useTema();
+  const s = React.useMemo(() => gaya(c), [c]);
   const { izin } = useAuth();
   const [scopes, setScopes] = useState<Scope[]>([]);
   const [scopeId, setScopeId] = useState<string | null>(null);
@@ -207,14 +218,14 @@ export default function InputAbsensi() {
   if (memuat) {
     return (
       <View style={s.tengah}>
-        <ActivityIndicator size="large" color="#003366" />
+        <ActivityIndicator size="large" color={c.navy} />
       </View>
     );
   }
 
   return (
     <ScrollView style={s.wadah} contentContainerStyle={s.isi}>
-      <Text style={s.judul}>Absensi {tanggal}</Text>
+      <KepalaLayar judul={`Absensi ${tanggal}`} penjelas="Centang tukang yang hadir hari ini" />
 
       {galat && (
         <View style={s.galat}>
@@ -225,12 +236,13 @@ export default function InputAbsensi() {
       <Text style={s.label}>Lingkup kerja</Text>
       {scopes.length === 0 ? (
         <Text style={s.kosongIsi}>
-          Belum ada lingkup kerja yang ditugaskan kepada Anda.
+          Belum ada lingkup kerja yang ditugaskan kepada Anda. Hubungi admin
+          proyek untuk menugaskannya — absensi belum bisa dicatat tanpa itu.
         </Text>
       ) : (
         <View style={s.pilihanBaris}>
           {scopes.map((sc) => (
-            <Pressable
+            <Tekan
               key={sc.id}
               onPress={() => setScopeId(sc.id)}
               style={[s.chip, scopeId === sc.id && s.chipAktif]}
@@ -241,7 +253,7 @@ export default function InputAbsensi() {
                 {sc.nama}
               </Text>
               <Text style={[s.chipSub, scopeId === sc.id && s.chipTeksAktif]}>{sc.proyek}</Text>
-            </Pressable>
+            </Tekan>
           ))}
         </View>
       )}
@@ -254,14 +266,17 @@ export default function InputAbsensi() {
       </View>
 
       {tukang.length === 0 ? (
-        <Text style={s.kosongIsi}>Belum ada tukang terdaftar.</Text>
+        <Text style={s.kosongIsi}>
+          Belum ada tukang terdaftar di bawah Anda. Minta admin mendaftarkan
+          tim Anda lebih dulu.
+        </Text>
       ) : (
         tukang.map((t) => {
           const e = entri[t.id];
           const hadir = e?.hadir ?? false;
           return (
             <View key={t.id} style={[s.kartu, hadir && s.kartuAktif]}>
-              <Pressable
+              <Tekan
                 style={s.kartuKepala}
                 onPress={() => ubah(t.id, { hadir: !hadir })}
                 accessibilityRole="checkbox"
@@ -275,13 +290,13 @@ export default function InputAbsensi() {
                   <Text style={s.nama}>{t.name}</Text>
                   {t.tipe ? <Text style={s.tipe}>{t.tipe}</Text> : null}
                 </View>
-              </Pressable>
+              </Tekan>
 
               {hadir && (
                 <View style={s.rinci}>
                   <View style={s.pilihanBaris}>
                     {PORSI.map((p) => (
-                      <Pressable
+                      <Tekan
                         key={p.nilai}
                         onPress={() => ubah(t.id, { porsi: p.nilai })}
                         style={[s.chipKecil, e?.porsi === p.nilai && s.chipAktif]}
@@ -293,7 +308,7 @@ export default function InputAbsensi() {
                         >
                           {p.label}
                         </Text>
-                      </Pressable>
+                      </Tekan>
                     ))}
                   </View>
                   <View style={s.lemburBaris}>
@@ -303,7 +318,7 @@ export default function InputAbsensi() {
                       onChangeText={(v) => ubah(t.id, { lembur: v.replace(/[^0-9.]/g, '') })}
                       keyboardType="numeric"
                       placeholder="0"
-                      placeholderTextColor="#9CA3AF"
+                      placeholderTextColor={c.textMuted}
                       style={s.lemburInput}
                       accessibilityLabel={`Jam lembur ${t.name}`}
                     />
@@ -315,7 +330,7 @@ export default function InputAbsensi() {
         })
       )}
 
-      <Pressable
+      <Tekan
         onPress={simpan}
         disabled={menyimpan || !scopeId || hadirCount === 0}
         style={[s.simpan, (menyimpan || !scopeId || hadirCount === 0) && s.simpanMati]}
@@ -324,7 +339,7 @@ export default function InputAbsensi() {
         <Text style={s.simpanTeks}>
           {menyimpan ? 'Menyimpan…' : `Simpan absensi (${hadirCount})`}
         </Text>
-      </Pressable>
+      </Tekan>
 
       <Text style={s.catatan}>
         Tersimpan di HP dulu, lalu terkirim sendiri saat ada sinyal.
@@ -333,68 +348,85 @@ export default function InputAbsensi() {
   );
 }
 
-const s = StyleSheet.create({
-  wadah: { flex: 1, backgroundColor: '#F8FAFC' },
-  isi: { padding: 16, paddingBottom: 40 },
-  tengah: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#F8FAFC' },
-  judul: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 14 },
-  label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 },
-  barisJudul: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  hitung: { fontSize: 13, color: '#003366', fontWeight: '600' },
-  pemisah: { height: 1, backgroundColor: '#E5E7EB', marginVertical: 16 },
-  pilihanBaris: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    paddingVertical: 9, paddingHorizontal: 13, borderRadius: 10,
-    borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#FFFFFF',
-  },
-  chipKecil: {
-    paddingVertical: 7, paddingHorizontal: 12, borderRadius: 8,
-    borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#FFFFFF',
-  },
-  /* Yang terpilih dibedakan LATAR + border, bukan warna teks saja — WCAG
-     1.4.1: informasi tak boleh disampaikan lewat warna semata. */
-  chipAktif: { backgroundColor: '#003366', borderColor: '#003366' },
-  chipTeks: { fontSize: 13, color: '#374151', fontWeight: '500' },
-  chipTeksAktif: { color: '#FFFFFF' },
-  chipSub: { fontSize: 11, color: '#6B7280', marginTop: 1 },
-  kartu: {
-    backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1,
-    borderColor: '#E5E7EB', marginBottom: 8, overflow: 'hidden',
-  },
-  kartuAktif: { borderColor: '#003366' },
-  kartuKepala: { flexDirection: 'row', alignItems: 'center', padding: 13, gap: 12 },
-  /* 26px — target sentuh efektifnya seluruh baris kartu, bukan kotak ini. */
-  kotak: {
-    width: 26, height: 26, borderRadius: 7, borderWidth: 2,
-    borderColor: '#D1D5DB', alignItems: 'center', justifyContent: 'center',
-  },
-  kotakAktif: { backgroundColor: '#003366', borderColor: '#003366' },
-  centang: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
-  nama: { fontSize: 15, fontWeight: '600', color: '#111827' },
-  tipe: { fontSize: 12, color: '#6B7280', marginTop: 1 },
-  rinci: {
-    borderTopWidth: 1, borderTopColor: '#F3F4F6',
-    padding: 13, paddingTop: 11, gap: 10,
-  },
-  lemburBaris: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  lemburLabel: { fontSize: 13, color: '#374151', flex: 1 },
-  lemburInput: {
-    width: 78, paddingVertical: 8, paddingHorizontal: 11,
-    borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8,
-    fontSize: 15, color: '#111827', textAlign: 'center', backgroundColor: '#FFFFFF',
-  },
-  simpan: {
-    marginTop: 18, backgroundColor: '#003366', borderRadius: 12,
-    paddingVertical: 15, alignItems: 'center',
-  },
-  simpanMati: { backgroundColor: '#9CA3AF' },
-  simpanTeks: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
-  catatan: { fontSize: 12, color: '#6B7280', textAlign: 'center', marginTop: 10, lineHeight: 17 },
-  galat: {
-    backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA',
-    borderRadius: 10, padding: 12, marginBottom: 14,
-  },
-  galatTeks: { fontSize: 13, color: '#991B1B', lineHeight: 19 },
-  kosongJudul: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 6 },
-  kosongIsi: { fontSize: 13, color: '#5A616B', lineHeight: 19, textAlign: 'center' },
-});
+function gaya(c: Palet) {
+  return StyleSheet.create({
+    wadah: { flex: 1, backgroundColor: c.surfaceSubtle },
+    isi: { padding: 16, paddingBottom: 40 },
+    tengah: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: c.surfaceSubtle },
+    label: { fontSize: 13, fontFamily: FONT.isiTebal, color: c.textPrimary, marginBottom: 8 },
+    barisJudul: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    hitung: { fontSize: 13, color: c.navy, fontFamily: FONT.isiTebal },
+    pemisah: { height: 1, backgroundColor: c.border, marginVertical: 16 },
+    pilihanBaris: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    /*
+      `maxWidth` WAJIB — ditemukan dari POTRET, bukan dari penjaga.
+
+      Nama proyek nyata sepanjang "[UJI] Renovasi Fasad Kantor CV Makmur —
+      Cihampelas" membentuk SATU chip yang lebih lebar daripada layar, dan
+      `flexWrap` tak bisa menolong: ia membungkus ANTAR-chip, tak bisa
+      mengecilkan satu chip yang sudah kebesaran. Ekornya terpotong di tepi
+      kanan — "…CV Makmur — Cihampela" — jadi dua proyek berawalan sama tak
+      bisa dibedakan sama sekali.
+
+      ⚠ `potret-mobile.mjs` melapor HIJAU: "nol gulir mendatar". Benar untuk
+      yang diukurnya (lebar dokumen vs viewport) — chip yang meluap terpotong
+      DI DALAM wadahnya, bukan melebarkan halaman. Pengukuran yang benar atas
+      hal yang salah.
+    */
+    chip: {
+      maxWidth: '100%',
+      paddingVertical: 9, paddingHorizontal: 13, borderRadius: 10,
+      borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised,
+    },
+    chipKecil: {
+      paddingVertical: 7, paddingHorizontal: 12, borderRadius: 8,
+      borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised,
+    },
+    /* Yang terpilih dibedakan LATAR + border, bukan warna teks saja — WCAG
+       1.4.1: informasi tak boleh disampaikan lewat warna semata. */
+    chipAktif: { backgroundColor: c.navy, borderColor: c.navy },
+    chipTeks: { fontSize: 13, color: c.textPrimary, fontFamily: FONT.isiTebal },
+    chipTeksAktif: { color: c.surfaceRaised },
+    chipSub: { fontSize: 11, color: c.textSecondary, marginTop: 1 },
+    kartu: {
+      backgroundColor: c.surfaceRaised, borderRadius: 12, borderWidth: 1,
+      borderColor: c.border, marginBottom: 8, overflow: 'hidden',
+    },
+    kartuAktif: { borderColor: c.navy },
+    kartuKepala: { flexDirection: 'row', alignItems: 'center', padding: 13, gap: 12 },
+    /* 26px — target sentuh efektifnya seluruh baris kartu, bukan kotak ini. */
+    kotak: {
+      width: 26, height: 26, borderRadius: 7, borderWidth: 2,
+      borderColor: c.borderStrong, alignItems: 'center', justifyContent: 'center',
+    },
+    kotakAktif: { backgroundColor: c.navy, borderColor: c.navy },
+    centang: { color: c.surfaceRaised, fontSize: 15, fontFamily: FONT.judul },
+    nama: { fontSize: 15, fontFamily: FONT.isiTebal, color: c.textPrimary },
+    tipe: { fontSize: 12, color: c.textSecondary, marginTop: 1 },
+    rinci: {
+      borderTopWidth: 1, borderTopColor: c.surfaceHover,
+      padding: 13, paddingTop: 11, gap: 10,
+    },
+    lemburBaris: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    lemburLabel: { fontSize: 13, color: c.textPrimary, flex: 1 },
+    lemburInput: {
+      width: 78, paddingVertical: 8, paddingHorizontal: 11,
+      borderWidth: 1, borderColor: c.border, borderRadius: 8,
+      fontSize: 15, color: c.textPrimary, textAlign: 'center', backgroundColor: c.surfaceRaised,
+    },
+    simpan: {
+      marginTop: 18, backgroundColor: c.navy, borderRadius: 12,
+      paddingVertical: 15, alignItems: 'center',
+    },
+    simpanMati: { backgroundColor: c.borderStrong },
+    simpanTeks: { color: c.surfaceRaised, fontSize: 15, fontFamily: FONT.judul },
+    catatan: { fontSize: 12, color: c.textSecondary, textAlign: 'center', marginTop: 10, lineHeight: 17 },
+    galat: {
+      backgroundColor: c.dangerBg, borderWidth: 1, borderColor: c.dangerBorder,
+      borderRadius: 10, padding: 12, marginBottom: 14,
+    },
+    galatTeks: { fontSize: 13, color: c.danger, lineHeight: 19 },
+    kosongJudul: { fontSize: 16, fontFamily: FONT.judul, color: c.textPrimary, marginBottom: 6 },
+    kosongIsi: { fontSize: 13, color: c.textSecondary, lineHeight: 19, textAlign: 'center' },
+  });
+}

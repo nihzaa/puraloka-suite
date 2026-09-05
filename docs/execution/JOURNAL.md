@@ -5,6 +5,879 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-05 (lanjutan) — penjaga yang mengukur PROKSI, dan animasi yang tak pernah ada
+
+Dua pekerjaan yang tersisa dari daftar mobile: dua belas layar kosong tanpa
+petunjuk, dan nol transisi antar-layar. Keduanya selesai, dan keduanya
+membuka sesuatu yang tak ada di daftar.
+
+### 1. Penjaganya sendiri yang salah ukur
+
+`audit-kosong-berpetunjuk.mjs` (lahir kemarin) menghitung ELEMEN: satu
+`<Text>` = "keadaan saja", dua atau lebih = "sudah menuntun". Proksi yang
+terlihat masuk akal, dan baru ketahuan salah setelah kedua belas
+temuannya dibaca satu per satu:
+
+| Arah | Yang terjadi |
+|---|---|
+| PALSU-MERAH | **Lima** gerbang "Tidak ada akses" sudah berakhir "Hubungi admin bila ini keliru" sejak awal — bentuk ORANG yang persis diminta. Dua `<Text>`, jadi melanggar selamanya. |
+| PALSU-HIJAU | `pekerjaan.tsx:712` punya dua `<Text>` yang KEDUANYA menyatakan keadaan, di layar yang punya tiga tombol "+". Lolos bersih. |
+
+Yang kedua justru bentuk yang **kepala berkas penjaganya sendiri akui tak
+bisa ia tangkap** — tertulis di sana sebagai batas yang diketahui, lalu
+dibiarkan.
+
+Aturannya diganti: baca TEKSNYA, cari penyebutan langkah berikutnya
+(AKSI/TUNGGU/ORANG). Gerbang izin dibaca berpasangan `kosongJudul` +
+`kosongIsi`, sebab pengguna juga membacanya begitu.
+
+    12 → 0, lantai 12 → 0
+
+Mutasi dua bentuk, keduanya MERAH exit 1 dan menyebut berkas:baris —
+termasuk bentuk "dua kalimat, dua-duanya keadaan" yang aturan lama
+tak mungkin tangkap.
+
+> **Penjaga yang merah atas hal yang BENAR akan diabaikan seluruh
+> keluarannya, lalu berhenti menjaga tanpa satu pun gejala.**
+
+### 2. Cacat yang bukan soal kalimat
+
+Menelusuri kenapa tiap daftar kosong membuka `progress/input.tsx`:
+
+- muat proyek **tanpa `.catch` sama sekali** → gagal memuat menyisakan
+  penggulung mendatar KOSONG. Bukan kalimat yang kurang menolong —
+  nol tulisan.
+- `.catch(() => setRabItems([]))` mengubah GAGAL MUAT jadi "Belum ada RAB".
+  Kebohongan yang sudah diperbaiki **dua kali** di repo ini
+  (`notifications`, `proyek/[id]`); berkas ini yang tersisa.
+
+⚠ `audit-catch-senyap.mjs` melapor **0** — dan benar, sebab cakupannya
+`apps/api/src` saja. Bentuk §8a.2: alatnya benar, kalimatnya kehilangan
+syarat.
+
+### 3. Nol transisi — diukur, bukan diingat
+
+`Animated` cuma di `SplashMerek`, reanimated tak terpasang, `animation`
+tak disebut di satu layout pun. Membaca `(app)/_layout.tsx` untuk memilih
+presetnya justru membuka bentuk navigasinya:
+
+**13 dari 15 `Tabs.Screen` bertanda `href: null`**, dan tak ada `Stack` di
+mana pun — hanya dua `_layout.tsx` di seluruh aplikasi. Layar-layar itu
+tab bersaudara secara struktur, layar bertumpuk secara makna.
+
+Karena itu `fade`, bukan `shift`: geseran mendatar berarti "pindah ke
+sebelah", arah yang benar untuk dua tab sungguhan dan berbohong untuk
+tiga belas sisanya.
+
+Nilai & durasi dibaca dari paket terpasang (`types.d.ts:58`,
+`TransitionSpecs.js` 150ms), dan `BottomTabView.js:91` memperlihatkan
+bawaannya memang `'none'` — bukti bahwa app ini sebelumnya nol transisi.
+
+`hooks/useKurangiGerak` dipisah dari `SplashMerek` sebelum dipakai di
+tempat kedua. Arah jatuhannya sengaja BERBEDA di dua tempat: hook gagal
+baca → `false` (tak tahu ≠ sensitif gerak); layout belum baca → `'none'`
+(jendela sekejap, tapi terjadi tiap kali aplikasi dibuka).
+
+### Yang TIDAK terbukti
+
+Fade-nya terlihat mata. Butuh sesi ber-login; `.env` mobile menunjuk
+`192.168.50.114:3007` (nol yang mendengarkan), domain VPS hanya menyajikan
+web, dan menyalakan API lokal bertentangan dengan "nol server lokal".
+Yang dibuktikan: opsinya sampai ke navigator dan dikonsumsi
+(`Animated[spec.animation]`), aplikasi boot bersih (633 huruf, nol
+overlay, nol galat konsol), `expo export` 4,43 MB.
+
+Dicatat sebagai batas, bukan ditutup dengan cerita.
+
+### Terukur
+
+    kosong tanpa petunjuk   12 → 0   (lantai 0, dijaga CI)
+    tsc                     exit 0
+    expo export android     4,43 MB
+    penjaga mobile          14/14 hijau
+    daftar belum virtual    9 — dan itu BENAR: workers 63 total,
+                            maks 11 per mandor, jauh di bawah ambang 50
+
+---
+
+## 2026-09-05 (koreksi) — saya salah menuduh `git add .`, dan celahnya lebih halus
+
+Entri di bawah menulis bahwa enam berkas saya tersapu karena bentuk yang
+"persis diperingatkan §8a.1" — yang tercatat di sana adalah `git add .` /
+`git add -A`.
+
+**Saya salah.** Sesi `puraloka-suite-5c` memeriksanya dan memberi tahu:
+ia MEMANG memakai `git add -- <berkas>`, dan `git diff --cached` sebelum
+commit memperlihatkan satu berkas.
+
+### Celah yang sesungguhnya
+
+Yang terjadi: saya men-stage berkas saya **di sela** antara pemeriksaan
+indeksnya dan `git commit` miliknya. `git commit` mengambil seluruh indeks
+**pada saat ia berjalan**, bukan yang terlihat beberapa detik sebelumnya.
+
+Jadi §8a.1 belum lengkap. `git add .` memang penyebab yang tercatat, tapi
+`add` yang BENAR pun tak cukup:
+
+> **Jendela antara "memeriksa indeks" dan "mengirim" bukan milik satu
+> sesi.** Indeks git dibagi seluruh checkout, dan tak ada penguncian.
+
+Yang menutupnya: cetak `git diff --cached --name-only` sebagai baris
+**di perintah yang sama** dengan `git commit`, bukan sebagai langkah
+terpisah. Keluarannya lalu menjadi bagian dari catatan commit itu sendiri,
+dan selisih apa pun terlihat saat itu juga.
+
+Dipakai untuk commit `c934817b` hari ini — enam berkas tercetak, enam yang
+ter-commit.
+
+### Kenapa ini layak dicatat terpisah
+
+Diagnosis yang salah lebih mahal daripada tak ada diagnosis: ia
+mengarahkan orang berikutnya memeriksa `git add .` yang tak pernah
+terjadi, dan celah yang sebenarnya tetap terbuka.
+
+Saya juga menuliskannya di jurnal sebelum sesi lain sempat memeriksa —
+padahal `git log` sudah memberi tahu bahwa berkasnya di-stage dengan
+benar. Bentuk yang sama dengan `a11y-ratchet` di entri bawah: saya
+meneruskan kesimpulan tanpa memeriksanya.
+
+Dua kali dalam satu sesi, dan keduanya ke arah yang sama — **menuduh
+berdasarkan pola yang saya kenali, bukan berdasarkan yang saya ukur.**
+
+### Penyelesaiannya
+
+Sesi itu memperbaikinya sebelum ter-push: `reset --soft` (isi di disk tak
+tersentuh) → `restore --staged --` menyebut keenam jalur → commit ulang.
+Commit a11y sekarang `610071ae`, satu berkas. Keenam berkas saya kembali
+belum-ter-stage, terverifikasi identik, lalu saya commit sendiri sebagai
+`c934817b`.
+
+Nol yang hilang.
+
+---
+
+## 2026-09-05 (mobile) — layar terkaya di aplikasi, dan RAB 287 baris yang berbunyi "belum ada"
+
+`proyek/[id]` adalah layar terkompleks di aplikasi mobile: tiga tab, RAB
+berhierarki, milestone, log progres. Ia juga yang paling lama tak pernah
+dipotret, karena butuh id yang sah.
+
+### Yang ditemukan begitu dibuka
+
+    Ringkasan   171 huruf — nama proyek hilang, "— → —", "Rp 0", 0%
+    Tab RAB     "Belum ada RAB untuk proyek ini"  atas **287 baris**
+    Tab Progres 20 log, semuanya bertanggal "—"
+
+Enam nama medan meleset, dan tiap satunya sendirian cukup mengosongkan
+bagiannya:
+
+    setProject(res.data)          API membungkus: { project: {...} }
+    res.data?.tree ?? .rab        yang ada `data`
+    log_date                      yang ada `logged_at`
+    uraian / no_urut              yang ada `name` / `category_code`
+    level sebagai ANGKA           nilainya 'category'|'subcategory'|'item'
+    children                      tak ada — datanya DATAR, 137 dari 287
+                                  punya parent_id
+
+Yang terakhir paling halus: `level === 1/2/3` SELALU false, jadi tak ada
+baris yang mendapat gaya kategori, blok harga+progres tak pernah dirender,
+dan blok bobot dirender untuk semua baris termasuk yang seharusnya
+menampilkan harga. Tiga cacat dari satu perbandingan.
+
+`tsc` hijau untuk semuanya — `res.data` bertipe `any` dari axios, dan
+`level: number` ditulis dari tebakan.
+
+Sesudah: Ringkasan 570 huruf · RAB **9.372** · Progres 1.499.
+
+### Potret berparameter, dan kenapa id ASAL tak cukup
+
+`potret-mobile.mjs` kini bisa memotret rute `[id]`. Idnya dicari dari
+aplikasi yang SUDAH login (bukan lewat curl bertoken sendiri — RLS
+per-tenant membuat proyek yang terlihat oleh skrip belum tentu terlihat
+oleh peramban), dan yang dicari proyek dengan RAB TERBANYAK.
+
+Diukur: 20 proyek, hanya DUA yang punya RAB. Memotret proyek pertama yang
+kebetulan muncul menghasilkan layar kosong yang lulus semua pengukuran
+sementara tab RAB-nya tak pernah teruji.
+
+Percobaan pertama memakai `credentials: 'include'` dan gagal untuk kedua
+lebar — aplikasi ini tak pernah memakai cookie; token ada di
+`localStorage` dan dikirim sebagai header `Authorization`. Itu justru
+seluruh alasan header `X-Client` ada.
+
+### Tiga cacat visual dari melihat potretnya
+
+1. **Harga, batang, dan persen bertumpuk** — tiga baris untuk satu item.
+   Dibuat sejajar mendatar.
+2. **"100%" pecah jadi dua baris.** Dihitung 30,6px untuk lebar 32px —
+   "muat" di atas kertas. Diukur di DOM: tingginya **28px** sementara
+   "10%" 14px. Estimasi lebar glif tak bisa diandalkan; yang bisa cuma
+   mengukurnya.
+3. **Nama pekerjaan pucat** — dan sebabnya `Tekan` yang saya tulis
+   sendiri: ia memudarkan seluruh baris `disabled` jadi 0.45. Baris RAB
+   tanpa anak memang `disabled`, tapi "tak bisa ditekan" bukan "tak
+   aktif". Sekarang pudar hanya kalau `disabled` TANPA `tanpaUmpan`.
+
+Yang ketiga kelas yang sama dengan pil status yang ikut memerah kemarin:
+satu isyarat visual dipakai untuk dua arti, dan yang kalah adalah arti
+yang lebih sering muncul.
+
+### Saya meneruskan tuduhan alat tanpa memeriksanya
+
+`a11y-ratchet` merah dengan "`<select>` tanpa nama: pilihan.test.tsx:46".
+Saya verifikasi bahwa itu bukan regresi saya (benar — commit e8251c35 dari
+sesi lain), lalu meneruskan laporannya apa adanya.
+
+Sesi itu membuka berkasnya: **nol JSX**. Dua kemunculan, keduanya TEKS —
+satu komentar dan satu STRING di judul test. Penjaganya yang salah, untuk
+kelima kalinya.
+
+Saya seharian mengejar kelas cacat "alat ukur yang menuduh produk", dan
+tetap meneruskan tuduhan alat tanpa membuka berkasnya.
+
+### Enam berkas saya tersapu ke commit orang lain
+
+Commit `82e97ce5` (perbaikan a11y sesi lain) ikut menelan enam berkas
+mobile saya — 788 baris di `proyek/[id].tsx` saja. Isinya SELAMAT dan
+hijau; yang terjadi cuma tersembunyi di balik pesan tentang a11y.
+
+Dicatat di sini supaya bisa ditelusuri nanti. Bentuk yang persis
+diperingatkan §8a.1: `git status` si penyapu bersih sesudahnya, jadi nol
+gejala dari sisinya.
+
+Dan satu kesalahan saya sendiri di jalan yang sama: `git restore --staged`
+tanpa pathspec melepas SELURUH stage, bukan satu berkas.
+
+### Terukur
+
+    penjaga CI          234 hijau · 0 MERAH · 0 tak ketemu   (dari 230)
+    tsc mobile          exit 0
+    potret terang+gelap 16/16 keduanya
+    hex tulisan tangan  264 → 224
+    fontFamily dipakai  88 → 113
+    proyek-detail       171 → 570 huruf (Ringkasan)
+    tab RAB             "belum ada" → 9.372 huruf
+
+---
+
+## 2026-09-04 (lanjutan) — lima permintaan founder, dan penjaga yang berbohong empat kali
+
+Founder mengirim lima permintaan berturut-turut di tengah sesi. Semuanya
+selesai dan tayang. Yang paling layak dicatat bukan pekerjaannya, melainkan
+POLA KEGAGALAN yang muncul berulang di dalamnya.
+
+### Yang dikerjakan
+
+| # | Permintaan | Hasil |
+|---|---|---|
+| 1 | link keabsahan dokumen jangan hardcode | `lib/url-dokumen.ts` baca `window.location.origin` |
+| 2 | kartu proyek "kaya social distancing" | jarak 12px rata (sebelumnya sisa ruang dibagi jadi jarak) |
+| 3 | pajak bisa dimatikan | migrasi 566 + saklar; tarif terbukti 0% |
+| 4 | RAB/RAP dari halaman proyek | tombol + jalan keluar dari keadaan kosong |
+| 5 | dialog & dropdown jangan bawaan | 45 dialog + 236 dropdown diganti |
+
+### Tiga cacat yang ditemukan SAMBIL mengerjakan, bukan yang diminta
+
+- **QR code invoice menunjuk domain mati.** Founder melaporkan teks footernya;
+  QR-nya tak disebut, dan ia menunjuk `puraloka.app` juga. Klien yang memindai
+  untuk memastikan invoice asli mendapat halaman mati.
+- **`/verify` menuntut login** — 307 ke `/login`. Halaman pembuktian keaslian
+  yang menolak pembacanya, padahal yang membukanya KLIEN, yang tak punya akun.
+- **Pajak "dimatikan" tetap dipotong 2%.** Kedua `getTaxRate` berbunyi
+  `scheme === 'ppn' ? 11% : 2%`, jadi nilai baru jatuh ke cabang else. Angkanya
+  sah, jurnalnya seimbang, invoicenya rapi — yang salah cuma jumlah uang yang
+  ditagihkan ke klien.
+
+### Pola yang berulang EMPAT kali: penjaga yang hijau atas cacatnya sendiri
+
+Tiap penjaga baru diuji dengan mengembalikan kode ke bentuk cacatnya. **Empat
+kali** hasilnya HIJAU, dan tiap kali sebabnya berbeda:
+
+1. **Regex rakus.** `[a-z0-9.-]*` menelan `.app/verify/invoice/` sampai habis,
+   lalu TLD tak lagi di ujung. Penjaga URL lolos pada bentuk PERSIS yang
+   dilaporkan founder.
+2. **Menilai per-berkas, bukan per-panggilan.** Satu `clearCookie` yang benar
+   meloloskan seluruh berkas — termasuk jalur `/auth/refresh` yang masih rusak.
+3. **Komentar ikut terbaca.** `includes('tanpa_pajak')` menemukan namanya di
+   komentar yang MENJELASKAN baris yang baru saja dihapus.
+4. **Syarat tak pernah tersisip.** `assert` gagal membatalkan skrip suntingan,
+   dan syarat "logout SAMA-ORIGIN" tak pernah masuk — mutasi yang paling
+   menentukan LOLOS.
+
+Yang membongkar keempatnya: **menguji tiap syarat sendiri-sendiri, bukan
+sekali borongan.** Uji borongan akan memperlihatkan merah dan saya akan
+menyimpulkan penjaganya bekerja.
+
+### Dan pelajaran yang lebih tajam
+
+**Penjaga wajib diuji terhadap bentuk ASLI cacatnya**, bukan mutasi karangan.
+Nomor 1 lolos justru karena saya mengarang mutasi ber-`https://`, sedangkan
+footer PDF menulisnya tanpa skema.
+
+**Penjaga yang memerahkan dokumentasi tentang dirinya sendiri mengajari orang
+menghapus dokumentasi itu.** Tiga penjaga sempat menuduh komentar yang
+menjelaskan kenapa mereka ada. Semuanya kini mengosongkan komentar sebelum
+memindai — dikosongkan, bukan dihapus, supaya nomor baris temuan tetap benar.
+
+### Catatan cara kerja
+
+Skrip suntingan yang melapor GAGAL empat kali ternyata benar tiap kali — ia
+memang tak paham bentuknya: `<select` diikuti baris baru (185 kemunculan),
+penyebutan dalam komentar, komentar JSX berkurung-kurawal, dan self-closing.
+Yang salah bukan laporannya, melainkan asumsi saya bahwa satu pola cukup.
+
+**Skrip yang diam soal kegagalannya membuat "tidak ada yang tertinggal"
+mustahil diperiksa.** Yang melapor gagal justru yang bisa dipercaya.
+
+## 2026-09-04 (mobile, lanjutan) — riset dulu, lalu empat layar yang ternyata kosong atau rusak
+
+Founder minta UI sekelas frontend engineer profesional, dan minta riset
+lebih dulu. Dijalankan lewat mesin `ui-ux-pro-max` (`--design-system` +
+`--stack react-native`), bukan dari ingatan. Style yang keluar: Data-Dense
+Dashboard, terang + gelap penuh.
+
+Palet dan font TIDAK diambil dari rekomendasi — navy #003366 keputusan
+founder (ARAH-VISUAL §2), font sudah diratifikasi.
+
+Yang penting: tiap pedoman DIUKUR ke kode, bukan diterapkan mentah.
+
+### Pengukuran mengubah rencana dua kali
+
+Rencana pertama: pindahkan 11 layar `ScrollView`+`.map()` ke `FlatList`.
+Dipetakan dulu — asal tiap `.map()` (konstanta vs state), baris nyata dari
+API, pertumbuhan 30 hari dari basis:
+
+    projects   19 → proyeksi 158    workers  63 → 783
+    kasbons    67 → 199             notifications  8.947
+
+Enam dari sebelas ternyata FORM ISIAN — chip pilihan mendatar, bukan daftar
+bergulir. Memindahkannya menambah kerumitan tanpa manfaat.
+
+Dan yang paling mendesak bukan virtualisasi sama sekali: **`/notifications`
+punya 8.947 baris di basis dan layar hanya bisa melihat 30 — selamanya.**
+Tak ada `onEndReached`, tak ada tombol muat-lebih, tak ada tanda.
+
+### Empat layar kosong atau rusak, semua alat diam
+
+| Layar | Yang terjadi | Kenapa hijau |
+|---|---|---|
+| `mandor` | **114 karakter** — judul + bilah tab | objek disimpan ke state larik · `data?.data` yang tak ada · `try/finally` tanpa `catch` (dan `allSettled` tak melempar, jadi `catch` pun tak akan terpanggil) |
+| `notifications` | nol dari 30 menampilkan isinya | API kirim `message`, layar baca `body` |
+| `pekerjaan` + `notifications` | CRASH "Rendered more hooks…" | hook di bawah early-return — kode saya sendiri |
+| `notifications` | 30 dari 8.947 | paginasi rutenya ada, layar tak pernah memintanya |
+
+Yang ketiga paling mengganggu: **potret melaporkan "✅ Semua layar terisi"
+atas layar yang crash** — stack trace React memang berisi banyak teks, tak
+menggulir mendatar, dan tak punya teks di bawah 12px. Ketiga pengukuran
+benar untuk dirinya sendiri.
+
+Ia baru ketahuan saat saya menambahkan deteksi crash untuk cacat yang SAMA
+di layar lain — dan deteksi itu langsung menemukan `pekerjaan` juga, yang
+sudah rusak sejak migrasi sebelumnya dan dilaporkan hijau dua kali.
+
+### Enam belas tombol yang diam saat ditekan
+
+`Pressable` bawaannya tak melakukan apa pun saat ditekan. `TouchableOpacity`
+memudar sendiri — jadi keduanya terlihat sama di kode dan hanya satu yang
+diam. Tiga dari enam berkas terdampak adalah layar TULIS.
+
+Kelas cacat yang bahkan MEMOTRET tak bisa temukan: umpan balik hanya hidup
+~100ms saat jari menempel.
+
+### Saya salah lima kali, dan tiap kali alat ukurnya yang menuduh produk
+
+1. **Mutasi salah sasaran** — penjaga daftar "lolos" karena mutasinya tak
+   mengenai yang dijaga.
+2. **Merah tanpa menyebut pelakunya** — berkas baru tenggelam di dasar
+   daftar 14 baris. Lantai kini menyimpan NAMA, bukan cuma angka.
+3. **Lantai tercemar berkas mutasi** — `--turunkan` dijalankan sebelum
+   berkas uji dihapus.
+4. **Menghitung kartu DOM untuk menguji paginasi** — 14 → 26 → 24,
+   naik-turun. `FlatList` MELEPAS kartu di luar jendela render; itu gunanya.
+5. **`scrollTop = scrollHeight`** tak memicu paginasi sama sekali.
+   `FlatList` membaca event `scroll` ter-throttle.
+
+Ditambah penjaga status yang salah TIGA kali sebelum dipasang: nama tabel
+ditebak dari nama rute (`weekly_wage_reports`, bukan `mandor_wage_reports`),
+membaca CHECK padahal repo ini pakai ENUM, dan mendaftarkan tabel yang
+layarnya punya peta sendiri — lima temuan palsu dari satu tabel.
+
+**Penjaga yang salah merah lebih cepat dimatikan daripada penjaga yang
+jangkauannya sempit.** Ketiganya diperbaiki sebelum dipasang.
+
+### Dan satu yang penjaganya benar, saya yang salah
+
+`audit-akhir-baris.mjs` merah: `ci.yml` LF di HEAD, CRLF di pohon kerja.
+Skrip Python saya yang menulisnya begitu, dan git menormalkan saat commit —
+jadi diff-nya selalu bersih dan saya tak pernah melihatnya. Dinormalkan
+(4.132 CR → 0), dan ini koreksi untuk commit-commit saya sebelumnya.
+
+### Terukur
+
+    penjaga CI          230 hijau · 0 MERAH · 0 tak ketemu   (dari 227)
+    tsc mobile          exit 0
+    potret terang+gelap 14/14 keduanya
+    uji-paginasi-hidup  1 → 2 → 3 permintaan ber-offset
+    elemen a11y terjaga 30 → 44
+    hex tulisan tangan  319 → 264
+    fontFamily dipakai  51 → 88
+    FlatList            0 → 5 layar (ratchet 14 → 9)
+    mandor              114 → 2.364 huruf terender
+
+Lima penjaga baru, semuanya di ci.yml dan terbukti bisa merah:
+`audit-tekan-berumpan` · `audit-daftar-mobile-virtual` ·
+`audit-status-mobile-berlabel` · `audit-bentuk-balasan-mobile` (diperluas) ·
+`audit-a11y-mobile` (diperbaiki — jangkauannya sempat turun 43 → 30 tanpa
+gejala saat 16 elemen pindah ke `Tekan`).
+
+---
+
+## 2026-09-04 (mobile) — memotret aplikasi HP untuk pertama kalinya, dan enam cacat yang tak satu pun alat bisa lihat
+
+Aplikasi mobile tak pernah sekali pun dipotret. Web punya potret sejak lama
+dan itu terbukti menemukan cacat yang lolos semua test; mobile buta terhadap
+kelas yang sama.
+
+Membuat `apps/mobile/scripts/potret-mobile.mjs` (360×800 dan 430×932, terang
+dan gelap) dan `bingkai-hp.mjs` (membungkusnya jadi mockup HP, seperti
+emulator Android Studio yang butuh 8 GB dan tak ada di mesin ini).
+
+### Cacat pertama ada di alat ukurnya sendiri
+
+Jalan pertama melapor:
+
+    ✅ Semua layar terisi, nol gulir mendatar, nol teks di bawah 12px.
+
+Kesepuluh potret adalah layar login yang sama. Ketiga pengukurannya lulus
+dengan jujur — layar login memang berisi teks (78 huruf), memang tak
+menggulir mendatar, memang tak punya teks kecil.
+
+Dua sebab berlapis, dan keduanya butuh dibongkar sendiri-sendiri:
+
+1. **CORS menolak `X-Client`.** Header itu ditambahkan 2026-09-01 supaya
+   `/auth/login` memulangkan token di badan, dan tak pernah didaftarkan di
+   `allowedHeaders`. Nol gejala tiga hari karena aplikasi NATIVE tak
+   mengirim preflight sama sekali. Preflight OPTIONS menjawab **204** —
+   status sukses — dengan origin yang diizinkan, dan `curl` POST menjawab
+   200. Dua pengukuran yang keduanya benar untuk dirinya sendiri.
+
+2. **Skrip menekan Enter, bukan tombol.** Kebiasaan dari skrip potret web,
+   tempat isian hidup di dalam `<form>`. React Native tak punya form.
+   Terukur saat mendiagnosis: pageerror 0, requestfailed 0, localStorage
+   kosong — semua alat menjawab "tak ada yang salah", karena memang tak ada
+   yang salah, cuma tak ada yang terjadi.
+
+Skrip sekarang MEMBUKTIKAN login (isian sandi hilang + jejak sesi ada), dan
+gagal berarti nol potret disimpan: potret layar login bukan potret aplikasi,
+dan menyimpannya membuat berkasnya terbaca seperti bukti.
+
+### Enam cacat dari potret yang akhirnya nyata
+
+| Cacat | Kenapa tak bergejala |
+|---|---|
+| dashboard **NOL untuk SEMUA** KPI; API mengirim 15 proyek & Rp 7,14 M | API bersarang `{kpis:{…}}`, layar membaca datar; `?? 0` menelan seluruhnya. Nol yang salah tak bisa dibedakan dari nol yang benar. `res.data` bertipe `any`, jadi tsc hijau |
+| **341 teks di bawah 12px** (tercatat 18 sebelumnya) | penjaga membaca gaya; angka ini dari RENDER, tempat satu gaya terulang di puluhan kartu. Ternyata cuma 4 gaya |
+| tombol MATI terlihat sama persis dengan tombol HIDUP | `disabled` MEMANG diteruskan benar — dan itu yang diperiksa test |
+| isian putih menyala di mode gelap | mode gelapnya baru lahir hari itu |
+| emoji sebagai ikon tab memeras label jadi 6px | emoji fontSize 22 terender 30px |
+| dua pil merah berdampingan: "Berat" + "Menunggu Pengecekan" | keduanya benar sendiri-sendiri; yang salah artinya BERSAMA |
+
+Ditambah empat pasangan kontras yang GAGAL AA dan semuanya di luar
+jangkauan `audit-kontras-mobile.mjs` (ia memindai `color:` di gaya;
+keempatnya masuk lewat `Record` atau prop JSX): `#DC2626` 3.48:1 ·
+`#B91C1C` 2.60:1 · `#9CA3AF` 2.54:1 · Badge `warning` 2.86:1. Yang terakhir
+adalah lencana "Menunggu" — status yang paling banyak hadir di daftar
+approval dan satu-satunya yang menuntut tindakan.
+
+### Saya salah dua kali, keduanya soal angka
+
+Menulis "3.4:1" untuk `#059669` dari perkiraan; terhitung 4.46:1 — dan yang
+sesungguhnya gagal justru `#DC2626`/`#B91C1C`, dua keparahan TERTINGGI.
+Menulis "5.13:1" dan "warna yang sama"; terhitung 5.33:1 dan warnanya
+berbeda. Keduanya ketahuan karena menghitung sebelum menulis komentarnya —
+kalau tidak, dua angka salah akan tertinggal di kode sebagai fakta.
+
+### Satu batas yang dicatat, bukan dikejar
+
+Label bilah tab tampak terpotong di tiap potret. Dua percobaan gagal (tinggi
+bilah 44→58px, `lineHeight` eksplisit) sebelum sumbernya ketemu:
+`react-native-web/dist/exports/Text/index.js`, `styles.textOneLine` dengan
+`overflow: hidden` untuk `numberOfLines={1}`. Di React Native asli
+`numberOfLines` tak memotong tinggi.
+
+**Cacat yang hanya muncul di alat ukur bukan cacat produk.** Ditulis di
+kepala `potret-mobile.mjs` supaya sesi berikutnya tak mengejarnya lagi.
+
+### Terukur
+
+    penjaga CI          227 hijau · 0 merah · 0 tak ketemu   (dari 225)
+    tsc mobile          exit 0 (dari MERAH — galat pra-ada di lainnya.tsx)
+    hex tulisan tangan  445 → 319
+    fontFamily dipakai  0 → 51
+    teks < 12px         341 → 0
+    potret              10 layar × 2 mode, keduanya hijau
+
+Tiga penjaga baru, ketiganya terdaftar di ci.yml dan terbukti bisa merah
+lewat mutasi: `audit-warna-mobile-bertoken` · `audit-font-mobile-terpakai` ·
+`audit-bentuk-balasan-mobile`.
+
+Uji mutasi yang terakhir MEMBATASI klaimnya sendiri: ia menangkap kunci
+salah NAMA, tapi kunci salah SARANG lolos. Ditulis di kepala berkasnya
+alih-alih diperbaiki — penjaga yang sempit tapi jujur lebih berguna
+daripada penjaga yang salah merah.
+
+---
+
+## 2026-09-04 (lanjutan 4) — suite API BERJALAN, dan apa yang tersingkap di baliknya
+
+Rantai migrasi tuntas: **565 migrasi diputar dari nol, nol HARD FAIL**. Lalu
+sesuatu yang belum pernah terjadi sesi ini — shard API menjalankan test:
+
+    Test Files  8 failed | 75 passed (83)
+         Tests  6 failed | 1114 passed
+
+1.114 lulus di shard 1 saja, dari suite yang sebelumnya tak pernah berjalan
+sama sekali.
+
+### Satu temuan arsitektural nyata
+
+**ENAM policy memanggil `auth_company_id()` sekali PER BARIS** — dan MERAH DI
+DEV JUGA, jadi cacatnya sudah ada sebelum PR ini. Dua di antaranya milik
+migrasi 564, yang saya tulis sendiri hari ini.
+
+    entitlement_snapshot · situs_domain · tagihan_tenant
+
+Dibungkus `(SELECT …)` ia jadi InitPlan: sekali untuk seluruh query, bukan
+sekali per baris. Tak ada galat — hanya kelambatan yang tumbuh sebanding
+jumlah baris, gejala yang paling mudah disalahkan pada "datanya sudah banyak".
+
+Migrasi 565. Artefak fisik diverifikasi SEBELUM dicatat di buku (G-2).
+
+### Enam seed CI yang tak pernah ada, satu akar
+
+Sesudah rantai lolos, seed roboh beruntun. Akarnya satu dan berulang LIMA
+kali: **seed migrasi bersyarat `EXISTS (company_members)`, sementara
+keanggotaan lahir BELAKANGAN lewat seed CI.** Yang disemai migrasi tak pernah
+menyusul.
+
+    projects.company_id      insert tak menyebut kolomnya -> 7 seed roboh
+    role tenant + izin       migrasi 365 dilewati -> 403 di rute yang minta 409
+    config AI                migrasi 250 dilewati -> 503 di test gerbang GRATIS
+    mitra + tukang tertaut   tak ada seed sama sekali
+    kategori biaya proyek    tak ada seed sama sekali
+    keanggotaan ganda        prasyarat portofolio grup
+
+### Pesan galat yang menunjuk ke tempat yang SALAH
+
+Empat kali hari ini, dan tiap kali saya sempat mengejar arah yang keliru:
+
+    "migrasi 461 belum jalan?"        461 sudah jalan — DATANYA yang tak ada
+    "undefined (reading 'id')"        tak menyebut tabel maupun query
+    "DITOLAK PADAHAL SAH"            yang menolak keunikan, bukan CHECK
+    "503 kunci_tak_ada"              bukan kunci API — baris config-nya
+
+Yang keempat paling mahal: saya hampir membawanya ke founder sebagai
+keputusan biaya AI. Komentar di `ai-chat.test.ts` mencatat kebalikannya —
+versi pertama test itu berasumsi TAK ada kunci, dan asumsinya salah.
+Membaca komentar membatalkan pertanyaan yang hampir saya ajukan.
+
+### Penjaga yang terhalang sisa dirinya sendiri
+
+`uji-invarian-absensi` menghapus barisnya SESUDAH tiap uji, tetapi tak ada
+pembersihan di AWAL. Satu jalan yang terputus — termasuk run CI yang
+dibatalkan push berikutnya, yang terjadi DUA KALI hari ini — meninggalkan
+barisnya, dan jalan berikutnya menabraknya selamanya.
+
+Empat belas penjaga lain berpola serupa. Penyaring pola memberi sinyal lemah
+dan campur, jadi keempat belasnya DIJALANKAN dua kali berturut alih-alih
+ditebak dari bentuk kodenya. Semuanya aman.
+
+### Penyaring pola ditolak — keempat kalinya
+
+    22 kandidat  penyaringnya memuat palsu (n_policy dari pg_policies)
+    53 kandidat  ternyata sehat; rantai lalu melompat 36 migrasi tanpa disentuh
+    2 kandidat   FUNGSI TRIGGER — menyuntingnya melumpuhkan produksi
+    14 kandidat  dijalankan dua kali; hanya 1 yang rentan
+
+Empat kali menolak, empat kali pengukuran langsung memberi jawaban yang
+berbeda dari tebakan. **Angka kandidat adalah ukuran penyaring, bukan ukuran
+kerusakan.**
+
+### Dua penjaga yang diperbaiki, dan satu yang hampir saya rusak
+
+`audit-nilai-kontrak-waras` mati exit 2 tanpa DATABASE_URL. Perbaikan PERTAMA
+saya justru membuatnya melewati diri SELALU — memeriksa `process.env` saja,
+padahal `buatClient()` membaca `apps/api/.env`. Ketahuan karena diuji di DUA
+keadaan, bukan hanya yang sedang diperbaiki. Kalau saya cuma menguji "tanpa
+basis", merahnya berubah hijau dan saya akan menyebutnya selesai.
+
+`t7-exit-criteria-l2` menyaring policy lewat NAMA, dan tiga tabel yang
+terlindungi dengan benar jatuh sebagai "tak berpagar". Diganti penyaring
+struktur; selisihnya diukur persis tiga (269 vs 266), bukan pelonggaran umum.
+
+---
+
+## 2026-09-04 (lanjutan 3) — rantai migrasi diputar dari nol: 001 → 523
+
+Membersihkan rantai migrasi supaya PR #148 (multi-tenant porto) bisa hijau.
+Kode porto sendiri sudah lulus sejak awal — yang tertahan suite API, dan ia
+mati di penyiapan basis, bukan di test. Nol test pernah berjalan.
+
+Kemajuan tiap siklus CI (~5 menit per siklus):
+
+    001 → 244 → 249 → 251 → 253 → 315 → 330 → 336 → 364 → 365
+        → 367 → 371 → 397 → 400 → 436 → 523
+
+### Satu kelas yang menjelaskan hampir semuanya
+
+**Pembuktian yang kehilangan bahannya melapor sebagai pembuktian yang GAGAL.**
+
+Blok verifikasi mengambil fixture (`users`, `companies`, `projects`) yang di
+schema bersih memang tak ada, lalu menuduh CHECK bocor, seed hilang, atau
+tenant bocor. Dua puluh delapan migrasi, dan gejalanya selalu terdengar
+seperti temuan nyata.
+
+Yang lebih halus lagi, dan berulang lima kali: **dua syarat berbeda untuk satu
+hal**. Seed disaring `WHERE EXISTS (company_members)`, pagarnya cuma
+`count = 0`. Keduanya benar sendiri-sendiri; yang salah adalah tak sepakat.
+(250 · 252 · 377 · 401 · 524)
+
+### Empat yang berbeda kelasnya, dan lebih berbahaya
+
+**368 — angka benar, kesimpulan keliru.** View memulangkan 20 baris ber-NULL,
+sungguhan. Tapi `set_config('app.company_id', NULL)` tak memasang konteks apa
+pun, jadi view tak menyaring. Laporannya terdengar seperti temuan keamanan;
+siapa pun yang membacanya akan mengejar kebocoran yang tak ada.
+
+**377 — MENGUBAH KEADAAN, bukan salah melapor.** Ia mematikan SELURUH company
+karena tak satu pun punya anggota, dan kerusakannya muncul dua puluh migrasi
+kemudian sebagai `398 gagal: value_type ambang EVM = "<NULL>"` — galat yang
+menuduh tipe data. Dibawa ke founder lebih dulu; ini satu-satunya yang
+mengubah perilaku, bukan pagar.
+
+**365 — galat yang memuat kontradiksinya sendiri.** *"nol role tersalin
+padahal 0 tenant punya anggota"*. Ia MENGHITUNG konteksnya, mencetaknya di
+pesan, lalu tak memakainya dalam syarat.
+
+**437 — `CREATE TABLE IF NOT EXISTS` tak memeriksa `pg_type`.** Postgres
+membuat satu tipe baris per tabel; tipe yang tertinggal tanpa tabelnya
+menggagalkan dengan `duplicate key ... pg_type_typname_nsp_index`, galat yang
+tak menyebut tabel maupun tipe. Sumbernya WIPE saya sendiri: saringan
+`typrelid = 0` benar untuk tabel yang hidup, dan runtuh untuk yang sudah tiada.
+
+### Kelas G-2 yang saya catat "masih terbuka" — menggigit hari itu juga
+
+Perbaikan 377 tak berlaku TIGA run berturut-turut: migrasi yang tercatat
+BERHASIL tak pernah diputar ulang, apa pun isinya sekarang.
+
+Yang paling sulit dilihat: **angkanya tak bergerak sedikit pun**. Perbaikan
+yang berjalan tapi kurang akan menggeser angkanya; nol pergerakan itulah
+petunjuknya, dan butuh tiga run untuk terbaca.
+
+Ditutup atas keputusan founder dengan sidik jari isi migrasi (SHA-256 di kolom
+`name` — bukan kolom baru; tabel itu milik Supabase). `PAKSA_ULANG` menolak
+`all` dengan sengaja: sakelar yang menghapus seluruh buku sekali tekan adalah
+pintu belakang G-2 yang cepat sekali dipakai tanpa berpikir.
+
+### Yang TIDAK dikerjakan, dan itu keputusan
+
+Penyisiran pola menawarkan jalan pintas berkali-kali, dan tiga kali saya
+menolaknya:
+
+  · 22 kandidat "rentan" — penyaringnya masih memuat palsu (`n_policy` dari
+    pg_policies tak tertangkap). Menyunting 22 berkas atas dasar penyaring
+    yang belum bisa dipercaya lebih berisiko daripada beberapa siklus CI.
+  · 53 kandidat di 401-565 — diperiksa dua, ternyata bergantung `n_aktif`
+    (company AKTIF), yang justru terpenuhi KARENA perbaikan 377. Rantai lalu
+    melompat 36 migrasi tanpa satu pun disentuh. **Angka 53 itu ukuran
+    penyaring saya, bukan ukuran kerusakan.**
+  · 344 & 458 cocok dengan pola pencarian tetapi FUNGSI TRIGGER — validasi
+    runtime untuk data sungguhan. Menyuntingnya berarti melumpuhkan
+    perlindungan produksi demi membuat CI hijau.
+
+### Kesalahan saya, semuanya pada ALAT UKUR
+
+- **Pengganti regex berhenti di kecocokan PERTAMA per berkas.** 337 punya dua
+  pagar; yang kedua lolos, dan CI menemukannya lima menit kemudian.
+- **Pemantau membaca `conclusion` kosong sebagai "gagal"** — padahal artinya
+  BELUM SELESAI. Melapor "tidak-lulus: 11" untuk run yang masih berjalan.
+  Keluarga yang sama dengan `000` curl: alat yang tak bisa membedakan "belum"
+  dari "gagal".
+- **`DELETE roles` untuk uji mutasi melanggar FK** — cara ujinya yang salah,
+  bukan kodenya. Diganti uji predikat langsung.
+- **CR masuk berulang kali** lewat Edit (176, 138, 478 di berkas berbeda).
+  Sekarang diperiksa sebelum tiap commit, bukan menunggu peringatan git.
+- **Sempat mengira `node_modules` hancur** karena `ls | wc -l` = 2. Salah:
+  root workspace memang hanya punya dua devDependency terlihat.
+
+---
+
+## 2026-09-04 (lanjutan 2) — CI menemukan tiga cacat yang lokal tak bisa lihat
+
+PR #148 dibuka supaya CI menilai apa yang tak bisa diukur di mesin ini.
+Ia menjawab, dan jawabannya tiga cacat nyata — dua di antaranya memblokir
+SELURUH suite API sehingga NOL test pernah berjalan.
+
+Lokal: 222 penjaga hijau, 28/28 test porto, next build bersih. Tak satu pun
+dari ketiganya terlihat dari sini.
+
+### 1. Migrasi 558 gagal di schema bersih — 18 href ganda
+
+    HARD FAIL — migrasi GAGAL di LUAR allowlist: 558_hidupkan_menu_halaman_yatim.sql
+      558 gagal: 18 href dipegang >1 menu aktif
+
+Diukur lokal: **0** href ganda. Di CI: **18**. Sebabnya 558 SUDAH tercatat di
+buku migrasi lokal, jadi tak pernah diputar ulang — pagarnya tak pernah
+diminta memeriksa apa pun lagi. Hanya schema bersih memutar rantai dari nol.
+
+Akarnya migrasi 531: ia menyisipkan 28 menu `yt-*` dengan `is_active = true`,
+syarat masuknya HANYA `key` belum ada — tak pernah bertanya apakah HREF-nya
+sudah dipegang menu lain. 20 dari 29 punya kembaran bernama.
+
+**Saya salah dua kali di sini, dan yang kedua lebih mahal.**
+
+Pertama saya menulis migrasi 565 untuk merapikan akibatnya. Salah sasaran:
+565 berjalan SESUDAH 558, dan 558-lah yang gagal — migrasi yang merapikan
+tak pernah dipanggil kalau yang memasang pagar gagal duluan. Nomor di bawah
+558 sudah habis. 565 dicabut.
+
+Allowlist juga tak sah, dan `ci-project-setup.mjs` sudah menuliskan
+syaratnya: kelas `cacat-tertambal` HANYA berlaku bila migrasinya gagal
+SESUDAH bagian penting ter-commit. 558 gagal di blok VERIFIKASI, dan tiap
+migrasi berjalan dalam transaksi — kegagalan itu membuang seluruh 558,
+termasuk penyalaan menu yang benar. Preseden 212 mencatat persis jebakan ini.
+
+Yang benar: 531 diperbaiki di tempatnya (preseden 212 & 016). Suntingannya
+MENYEMPITKAN — menyisipkan lebih sedikit, tak pernah lebih.
+
+### 2. `fast-uri` — entri override yang TERLIHAT sudah menutupinya
+
+Advisory ketiga pada paket itu (percent-encoded scheme, butuh >=4.1.3).
+Override `fast-uri` SUDAH ADA sejak Agustus dengan `>=4.1.2` untuk advisory
+backslash. Terpasang 4.1.2: tepat satu patch di bawah.
+
+Sebuah pagar yang menyebut nama paket yang benar, dengan angka yang salah
+satu digit, terbaca persis seperti pagar yang bekerja.
+
+Yang membuatnya layak dikerjakan sekarang, bukan ditunda: tiga advisory
+berturut-turut pada paket ini semuanya "host confusion" — dan sejak migrasi
+564 server ini meresolusi TENANT DARI HOSTNAME.
+
+### 3. SEPULUH job merah karena satu angka di sepuluh tempat
+
+Menaikkan pnpm 11.8.0 -> 11.11.0 di package.json memerahkan SELURUH CI:
+
+    Run pnpm/action-setup@v4
+    Error: Multiple versions of pnpm specified
+
+`_catatan_packageManager` sudah memperingatkan "KEDUANYA HARUS SAMA VERSINYA",
+dan saya menaikkan keduanya. Yang tak disebut catatan itu: ada DELAPAN tempat
+lain di `.github/workflows/`.
+
+**Catatan yang benar bisa tetap menyesatkan kalau cakupannya tak lengkap.**
+Ia menyebut "dua deklarasi" karena dua itu yang penulisnya ketahui. Sepuluh
+angka, empat berkas, nol alat yang membandingkan.
+
+Kini dijaga `audit-versi-pnpm-satu-suara.mjs` — dan ia menyaring lewat BENTUK
+(`^\s+version: X.Y.Z$`), bukan teks polos: komentar di ci.yml memang menyebut
+"11.8.0" saat menjelaskan celah pnpm 9 vs 11.
+
+### Yang saya pelajari tentang alat ukur, lagi
+
+- **`jq` tak ada di mesin ini.** Pemantau CI pertama saya memakainya — ia
+  lumpuh sejak dipasang dan takkan pernah melapor apa pun. `gh --jq` bawaan
+  yang bekerja. Bentuk yang sama dengan pemantau EAS di CLAUDE.md §7.
+- **`git add` berhenti di pathspec pertama yang gagal.** Commit `0e75baa4`
+  hanya memuat penghapusan 565; perbaikan 531 dan kenaikan pnpm tak ikut.
+  Pesannya panjang, statistiknya satu baris — wajar dilihat sekilas.
+  Ketahuan karena `git show --stat`, bukan karena ada yang gagal.
+- **Alarm palsu saya sendiri:** `ls node_modules | wc -l` = 2 saya baca
+  sebagai kerusakan. Salah — root workspace ini memang hanya punya dua
+  devDependency yang terlihat; `.pnpm` utuh 1434 paket.
+- **`newline=''` di Python menambahkan CR** ke dua berkas workflow yang
+  sebelumnya nol. Ia mempertahankan CR dari checkout Git Bash lalu
+  menuliskannya sebagai isi berkas.
+
+### Yang diuji, bukan diasumsikan
+
+Rantai EAS diuji dengan pnpm **9.15.5 sungguhan** — versi server, terbaca di
+fase SPIN_UP_BUILDER — di salinan terisolasi tanpa node_modules:
+
+    hook eas-lockfile-satu-dokumen  -> 15396 -> 15197 baris, 14 overrides
+    pnpm@9.15.5 --frozen-lockfile   -> EXIT 0, "Done in 324ms"
+
+Percobaan pertama saya menjalankannya di direktori uji tanpa menyalin
+skripnya — `AKAR` dihitung dari lokasi skrip, jadi hook menormalkan berkas
+REPO, bukan salinan. Laporan "lockfileVersion x1" itu tentang berkas lain.
+
+---
+
+## 2026-09-04 (lanjutan) — host yang MENYALA di basis tapi mati di dunia
+
+Menyiapkan deploy multi-tenant. Sebelum menjalankannya, saya ukur kedua host
+porto dari luar — dan salah satunya tak bisa dibuka sama sekali.
+
+    persada.puraloka-suite.duckdns.org   200
+    porto.puraloka-suite.duckdns.org     000   (exit curl 60)
+
+`porto.` terdaftar `aktif = true` DAN `terverifikasi = true` — dua kolom yang
+berarti "boleh menyajikan konten" — padahal nginx tak punya server block
+untuknya (10 host terdaftar, `porto.` bukan salah satunya) dan sertifikat
+`puraloka-suite.duckdns.org` memuat 6 nama tanpa `porto.`. Yang disajikan
+sertifikat `admin.`; nama tak cocok, TLS ditolak sebelum satu byte HTTP.
+
+**Tak ada yang gagal.** Basis menjawab benar, aplikasi menjawab benar (tak
+pernah ditanya), nginx menjawab benar (host tak dikenal -> blok bawaan). Tiap
+lapisan benar untuk dirinya sendiri — keluarga yang sama dengan `curl` 200
+tapi browser 500 di CLAUDE.md §7a.
+
+Barisnya dinonaktifkan, bukan diterbitkan sertifikatnya: `porto.` alamat
+generik yang tak menunjuk perusahaan mana pun, bertentangan dengan model
+per-perusahaan yang diminta founder.
+
+### Saya salah — tiga kali, semuanya pada ALAT UKUR
+
+**1. `porto.` saya baca `000000`.** Tiga kode tergabung; saya sempat mengira
+curl mengikuti pengalihan. Diukur benar: `lompatan=0`, exit 60. Bentuk
+keluaran yang aneh adalah tanda alat ukurnya, bukan temuan.
+
+**2. Penjaga baru melaporkan `persada.` MERAH** padahal saya sendiri
+mengukurnya 200 beberapa menit sebelumnya. Sebabnya `-o /dev/null` TAK ADA di
+Windows: curl gagal exit 23 ("write error"), dan penjaga menerjemahkannya
+sebagai kegagalan jaringan. Merah palsu dari alat ukurnya sendiri — dan
+penjaga yang merah tanpa sebab melatih orang mengabaikan hasilnya, persis
+alasan yang sudah tertulis panjang di `perbarui-vps.sh` langkah 5.
+
+**3. `grep -rl` di `/etc/nginx/sites-enabled/` memulangkan nol** — bukan
+karena tak ada yang cocok, melainkan karena isinya symlink dan `grep -r` tak
+menembusnya. Nol hasil bukan bukti ketiadaan, untuk kesekian kalinya.
+
+### Yang dibangun
+
+    audit-situs-host-dilayani.mjs   host `bawaan` menyala wajib bisa dibuka
+    perbarui-vps.sh langkah 7       penjaga itu dijalankan SESUDAH deploy
+    perbarui-vps.sh langkah 6       kode situs lain kini DIPERIKSA, bukan
+                                    cuma dicetak — `000` dulu lolos SELESAI
+
+Penjaga terbukti bisa merah tanpa mutasi buatan, atas cacat produksi nyata:
+MERAH (exit 1, menyebut host + sebabnya) -> nonaktifkan -> HIJAU (exit 0).
+
+`000` sendiri tak berguna dilaporkan: ia sama untuk DNS gagal, port tertutup,
+TLS ditolak, dan waktu habis. Empat sebab, empat perbaikan berbeda, satu
+angka. Penjaga membaca exit code dan menerjemahkannya.
+
+Sengaja TIDAK di `ci.yml`: CI menilai kode yang belum tayang, jadi ia hanya
+bisa mengukur server versi lama. `audit-penjaga-tercatat-jalan.mjs` mewajibkan
+yang tertabel §6 benar-benar jalan di CI — jadi penjaga ini dicatat di §7,
+bukan ditabelkan.
+
+### PR #148
+
+Push branch TAK memicu CI: `ci.yml` hanya `pull_request` + push ke `main`.
+Jalurnya PR, dan itu yang dibuka — 93 commit, 103 berkas.
+
+---
+
 ## 2026-09-04 — "/dashboard reload terus": TIGA perbaikan, dan hanya yang ketiga yang benar
 
 Founder melaporkan `/dashboard` memuat ulang terus-menerus. Direproduksi
@@ -34380,3 +35253,60 @@ bucket sementara kodenya menulis ke ENAM — ditutup 556.
 **Migrasi 557**: menu `pengaturan-langganan` lahir `is_active = true`
 (migrasi 552) tapi terbaca `false`, dan `audit-nav-yatim` merahkannya.
 Diperbaiki lewat migrasi maju.
+
+## 2026-09-04 — Tahap 4 & 5: tiga prasyarat ternyata sudah lunas
+
+Founder meminta portofolio per-perusahaan dengan subdomain yang bisa
+diganti. Itu menabrak **Gerbang Mutlak** (`STATUS.md` baris 101): tenant
+kedua dilarang sebelum Tahap 4 & 5 selesai.
+
+Saya tawarkan tiga jalan; founder memilih **menyelesaikan Tahap 4 & 5 dulu** —
+urutan yang benar, bukan yang cepat. Dicatat di `RATIFIKASI.md`.
+
+### Yang ternyata sudah beres (diukur, bukan dibaca dari dokumen)
+
+| Prasyarat | Bukti |
+|---|---|
+| **P1** nol `DEFAULT_COMPANY_ID` | satu-satunya kemunculan adalah komentar yang menyatakan ia tak ada |
+| **P2** uji kill-switch | `t5b-kill-switch.test.ts` — **9/9 hijau**, dua arah |
+| **P3** klasifikasi tabel | `audit-klasifikasi-tenancy.mjs` — 293 tabel, exit 0 |
+
+Ketiganya sudah dibangun sesi-sesi sebelumnya dan tak pernah ditutup di
+QUEUE. Ini bentuk yang sama dengan tujuh sub-menu yang bertanda 🔴 padahal
+UI-nya hidup berbulan-bulan.
+
+### Yang dikerjakan
+
+**Ratchet tenancy 4 → 2.** `notifications/subscribe` (POST + DELETE)
+dipindah dari `supabase` mentah ke `request.db`. Keduanya sudah aman lewat
+`.eq('id', user.id)` — yang salah bukan perilakunya, melainkan bahwa
+saringan itu satu-satunya lapisan. Terukur 168 dari 170 rute bergerbang.
+
+**T5A ditutup.** Testnya merah berbulan-bulan atas dua tabel yang
+SEBENARNYA TERLINDUNGI. Ia menyaring `policyname='tenant_isolation'` cocok
+persis, sementara `entitlement_snapshot` dan `tagihan_tenant` memakai nama
+lain dengan predikat yang benar (permissive + restrictive,
+`company_id = auth_company_id()`).
+
+Disaring lewat predikat sekarang. Arah sebaliknya ikut tertutup: versi lama
+akan MELOLOSKAN tabel bernama `tenant_isolation` yang predikatnya salah.
+
+### Saya salah dua kali, dan keduanya soal ALAT UKUR
+
+**Mutasi pertama dan kedua memulangkan HIJAU** dan sempat terbaca sebagai
+"penjaganya bocor". Sebabnya bukan penjaga: pola `python .replace()` saya
+tak lagi cocok sesudah komentar disisipkan, jadi mutasinya **tak mengubah
+satu baris pun**. Mutasi yang tak mengubah apa pun membuktikan NOL.
+
+Ketahuan dengan membaca badan rute yang BENAR-BENAR dilihat penjaga, lalu
+mutasi ulang dengan `sed` yang terbukti menyentuh 10 tempat → MERAH,
+menyebut namanya → pulih HIJAU.
+
+Ini kelas yang sama dengan yang sudah tercatat di §8a.2: mutasi wajib
+diperiksa MENGENAI sasarannya, bukan cuma dijalankan.
+
+### Sisa untuk membuka gerbang
+
+Ketiga prasyarat ADR-011 §9.5 lunas. Yang belum diukur: apakah masih ada
+item T4/T5 lain di QUEUE selain T5A. Itu langkah berikutnya — jangan
+menyimpulkan gerbang terbuka sebelum daftarnya habis diperiksa.

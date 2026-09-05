@@ -1,20 +1,25 @@
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Badge, statusLabel, statusVariant } from '@/components/ui/Badge';
+import { KepalaLayar } from '@/components/ui/KepalaLayar';
 import { Card } from '@/components/ui/Card';
 import { Galat } from '@/components/ui/Galat';
+import { Kosong } from '@/components/ui/Kosong';
 import { api } from '@/lib/api';
 import { pesanGalat } from '@/lib/galat';
+import { Tekan } from '@/components/ui/Tekan';
+import { useTema } from '@/hooks/useTema';
+import { FONT, HURUF, SPASI, type Palet } from '@/lib/tema';
 
 interface Project {
   id: string;
@@ -23,15 +28,121 @@ interface Project {
   status: string;
   progress_pct: number;
   contract_value: number;
-  clients?: { contact_person?: string };
+  /*
+    `clients.contact_person` — diukur ke rutenya (`projects.ts:28`), bukan
+    ditebak. Versi sebelumnya membacanya lewat `(p.clients as any)`, yang
+    membuat salah nama medan lolos tsc tanpa gejala; tipenya sekarang
+    dinyatakan, jadi salah ketik jadi galat.
+  */
+  clients?: { contact_person?: string } | null;
 }
 
 function fmt(n: number) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
 }
 
+/*
+  `keyExtractor` dari `id` basis. Pedoman stack `react-native`, severity
+  High — dan di layar ini ia menjaga hal yang konkret: menyentuh satu kartu
+  membuka `/proyek/[id]`, dan indeks sebagai kunci pada daftar yang
+  di-refresh bisa membuka proyek yang SALAH.
+*/
+const ambilKunci = (p: Project) => p.id;
+
+/**
+ * Satu kartu proyek — ter-`memo`.
+ *
+ * 19 proyek hari ini; diukur dari basis, 11 di antaranya bertambah dalam
+ * 30 hari terakhir. Daftar ini punya arah tumbuh, dan `FlatList` +
+ * `React.memo` dipasang sebelum ia melewati ambang, bukan sesudah.
+ */
+const KartuProyek = React.memo(function KartuProyek({
+  p,
+  s,
+  c,
+  onBuka,
+}: {
+  p: Project;
+  s: ReturnType<typeof gaya>;
+  c: Palet;
+  onBuka: (id: string) => void;
+}) {
+  const persen = Math.max(0, Math.min(100, p.progress_pct ?? 0));
+  return (
+    <Tekan
+      onPress={() => onBuka(p.id)}
+      accessibilityRole="button"
+      accessibilityLabel={`Buka proyek ${p.name}, progres ${persen} persen`}
+    >
+      <Card style={s.card}>
+        <View style={s.cardTop}>
+          <Text style={s.projName} numberOfLines={2}>
+            {p.name}
+          </Text>
+          <Badge label={statusLabel(p.status)} variant={statusVariant(p.status)} />
+        </View>
+
+        {/*
+          Ikon vektor menggantikan emoji 📍 dan 👤 — alasan yang sama
+          dengan bilah tab dan kartu kasbon: rupanya berbeda di tiap HP,
+          sebagian Android lama menggambar kotak kosong, dan warnanya tak
+          bisa mengikuti tema.
+        */}
+        {p.location ? (
+          <View style={s.metaBaris}>
+            <Ionicons
+              name="location-outline"
+              size={13}
+              color={c.textSecondary}
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            />
+            <Text style={s.location} numberOfLines={2}>
+              {p.location}
+            </Text>
+          </View>
+        ) : null}
+
+        {p.clients?.contact_person ? (
+          <View style={s.metaBaris}>
+            <Ionicons
+              name="person-outline"
+              size={13}
+              color={c.textSecondary}
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            />
+            <Text style={s.client} numberOfLines={1}>
+              {p.clients.contact_person}
+            </Text>
+          </View>
+        ) : null}
+
+        <View style={s.progressRow}>
+          {/*
+            `progress_pct` DIJEPIT ke 0-100 sebelum dipakai sebagai lebar.
+
+            Nilai di luar rentang membuat bar meluber keluar kartunya —
+            dan `Infinity%` pernah benar-benar muncul di batang kekuatan
+            halaman struktur web (CLAUDE.md §1). Yang menahannya di sana
+            adalah potret, bukan test.
+          */}
+          <View style={s.progressBar}>
+            <View style={[s.progressFill, { width: `${persen}%` }]} />
+          </View>
+          <Text style={s.progressPct}>{persen}%</Text>
+        </View>
+
+        <Text style={s.contractValue}>{fmt(p.contract_value ?? 0)}</Text>
+      </Card>
+    </Tekan>
+  );
+});
+
 export default function ProyekListScreen() {
   const router = useRouter();
+  const { c } = useTema();
+  const styles = useMemo(() => gaya(c), [c]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -54,76 +165,107 @@ export default function ProyekListScreen() {
 
   const onRefresh = () => { setRefreshing(true); fetchProjects(); };
 
+  const bukaProyek = useCallback(
+    (id: string) => router.push(`/(app)/proyek/${id}`),
+    [router]
+  );
+
+  const renderKartu = useCallback(
+    ({ item }: { item: Project }) => (
+      <KartuProyek p={item} s={styles} c={c} onBuka={bukaProyek} />
+    ),
+    [styles, c, bukaProyek]
+  );
+
   if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color="#003366" />
+        <ActivityIndicator size="large" color={c.navy} />
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Proyek</Text>
-        <Text style={styles.count}>{projects.length} proyek</Text>
-      </View>
-      <ScrollView
+      <KepalaLayar
+        judul="Proyek"
+        penjelas={`${projects.length} proyek yang bisa Anda akses`}
+      />
+      {/*
+        `FlatList` — 19 proyek hari ini, 11 di antaranya bertambah dalam 30
+        hari terakhir (diukur dari basis). Di bawah ambang 50, tetapi
+        daftarnya punya arah tumbuh, dan memasangnya sekarang jauh lebih
+        murah daripada memindahkannya saat sudah 158.
+      */}
+      <FlatList
+        data={projects}
+        keyExtractor={ambilKunci}
+        renderItem={renderKartu}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#003366" />}
-      >
-        {galat ? <Galat judul="Proyek tidak bisa dimuat" pesan={galat} /> : null}
-        {!galat && projects.length === 0 && (
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>Belum ada proyek</Text>
-          </View>
-        )}
-        {projects.map((p) => (
-          <TouchableOpacity key={p.id} onPress={() => router.push(`/(app)/proyek/${p.id}`)} accessibilityRole="button">
-            <Card style={styles.card}>
-              <View style={styles.cardTop}>
-                <Text style={styles.projName} numberOfLines={2}>{p.name}</Text>
-                <Badge label={statusLabel(p.status)} variant={statusVariant(p.status)} />
-              </View>
-              {p.location ? <Text style={styles.location}>📍 {p.location}</Text> : null}
-              {(p.clients as any)?.contact_person
-                ? <Text style={styles.client}>👤 {(p.clients as any).contact_person}</Text>
-                : null}
-              <View style={styles.progressRow}>
-                <View style={styles.progressBar}>
-                  <View style={[styles.progressFill, { width: `${p.progress_pct ?? 0}%` }]} />
-                </View>
-                <Text style={styles.progressPct}>{p.progress_pct ?? 0}%</Text>
-              </View>
-              <Text style={styles.contractValue}>{fmt(p.contract_value ?? 0)}</Text>
-            </Card>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.navy} />
+        }
+        ListHeaderComponent={
+          galat ? <Galat judul="Proyek tidak bisa dimuat" pesan={galat} /> : null
+        }
+        ListEmptyComponent={
+          galat ? null : (
+            <Kosong
+              ikon="business-outline"
+              judul="Belum ada proyek"
+              petunjuk="Proyek yang Anda tangani akan muncul di sini. Kalau Anda merasa sudah ditugaskan, hubungi admin perusahaan."
+            />
+          )
+        }
+        initialNumToRender={8}
+        windowSize={7}
+      />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F8F9FA' },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8F9FA' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8,
-  },
-  title: { fontSize: 22, fontWeight: '700', color: '#111827' },
-  count: { fontSize: 13, color: '#6B7280' },
-  list: { padding: 16, gap: 12 },
-  card: { gap: 8 },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
-  projName: { flex: 1, fontSize: 15, fontWeight: '600', color: '#111827' },
-  location: { fontSize: 12, color: '#6B7280' },
-  client: { fontSize: 12, color: '#6B7280' },
-  progressRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  progressBar: { flex: 1, height: 6, backgroundColor: '#E5E7EB', borderRadius: 3, overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: '#003366', borderRadius: 3 },
-  progressPct: { fontSize: 12, color: '#374151', fontWeight: '600', width: 32, textAlign: 'right' },
-  contractValue: { fontSize: 13, color: '#003366', fontWeight: '600' },
-  empty: { alignItems: 'center', paddingTop: 60 },
-  emptyText: { fontSize: 15, color: '#6B7280' },
-});
+function gaya(c: Palet) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: c.surfaceSubtle },
+    centered: {
+      flex: 1, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: c.surfaceSubtle,
+    },
+    list: { padding: SPASI.lg, gap: SPASI.md, paddingBottom: 40 },
+    card: { gap: SPASI.sm },
+    cardTop: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'flex-start', gap: SPASI.sm,
+    },
+    projName: {
+      flex: 1, fontSize: HURUF.base, fontFamily: FONT.isiTebal,
+      color: c.textPrimary, lineHeight: 21,
+    },
+    metaBaris: { flexDirection: 'row', alignItems: 'flex-start', gap: 5 },
+    location: { fontSize: HURUF.xs, fontFamily: FONT.isi, color: c.textSecondary, flex: 1 },
+    client: { fontSize: HURUF.xs, fontFamily: FONT.isi, color: c.textSecondary, flex: 1 },
+    progressRow: { flexDirection: 'row', alignItems: 'center', gap: SPASI.sm },
+    progressBar: {
+      flex: 1, height: 6, backgroundColor: c.surfaceHover,
+      borderRadius: 3, overflow: 'hidden',
+    },
+    progressFill: { height: '100%', backgroundColor: c.navy, borderRadius: 3 },
+    /*
+      `width: 34` dan `tabular-nums`: persentase berkisar 0-100, jadi
+      lebarnya berubah 1-3 digit. Tanpa lebar tetap dan digit selebar sama,
+      batang progres di kartu berurutan berakhir di titik yang berbeda-beda
+      — mata membaca panjang batang sebagai perbandingan, dan ujung yang
+      bergeser merusak perbandingan itu.
+    */
+    progressPct: {
+      fontSize: HURUF.xs, fontFamily: FONT.isiTebal, color: c.textPrimary,
+      width: 34, textAlign: 'right', fontVariant: ['tabular-nums'],
+    },
+    contractValue: {
+      fontSize: HURUF.sm, fontFamily: FONT.judul, color: c.navy,
+      fontVariant: ['tabular-nums'],
+    },
+    empty: { alignItems: 'center', paddingTop: 60 },
+    emptyText: { fontSize: HURUF.base, fontFamily: FONT.isi, color: c.textSecondary },
+  });
+}

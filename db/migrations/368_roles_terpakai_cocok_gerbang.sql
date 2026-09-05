@@ -82,6 +82,32 @@ DECLARE
 BEGIN
   SELECT id INTO cid FROM public.companies
    WHERE id IN (SELECT company_id FROM public.company_members) LIMIT 1;
+
+  /*
+    ⚠ Tanpa `cid`, SELURUH pembuktian di bawah menguji hal yang salah.
+
+    `set_config('app.company_id', NULL)` tidak memasang konteks tenant apa
+    pun, sehingga view `roles_terpakai` tak menyaring — dan mengembalikan 20
+    baris TEMPLATE yang memang ber-`company_id` NULL. Pagar di bawah lalu
+    melaporkannya sebagai kebocoran:
+
+        368 gagal: 20 baris ber-company_id NULL — akan tersaring habis
+                   oleh gerbang tenancy kategori B
+
+    Angkanya nyata, tetapi kesimpulannya keliru: yang bocor bukan view-nya,
+    melainkan konteks yang tak pernah terpasang. Di schema bersih tak ada
+    company beranggota (nol user → nol company_members), jadi `cid` mustahil
+    terisi.
+
+    Diperbaiki 2026-09-04. Pagar-pagarnya TIDAK dilemahkan — di lingkungan
+    yang punya tenant, ketiganya berjalan persis seperti sebelumnya.
+    (kelas 245/250/252/254/316/331/365/366)
+  */
+  IF cid IS NULL THEN
+    RAISE NOTICE '368: belum ada tenant beranggota — pembuktian view DILEWATI (schema bersih)';
+    RETURN;
+  END IF;
+
   PERFORM set_config('app.company_id', cid::text, true);
 
   SELECT count(*), count(DISTINCT name) INTO n_view, n_nama

@@ -98,8 +98,31 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 > development)** → nol data produksi = waktu TERMURAH untuk retrofit pondasi.
 > Titik-bocor #1 belum menimbulkan kerugian aktual.
 >
-> **GERBANG MUTLAK:** tenant kedua TIDAK BOLEH dibuat di produksi sebelum Tahap 4
-> dan 5 selesai penuh. Selama itu sistem berisi tepat satu company.
+> **GERBANG MUTLAK — DICABUT 2026-09-04 oleh founder.** Bunyi aslinya:
+> *"tenant kedua TIDAK BOLEH dibuat di produksi sebelum Tahap 4 dan 5 selesai
+> penuh. Selama itu sistem berisi tepat satu company."*
+>
+> Syaratnya lunas, diukur bukan dibaca (bukti + cara mengulang tiap pengukuran
+> ada di `RATIFIKASI.md` 2026-09-04):
+>
+> | Prasyarat | Hasil |
+> |---|---|
+> | P1 nol `DEFAULT_COMPANY_ID` | LUNAS |
+> | P2 uji kill-switch DUA arah | LUNAS — 9/9 hijau |
+> | P3 klasifikasi tabel | LUNAS — 293 tabel |
+> | T5A policy tenant | LUNAS |
+> | ratchet gerbang tenancy | HIJAU pada ambang 2 (dari 4) |
+>
+> Dua celah yang jadi alasan gerbang ini ada sudah tertutup: `modules.is_enabled`
+> (migrasi 155) dan `auth_role()` per-company (migrasi 144).
+>
+> ⚠ **Yang TIDAK dibuktikan pencabutan ini.** Lunas ≠ tenant kedua pasti aman.
+> Yang terbukti: lapisan isolasinya dua dan masing-masing berdiri SENDIRIAN.
+> Yang belum pernah terjadi: tenant kedua nyata dengan data nyata.
+>
+> **Aturan yang menggantikannya:** tenant kedua PERTAMA adalah tenant UJI milik
+> sendiri, bukan pelanggan membayar. Pelanggan berbayar menyusul sesudah tenant
+> uji itu hidup dan tak menemukan cacat isolasi.
 >
 > **2026-08-01 — dua celah pra-tenant-kedua ditutup** (ROADMAP 14i & 14j). Keduanya
 > punya dampak **nol hari ini** justru karena baru ada satu company — dan keduanya

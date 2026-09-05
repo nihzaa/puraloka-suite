@@ -79,7 +79,22 @@ BEGIN
 
   SELECT count(*) INTO n_role FROM public.roles WHERE company_id IS NOT NULL;
 
-  IF n_role = 0 THEN
+  /*
+    ⚠ Pagar ini MENGHITUNG `n_tenant` lalu mencetaknya di pesan, tetapi tak
+    pernah MEMAKAINYA dalam syarat — sehingga galatnya memuat kontradiksinya
+    sendiri:
+
+        365 gagal: nol role tersalin padahal 0 tenant punya anggota
+
+    "Nol role padahal nol tenant" bukan kegagalan; itu hasil yang benar. Di
+    schema bersih tak ada user → nol `company_members` → nol tenant beranggota
+    → nol role yang perlu disalin.
+
+    Diperbaiki 2026-09-04 dengan memakai angka yang SUDAH ia hitung. Di basis
+    berisi data perlindungannya persis sama: nol role saat ada tenant
+    beranggota tetap ditangkap. (kelas 245/250/252/254/316/331)
+  */
+  IF n_role = 0 AND n_tenant > 0 THEN
     RAISE EXCEPTION '365 gagal: nol role tersalin padahal % tenant punya anggota', n_tenant;
   END IF;
 

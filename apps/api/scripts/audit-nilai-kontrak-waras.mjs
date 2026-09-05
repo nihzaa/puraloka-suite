@@ -53,7 +53,43 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { buatClient } from '../../../scripts/db/_koneksi.mjs'
+import { buatClient, adaKoneksi } from '../../../scripts/db/_koneksi.mjs'
+
+/*
+  DILEWATI bila basis tak terjangkau — mengikuti pola `audit-harga-satuan-waras`
+  dan `audit-izin-benar-ada` yang sudah dipakai berkas tetangga.
+
+  Ditambahkan 2026-09-04. Langkah CI yang menjalankan penjaga ini tidak diberi
+  `DATABASE_URL`, dan tanpa pemeriksaan ini `buatClient()` mematikan proses
+  dengan exit 2:
+
+      FATAL: DIRECT_URL/DATABASE_URL tidak ditemukan
+             Penjaga CI yang boleh dilewati: pakai `adaKoneksi()` SEBELUM
+             memanggil ini — `try/catch` tak menangkap `process.exit`.
+
+  Pesannya sendiri menyebut perbaikannya, dan penjaga tepat di ATASNYA
+  melewati dirinya dengan benar di run yang sama.
+
+  ⚠ `adaKoneksi()`, BUKAN `process.env` langsung.
+
+  Versi pertama perbaikan ini memeriksa `process.env.DATABASE_URL` saja — dan
+  penjaga langsung melewati dirinya SELALU, termasuk di mesin lokal yang jelas
+  punya basis. Sebabnya `buatClient()` membaca kredensial dari `apps/api/.env`,
+  bukan dari environment. `adaKoneksi()` memeriksa KEDUANYA, sumber yang sama
+  dengan yang dipakai `buatClient()`.
+
+  Penjaga yang selalu hijau lebih buruk daripada tak ada penjaga: ia memberi
+  rasa aman yang salah. Ketahuan karena hasilnya diuji di DUA keadaan, bukan
+  hanya yang sedang diperbaiki.
+
+  Ini BUKAN melemahkan penjaga — ia tetap berjalan penuh di tiap lingkungan
+  yang punya basis; yang dilewati hanya keadaan di mana ia tak bisa mengukur.
+*/
+if (!adaKoneksi()) {
+  console.log('══ Nilai kontrak waras terhadap belanjanya ════════════════════')
+  console.log('  ⏭  DILEWATI — tak ada DATABASE_URL / DIRECT_URL')
+  process.exit(0)
+}
 
 const LANTAI_BERKAS = join(dirname(fileURLToPath(import.meta.url)), 'nilai-kontrak-lantai.json')
 

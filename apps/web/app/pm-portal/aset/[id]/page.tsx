@@ -287,16 +287,15 @@ export default function PmAsetDetailPage() {
 
       <BottomSheet terbuka={sheet === "biaya"} onTutup={() => setSheet(null)} judul="Catat Biaya Operasional">
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jenis</span>
-            <Pilihan value={form.jenis} onChange={(e) => setForm((f) => ({ ...f, jenis: e.target.value }))}
+          <label htmlFor="jenis-290" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jenis</span></label>
+            <Pilihan id="jenis-290" value={form.jenis} onChange={(e) => setForm((f) => ({ ...f, jenis: e.target.value }))}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
               <option value="bbm">BBM</option>
               <option value="operator">Operator</option>
               <option value="suku_cadang">Suku Cadang</option>
               <option value="lainnya">Lainnya</option>
             </Pilihan>
-          </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jumlah</span>
             <input type="number" value={form.jumlah} onChange={(e) => setForm((f) => ({ ...f, jumlah: e.target.value }))}

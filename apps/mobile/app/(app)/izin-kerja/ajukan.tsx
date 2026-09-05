@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert, StyleSheet,
+  View, Text, ScrollView, TextInput, ActivityIndicator, Alert, StyleSheet,
 } from 'react-native';
+import { Tekan } from '@/components/ui/Tekan';
+import { KepalaLayar } from '@/components/ui/KepalaLayar';
 import { router } from 'expo-router';
 import { api } from '@/lib/api';
 import { antrekan } from '@/lib/antrean';
 import { useAuth } from '@/hooks/useAuth';
+import { useTema } from '@/hooks/useTema';
+import { FONT, HURUF, RADIUS, SPASI, type Palet } from '@/lib/tema';
 
 /*
   ══════════════════════════════════════════════════════════════════════════
@@ -108,6 +112,13 @@ function usulkanNomor(adaNomor: string[]) {
 }
 
 export default function AjukanIzinKerja() {
+  /*
+    Gaya dirakit di dalam komponen — `StyleSheet.create` di lingkup modul
+    berjalan sebelum satu hook pun, jadi ia tak bisa membaca `useTema()`.
+    Lihat catatan panjangnya di `pekerjaan.tsx`.
+  */
+  const { c } = useTema();
+  const s = gaya(c);
   const { punyaIzin } = useAuth();
   const [proyek, setProyek] = useState<Proyek[]>([]);
   const [proyekId, setProyekId] = useState<string | null>(null);
@@ -210,14 +221,14 @@ export default function AjukanIzinKerja() {
   if (memuat) {
     return (
       <View style={s.tengah}>
-        <ActivityIndicator size="large" color="#003366" />
+        <ActivityIndicator size="large" color={c.navy} />
       </View>
     );
   }
 
   return (
     <ScrollView style={s.wadah} contentContainerStyle={s.isi} keyboardShouldPersistTaps="handled">
-      <Text style={s.judulHalaman}>Ajukan Izin Kerja</Text>
+      <KepalaLayar judul="Ajukan Izin Kerja" penjelas="Pekerjaan berbahaya butuh persetujuan sebelum mulai" />
 
       {/*
         Peringatan di ATAS, sebelum satu medan pun diisi. Menaruhnya di bawah
@@ -239,11 +250,14 @@ export default function AjukanIzinKerja() {
 
       <Text style={s.label}>Proyek</Text>
       {proyek.length === 0 ? (
-        <Text style={s.kosongIsi}>Belum ada proyek yang bisa Anda akses.</Text>
+        <Text style={s.kosongIsi}>
+          Belum ada proyek yang bisa Anda akses. Hubungi admin bila Anda
+          seharusnya ditugaskan di salah satunya.
+        </Text>
       ) : (
         <View style={s.pilihanBaris}>
           {proyek.map((p) => (
-            <Pressable
+            <Tekan
               key={p.id}
               onPress={() => setProyekId(p.id)}
               style={[s.chip, proyekId === p.id && s.chipAktif]}
@@ -251,7 +265,7 @@ export default function AjukanIzinKerja() {
               accessibilityState={{ selected: proyekId === p.id }}
             >
               <Text style={[s.chipTeks, proyekId === p.id && s.chipTeksAktif]}>{p.nama}</Text>
-            </Pressable>
+            </Tekan>
           ))}
         </View>
       )}
@@ -261,7 +275,7 @@ export default function AjukanIzinKerja() {
         {JENIS.map((j) => {
           const aktif = jenis === j.nilai;
           return (
-            <Pressable
+            <Tekan
               key={j.nilai}
               onPress={() => setJenis(j.nilai)}
               style={[s.jenisKotak, aktif && s.jenisKotakAktif]}
@@ -271,7 +285,7 @@ export default function AjukanIzinKerja() {
             >
               <Text style={[s.jenisJudul, aktif && s.jenisJudulAktif]}>{j.label}</Text>
               <Text style={[s.jenisKet, aktif && s.jenisKetAktif]}>{j.ket}</Text>
-            </Pressable>
+            </Tekan>
           );
         })}
       </View>
@@ -281,7 +295,7 @@ export default function AjukanIzinKerja() {
         value={uraian}
         onChangeText={setUraian}
         placeholder="mis. Las sambungan balok baja BJ-4 lantai 3"
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor={c.textMuted}
         multiline
         style={[s.input, s.inputPanjang]}
         accessibilityLabel="Uraian pekerjaan"
@@ -292,7 +306,7 @@ export default function AjukanIzinKerja() {
         value={lokasi}
         onChangeText={setLokasi}
         placeholder="mis. Lantai 3, grid B-2"
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor={c.textMuted}
         style={s.input}
         accessibilityLabel="Lokasi pekerjaan"
       />
@@ -302,7 +316,7 @@ export default function AjukanIzinKerja() {
         value={pengendalian}
         onChangeText={setPengendalian}
         placeholder="mis. Alas tahan api, APAR siaga, pengawas kebakaran 30 menit sesudah selesai"
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor={c.textMuted}
         multiline
         style={[s.input, s.inputPanjang]}
         accessibilityLabel="Pengendalian risiko"
@@ -317,7 +331,7 @@ export default function AjukanIzinKerja() {
         value={apd}
         onChangeText={setApd}
         placeholder="mis. Helm, sarung tangan las, pelindung wajah, sepatu safety"
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor={c.textMuted}
         style={s.input}
         accessibilityLabel="APD wajib"
       />
@@ -327,7 +341,7 @@ export default function AjukanIzinKerja() {
         value={nomor}
         onChangeText={setNomor}
         placeholder="WP-2026-005"
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor={c.textMuted}
         autoCapitalize="characters"
         style={s.input}
         accessibilityLabel="Nomor izin kerja"
@@ -347,7 +361,7 @@ export default function AjukanIzinKerja() {
         </Text>
       </View>
 
-      <Pressable
+      <Tekan
         onPress={simpan}
         disabled={menyimpan || !siap}
         style={[s.simpan, (menyimpan || !siap) && s.simpanMati]}
@@ -356,7 +370,7 @@ export default function AjukanIzinKerja() {
         <Text style={s.simpanTeks}>
           {menyimpan ? 'Mengirim…' : 'Kirim untuk persetujuan'}
         </Text>
-      </Pressable>
+      </Tekan>
 
       {/*
         Batas yang paling penting disebutkan lagi di sini, dan alasannya
@@ -372,65 +386,148 @@ export default function AjukanIzinKerja() {
   );
 }
 
-const s = StyleSheet.create({
-  wadah: { flex: 1, backgroundColor: '#F8FAFC' },
-  isi: { padding: 16, paddingBottom: 40 },
-  tengah: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#F8FAFC' },
-  judulHalaman: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 12 },
-  label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 },
-  bantuan: { fontSize: 12, color: '#6B7280', lineHeight: 17, marginTop: 6 },
-  spasiAtas: { marginTop: 16 },
-  /* Gerbang: kuning-oranye, bukan merah. Merah dipakai untuk galat di layar
-     ini; memakainya juga untuk peringatan membuat keduanya saling meredam. */
-  gerbang: {
-    backgroundColor: '#FFFBEB', borderWidth: 1, borderColor: '#FDE68A',
-    borderLeftWidth: 4, borderLeftColor: '#D97706',
-    borderRadius: 10, padding: 12, marginBottom: 16,
-  },
-  gerbangTeks: { fontSize: 13, color: '#78350F', lineHeight: 19, fontWeight: '500' },
-  pilihanBaris: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    paddingVertical: 9, paddingHorizontal: 14, borderRadius: 10,
-    borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#FFFFFF',
-  },
-  chipAktif: { backgroundColor: '#003366', borderColor: '#003366' },
-  chipTeks: { fontSize: 13, color: '#374151', fontWeight: '500' },
-  chipTeksAktif: { color: '#FFFFFF' },
-  /* Jenis pekerjaan pakai kotak dua-kolom, bukan chip: tiap pilihan membawa
-     keterangan ("Di atas 1,8 m") yang menentukan benar-tidaknya pilihan. */
-  jenisKisi: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  jenisKotak: {
-    width: '48%', paddingVertical: 11, paddingHorizontal: 12, borderRadius: 10,
-    borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#FFFFFF',
-  },
-  jenisKotakAktif: { backgroundColor: '#003366', borderColor: '#003366' },
-  jenisJudul: { fontSize: 13, fontWeight: '600', color: '#111827' },
-  jenisJudulAktif: { color: '#FFFFFF' },
-  jenisKet: { fontSize: 12, color: '#6B7280', marginTop: 3, lineHeight: 15 },
-  jenisKetAktif: { color: '#C7D7E8' },
-  input: {
-    borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10,
-    paddingVertical: 12, paddingHorizontal: 13, fontSize: 15,
-    color: '#111827', backgroundColor: '#FFFFFF',
-  },
-  inputPanjang: { minHeight: 78, textAlignVertical: 'top' },
-  jendela: {
-    borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10,
-    padding: 13, backgroundColor: '#FFFFFF',
-  },
-  jendelaTeks: { fontSize: 15, color: '#111827', fontWeight: '600' },
-  simpan: {
-    marginTop: 22, backgroundColor: '#003366', borderRadius: 12,
-    paddingVertical: 15, alignItems: 'center',
-  },
-  simpanMati: { backgroundColor: '#9CA3AF' },
-  simpanTeks: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
-  catatan: { fontSize: 12, color: '#6B7280', textAlign: 'center', marginTop: 12, lineHeight: 18 },
-  galat: {
-    backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA',
-    borderRadius: 10, padding: 12, marginBottom: 14,
-  },
-  galatTeks: { fontSize: 13, color: '#991B1B', lineHeight: 19 },
-  kosongJudul: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 6 },
-  kosongIsi: { fontSize: 13, color: '#5A616B', lineHeight: 19, textAlign: 'center' },
-});
+/**
+ * Gaya layar ini, dirakit dari palet aktif.
+ *
+ * ⚠ Satu perbaikan kontras ikut di sini, dan sebabnya layak dicatat.
+ *
+ * `placeholderTextColor` lima isian dulu `#9CA3AF` — DIHITUNG di latar
+ * putih: **2.54:1**, jauh di bawah ambang WCAG AA 4.5:1. Warna itu
+ * "terlihat wajar" (CLAUDE.md §6 menyebutnya persis), dan `textMuted`
+ * menggantikannya: 5.24:1 terang, 5.00:1 gelap.
+ *
+ * Kenapa `audit-kontras-mobile.mjs` tak menangkapnya: ia memindai `color:`
+ * di dalam gaya, sementara ini prop komponen di JSX. Bentuk yang sama
+ * dengan peta keparahan di `pekerjaan.tsx` — benar di satu lapis, patah di
+ * lapis yang sesungguhnya dipakai.
+ *
+ * Yang membuatnya lebih mahal daripada sekadar pudar: teks placeholder di
+ * layar ini adalah CONTOH ISIAN ("Pengelasan pipa di lantai 3"). Yang tak
+ * terbaca bukan hiasan — ia petunjuk cara mengisi gerbang keselamatan.
+ */
+function gaya(c: Palet) {
+  return StyleSheet.create({
+    wadah: { flex: 1, backgroundColor: c.surfaceSubtle },
+    isi: { padding: SPASI.lg, paddingBottom: 40 },
+    tengah: {
+      flex: 1, alignItems: 'center', justifyContent: 'center',
+      padding: SPASI.xxl, backgroundColor: c.surfaceSubtle,
+    },
+    label: {
+      fontSize: HURUF.sm, fontFamily: FONT.isiTebal,
+      color: c.textPrimary, marginBottom: SPASI.sm,
+    },
+    bantuan: {
+      fontSize: HURUF.xs, fontFamily: FONT.isi,
+      color: c.textSecondary, lineHeight: 17, marginTop: 6,
+    },
+    spasiAtas: { marginTop: SPASI.lg },
+    /* Gerbang: kuning-oranye, bukan merah. Merah dipakai untuk galat di layar
+       ini; memakainya juga untuk peringatan membuat keduanya saling meredam. */
+    gerbang: {
+      backgroundColor: c.warningBg, borderWidth: 1, borderColor: c.warningBorder,
+      borderLeftWidth: 4, borderLeftColor: c.warning,
+      borderRadius: 10, padding: SPASI.md, marginBottom: SPASI.lg,
+    },
+    gerbangTeks: {
+      fontSize: HURUF.sm, fontFamily: FONT.isiTebal,
+      color: c.warning, lineHeight: 19,
+    },
+    pilihanBaris: { flexDirection: 'row', flexWrap: 'wrap', gap: SPASI.sm },
+    /*
+      `maxWidth` WAJIB — ditemukan dari POTRET, bukan dari penjaga.
+
+      Nama proyek nyata sepanjang "[UJI] Renovasi Fasad Kantor CV Makmur —
+      Cihampelas" membentuk SATU chip yang lebih lebar daripada layar, dan
+      `flexWrap` tak bisa menolong: ia membungkus ANTAR-chip, tak bisa
+      mengecilkan satu chip yang sudah kebesaran. Ekornya terpotong di tepi
+      kanan — "…CV Makmur — Cihampela" — jadi dua proyek berawalan sama tak
+      bisa dibedakan sama sekali.
+
+      ⚠ `potret-mobile.mjs` melapor HIJAU: "nol gulir mendatar". Benar untuk
+      yang diukurnya (lebar dokumen vs viewport) — chip yang meluap terpotong
+      DI DALAM wadahnya, bukan melebarkan halaman. Pengukuran yang benar atas
+      hal yang salah.
+    */
+    chip: {
+      maxWidth: '100%',
+      paddingVertical: 9, paddingHorizontal: 14, borderRadius: 10,
+      borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised,
+    },
+    chipAktif: { backgroundColor: c.navy, borderColor: c.navy },
+    chipTeks: { fontSize: HURUF.sm, fontFamily: FONT.isi, color: c.textPrimary },
+    chipTeksAktif: { color: c.onNavy, fontFamily: FONT.isiTebal },
+    /* Jenis pekerjaan pakai kotak dua-kolom, bukan chip: tiap pilihan membawa
+       keterangan ("Di atas 1,8 m") yang menentukan benar-tidaknya pilihan. */
+    jenisKisi: { flexDirection: 'row', flexWrap: 'wrap', gap: SPASI.sm },
+    jenisKotak: {
+      width: '48%', paddingVertical: 11, paddingHorizontal: SPASI.md,
+      borderRadius: 10, borderWidth: 1,
+      borderColor: c.border, backgroundColor: c.surfaceRaised,
+    },
+    jenisKotakAktif: { backgroundColor: c.navy, borderColor: c.navy },
+    jenisJudul: {
+      fontSize: HURUF.sm, fontFamily: FONT.isiTebal, color: c.textPrimary,
+    },
+    jenisJudulAktif: { color: c.onNavy },
+    jenisKet: {
+      fontSize: HURUF.xs, fontFamily: FONT.isi,
+      color: c.textSecondary, marginTop: 3, lineHeight: 15,
+    },
+    /*
+      Keterangan di kotak TERPILIH: dulu `#C7D7E8` dipaku — biru pucat yang
+      hanya masuk akal di atas navy terang. Di mode gelap `navy` menjadi
+      `#4D9FFF`, dan biru pucat di atasnya nyaris hilang.
+
+      `onNavy` + opasitas menjaga hubungannya: apa pun warna navy-nya,
+      keterangan tetap satu tingkat lebih redup dari judulnya.
+    */
+    jenisKetAktif: { color: c.onNavy, opacity: 0.75 },
+    input: {
+      borderWidth: 1, borderColor: c.border, borderRadius: 10,
+      paddingVertical: SPASI.md, paddingHorizontal: 13,
+      fontSize: HURUF.base, fontFamily: FONT.isi,
+      color: c.textPrimary, backgroundColor: c.surfaceRaised,
+    },
+    inputPanjang: { minHeight: 78, textAlignVertical: 'top' },
+    jendela: {
+      borderWidth: 1, borderColor: c.border, borderRadius: 10,
+      padding: 13, backgroundColor: c.surfaceRaised,
+    },
+    jendelaTeks: {
+      fontSize: HURUF.base, fontFamily: FONT.isiTebal, color: c.textPrimary,
+    },
+    simpan: {
+      marginTop: 22, backgroundColor: c.navy, borderRadius: RADIUS.md,
+      paddingVertical: 15, alignItems: 'center',
+    },
+    /*
+      Tombol MATI: dulu `#9CA3AF` — hex yang sama dengan placeholder yang
+      gagal kontras. `borderStrong` memberi permukaan netral yang jelas
+      berbeda dari navy tanpa berpura-pura jadi teks.
+    */
+    simpanMati: { backgroundColor: c.borderStrong },
+    simpanTeks: {
+      color: c.onNavy, fontSize: HURUF.base, fontFamily: FONT.judul,
+    },
+    catatan: {
+      fontSize: HURUF.xs, fontFamily: FONT.isi, color: c.textSecondary,
+      textAlign: 'center', marginTop: SPASI.md, lineHeight: 18,
+    },
+    galat: {
+      backgroundColor: c.dangerBg, borderWidth: 1, borderColor: c.dangerBorder,
+      borderRadius: 10, padding: SPASI.md, marginBottom: 14,
+    },
+    galatTeks: {
+      fontSize: HURUF.sm, fontFamily: FONT.isi, color: c.danger, lineHeight: 19,
+    },
+    kosongJudul: {
+      fontSize: HURUF.lg - 1, fontFamily: FONT.judul,
+      color: c.textPrimary, marginBottom: 6,
+    },
+    kosongIsi: {
+      fontSize: HURUF.sm, fontFamily: FONT.isi,
+      color: c.textSecondary, lineHeight: 19, textAlign: 'center',
+    },
+  });
+}

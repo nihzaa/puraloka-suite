@@ -59,8 +59,9 @@ import { fileURLToPath } from 'node:url'
 const AKAR = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 const API = join(AKAR, 'apps', 'api', 'src', 'routes', 'v1', 'auth.ts')
 const MOB = join(AKAR, 'apps', 'mobile', 'lib', 'api.ts')
+const CORS = join(AKAR, 'apps', 'api', 'src', 'index.ts')
 
-for (const [nama, p] of [['auth.ts', API], ['mobile/lib/api.ts', MOB]]) {
+for (const [nama, p] of [['auth.ts', API], ['mobile/lib/api.ts', MOB], ['api/src/index.ts', CORS]]) {
   if (!existsSync(p)) {
     console.error(`❌ ${nama} tak ada di ${p} — jalurnya meleset.`)
     console.error('   Nol temuan dari korpus kosong bukan bukti apa pun.')
@@ -70,6 +71,7 @@ for (const [nama, p] of [['auth.ts', API], ['mobile/lib/api.ts', MOB]]) {
 
 const api = readFileSync(API, 'utf8')
 const mob = readFileSync(MOB, 'utf8')
+const cors = readFileSync(CORS, 'utf8')
 
 /*
   Komentar dibuang sebelum memeriksa. Kedua berkas MENJELASKAN kontrak ini
@@ -142,8 +144,42 @@ if (!/headers\s*\[\s*['"]X-Client['"]\s*\]\s*=/.test(mobKode)) {
   })
 }
 
+/*
+  ── 4. CORS mengizinkan header itu lewat ────────────────────────────────
+
+  Sisi KETIGA kontrak ini, dan yang paling lama tersembunyi.
+
+  Aplikasi native tak mengirim preflight — tak ada Origin, jadi tak ada
+  CORS sama sekali. `X-Client` ditambahkan 2026-09-01 dan tak pernah
+  didaftarkan di `allowedHeaders`; nol gejala selama tiga hari.
+
+  Ketahuan pada jalan pertama `potret-mobile.mjs` (2026-09-04), yang
+  membuka aplikasi mobile lewat peramban:
+
+      Request header field x-client is not allowed by
+      Access-Control-Allow-Headers in preflight response
+
+  ⚠ Dua pengukuran yang keduanya BENAR melewatkan ini: preflight OPTIONS
+  menjawab 204 dengan origin yang diizinkan, dan `curl` POST menjawab 200.
+  `curl` tak menegakkan CORS, dan OPTIONS yang lolos origin masih bisa
+  menolak HEADER-nya.
+
+  Yang terdampak bukan cuma potret: setiap kali mobile dijalankan di
+  peramban — pengembangan, demo, atau Expo web — login mati total.
+*/
+if (!/allowedHeaders\s*:\s*\[[^\]]*['"]X-Client['"]/i.test(cors)) {
+  temuan.push({
+    berkas: 'apps/api/src/index.ts',
+    apa: '`X-Client` tak ada di `allowedHeaders` CORS',
+    akibat: 'peramban menolak permintaan di preflight — mobile lewat Expo '
+      + 'web/demo tak bisa login sama sekali. Aplikasi NATIVE tak terdampak '
+      + '(tak ada preflight), jadi cacat ini nol gejala di jalur utama',
+  })
+}
+
 console.log('══ Kontrak login mobile utuh di kedua sisi ════════════════════')
 console.log(`  auth.ts membaca x-client   : ${/headers\s*\[\s*['"]x-client['"]\s*\]/i.test(apiKode) ? 'YA' : 'TIDAK'}`)
+console.log(`  CORS izinkan X-Client      : ${/allowedHeaders\s*:\s*\[[^\]]*['"]X-Client['"]/i.test(cors) ? 'YA' : 'TIDAK'}`)
 console.log(`  auth.ts beri access_token  : ${beriToken ? 'YA' : 'TIDAK'}`)
 console.log(`  diberikan BERSYARAT        : ${syaratBersih ? 'YA' : 'TIDAK'}`)
 console.log(`  mobile kirim X-Client      : ${/headers\s*\[\s*['"]X-Client['"]\s*\]\s*=/.test(mobKode) ? 'YA' : 'TIDAK'}`)

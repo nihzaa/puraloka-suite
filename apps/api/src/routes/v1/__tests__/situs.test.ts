@@ -208,7 +208,36 @@ describe('PATCH /api/v1/situs/seksi — rem varian', () => {
 })
 
 describe('GET /api/v1/public/situs — pengecualian bernama tanpa auth', () => {
-  const publik = () => app.inject({ method: 'GET', url: '/api/v1/public/situs' })
+  /*
+    ⚠ Header cadangan WAJIB dikirim, dan ketiadaannya memberi 404 — bukan
+    kegagalan yang menyebut sebabnya.
+
+    Rute memetakan host -> company lewat `situs_company_dari_host`. Permintaan
+    `app.inject` polos tak punya `x-situs-host`, jadi pemetaannya nihil, dan
+    jatuhan `SITUS_COMPANY_ID` hanya berlaku di luar produksi — di CI env itu
+    TAK ADA, sebab id company CI lahir dari seed dan berbeda tiap basis
+    dibangun ulang; memakunya di `ci.yml` berarti menebak id yang belum ada.
+
+    Akibatnya `companyId` null -> 404 -> `.data` undefined, dan KETUJUH test
+    di blok ini runtuh berantai dengan galat yang menuduh destructuring:
+
+        TypeError: Cannot destructure property 'kategori' of ... as it is undefined
+
+    Galat itu menunjuk baris test, bukan sebabnya. Yang sebenarnya terjadi
+    terbaca satu baris di atasnya: `expected 404 to be 200`.
+
+    `cidPublik` diisi `beforeAll` dari sumber yang SAMA dengan seed-nya, jadi
+    yang dibaca rute persis company yang barisnya ditanam.
+  */
+  const publik = () =>
+    app.inject({
+      method: 'GET',
+      url: '/api/v1/public/situs',
+      headers: cidPublik ? { 'x-situs-company-cadangan': cidPublik } : {},
+    })
+
+  /** company yang barisnya ditanam `beforeAll` — dipakai juga oleh `publik()`. */
+  let cidPublik: string | undefined
 
   // Tanpa baris nyata, test kebocoran hijau HANYA karena tak ada yang bisa
   // bocor — mutation-test membuktikannya: mengganti daftar kolom dengan
@@ -222,8 +251,34 @@ describe('GET /api/v1/public/situs — pengecualian bernama tanpa auth', () => {
   let cSeed: Client
 
   beforeAll(async () => {
-    const cid = process.env.SITUS_COMPANY_ID
-    if (!cid) throw new Error('prasyarat gagal: SITUS_COMPANY_ID belum diset')
+    /*
+      `SITUS_COMPANY_ID` dari env kalau ada, kalau tidak AMBIL DARI BASIS.
+
+      Di mesin pengembang env-nya diisi `apps/api/.env`. Di CI tidak — dan
+      langkah test-nya tak bisa memakainya begitu saja, karena company CI
+      lahir dari seed dengan id yang berbeda tiap kali basis dibangun ulang.
+      Memaku nilainya di `ci.yml` berarti menebak id yang belum ada.
+
+      Yang dicari: company yang PUNYA ANGGOTA — sama seperti definisi tenant
+      nyata di seluruh seed dan migrasi repo ini.
+    */
+    const cid =
+      process.env.SITUS_COMPANY_ID
+      ?? (await (async () => {
+        const c0 = await createRlsClient()
+        try {
+          const { rows } = await c0.query(
+            `SELECT c.id FROM companies c
+              WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id)
+              ORDER BY c.created_at LIMIT 1`,
+          )
+          return rows[0]?.id as string | undefined
+        } finally {
+          await c0.end()
+        }
+      })())
+    if (!cid) throw new Error('prasyarat gagal: nol company beranggota untuk diuji')
+    cidPublik = cid as string
 
     cSeed = await createRlsClient()
 
@@ -324,7 +379,14 @@ describe('GET /api/v1/public/situs — pengecualian bernama tanpa auth', () => {
   // NULL, dan policy RESTRICTIVE justru menolak semuanya — sehingga jalur ini
   // memakai service role. Yang tersisa sebagai penjaga hanya filter eksplisit.
   it('TIDAK menerbitkan konten milik company lain', async () => {
-    const cid = process.env.SITUS_COMPANY_ID!
+    // Sama seperti di atas: env kalau ada, basis kalau tidak.
+    const cid =
+      process.env.SITUS_COMPANY_ID
+      ?? (await c.query(
+        `SELECT c.id FROM companies c
+          WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id)
+          ORDER BY c.created_at LIMIT 1`,
+      )).rows[0]?.id
 
     // Company kedua dibuat di dalam TRANSAKSI yang selalu di-ROLLBACK.
     //

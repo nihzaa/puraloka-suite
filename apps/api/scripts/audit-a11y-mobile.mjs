@@ -120,14 +120,44 @@ if (berkas.length < 10) {
   process.exit(1)
 }
 
+/*
+  ⚠ Komentar DIBUANG sebelum memindai — ditambahkan 2026-09-04.
+
+  Sebelumnya penjaga ini merah atas dua baris di dalam blok komentar
+  `Tekan.tsx` yang MENJELASKAN Pressable — menyebut namanya untuk
+  menerangkan kenapa bawaannya berbahaya. Penjaga memindai teks mentah,
+  jadi penjelasan tentang cacat terhitung sebagai cacat.
+
+  Kelas yang tercatat di CLAUDE.md §8a.2: "komentar yang menyebut hal
+  terlarang untuk menjelaskan kenapa ia TIDAK dipakai — penjaga memindai
+  teks, jadi tetap terhitung sebagai pemakaian".
+
+  Diganti SPASI, bukan dihapus, supaya nomor barisnya tetap benar.
+*/
+const tanpaKomentar = (teks) =>
+  teks
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+    .replace(/\/\/[^\n]*/g, (m) => ' '.repeat(m.length))
+
 let total = 0
 const telanjang = []
 
 for (const f of berkas) {
-  const isi = readFileSync(f, 'utf8')
+  const isi = tanpaKomentar(readFileSync(f, 'utf8'))
   const nama = f.replace(/\\/g, '/').replace(AKAR.replace(/\\/g, '/') + '/', '')
 
-  for (const m of isi.matchAll(/<(Pressable|TouchableOpacity|TouchableHighlight|TouchableWithoutFeedback)\b/g)) {
+  /*
+    `Tekan` IKUT DIPINDAI — ditambahkan 2026-09-04 bersama komponennya.
+
+    Tanpa baris ini penjaga melemah DIAM-DIAM: 16 elemen sentuh berpindah
+    dari Pressable ke Tekan pada hari yang sama, dan jumlah "elemen sentuh"
+    turun dari 43 ke 30 tanpa satu pun benar-benar hilang.
+
+    Penjaga yang tak tahu dirinya kehilangan jangkauan akan pelan-pelan
+    berhenti menjaga tanpa gejala — bentuk yang sama dengan
+    `audit-batas-terpetakan.mjs`.
+  */
+  for (const m of isi.matchAll(/<(Tekan|Pressable|TouchableOpacity|TouchableHighlight|TouchableWithoutFeedback)\b/g)) {
     total++
     const akhir = tutupTag(isi, m.index)
     if (akhir < 0) {

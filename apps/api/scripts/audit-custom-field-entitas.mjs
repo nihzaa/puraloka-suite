@@ -41,8 +41,25 @@ import { fileURLToPath } from 'node:url'
 
 const DIR = dirname(fileURLToPath(import.meta.url))
 const PETA = join(DIR, '..', 'src', 'utils', 'tenant-map.generated.ts')
+/*
+  ⚠ Kredensial dibaca dari `.env` JUGA, bukan `process.env` saja — 2026-09-04.
 
-const punyaDb = !!(process.env.DATABASE_URL || process.env.DIRECT_URL)
+  Penjaga ini melewati DIRINYA SENDIRI di mesin yang punya basis: ia
+  menanyakan `process.env`, sementara kredensial repo ini di `apps/api/.env`.
+  Salah satu dari SEBELAS yang ditemukan sekaligus.
+
+  Dua tempat wajib diperbaiki bersama — pemeriksaan `punyaDb` DAN
+  `connectionString`. Kalau hanya yang pertama, ia melapor "punya basis" lalu
+  gagal menyambung dengan galat yang menuduh jaringan.
+*/
+const { bacaEnv: _bacaEnv } = await import('../../../scripts/db/_koneksi.mjs')
+const _envBerkas = _bacaEnv()
+const _DB =
+  process.env.DATABASE_URL || process.env.DIRECT_URL
+  || _envBerkas.DATABASE_URL || _envBerkas.DIRECT_URL
+
+
+const punyaDb = !!(_DB)
 if (!punyaDb) {
   console.log('\n⏭  audit-custom-field-entitas: DILEWATI (tak ada DATABASE_URL)')
   console.log('   Penjaga ini membaca katalog basis; CI menjalankannya dengan basis.')
@@ -50,7 +67,7 @@ if (!punyaDb) {
 }
 
 const { default: pg } = await import('pg')
-const c = new pg.Client({ connectionString: process.env.DATABASE_URL || process.env.DIRECT_URL })
+const c = new pg.Client({ connectionString: _DB })
 await c.connect()
 
 const { rows: enumRows } = await c.query(`

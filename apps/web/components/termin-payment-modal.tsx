@@ -284,11 +284,19 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
 
               {/* Kas Tujuan */}
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>
+                {/*
+                  BUKAN <label>: control di bawahnya `PilihanKartu`, yang merender
+                  <fieldset>+<legend> sendiri. Sebuah <label> yang membungkus grup
+                  radio tak menamai apa pun — ia menunggu SATU control, dan grup
+                  punya banyak. Judulnya diteruskan lewat prop `label` supaya
+                  mendarat di <legend>, tempat pembaca layar mengumumkannya
+                  sebelum tiap pilihan.
+                */}
+                <div style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                     <Wallet size={13} color={C.navy} /> Masuk ke Kas
                   </span>
-                </label>
+                </div>
                 {cashAccounts.length === 0 ? (
                   <div style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, color: C.muted, background: "var(--surface-subtle)" }}>
                     Memuat akun kas...
@@ -378,9 +386,10 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
 
               {/* Upload bukti */}
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>
+                {/* Judul BAGIAN unggah, bukan label satu control. */}
+                <div style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>
                   Bukti Transfer <span style={{ color: C.muted, fontWeight: 400 }}>(opsional — JPG, PNG, PDF, max 5MB)</span>
-                </label>
+                </div>
 
                 {proofFile ? (
                   <div style={{

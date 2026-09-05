@@ -54,7 +54,26 @@ const { Client } = require('pg')
   Penjaga yang MATI karena lingkungan tak lengkap menyembunyikan temuan
   sebenarnya; yang membacanya menyimpulkan penjaganya rusak.
 */
-const DB = process.env.DATABASE_URL || process.env.DIRECT_URL
+/*
+  ⚠ Kredensial dibaca dari `.env` JUGA, bukan `process.env` saja.
+
+  Diukur 2026-09-04: penjaga ini MELEWATI DIRINYA di mesin lokal yang jelas
+  punya basis, dan langkah CI-nya tak diberi `DATABASE_URL` sama sekali
+  (diperiksa: 0 baris env di ci.yml). Jadi ia tak pernah benar-benar memeriksa
+  apa pun — hijau di mana-mana karena selalu dilewati.
+
+  Cacat yang sama persis dengan `audit-nilai-kontrak-waras`, dan berkas INI
+  yang saya jadikan contoh "pola yang benar" saat memperbaikinya. Contoh yang
+  ditiru ternyata ikut rusak.
+
+  `bacaEnv()` membaca `apps/api/.env` — sumber yang sama dengan
+  `buatClient()`, dan sumber yang benar-benar dipakai di mesin pengembang.
+*/
+const { bacaEnv } = await import('../../../scripts/db/_koneksi.mjs')
+const envBerkas = bacaEnv()
+const DB =
+  process.env.DATABASE_URL || process.env.DIRECT_URL
+  || envBerkas.DATABASE_URL || envBerkas.DIRECT_URL
 if (!DB) {
   console.log('══ Kewarasan harga vs satuan ═══════════════════════════════')
   console.log('  ⏭  DILEWATI — tak ada DATABASE_URL / DIRECT_URL')

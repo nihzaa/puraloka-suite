@@ -147,7 +147,25 @@ BEGIN
   SELECT count(*) INTO n_yatim
     FROM jadwal_tugas t
    WHERE NOT EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = t.company_id);
-  IF n_yatim > 0 THEN
+  /*
+    ⚠ Syaratnya disamakan dengan INSERT di atas, yang sudah disaring
+    `WHERE EXISTS (company_members)` — dua syarat berbeda untuk satu hal
+    adalah cacat yang sama dengan 250, 252, dan 377.
+
+    Diukur di CI 2026-09-04, replay bersih (400 migrasi diterapkan dari nol):
+
+        401 gagal: 7 tugas terjadwal pada perusahaan tanpa anggota
+
+    Migrasi INI tak membuat satu pun dari ketujuhnya — insert-nya menolak
+    company tanpa anggota. Ketujuhnya warisan migrasi 244, yang menyemai untuk
+    SETIAP baris `companies`. Di schema bersih nol anggota, jadi semuanya
+    yatim, dan pagar ini menuduh migrasi yang bukan pembuatnya.
+
+    Di basis berisi data perlindungannya persis sama: tugas yatim di sana
+    memang menandakan tenant yang anggotanya dicabut — persis yang komentar
+    di atas maksudkan.
+  */
+  IF n_yatim > 0 AND EXISTS (SELECT 1 FROM company_members) THEN
     RAISE EXCEPTION '401 gagal: % tugas terjadwal pada perusahaan tanpa anggota', n_yatim;
   END IF;
 

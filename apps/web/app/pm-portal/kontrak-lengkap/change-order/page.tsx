@@ -494,9 +494,9 @@ export default function PmChangeOrderPage() {
               style={{ padding: 12, borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}
             />
           </label>
-          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Mode penagihan</span>
-            <Pilihan
+          <label htmlFor="mode-penagihan-497" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Mode penagihan</span></label>
+            <Pilihan id="mode-penagihan-497"
               value={billingBaru}
               onChange={(e) => setBillingBaru(e.target.value)}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
@@ -509,7 +509,6 @@ export default function PmChangeOrderPage() {
             <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-secondary)" }}>
               Boleh dikosongkan sekarang, tapi WAJIB dipilih sebelum CO ini bisa disetujui — pilihan ini menentukan apakah nilai kontrak naik.
             </span>
-          </label>
           {galatBaru && (
             <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>
               {galatBaru}
@@ -528,9 +527,9 @@ export default function PmChangeOrderPage() {
 
       <BottomSheet terbuka={sheetItemTerbuka} onTutup={() => setSheetItemTerbuka(false)} judul={`Tambah Item — ${coDipilih?.co_number ?? ""}`}>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Tipe</span>
-            <Pilihan
+          <label htmlFor="tipe-531" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Tipe</span></label>
+            <Pilihan id="tipe-531"
               value={itemType}
               onChange={(e) => setItemType(e.target.value)}
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
@@ -540,7 +539,6 @@ export default function PmChangeOrderPage() {
               <option value="perubahan_volume">Perubahan Volume</option>
               <option value="perubahan_spec">Perubahan Spesifikasi</option>
             </Pilihan>
-          </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Deskripsi</span>
             <input

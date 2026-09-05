@@ -6,6 +6,128 @@ bawah entrinya.
 
 ---
 
+# ⏳ R-024 · DUA migrasi lama disunting supaya rantai bisa diputar dari nol (2026-09-04)
+
+## Kenapa ini sampai ke Anda
+
+Menyunting migrasi yang SUDAH JALAN di produksi biasanya dilarang (CLAUDE.md
+§5.5). Dua di antaranya saya sunting, dan Anda berhak tahu sebelum menganggapnya
+selesai.
+
+Yang membuatnya sah: `ci-project-setup.mjs` sendiri menuliskan pengecualiannya —
+untuk migrasi yang gagal DI TENGAH TRANSAKSI, tak ada penambal yang cukup, dan
+yang rusak harus diperbaiki di tempatnya. Preseden 212 dan 016.
+
+## Apa yang ditemukan, dan bagaimana
+
+PR #148 (multi-tenant porto) memaksa CI memutar seluruh rantai migrasi dari
+schema kosong. Itu belum pernah terjadi sejak rantainya panjang — dan rantai
+itu ternyata **sudah rusak sebelum PR ini menyentuhnya**.
+
+Akibatnya bukan kosmetik: keenam shard test API mati di langkah penyiapan
+basis, jadi **NOL test pernah berjalan** — sementara mesin lokal melaporkan 222
+penjaga hijau. Basis lokal tak pernah memutar ulang migrasi yang sudah tercatat,
+jadi pagarnya tak pernah diminta memeriksa apa pun lagi.
+
+## Yang disunting
+
+**531 — menu halaman yatim.** Ia menyisipkan 28 menu `yt-*` dengan
+`is_active = true`, syarat masuknya HANYA "kunci belum ada" — tak pernah
+bertanya apakah HREF-nya sudah dipegang menu lain. Diukur: 20 dari 29 punya
+kembaran bernama (`/risiko` ↔ `rk-register`, `/sdm/timesheet` ↔ `hr-absensi`).
+Di schema bersih itu jadi 18 href dengan dua menu aktif — dua baris sidebar
+berbeda nama yang membuka layar sama persis. Migrasi 558 (yang pertama memasang
+pagar) menggagalkan seluruh penyiapan.
+
+Suntingannya menambah satu syarat: tolak href yang sudah dipegang menu aktif.
+**Menyempitkan** — menyisipkan lebih sedikit, tak pernah lebih.
+
+**245 — jadwal hanya tenant beranggota.** Pagarnya menggagalkan migrasi bila
+SEMUA jadwal terhapus, dengan alasan yang benar untuk basis berisi data. Tapi
+migrasi 126 mengisi `company_members` DARI tabel users, dan di replay bersih tak
+ada satu pun user — jadi nol anggota, dan menghapus semua jadwal adalah hasil
+yang BENAR. Pagar yang membaca "kosong" sebagai "rusak".
+
+Syaratnya kini menyebut sebabnya: gagal bila jadwal habis PADAHAL ada anggota.
+
+## Bukti
+
+Keduanya diuji dengan transaksi di-rollback, tak menyentuh data:
+
+    531 di schema bersih (6 contoh)
+      ditolak : /k3/insiden · /risiko · /sdm/timesheet   (kembarannya aktif)
+      lolos   : /master/ahsp · /otomasi · /sdm/cuti      (belum punya menu)
+      href ganda 0 · anak menggantung 0
+
+    245 tiga keadaan — yang ketiga uji mutasi
+      dev (49 anggota, ada jadwal)      -> diam      ✅
+      nol anggota (tiru schema bersih)  -> diam      ✅ yang diperbaiki
+      49 anggota TAPI jadwal habis      -> MENYALA   ✅ perlindungan utuh
+
+Yang ketiga penting: pagarnya tak hanya merah, ia menyebut angkanya —
+"padahal ada 49 anggota".
+
+Replay bersih terakhir: **244 migrasi lolos** (001..244), berhenti di 245.
+
+## Yang TIDAK dilemahkan
+
+Pagar 558 ("nol href ganda") tetap utuh — ia yang menemukan cacat ini, dan
+tak disentuh sama sekali. Pagar 245 tetap menangkap predikat keliru di basis
+berisi data; yang berubah hanya pembacaannya terhadap schema kosong.
+
+## Sudah TUJUH BELAS migrasi, bukan dua — dan satu perubahan G-2
+
+Entri ini semula menyebut dua migrasi. Rantai ternyata jauh lebih rusak, dan
+tiap perbaikan menampakkan yang berikutnya:
+
+    245 250 252 254 256 316 331 333 335 337 340 343 344
+    365 366 368 372 377 398 402 425 428 438 471 472 531
+
+Hampir semuanya satu kelas: **pembuktian yang kehilangan bahannya melapor
+sebagai pembuktian yang GAGAL.** Blok verifikasi mengambil fixture (`user`,
+`company`, `projects`) yang di schema bersih memang tak ada, lalu menuduh
+CHECK bocor, seed hilang, atau tenant bocor.
+
+Tiga yang berbeda kelasnya, dan ketiganya lebih berbahaya:
+
+**368** membaca angka yang BENAR (20 baris ber-company_id NULL) lalu
+menyimpulkan kebocoran tenant — padahal yang tak terpasang adalah konteksnya
+sendiri. Laporannya terdengar seperti temuan keamanan.
+
+**377** tidak salah melapor melainkan **MENGUBAH KEADAAN**: ia mematikan
+SELURUH company karena tak satu pun punya anggota, dan kerusakannya muncul dua
+puluh migrasi kemudian sebagai galat yang menuduh tipe data.
+
+**365** menghitung konteksnya lalu mengabaikannya dalam syarat, sehingga
+galatnya memuat kontradiksinya sendiri: *"nol role tersalin padahal 0 tenant
+punya anggota"*.
+
+## Kelas cacat G-2 yang semula terbuka — SUDAH DITUTUP
+
+Entri ini semula mencatat: *"migrasi yang BERHASIL lalu disunting tak pernah
+diputar ulang"*, dan menyebutnya layak dinilai terpisah.
+
+Ia menggigit lagi hari itu juga. Perbaikan 377 tak berlaku tiga run
+berturut-turut, dan yang paling sulit dilihat: **angkanya tak bergerak sedikit
+pun**. Perbaikan yang berjalan tapi kurang akan menggeser angkanya; nol
+pergerakan itulah petunjuknya.
+
+Atas keputusan Anda, ditutup permanen dengan **sidik jari isi migrasi** —
+SHA-256 di kolom `name` (bukan kolom baru: tabel itu milik Supabase). Migrasi
+yang isinya berubah kini diputar ulang sendiri.
+
+`PAKSA_ULANG=377,398` disediakan untuk perbaikan yang terlanjur tertahan, dan
+sengaja MENOLAK `all`: sakelar yang menghapus seluruh buku sekali tekan adalah
+pintu belakang G-2 yang cepat sekali dipakai tanpa berpikir.
+
+## Yang masih terbuka
+
+Rantai belum tentu bersih di belakang migrasi terakhir yang lolos. Tiap replay
+~5 menit dan hanya menampakkan kegagalan BERIKUTNYA, jadi jumlah sisanya belum
+bisa saya sebut — dan menebaknya lebih buruk daripada mengatakan belum tahu.
+
+---
+
 # ✅ 🔒 R-023 · Isolasi antar-tenant kini dijamin BASIS DATA — SELESAI, termasuk langkah yang semula menunggu Anda (2026-08-28)
 
 ## Yang ditemukan
@@ -4168,3 +4290,464 @@ SELECT aktif, coalesce(terakhir_status,'(belum)'), count(*)
 SELECT count(*) FROM jadwal_tugas jt JOIN companies co ON co.id = jt.company_id
  WHERE jt.aktif AND NOT co.is_active;
 ```
+
+---
+
+## R-020 — Migrasi 558 memblokir SELURUH replay CI (G-2)
+
+**Diminta 2026-09-01.** Butuh keputusan founder karena mengubah migrasi
+yang sudah tercatat di `supabase_migrations.schema_migrations` adalah
+**Gerbang Keras G-2** (CHARTER).
+
+### Apa yang terjadi
+
+Run CI pertama sesudah `ci.yml` diperbaiki (42 commit CI mati) gagal di
+KEENAM shard `API — test`, deterministik:
+
+```
+HARD FAIL — migrasi GAGAL di LUAR allowlist:
+  558_hidupkan_menu_halaman_yatim.sql
+  558 gagal: 18 href dipegang >1 menu aktif: /sdm/timesheet, /k3/rk3k,
+  /risiko/izin, /risiko/sengketa, /sdm/klaim-perjalanan, /risiko, …
+```
+
+Migrasi 558 GAGAL pada verifikasinya sendiri. Karena ia berhenti, migrasi
+559–563 tak pernah tercapai — dan justru 559 yang membersihkan sisa 558.
+
+### Sebabnya, terukur
+
+558 punya dua blok `UPDATE`:
+
+- **(1) menu anak** — `DISTINCT ON (href)` + `NOT EXISTS (href dipegang
+  menu aktif)`. Benar; ia memang hanya menyalakan href yang bebas.
+- **(2) induk** — menyalakan induk yang punya anak aktif, **tanpa
+  memeriksa href sama sekali**.
+
+Blok (2) itu yang menciptakan keadaan yang dilarang verifikasi 558.
+
+Dibuktikan di basis dev (yang 558-nya SUDAH jalan, jadi keadaannya lain):
+
+```
+induk (parent_id NULL) : 40 · punya href: 3 · ber-href & NONAKTIF: 2
+
+jika `dashboard` dinyalakan → bentrok dengan `beranda`
+  (keduanya href /dashboard)
+jika `asisten`   dinyalakan → tak ada bentrok
+```
+
+Di CI yang di-replay dari nol, keadaan awalnya berbeda dan bentroknya 18,
+bukan 1.
+
+### Kenapa ini tak pernah ketahuan
+
+558 lulus di dev dan produksi — di sana ia dijalankan atas basis yang
+sudah punya riwayat, dan induk-induk yang bermasalah kebetulan sudah
+aktif atau sudah ber-href NULL.
+
+Bentuk yang sama dengan cacat 047↔167 yang sudah tercatat di CLAUDE.md
+§5.5: **migrasi yang lulus di basis berdata, gagal di lingkungan bersih.**
+Yang membedakan kali ini: CI mati 42 commit, jadi tak ada yang
+memberitahu. 558 masuk 2026-09-01, dan replay pertamanya baru terjadi
+hari ini juga.
+
+### Pilihan
+
+**A. Perbaiki 558 di tempat** — tambahkan pemeriksaan href pada blok (2),
+sama seperti blok (1) sudah punya. Isi berkasnya berubah, dan itu G-2.
+Aman secara teknis: 558 idempoten (`NOT is_active` sebagai penyaring),
+dan basis yang sudah menjalankannya tak berubah apa pun.
+
+**B. Pensiunkan 558 jadi no-op + migrasi 564 pengganti** — pola yang
+sudah dipakai R-001 untuk 047. Lebih banyak berkas, tetapi riwayat
+migrasinya tak pernah "berubah isi", hanya "berhenti melakukan".
+
+**C. Masukkan 558 ke allowlist CI** — paling murah, dan paling buruk:
+ia menyembunyikan cacatnya alih-alih menutupnya, dan 559–563 tetap tak
+pernah di-replay. CI kembali hijau atas basis yang tak pernah dibangun.
+
+### Rekomendasi
+
+**A.** Cacatnya sempit dan letaknya jelas (satu blok `UPDATE` yang
+kehilangan satu syarat yang sudah ada di blok sebelahnya). B menambah dua
+berkas untuk hasil akhir yang sama; C bukan perbaikan.
+
+### ⚠ KOREKSI 2026-09-02 — diagnosis di atas SALAH SASARAN
+
+Segala yang tertulis di bawah tentang **blok (2)** tetap benar sebagai
+pengamatan, tetapi ia **bukan penyebab kegagalan CI**. Dibiarkan utuh
+karena menghapusnya menyembunyikan cara kesalahannya terjadi.
+
+#### Apa yang membalikkannya
+
+Sesi lain menanyakan: dari 18 href yang disebut log CI, adakah yang
+dipegang **induk**? Diukur:
+
+```
+baris yang memegang 12 href dari log CI : 20
+di antaranya INDUK (parent_id NULL)     :  0
+```
+
+**Nol.** Seluruhnya menu *anak* — jadi bentroknya tak mungkin lahir dari
+blok (2), yang hanya menyentuh induk.
+
+> **⚠ Angka itu benar HANYA untuk cakupannya, dan saya menulisnya tanpa
+> menyebut cakupan.** Ia menghitung 12 href yang terekam log CI, bukan
+> seluruh tabel. Diukur berdampingan:
+>
+> ```
+> INDUK di antara 12 href log CI       : 0
+> INDUK ber-href-ganda di SELURUH tabel : 2   ← beranda + dashboard, /dashboard
+> ```
+>
+> Sesi lain menemukannya dan mengoreksi saya. Kesimpulannya tak berubah —
+> `yt-*` tetap penyebabnya, dan `beranda`/`dashboard` tak memicu pagar 1
+> karena hanya satu yang aktif. Tetapi kalimat "nol induk" tanpa cakupan
+> terbaca sebagai klaim tentang seluruh tabel, dan itu ranjau bagi siapa
+> pun yang nanti menulis perbaikan yang menyentuh induk: menyalakan
+> `dashboard` akan memicu pagar 1 dari arah yang sama sekali lain.
+>
+> Angka tanpa cakupannya adalah setengah angka.
+
+#### Penyebab sesungguhnya
+
+Tiap href bentrok dipegang **dua** menu — satu bernama, satu `yt-*`:
+
+```
+/k3/insiden           yt-k3-insiden      · hse-insiden(A)
+/k3/rk3k              hse-rk3k(A)        · yt-k3-rk3k
+/risiko               rk-register(A)     · yt-risiko
+/sdm/timesheet        yt-sdm-timesheet   · hr-absensi(A)
+…
+```
+
+Menu `yt-*` itu disisipkan **migrasi 531** (`531_menu_halaman_yatim.sql`,
+namanya nyaris sama dengan 558 — itu sendiri jebakan) yang membuat 28 menu
+`yt-*` **aktif**, dan diukur: **nol** pemeriksaan href di seluruh berkas itu.
+
+Di basis dev/produksi hanya satu dari tiap pasangan yang aktif — sisanya
+sudah dimatikan migrasi lain sesudahnya. Di replay bersih, keduanya
+menyala berbarengan.
+
+#### Kenapa 558 yang merah, bukan 531
+
+Verifikasi 558 memeriksa **seluruh tabel**, bukan hanya baris yang
+disentuhnya:
+
+```sql
+SELECT href FROM menu_items
+ WHERE is_active AND href IS NOT NULL
+ GROUP BY href HAVING count(*) > 1
+```
+
+Jadi ia gagal atas cemaran yang **sudah ada sebelum ia berjalan**. Pagar
+itu bekerja sebagaimana mestinya — ia hanya menunjuk migrasi yang salah,
+karena yang bersalah tak punya pagar sama sekali.
+
+#### Apakah `yt-*` sengaja dibiarkan aktif berdampingan?
+
+**Tidak — murni kelalaian pagar.** Dibaca dari struktur 531 sendiri
+(sesi lain, 2026-09-02), dan bukti-buktinya saling menguatkan:
+
+- 531 punya **tiga** pagar verifikasi: kunci izin hantu · `sort_order`
+  bentrok · anak di luar rentang induk. **href bukan salah satunya.**
+- Penyaring duplikatnya memakai `key`, bukan `href`:
+
+  ```sql
+  WHERE NOT EXISTS (SELECT 1 FROM menu_items m WHERE m.key = t.kunci)
+  ```
+
+  Jadi ia menjaga terhadap **kunci** yang sudah ada, dan tak memikirkan
+  **halaman** yang sudah ada.
+- Nol komentar di seluruh berkas yang menyebut href sebagai
+  pertimbangan — padahal berkas itu komentarnya panjang dan tiap
+  pagarnya punya alasan tertulis.
+
+Yang terakhir itu buktinya: penulis 531 **menulis pagar saat ia sadar
+ada risiko**. Ketiadaan pagar href berarti pertanyaannya tak pernah
+muncul — bukan dijawab lalu ditolak.
+
+Artinya perbaikan boleh mematikan `yt-*` yang href-nya sudah dipegang
+tanpa khawatir membatalkan keputusan desain seseorang.
+
+#### Polanya SUDAH ADA — migrasi 338 menyelesaikan kasus identik
+
+Ditemukan 2026-09-02 setelah sesi lain bertanya: *"8 dari 29 `yt-*` aktif
+— yang 21 lainnya dimatikan siapa, dan kenapa?"*
+
+Jawabannya ada di `338_menu_klaim_perjalanan.sql`, yang komentarnya
+menuliskan persis masalah kita:
+
+> Migrasi 531 membuat `yt-sdm-klaim` yang menunjuk href YANG SAMA. Ia
+> lahir jauh sesudah migrasi ini, dan saat rantai diputar dari nol
+> keduanya bertemu. […] Yang dilepas href-nya: `yt-sdm-klaim`. Alasannya
+> bisa diukur — ia menu YATIM otomatis (awalan `yt-`) yang dibuat massal
+> untuk menutup halaman tanpa tautan, sementara `hr-reimburse` menu
+> bernama yang sudah lama ada. **Yang bernama menang atas yang otomatis.**
+
+Perbaikannya dua baris:
+
+```sql
+UPDATE menu_items
+   SET href = NULL, is_active = FALSE
+ WHERE key = 'yt-sdm-klaim'
+   AND href = '/sdm/klaim-perjalanan';   -- idempoten: hanya yang masih memegang
+```
+
+#### Cakupan yang tersisa
+
+Diukur di basis dev (bukan di seluruh riwayat, bukan di CI):
+
+```
+href dipegang menu bernama DAN yt-*        : 20
+yt-* yang perlu dilepas href-nya           : 20
+yt-* yang SUDAH dilepas (338)              :  1
+```
+
+Dua puluh pasangan, semuanya berpola sama — satu bernama **aktif**, satu
+`yt-*`:
+
+```
+/risiko                rk-register(A)  · yt-risiko
+/sdm/timesheet         hr-absensi(A)   · yt-sdm-timesheet
+/mutu/uji-material     qc-uji(A)       · yt-mutu-uji
+…17 lainnya
+```
+
+#### Kenapa ini mengubah bentuk perbaikannya
+
+Aturannya tak perlu ditemukan — ia sudah ditetapkan dan sudah berjalan.
+Menulis pola sendiri berisiko berbeda dari yang sudah ada, dan dua aturan
+untuk satu masalah membuat orang berikutnya menebak mana yang berlaku.
+
+Yang tersisa cuma memperluas pola 338 ke 20 pasangan lainnya, lewat
+**migrasi maju** — tak menyentuh berkas migrasi tercatat mana pun, jadi
+kemungkinan besar **bukan G-2**.
+
+⚠ Yang tetap perlu kehati-hatian: ia MEMATIKAN baris yang sekarang aktif
+di basis dev, dan itu mengubah apa yang orang lihat di sidebar. Diukur:
+kedua puluh `yt-*` itu **nonaktif** di dev — jadi dampaknya nol di sini,
+dan yang berubah hanya perilaku saat replay dari nol.
+
+#### Apa artinya untuk keputusan
+
+Patch tiga baris di bawah **TIDAK akan menyelesaikannya**. Menyentuh
+558 tanpa menyentuh sumbernya hanya memindahkan merah, dan itu persis
+yang sesi lain peringatkan.
+
+Perbaikannya perlu menyasar **531** atau menambah migrasi maju yang
+mematikan `yt-*` yang href-nya sudah dipegang. Yang kedua tak menyentuh
+migrasi tercatat sama sekali — jadi mungkin **tak butuh G-2**.
+
+Saya belum mengusulkan bentuk akhirnya: pengukuran ini baru selesai, dan
+mengusulkan perbaikan kedua di hari yang sama dengan diagnosis pertama
+yang salah bukan kebiasaan yang baik. Yang pasti: **izin untuk opsi A
+sebaiknya tidak dipakai** sampai diagnosis ini diperiksa ulang.
+
+---
+
+#### Satu angka yang menutup keraguannya
+
+Ditambahkan 2026-09-02, diukur dua sesi secara terpisah ke basis yang sama:
+
+```sql
+SELECT count(*) FROM menu_items g
+ WHERE g.parent_id IS NULL AND NOT g.is_active
+   AND EXISTS (SELECT 1 FROM menu_items a
+                WHERE a.parent_id = g.id AND a.is_active);
+-- → 0
+```
+
+**Nol baris** yang akan disentuh blok (2) di basis ini. Artinya opsi A
+tak mengubah satu baris data pun — ia hanya memperbaiki perilaku migrasi
+saat di-*replay dari nol* (lingkungan CI, dan tenant baru nanti).
+
+Itu penting karena "mengubah migrasi yang sudah tercatat" terdengar jauh
+lebih menakutkan daripada dampaknya di sini. Yang berubah adalah
+**berkasnya**, bukan **datanya**.
+
+Yang founder perlukan cuma satu kalimat izin — G-2 adalah aturan yang
+founder tetapkan sendiri, dan yang menahan kami bukan kesulitan teknisnya.
+
+#### Patch persis yang diusulkan (opsi A)
+
+Satu syarat ditambahkan ke blok (2) — syarat yang sudah ada di blok (1):
+
+```diff
+  -- ── (2) Induk: hidupkan yang kini punya anak aktif ─────────────────────
+  UPDATE menu_items g
+     SET is_active = TRUE, updated_at = now()
+   WHERE g.parent_id IS NULL
+     AND NOT g.is_active
+     AND EXISTS (
+       SELECT 1 FROM menu_items a
+        WHERE a.parent_id = g.id AND a.is_active)
++    -- href induk tak boleh menabrak menu aktif lain. Blok (1) sudah
++    -- memeriksanya; blok ini tertinggal, dan itulah yang membuat
++    -- verifikasi migrasi ini gagal atas perbuatannya sendiri.
++    AND (g.href IS NULL OR NOT EXISTS (
++      SELECT 1 FROM menu_items x
++       WHERE x.is_active AND x.href = g.href AND x.id <> g.id));
+```
+
+`g.href IS NULL OR …` — induk tanpa href memang tak bisa menabrak apa pun,
+dan mayoritas grup memang begitu (diukur: 37 dari 40 induk ber-href NULL).
+Tanpa cabang itu, `NOT EXISTS` atas `NULL = NULL` akan menolak semuanya.
+
+Diff-nya tiga baris kode. Itu seluruh perubahannya.
+
+### Yang TIDAK saya lakukan
+
+Tak satu pun dari ketiganya. G-2 menuntut keputusan founder lebih dulu,
+dan mengubah migrasi yang sudah tercatat tanpa itu persis yang dilarang
+CHARTER.
+
+### Cara mengukur ulang
+
+```bash
+# Bentroknya di basis mana pun
+node -e "…"  # lihat scripts/db/_koneksi.mjs; kueri di badan entri ini
+
+# Run CI yang gagal
+gh run list --workflow ci.yml --branch main --limit 1
+```
+
+---
+
+## 2026-09-04 — Portofolio multi-perusahaan: DITUNDA sampai Tahap 4 & 5
+
+**Diputuskan founder.** Bukan usulan saya — saya menawarkan tiga jalan dan
+founder memilih yang paling benar urutannya, bukan yang paling cepat.
+
+### Yang diminta
+
+Situs portofolio (`apps/web-publik`) yang saat ini melayani satu perusahaan,
+dijadikan **per-perusahaan**: tiap pelanggan punya halaman profilnya sendiri.
+
+Soal alamat, keputusan founder persis: *"default-nya pakai subdomainnya
+sendiri, tapi kalau perusahaan punya domain sendiri juga bisa."* Dua jalur,
+bukan salah satu:
+
+- **default** — subdomain di bawah domain kita (`porto.<x>.duckdns.org`)
+- **opsional** — domain milik pelanggan sendiri (mis. `ptmakmur.co.id`)
+
+### Kenapa ditunda
+
+`STATUS.md` baris 101 — **GERBANG MUTLAK**: *"tenant kedua TIDAK BOLEH
+dibuat di produksi sebelum Tahap 4 dan 5 selesai penuh."*
+
+Diukur 2026-09-04: Tahap 4 & 5 **belum selesai**; fase aktif masih 8 item
+ROADMAP sisa. Gerbang masih berlaku.
+
+Dua celah yang disebut gerbang itu, dan keduanya berdampak NOL hari ini
+justru karena baru ada satu company:
+
+- `modules.is_enabled` di baris katalog **bersama** — satu perusahaan
+  mematikan modul untuk semua (sudah ditutup, migrasi 155)
+- API dan RLS memakai peran **berbeda** — `auth_role()` per-company sejak
+  migrasi 144, `authenticate()` masih global. Arah berbahayanya: peran
+  global `admin` membawa 95 permission ke company tempat orangnya hanya
+  `mandor`.
+
+### Yang membuat keputusan ini tidak sepele
+
+Situs porto **hanya MEMBACA** (`/api/v1/public/situs`, nol tulis, nol
+pembuatan tenant). Ada bacaan yang masuk akal bahwa gerbang melarang
+*membuat* tenant, bukan *membaca* konten yang sudah ada.
+
+Saya tidak memakai bacaan itu. Bedanya terlalu tipis untuk diputuskan
+sendiri, dan gerbang yang ditafsir longgar sekali akan ditafsir longgar
+lagi.
+
+### Yang sudah siap saat gerbangnya terbuka
+
+`apps/web-publik/lib/tenant.ts` sengaja dirancang untuk ini sejak awal —
+komentarnya menulis: *"saat multi-tenant tiba, yang berubah HANYA di sini —
+resolusi dari hostname permintaan — bukan satu pun pemanggilnya."*
+
+Jadi pekerjaan multi-tenant di situs porto adalah **satu fungsi**, bukan
+retrofit. Yang mahal bukan situsnya, melainkan isolasi tenant yang
+dijaga gerbang.
+
+### Prasyarat yang harus lunas (dari ADR-011 §9.5)
+
+- **P1** company pertama = tenant biasa (nol `DEFAULT_COMPANY_ID`) → T2
+- **P2** isolasi dibuktikan via fixture TENANT-A/B + **uji kill-switch**
+  (matikan wrapper → test tetap hijau karena RLS, dan sebaliknya; kalau
+  merah berarti lapisnya cuma satu) → T5b
+- **P3** tabel ke-95 tak bisa lahir tanpa klasifikasi → T4a
+
+### Cara mengukur ulang
+
+```bash
+# Gerbangnya masih berlaku?
+grep -n "GERBANG MUTLAK" STATUS.md
+
+# Ratchet tenancy — berapa rute masih tanpa gerbang
+cd apps/api && node scripts/audit-gerbang-tenancy.mjs
+```
+
+---
+
+## 2026-09-04 — GERBANG MUTLAK: kelima prasyarat LUNAS, minta keputusan cabut
+
+**Menunggu founder.** Saya tidak mencabutnya sendiri: Gerbang Mutlak adalah
+salah satu dari lima hal yang menghentikan autopilot (CHARTER §8a.1 poin 5),
+dan gerbang yang dicabut oleh yang diuntungkan olehnya bukan gerbang.
+
+### Apa yang berubah sejak entri sebelumnya hari ini
+
+Entri di atas menunda portofolio multi-perusahaan karena `STATUS.md` baris
+101 melarang tenant kedua sebelum Tahap 4 & 5 selesai. Saat itu saya belum
+mengukur seberapa jauh tahap itu.
+
+Sesudah diukur: **kelimanya lunas.**
+
+| Prasyarat | Diukur 2026-09-04 | Cara mengulang |
+|---|---|---|
+| **P1** nol `DEFAULT_COMPANY_ID` | LUNAS — satu-satunya kemunculan adalah komentar yang menyatakan ia tak ada | `grep -rn DEFAULT_COMPANY_ID apps/api/src --include=*.ts \| grep -v __tests__` |
+| **P2** uji kill-switch | LUNAS — **9/9 hijau**, dua arah | `cd apps/api && npx vitest run src/routes/v1/__tests__/t5b-kill-switch.test.ts` |
+| **P3** klasifikasi tabel | LUNAS — 293 tabel, exit 0 | `cd apps/api && node scripts/audit-klasifikasi-tenancy.mjs` |
+| **T5A** policy tenant | LUNAS — ditutup hari ini (`ccdc630c`) | `cd apps/api && npx vitest run src/routes/v1/__tests__/t5a-policy-tenant.test.ts` |
+| ratchet gerbang tenancy | HIJAU pada ambang **2** (dari 4) — 168/170 rute bergerbang | `cd apps/api && node scripts/audit-gerbang-tenancy.mjs` |
+
+### Kenapa P2 yang paling menentukan
+
+Klaim arsitektur ini "isolasi dijaga DUA lapis" hanya bermakna kalau tiap
+lapis bertahan **sendirian**. `t5b-kill-switch.test.ts` mengujinya dengan
+mematikan satu lapis dengan sengaja:
+
+- **KILL-SWITCH 1** — wrapper dimatikan, query polos tanpa filter company.
+  RLS menahan (proyek, `clients` ber-PII, kategori C), dan tenant A tetap
+  melihat datanya sendiri (bukan menutup semuanya).
+- **KILL-SWITCH 2** — `row_security=off`, policy dilewati. Predikat wrapper
+  menahan, termasuk kategori C.
+- Plus satu test yang memastikan mematikan satu lapis **tidak** ikut
+  mematikan lapis lain.
+
+### Dua celah yang jadi alasan gerbang ini ada — keduanya sudah ditutup
+
+- `modules.is_enabled` di baris katalog bersama → migrasi 155
+- `auth_role()` per-company sejak migrasi 144; `authenticate()` global →
+  ROADMAP 14i ✅
+
+### Yang SAYA MINTA diputuskan
+
+**Boleh gerbang dicabut, sehingga tenant kedua boleh lahir di produksi?**
+
+Kalau ya, yang saya kerjakan berikutnya (permintaan founder 2026-09-04):
+portofolio per-perusahaan, **default subdomain sendiri**
+(`porto.<x>.duckdns.org`), **opsional domain milik pelanggan**
+(mis. `ptmakmur.co.id`).
+
+Pekerjaan situsnya sendiri kecil — `apps/web-publik/lib/tenant.ts` sengaja
+dirancang sebagai satu titik ubah. Yang mahal justru isolasi yang baru saja
+terbukti.
+
+### Yang TIDAK saya klaim
+
+Kelima prasyarat lunas **tidak sama dengan** "tenant kedua pasti aman".
+Yang terbukti: lapisan isolasinya dua dan masing-masing berdiri sendiri.
+Yang belum pernah terjadi: tenant kedua nyata dengan data nyata.
+
+Saran saya kalau gerbang dicabut: tenant kedua PERTAMA adalah tenant uji
+milik kita sendiri, bukan pelanggan membayar.

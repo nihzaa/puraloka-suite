@@ -271,9 +271,9 @@ export default function PunchListPage() {
             />
           </label>
 
-          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
-            Tingkat keparahan
-            <Pilihan
+          <label htmlFor="tingkat-keparahan-274" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Tingkat keparahan</label>
+            <Pilihan id="tingkat-keparahan-274"
               value={severity}
               onChange={(e) => setSeverity(e.target.value)}
               style={{
@@ -287,7 +287,6 @@ export default function PunchListPage() {
               <option value="berat">Berat</option>
               <option value="kritis">Kritis</option>
             </Pilihan>
-          </label>
 
           <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
             Tugaskan ke tukang (opsional)

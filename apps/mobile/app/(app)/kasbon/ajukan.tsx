@@ -15,6 +15,9 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { api } from '@/lib/api';
 import { antrekan } from '@/lib/antrean';
+import { pesanGalat } from '@/lib/galat';
+import { useTema } from '@/hooks/useTema';
+import { FONT, HURUF, RADIUS, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
 
 interface Project { id: string; name: string }
 interface WorkScope { id: string; scope_name: string; project_id: string; assignment?: { project?: { id: string; name: string } } }
@@ -33,6 +36,13 @@ const FUND_SOURCES = [
 ];
 
 export default function AjukanKasbonScreen() {
+  /*
+    Gaya dirakit di dalam komponen — `StyleSheet.create` di lingkup
+    modul berjalan sebelum satu hook pun, jadi ia tak bisa membaca
+    `useTema()`. Lihat catatan panjangnya di `pekerjaan.tsx`.
+  */
+  const { c } = useTema();
+  const styles = React.useMemo(() => gaya(c), [c]);
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>('');
@@ -44,39 +54,91 @@ export default function AjukanKasbonScreen() {
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+  const [galatMuat, setGalatMuat] = useState('');
+
+  /*
+    ══════════════════════════════════════════════════════════════════════
+    LAYAR INI CRASH — dan penugasannya tak pernah terbaca
+    ══════════════════════════════════════════════════════════════════════
+
+    Diukur 2026-09-05 lewat potret:
+
+        assignments.forEach is not a function
+
+    `/api/v1/mandor/assignments` memulangkan `{ assignments: [...] }` —
+    **18 baris**. Layar membaca `res.data ?? []`, jadi ia menyimpan OBJEK
+    pembungkus ke variabel yang lalu dipanggil `.forEach()`.
+
+    Kelas yang sama dengan dashboard, notifikasi, mandor, dan detail
+    proyek: nama kunci yang meleset. Bedanya di sini ia CRASH alih-alih
+    diam — dan crash itu justru lebih baik, karena terlihat.
+
+    ⚠ Dan crash-nya tak terlihat di potret sebelum hari ini, karena layar
+    tulis tak pernah ikut dipotret sama sekali.
+
+    ── Dua permintaan jadi SATU
+
+    Versi sebelumnya memanggil rute yang SAMA dua kali: sekali untuk
+    daftar proyek, sekali untuk lingkup kerja — dan yang kedua diulang
+    tiap kali proyek diganti.
+
+    Datanya identik; yang berbeda cuma cara memilahnya. Di HP dengan
+    sinyal lapangan, satu permintaan yang tak perlu berarti satu jeda yang
+    tak perlu — dan mandor yang mengganti proyek tiga kali menunggu tiga
+    kali.
+
+    Sekarang: satu permintaan, hasilnya disimpan, lingkup kerja dipilah
+    dari yang sudah ada.
+  */
+  const [penugasan, setPenugasan] = useState<any[]>([]);
 
   useEffect(() => {
-    // Load daftar proyek yang di-assign ke mandor ini dari work scopes
-    api.get('/api/v1/mandor/assignments').then((res) => {
-      const assignments = res.data ?? [];
-      // Extract unique projects dari assignments
-      const projectMap = new Map<string, Project>();
-      assignments.forEach((a: any) => {
-        const proj = a.projects ?? a.project;
-        if (proj?.id) projectMap.set(proj.id, { id: proj.id, name: proj.name });
-      });
-      const projectList = Array.from(projectMap.values());
-      setProjects(projectList);
-      if (projectList.length > 0) setSelectedProject(projectList[0].id);
-    }).finally(() => setLoadingData(false));
+    api
+      .get('/api/v1/mandor/assignments')
+      .then((res) => {
+        const daftar: any[] = res.data?.assignments ?? [];
+        setPenugasan(daftar);
+
+        const petaProyek = new Map<string, Project>();
+        for (const a of daftar) {
+          const proj = a.project ?? a.projects;
+          if (proj?.id) petaProyek.set(proj.id, { id: proj.id, name: proj.name });
+        }
+        const daftarProyek = Array.from(petaProyek.values());
+        setProjects(daftarProyek);
+        if (daftarProyek.length > 0) setSelectedProject(daftarProyek[0].id);
+      })
+      .catch((err: unknown) => {
+        /*
+          Galat tak lagi ditelan. `.finally()` sendirian membiarkan
+          kegagalan jaringan tampil sebagai "Belum ada proyek yang
+          di-assign" — kalimat yang terbaca seperti keadaan wajar bagi
+          mandor baru, dan menghentikannya mengajukan kasbon yang sah.
+        */
+        setGalatMuat(pesanGalat(err, 'daftar proyek'));
+      })
+      .finally(() => setLoadingData(false));
   }, []);
 
+  /*
+    Lingkup kerja dipilah dari penugasan yang SUDAH dimuat — tanpa
+    permintaan baru.
+  */
   useEffect(() => {
-    if (!selectedProject) { setScopes([]); return; }
-    // Load work scopes untuk proyek yang dipilih
-    api.get('/api/v1/mandor/assignments').then((res) => {
-      const assignments = res.data ?? [];
-      const allScopes: WorkScope[] = [];
-      assignments.forEach((a: any) => {
-        const proj = a.projects ?? a.project;
-        if (proj?.id === selectedProject && a.work_scopes) {
-          a.work_scopes.forEach((s: any) => allScopes.push({ ...s, project_id: selectedProject }));
-        }
-      });
-      setScopes(allScopes);
-      setSelectedScope('');  // reset scope saat ganti proyek
-    }).catch(() => setScopes([]));
-  }, [selectedProject]);
+    if (!selectedProject) {
+      setScopes([]);
+      return;
+    }
+    const kumpul: WorkScope[] = [];
+    for (const a of penugasan) {
+      const proj = a.project ?? a.projects;
+      if (proj?.id === selectedProject && Array.isArray(a.work_scopes)) {
+        for (const sc of a.work_scopes) kumpul.push({ ...sc, project_id: selectedProject });
+      }
+    }
+    setScopes(kumpul);
+    setSelectedScope(''); // reset lingkup saat ganti proyek
+  }, [selectedProject, penugasan]);
 
   const handleSubmit = async () => {
     const amt = parseFloat(amount.replace(/\D/g, ''));
@@ -138,7 +200,7 @@ export default function AjukanKasbonScreen() {
   if (loadingData) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color="#003366" />
+        <ActivityIndicator size="large" color={c.navy} />
       </SafeAreaView>
     );
   }
@@ -156,8 +218,22 @@ export default function AjukanKasbonScreen() {
         {/* Proyek — wajib */}
         <Card>
           <Text style={styles.label}>Proyek *</Text>
-          {projects.length === 0 ? (
-            <Text style={styles.emptyText}>Belum ada proyek yang di-assign</Text>
+          {/*
+            GAGAL MUAT dan KOSONG dipisah — disiplin yang sama dengan
+            `uji-galat-muat-terpisah.mjs` di apps/web.
+
+            "Belum ada proyek yang di-assign" pada layar yang sebenarnya
+            GAGAL MEMUAT adalah kebohongan yang tenang: mandor
+            menyimpulkan ia memang belum ditugaskan, lalu berhenti — dan
+            kasbon yang sah tak pernah diajukan.
+          */}
+          {galatMuat ? (
+            <Text style={styles.galatTeks}>{galatMuat}</Text>
+          ) : projects.length === 0 ? (
+            <Text style={styles.emptyText}>
+              Belum ada proyek yang di-assign kepada Anda. Hubungi admin —
+              kasbon hanya bisa diajukan atas proyek tempat Anda bertugas.
+            </Text>
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 6 }}>
               {projects.map((p) => (
@@ -210,7 +286,7 @@ export default function AjukanKasbonScreen() {
             onChangeText={setAmount}
             keyboardType="number-pad"
             placeholder="0"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={c.textMuted}
           />
         </Card>
 
@@ -256,7 +332,7 @@ export default function AjukanKasbonScreen() {
             value={notes}
             onChangeText={setNotes}
             placeholder="Keterangan tambahan..."
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={c.textMuted}
             multiline
             numberOfLines={3}
             textAlignVertical="top"
@@ -269,31 +345,37 @@ export default function AjukanKasbonScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F8F9FA' },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8F9FA' },
-  topBar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
-  backBtn: { fontSize: 15, color: '#003366', fontWeight: '500' },
-  title: { fontSize: 18, fontWeight: '700', color: '#111827' },
-  container: { padding: 16, gap: 16 },
-  section: { gap: 8 },
-  label: { fontSize: 13, fontWeight: '600', color: '#374151' },
-  helperText: { fontSize: 12, color: '#6B7280', marginTop: 2 },
-  emptyText: { fontSize: 13, color: '#6B7280', paddingVertical: 8 },
-  chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: '#E5E7EB', marginRight: 8, backgroundColor: '#fff' },
-  chipActive: { backgroundColor: '#003366', borderColor: '#003366' },
-  chipText: { fontSize: 13, color: '#374151' },
-  chipTextActive: { color: '#fff', fontWeight: '600' },
-  amountInput: { fontSize: 32, fontWeight: '700', color: '#003366', borderBottomWidth: 2, borderColor: '#003366', paddingVertical: 8, textAlign: 'center' },
-  optionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  option: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#fff' },
-  optionActive: { backgroundColor: '#003366', borderColor: '#003366' },
-  optionText: { fontSize: 13, color: '#374151' },
-  optionTextActive: { color: '#fff', fontWeight: '600' },
-  fundRow: { flexDirection: 'row', gap: 10 },
-  fundBtn: { paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center' },
-  fundBtnActive: { backgroundColor: '#003366', borderColor: '#003366' },
-  fundBtnText: { fontSize: 13, color: '#374151', fontWeight: '500' },
-  fundBtnTextActive: { color: '#fff', fontWeight: '600' },
-  textarea: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, padding: 12, fontSize: 14, color: '#111827', minHeight: 80 },
-});
+function gaya(c: Palet) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: c.surfaceSubtle },
+    centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surfaceSubtle },
+    topBar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
+    backBtn: { fontSize: 15, color: c.navy, fontFamily: FONT.isiTebal },
+    title: { fontSize: 18, fontFamily: FONT.judul, color: c.textPrimary },
+    container: { padding: 16, gap: 16 },
+    section: { gap: 8 },
+    label: { fontSize: 13, fontFamily: FONT.isiTebal, color: c.textPrimary },
+    helperText: { fontSize: 12, color: c.textSecondary, marginTop: 2 },
+    emptyText: { fontSize: 13, color: c.textSecondary, paddingVertical: 8 },
+    galatTeks: {
+      fontSize: 13, fontFamily: FONT.isi, color: c.danger,
+      paddingVertical: 8, lineHeight: 19,
+    },
+    chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: c.border, marginRight: 8, backgroundColor: c.surfaceRaised },
+    chipActive: { backgroundColor: c.navy, borderColor: c.navy },
+    chipText: { fontSize: 13, color: c.textPrimary },
+    chipTextActive: { color: c.surfaceRaised, fontFamily: FONT.isiTebal },
+    amountInput: { fontSize: 32, fontFamily: FONT.judul, color: c.navy, borderBottomWidth: 2, borderColor: c.navy, paddingVertical: 8, textAlign: 'center' },
+    optionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    option: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },
+    optionActive: { backgroundColor: c.navy, borderColor: c.navy },
+    optionText: { fontSize: 13, color: c.textPrimary },
+    optionTextActive: { color: c.surfaceRaised, fontFamily: FONT.isiTebal },
+    fundRow: { flexDirection: 'row', gap: 10 },
+    fundBtn: { paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: c.border, alignItems: 'center' },
+    fundBtnActive: { backgroundColor: c.navy, borderColor: c.navy },
+    fundBtnText: { fontSize: 13, color: c.textPrimary, fontFamily: FONT.isiTebal },
+    fundBtnTextActive: { color: c.surfaceRaised, fontFamily: FONT.isiTebal },
+    textarea: { borderWidth: 1, borderColor: c.border, borderRadius: 10, padding: 12, fontSize: 14, color: c.textPrimary, minHeight: 80 },
+  });
+}

@@ -14,9 +14,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
+import { KepalaLayar } from '@/components/ui/KepalaLayar';
 import { Card } from '@/components/ui/Card';
 import { api } from '@/lib/api';
 import { antrekan } from '@/lib/antrean';
+import { useTema } from '@/hooks/useTema';
+import { FONT, HURUF, RADIUS, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
 
 interface Project { id: string; name: string }
 interface RabItem { id: string; no_urut: string; uraian: string; progress_pct: number; weight_pct: number }
@@ -28,6 +31,13 @@ interface RabItem { id: string; no_urut: string; uraian: string; progress_pct: n
 const FOTO_AKTIF = false;
 
 export default function InputProgressScreen() {
+  /*
+    Gaya dirakit di dalam komponen — `StyleSheet.create` di lingkup
+    modul berjalan sebelum satu hook pun, jadi ia tak bisa membaca
+    `useTema()`. Lihat catatan panjangnya di `pekerjaan.tsx`.
+  */
+  const { c } = useTema();
+  const styles = React.useMemo(() => gaya(c), [c]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [mode, setMode] = useState<'daily' | 'detail'>('daily');
@@ -45,26 +55,64 @@ export default function InputProgressScreen() {
 
   const [loading, setLoading] = useState(false);
   const [loadingProjects, setLoadingProjects] = useState(true);
+  /*
+    Galat MUAT terpisah dari galat SIMPAN — pola yang sama dengan
+    `punch/lapor.tsx`. Berbagi satu state membuat gagal-simpan menghapus
+    pesan gagal-muat; cacat yang sudah ditemukan di 11 halaman web
+    (`uji-galat-muat-terpisah.mjs`).
+  */
+  const [galatProyek, setGalatProyek] = useState<string | null>(null);
+  const [galatRab, setGalatRab] = useState<string | null>(null);
 
   useEffect(() => {
-    api.get('/api/v1/projects').then((res) => {
-      const active = (res.data?.projects ?? []).filter((p: any) => p.status === 'active');
-      setProjects(active);
-      if (active.length > 0) setSelectedProject(active[0].id);
-    }).finally(() => setLoadingProjects(false));
+    api
+      .get('/api/v1/projects')
+      .then((res) => {
+        const active = (res.data?.projects ?? []).filter((p: any) => p.status === 'active');
+        setProjects(active);
+        setGalatProyek(null);
+        if (active.length > 0) setSelectedProject(active[0].id);
+      })
+      /*
+        Sebelumnya rantai ini TAK punya `.catch` sama sekali. Permintaan yang
+        gagal menyisakan `projects` kosong dan `loadingProjects` false — dan
+        layar memperlihatkan pemilih proyek kosong tanpa satu pun keterangan.
+
+        Mandor menyimpulkan ia belum ditugaskan ke proyek mana pun, lalu
+        berhenti. Laporan progres hari itu tak pernah masuk, dan tak ada
+        yang tahu kenapa.
+      */
+      .catch(() => setGalatProyek('Gagal memuat daftar proyek. Periksa koneksi.'))
+      .finally(() => setLoadingProjects(false));
   }, []);
 
   useEffect(() => {
     if (mode === 'detail' && selectedProject) {
       setLoadingRab(true);
       setSelectedRabItem('');
+      setGalatRab(null);
       api.get(`/api/v1/projects/${selectedProject}/rab/items`)
         .then(res => {
           const items = res.data?.items ?? [];
           setRabItems(items);
           if (items.length > 0) setSelectedRabItem(items[0].id);
         })
-        .catch(() => setRabItems([]))
+        /*
+          ⚠ `.catch(() => setRabItems([]))` — bentuk lamanya — mengubah
+          GAGAL MUAT jadi "Belum ada RAB untuk proyek ini". Dua keadaan yang
+          berbeda jauh: yang pertama perlu dicoba lagi, yang kedua perlu
+          menghubungi PM.
+
+          Kebohongan yang sama sudah diperbaiki dua kali di repo ini
+          (`notifications/index.tsx`, `proyek/[id].tsx`), dan berkas ini
+          yang tersisa. Penjaga `audit-catch-senyap.mjs` tak menangkapnya
+          karena ia hanya memindai `apps/api/src` — nolnya benar untuk
+          cakupannya sendiri, dan tak mengatakan apa pun tentang mobile.
+        */
+        .catch(() => {
+          setRabItems([]);
+          setGalatRab('Gagal memuat item RAB. Periksa koneksi, lalu coba lagi.');
+        })
         .finally(() => setLoadingRab(false));
     }
   }, [mode, selectedProject]);
@@ -200,7 +248,7 @@ export default function InputProgressScreen() {
   if (loadingProjects) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color="#003366" />
+        <ActivityIndicator size="large" color={c.navy} />
       </SafeAreaView>
     );
   }
@@ -209,14 +257,26 @@ export default function InputProgressScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Input Progress</Text>
-      </View>
+      <KepalaLayar judul="Input Progress" penjelas="Laporan kemajuan pekerjaan di lapangan" />
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
 
         {/* Proyek */}
         <Card>
           <Text style={styles.label}>Proyek</Text>
+          {/*
+            TIGA keadaan, bukan dua. Sebelumnya nol proyek merender
+            penggulung mendatar yang KOSONG — bukan kalimat yang kurang
+            menolong, melainkan tak ada tulisan sama sekali. Pembacanya
+            melihat strip kosong dan tak diberi tahu apa pun.
+          */}
+          {galatProyek ? (
+            <Text style={styles.galatTeks}>{galatProyek}</Text>
+          ) : projects.length === 0 ? (
+            <Text style={styles.emptyText}>
+              Belum ada proyek aktif yang bisa Anda akses. Hubungi admin bila
+              Anda seharusnya ditugaskan di salah satunya.
+            </Text>
+          ) : (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
             {projects.map((p) => (
               <TouchableOpacity
@@ -229,6 +289,7 @@ export default function InputProgressScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
+          )}
         </Card>
 
         {/* Mode toggle */}
@@ -270,7 +331,7 @@ export default function InputProgressScreen() {
                   onChangeText={setProgress}
                   keyboardType="decimal-pad"
                   placeholder="—"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={c.textMuted}
                   maxLength={5}
                 />
                 <Text style={styles.pctSymbol}>%</Text>
@@ -283,7 +344,7 @@ export default function InputProgressScreen() {
                 value={notes}
                 onChangeText={setNotes}
                 placeholder="Deskripsi pekerjaan hari ini..."
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={c.textMuted}
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
@@ -357,9 +418,21 @@ export default function InputProgressScreen() {
             <Card style={styles.section}>
               <Text style={styles.label}>Item Pekerjaan (RAB)</Text>
               {loadingRab ? (
-                <ActivityIndicator size="small" color="#003366" style={{ marginTop: 8 }} />
+                <ActivityIndicator size="small" color={c.navy} style={{ marginTop: 8 }} />
+              ) : galatRab ? (
+                <Text style={styles.galatTeks}>{galatRab}</Text>
               ) : rabItems.length === 0 ? (
-                <Text style={styles.emptyText}>Belum ada RAB untuk proyek ini</Text>
+                /*
+                  Yang ditambahkan bukan hiasan: mode "Harian Umum" TIDAK
+                  butuh RAB sama sekali. Tanpa kalimat kedua, pembacanya
+                  menyimpulkan laporan hari ini mustahil — padahal jalan
+                  keluarnya ada satu ketukan di atas layar ini.
+                */
+                <Text style={styles.emptyText}>
+                  RAB proyek ini belum disusun, jadi progres per item belum
+                  bisa dicatat. Pakai mode Harian Umum, atau hubungi PM
+                  proyek untuk menyusun RAB-nya.
+                </Text>
               ) : (
                 <ScrollView style={styles.rabList} nestedScrollEnabled>
                   {rabItems.map(item => (
@@ -396,7 +469,7 @@ export default function InputProgressScreen() {
                     onChangeText={setPctCompletion}
                     keyboardType="decimal-pad"
                     placeholder={String(selectedItem.progress_pct ?? 0)}
-                    placeholderTextColor="#9CA3AF"
+                    placeholderTextColor={c.textMuted}
                     maxLength={5}
                   />
                   <Text style={styles.pctSymbol}>%</Text>
@@ -416,53 +489,66 @@ export default function InputProgressScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F8F9FA' },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8F9FA' },
-  header: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
-  title: { fontSize: 22, fontWeight: '700', color: '#111827' },
-  container: { padding: 16, gap: 16 },
-  section: { gap: 10 },
-  label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 4 },
-  chipRow: { flexDirection: 'row', marginTop: 4 },
-  chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: '#E5E7EB', marginRight: 8, backgroundColor: '#fff' },
-  chipActive: { backgroundColor: '#003366', borderColor: '#003366' },
-  chipText: { fontSize: 13, color: '#374151' },
-  chipTextActive: { color: '#fff', fontWeight: '600' },
-  modeRow: { flexDirection: 'row', gap: 10 },
-  modeBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1.5, borderColor: '#E5E7EB', alignItems: 'center', backgroundColor: '#fff' },
-  modeBtnActive: { backgroundColor: '#003366', borderColor: '#003366' },
-  modeBtnText: { fontSize: 13, color: '#374151', fontWeight: '500' },
-  modeBtnTextActive: { color: '#fff', fontWeight: '600' },
-  modeDesc: { fontSize: 12, color: '#6B7280', marginTop: 6, lineHeight: 18 },
-  progressInput: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  bigInput: { flex: 1, fontSize: 42, fontWeight: '700', color: '#003366', borderBottomWidth: 2, borderColor: '#003366', paddingVertical: 8, textAlign: 'center' },
-  pctSymbol: { fontSize: 28, fontWeight: '700', color: '#003366' },
-  textarea: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, padding: 12, fontSize: 14, color: '#111827', minHeight: 100 },
-  photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 },
-  photoThumb: { width: 72, height: 72, borderRadius: 8, position: 'relative' },
-  thumbImg: { width: 72, height: 72, borderRadius: 8 },
-  removeX: { position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: 10, backgroundColor: '#B91C1C', alignItems: 'center', justifyContent: 'center' },
-  removeXText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-  addPhoto: { width: 72, height: 72, borderRadius: 8, borderWidth: 1.5, borderColor: '#E5E7EB', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: 4 },
-  addPhotoIcon: { fontSize: 20 },
-  /* 10 -> 12px. "Kamera"/"Galeri" adalah TEKS, bukan simbol seperti ✕ dan
-     ▶ yang boleh kecil. Muat dihitung, bukan ditaksir: kotak 72x72, ikon
-     20px + gap 4 + teks = tinggi isi ~40px dari 72 tersedia; "Kamera" pada
-     12px sekitar 43px lebar. Tak ada yang bergeser. */
-  addPhotoText: { fontSize: 12, color: '#6B7280' },
-  /* Cokelat-oranye, bukan merah: ini keadaan sementara yang diketahui, bukan
-     galat yang baru terjadi. Merah membuat mandor mengira laporannya gagal. */
-  fotoMati: { fontSize: 12, color: '#92400E', lineHeight: 17, flex: 1 },
-  rabList: { maxHeight: 280, marginTop: 4 },
-  rabItem: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 6, backgroundColor: '#fff' },
-  rabItemActive: { backgroundColor: '#003366', borderColor: '#003366' },
-  rabItemRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  rabItemNo: { fontSize: 12, color: '#6B7280', width: 36, flexShrink: 0 },
-  rabItemName: { flex: 1, fontSize: 13, color: '#111827', fontWeight: '500' },
-  rabItemPct: { fontSize: 12, color: '#003366', fontWeight: '700', flexShrink: 0 },
-  rabItemTextActive: { color: '#fff' },
-  emptyText: { fontSize: 13, color: '#6B7280', textAlign: 'center', paddingVertical: 16 },
-  infoRow: { flexDirection: 'column', gap: 2, marginTop: 4 },
-  infoText: { fontSize: 12, color: '#6B7280' },
-});
+function gaya(c: Palet) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: c.surfaceSubtle },
+    centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surfaceSubtle },
+    container: { padding: 16, gap: 16 },
+    section: { gap: 10 },
+    label: { fontSize: 13, fontFamily: FONT.isiTebal, color: c.textPrimary, marginBottom: 4 },
+    chipRow: { flexDirection: 'row', marginTop: 4 },
+    chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: c.border, marginRight: 8, backgroundColor: c.surfaceRaised },
+    chipActive: { backgroundColor: c.navy, borderColor: c.navy },
+    chipText: { fontSize: 13, color: c.textPrimary },
+    chipTextActive: { color: c.surfaceRaised, fontFamily: FONT.isiTebal },
+    modeRow: { flexDirection: 'row', gap: 10 },
+    modeBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1.5, borderColor: c.border, alignItems: 'center', backgroundColor: c.surfaceRaised },
+    modeBtnActive: { backgroundColor: c.navy, borderColor: c.navy },
+    modeBtnText: { fontSize: 13, color: c.textPrimary, fontFamily: FONT.isiTebal },
+    modeBtnTextActive: { color: c.surfaceRaised, fontFamily: FONT.isiTebal },
+    modeDesc: { fontSize: 12, color: c.textSecondary, marginTop: 6, lineHeight: 18 },
+    progressInput: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    bigInput: { flex: 1, fontSize: 42, fontFamily: FONT.judul, color: c.navy, borderBottomWidth: 2, borderColor: c.navy, paddingVertical: 8, textAlign: 'center' },
+    pctSymbol: { fontSize: 28, fontFamily: FONT.judul, color: c.navy },
+    textarea: { borderWidth: 1, borderColor: c.border, borderRadius: 10, padding: 12, fontSize: 14, color: c.textPrimary, minHeight: 100 },
+    photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 },
+    photoThumb: { width: 72, height: 72, borderRadius: 8, position: 'relative' },
+    thumbImg: { width: 72, height: 72, borderRadius: 8 },
+    removeX: { position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: 10, backgroundColor: c.danger, alignItems: 'center', justifyContent: 'center' },
+    removeXText: { color: c.surfaceRaised, fontSize: 10, fontFamily: FONT.judul },
+    addPhoto: { width: 72, height: 72, borderRadius: 8, borderWidth: 1.5, borderColor: c.border, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: 4 },
+    addPhotoIcon: { fontSize: 20 },
+    /* 10 -> 12px. "Kamera"/"Galeri" adalah TEKS, bukan simbol seperti ✕ dan
+       ▶ yang boleh kecil. Muat dihitung, bukan ditaksir: kotak 72x72, ikon
+       20px + gap 4 + teks = tinggi isi ~40px dari 72 tersedia; "Kamera" pada
+       12px sekitar 43px lebar. Tak ada yang bergeser. */
+    addPhotoText: { fontSize: 12, color: c.textSecondary },
+    /* Cokelat-oranye, bukan merah: ini keadaan sementara yang diketahui, bukan
+       galat yang baru terjadi. Merah membuat mandor mengira laporannya gagal. */
+    fotoMati: { fontSize: 12, color: c.warning, lineHeight: 17, flex: 1 },
+    rabList: { maxHeight: 280, marginTop: 4 },
+    rabItem: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: c.border, marginBottom: 6, backgroundColor: c.surfaceRaised },
+    rabItemActive: { backgroundColor: c.navy, borderColor: c.navy },
+    rabItemRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    rabItemNo: { fontSize: 12, color: c.textSecondary, width: 36, flexShrink: 0 },
+    rabItemName: { flex: 1, fontSize: 13, color: c.textPrimary, fontFamily: FONT.isiTebal },
+    rabItemPct: { fontSize: 12, color: c.navy, fontFamily: FONT.judul, flexShrink: 0 },
+    rabItemTextActive: { color: c.surfaceRaised },
+    emptyText: {
+      fontSize: 13,
+      color: c.textSecondary,
+      textAlign: 'center',
+      paddingVertical: 16,
+      lineHeight: 19,
+    },
+    galatTeks: {
+      fontSize: 13,
+      color: c.danger,
+      textAlign: 'center',
+      paddingVertical: 16,
+      lineHeight: 19,
+    },
+    infoRow: { flexDirection: 'column', gap: 2, marginTop: 4 },
+    infoText: { fontSize: 12, color: c.textSecondary },
+  });
+}

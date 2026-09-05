@@ -19,10 +19,17 @@
  */
 import { Slot, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import React, { useEffect } from 'react';
+import { useFonts } from 'expo-font';
+import { BricolageGrotesque_700Bold } from '@expo-google-fonts/bricolage-grotesque';
+import {
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_600SemiBold,
+} from '@expo-google-fonts/plus-jakarta-sans';
+import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { SplashMerek } from '@/components/SplashMerek';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
+import { muatKenalan, sudahKenalan } from '@/lib/kenalan-state';
 
 /*
   Dipanggil di lingkup modul, BUKAN di dalam komponen: splash harus ditahan
@@ -37,18 +44,96 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function RootGuard() {
   const { user, loading } = useAuth();
+
+  /*
+    ── Font merek: DITUNGGU, bukan dipasang lalu diharapkan ─────────────
+
+    Sebelum 2026-09-04 aplikasi ini memakai font sistem (Roboto di Android,
+    San Francisco di iOS) sementara web memakai Bricolage Grotesque + Plus
+    Jakarta Sans. Dua produk yang terasa berbeda tanpa ada yang bisa
+    menunjuk sebabnya.
+
+    ⚠ Kalau font gagal dimuat, React Native TIDAK melempar galat — ia diam
+    dan memakai font sistem. Jadi "terlihat jalan" bukan bukti fontnya
+    termuat; yang membuktikan cuma melihat bentuk hurufnya.
+
+    `fontsSiap` ikut menahan splash. Tanpa itu layar pertama tergambar
+    dengan font sistem lalu MELOMPAT saat font tiba — kedipan yang paling
+    terlihat di HP paling lambat, yaitu HP yang dipakai mandor.
+  */
+  const [fontsSiap] = useFonts({
+    BricolageGrotesque_700Bold,
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_600SemiBold,
+  });
+
   const segments = useSegments();
   const router = useRouter();
 
+  /*
+    ── Perkenalan: dibaca SEBELUM memutuskan tujuan ─────────────────────
+
+    `null` berarti "belum tahu" — bukan "belum pernah". Bedanya menentukan:
+    kalau `null` diperlakukan sebagai "belum pernah", pengguna yang SUDAH
+    melewatinya akan melihat perkenalan sekali lagi tiap kali aplikasi
+    dibuka, selama sepersekian detik sebelum penyimpanan terbaca.
+
+    Kedipan itu persis yang membuat aplikasi terasa murah — dan ia paling
+    lama terlihat di HP paling lambat.
+  */
+  /*
+    ⚠ Dibaca dari salinan SINKRON, bukan langsung dari penyimpanan.
+
+    Terukur 2026-09-05 lewat `history.replaceState`: menekan "Lewati"
+    menghasilkan DUA panggilan `→ /kenalan` berturut-turut. Penandanya
+    BENAR tersimpan (`puraloka_kenalan_selesai=1`, terverifikasi di
+    localStorage) — guard ini yang memantulkannya kembali, karena
+    `storage.get()` memulangkan Promise yang belum selesai saat rutenya
+    sudah berpindah.
+
+    Lingkaran yang tak bisa ditinggalkan, dengan nol galat dan data yang
+    benar di penyimpanan.
+
+    ⚠ Dan percobaan pertama saya SALAH: menambahkan `segments` sebagai
+    dependensi supaya dibaca ulang tiap perpindahan rute. Itu tak menolong
+    — pembacaan ulangnya tetap async, jadi balapannya cuma bergeser satu
+    siklus. Yang menutupnya adalah jawaban yang tersedia SEKETIKA.
+
+    `lib/kenalan-state.ts` menyimpan salinannya di memori; penyimpanan
+    tetap sumber kebenaran lintas-sesi.
+  */
+  const [kenalanDibaca, setKenalanDibaca] = useState(false);
+
   useEffect(() => {
-    if (loading) return;
+    let hidup = true;
+    muatKenalan().finally(() => {
+      if (hidup) setKenalanDibaca(true);
+    });
+    return () => {
+      hidup = false;
+    };
+  }, []);
+
+  /*
+    Dibaca dari salinan sinkron tiap render — bukan disimpan di state.
+    State akan membeku pada nilai saat pembacaan terakhir, dan itu persis
+    cacat yang baru diperbaiki.
+  */
+  const kenalanSelesai = kenalanDibaca ? sudahKenalan() : null;
+
+  useEffect(() => {
+    if (loading || kenalanSelesai === null) return;
     const inAuth = segments[0] === '(auth)';
-    if (!user && !inAuth) {
+    const diKenalan = segments[1] === 'kenalan';
+
+    if (!user && !kenalanSelesai && !diKenalan) {
+      router.replace('/(auth)/kenalan');
+    } else if (!user && kenalanSelesai && !inAuth) {
       router.replace('/(auth)/login');
     } else if (user && inAuth) {
       router.replace('/(app)/dashboard');
     }
-  }, [user, loading, segments]);
+  }, [user, loading, segments, kenalanSelesai]);
 
   /*
     Splash sistem dilepas begitu komponen kita terpasang — SplashMerek sudah
@@ -66,7 +151,17 @@ function RootGuard() {
         dirinya sendiri lewat animasi opacity saat `selesai` jadi true;
         melepasnya dari pohon secara mendadak akan memotong animasi itu.
       */}
-      <SplashMerek selesai={!loading} />
+      {/*
+        Splash ditahan sampai perkenalan TERBACA juga.
+
+        Tanpa syarat `kenalanSelesai !== null`, splash lepas saat auth dan
+        font siap sementara tujuan rutenya belum diputuskan — dan pengguna
+        melihat kedipan layar login yang langsung diganti perkenalan.
+
+        Bentuk kedipan yang sama persis dengan yang ditutup SplashMerek
+        sejak awal, cuma sumbernya berpindah.
+      */}
+      <SplashMerek selesai={!loading && fontsSiap && kenalanSelesai !== null} />
     </View>
   );
 }

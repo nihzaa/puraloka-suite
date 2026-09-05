@@ -114,6 +114,52 @@ const turun = Object.entries(AMBANG)
   .filter(([rule, ambang]) => (perRule[rule] ?? 0) < ambang)
   .map(([rule, ambang]) => `${rule}: ${perRule[rule] ?? 0} < ${ambang}`)
 
+/*
+  ── AMBANG YANG TERLALU LONGGAR ADALAH IZIN BERTAMBAH ────────────────────
+
+  Disalin dari `apps/web/scripts/lint-ratchet.mjs` (2026-09-01) karena
+  ketiadaannya di sanalah yang membuat cacat berikut bertahan tiga minggu:
+
+      click-events-have-key-events   disetel 57, hitungan saat itu 36
+      no-static-element-interactions disetel 63, hitungan saat itu 40
+
+  Longgar 21 dan 23 SEJAK HARI PERTAMA. Hutangnya naik 36 → 54 dan
+  40 → 59, dan CI hijau sepanjang itu — karena blok `turun` di atas hanya
+  MENYARANKAN (exit 0), dan saran yang bisa diabaikan berminggu-minggu
+  bukan penjaga.
+
+  ── Kenapa dipasang di sini padahal API sedang SEHAT
+
+  Diukur 2026-09-01 sebelum memasang:
+
+      no-explicit-any   ambang 223  hitungan 223  longgar 0
+      no-unused-vars    ambang   3  hitungan   3  longgar 0
+
+  Nol kelonggaran pada keduanya. Jadi penjaga ini tak menemukan apa pun
+  hari ini — dan itu justru alasannya dipasang sekarang: yang membuat
+  sisi web longgar 21 selama tiga minggu bukan kelalaian sekali,
+  melainkan KETIADAAN PENJAGA. Sisi API punya ketiadaan yang sama, hanya
+  belum menggigit.
+
+  Memasangnya saat sehat berarti nol pekerjaan pembersihan; menunggu
+  sampai ia menggigit berarti membayar dengan hutang yang sudah terlanjur
+  naik.
+
+  ── Kenapa 8, bukan 0
+
+  Jarak nol memaksa tiap perbaikan kecil disertai sunting berkas ini —
+  gesekan yang membuat orang berhenti memperbaiki. Delapan cukup memberi
+  ruang bagi pekerjaan yang sedang berjalan, dan jauh di bawah 21 yang
+  lolos selama tiga minggu.
+
+  Angkanya SENGAJA sama dengan sisi web: dua ratchet dengan aturan berbeda
+  untuk hal yang sama akan membuat orang menebak mana yang berlaku.
+*/
+const BATAS_LONGGAR = 8
+const terlaluLonggar = Object.entries(AMBANG)
+  .map(([rule, ambang]) => ({ rule, ambang, kini: perRule[rule] ?? 0 }))
+  .filter((x) => x.ambang - x.kini > BATAS_LONGGAR)
+
 if (pelanggaran.length) {
   console.error('\n❌ RATCHET LINT API GAGAL — hutang lint BERTAMBAH:\n')
   pelanggaran.forEach((p) => console.error('   ' + p))
@@ -128,4 +174,23 @@ console.log(`✅ Ratchet lint API: ${error} error, ${Object.values(perRule).redu
 if (turun.length) {
   console.log('\n📉 Turun dari ambang — silakan kencangkan angkanya di scripts/lint-ratchet.mjs:')
   turun.forEach((t) => console.log('   ' + t))
+}
+
+if (terlaluLonggar.length) {
+  console.error(`\n❌ ${terlaluLonggar.length} ambang TERLALU LONGGAR (jarak > ${BATAS_LONGGAR}):\n`)
+  for (const x of terlaluLonggar) {
+    console.error(`   ${x.rule}: ambang ${x.ambang}, hitungan ${x.kini} — longgar ${x.ambang - x.kini}`)
+  }
+  console.error('')
+  console.error('   Ambang yang jauh di atas kenyataan bukan ratchet; ia IZIN')
+  console.error('   BERTAMBAH yang tak seorang pun sadar telah diberikan.')
+  console.error('')
+  console.error('   Diukur 2026-09-01 di sisi WEB: dua ambang dipasang longgar')
+  console.error('   21 dan 23 sejak hari pertama, dan hutangnya naik 18-19')
+  console.error('   sepanjang tiga minggu dengan CI hijau terus.')
+  console.error('')
+  console.error('   Turunkan ke sekitar hitungan sekarang — beri jarak kecil')
+  console.error('   untuk pekerjaan yang sedang berjalan, bukan puluhan.')
+  console.error('')
+  process.exit(1)
 }

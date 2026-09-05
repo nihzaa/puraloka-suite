@@ -1,11 +1,15 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
-  View, Text, ScrollView, Pressable, ActivityIndicator,
+  View, Text, FlatList, ActivityIndicator,
   RefreshControl, StyleSheet,
 } from 'react-native';
+import { Tekan } from '@/components/ui/Tekan';
+import { KepalaLayar } from '@/components/ui/KepalaLayar';
 import { router, useFocusEffect } from 'expo-router';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
+import { useTema } from '@/hooks/useTema';
+import { FONT, HURUF, RADIUS, SPASI, type Palet } from '@/lib/tema';
 
 /*
   ══════════════════════════════════════════════════════════════════════════
@@ -63,6 +67,17 @@ import { useAuth } from '@/hooks/useAuth';
 
 type Jenis = 'punch' | 'ncr' | 'izin';
 
+/*
+  `keyExtractor` memakai `kunci` yang sudah dirakit saat menggabung tiga
+  sumber (punch, NCR, izin kerja) — bukan indeks larik.
+
+  Pedoman stack `react-native`, severity High. Di layar ini bahayanya
+  nyata: daftar disusun ULANG tiap kali "tampilkan yang selesai" ditekan,
+  dan indeks sebagai kunci membuat React memasangkan ulang kartu yang
+  salah — status satu temuan tampil di kartu temuan lain, tanpa galat.
+*/
+const ambilKunci = (b: Baris) => b.kunci;
+
 type Baris = {
   kunci: string;
   jenis: Jenis;
@@ -119,12 +134,51 @@ const STATUS_IZIN: Record<string, string> = {
   tak_berlaku: 'Tidak berlaku',
 };
 
-const WARNA_SEVERITY: Record<string, string> = {
-  ringan: '#059669', minor: '#059669',
-  sedang: '#D97706', major: '#D97706',
-  berat: '#DC2626',
-  kritis: '#B91C1C',
-};
+/**
+ * Warna keparahan temuan, diambil dari palet aktif.
+ *
+ * ⚠ Dulu peta hex tetap, dipilih untuk latar TERANG dan tanpa padanan
+ * gelap. DIHITUNG terhadap `surface` gelap `#1A1D27` (bukan ditaksir —
+ * CLAUDE.md mewajibkan dihitung):
+ *
+ *     #059669 ringan/minor   4.46:1   nyaris — lolos tipis
+ *     #D97706 sedang/major   5.28:1   lolos
+ *     #DC2626 berat          3.48:1   ❌ GAGAL AA
+ *     #B91C1C kritis         2.60:1   ❌ GAGAL AA, terburuk
+ *
+ * Yang gagal justru dua keparahan TERTINGGI — dan urutannya terbalik dari
+ * dugaan: makin parah temuannya, makin sulit dibaca labelnya. `#B91C1C`
+ * dipilih karena merah tua terbaca "gawat" di latar putih; di latar gelap
+ * merah tua justru melebur ke dalamnya.
+ *
+ * Token gelap yang menggantikan, terhitung di latar yang sama:
+ * success `#22C55E` 7.38:1 · warning `#F59E0B` 7.83:1 · danger `#FB8585`
+ * 7.04:1 — ketiganya lewat AA dengan margin.
+ *
+ * Kenapa `audit-kontras-mobile.mjs` tak menangkapnya: ia memindai nilai
+ * `color:` di dalam gaya; warna ini masuk lewat `Record` lalu dipasang
+ * saat render. Benar di satu lapis, patah di lapis yang sesungguhnya
+ * dipakai.
+ *
+ * `ringan`/`minor` sengaja memakai `success` dan bukan hijau tersendiri:
+ * satu tangga warna semantik untuk seluruh aplikasi lebih mudah dijaga
+ * daripada dua yang mirip.
+ */
+function warnaKeparahan(c: Palet, sev: string): string | undefined {
+  switch (sev) {
+    case 'ringan':
+    case 'minor':
+      return c.success;
+    case 'sedang':
+    case 'major':
+      return c.warning;
+    case 'berat':
+    case 'kritis':
+      return c.danger;
+    default:
+      return undefined;
+  }
+}
 
 /*
   Proyek yang dimuat GELOMBANG PERTAMA — bukan batas, melainkan urutan.
@@ -165,8 +219,111 @@ function usia(iso?: string) {
   return `${Math.floor(hari / 30)} bulan lalu`;
 }
 
+/**
+ * Satu kartu pekerjaan — komponen SENDIRI dan ter-`memo`.
+ *
+ * `FlatList` merender ulang `renderItem` tiap kali induknya berubah, dan
+ * layar ini berubah SERING: refresh, gelombang muat kedua yang menyusul,
+ * dan tombol "tampilkan yang selesai" yang menyusun ulang daftarnya.
+ *
+ * Tanpa `memo`, 63 kartu dirakit ulang tiap kali salah satu terjadi — di HP
+ * kelas menengah itu terasa sebagai gulir yang tersendat, dan gejalanya
+ * paling mudah disalahkan pada "HP-nya sudah tua".
+ *
+ * Pedoman stack `react-native`, severity **High**: "Memoize list item
+ * components".
+ */
+const KartuPekerjaan = React.memo(function KartuPekerjaan({
+  b,
+  s,
+  c,
+}: {
+  b: Baris;
+  s: ReturnType<typeof gaya>;
+  c: Palet;
+}) {
+  const petaStatus =
+    b.jenis === 'punch' ? STATUS_PUNCH : b.jenis === 'ncr' ? STATUS_NCR : STATUS_IZIN;
+  const warnaSev = b.severity ? warnaKeparahan(c, b.severity) : undefined;
+  return (
+      <View
+        key={b.kunci}
+        style={[s.kartu, b.mendesak && s.kartuMendesak, b.beres && s.kartuBeres]}
+      >
+        <View style={s.kartuKepala}>
+          <Text style={s.jenisTag}>
+            {LABEL_JENIS[b.jenis]}
+            {b.nomor ? ` · ${b.nomor}` : ''}
+          </Text>
+          {b.tanggal && <Text style={s.usia}>{usia(b.tanggal)}</Text>}
+        </View>
+
+        <Text style={[s.judul, b.beres && s.judulBeres]} numberOfLines={2}>
+          {b.judul}
+        </Text>
+
+        {(b.lokasi || b.proyek) && (
+          <Text style={s.tempat} numberOfLines={1}>
+            {[b.proyek, b.lokasi].filter(Boolean).join(' · ')}
+          </Text>
+        )}
+
+        <View style={s.kaki}>
+          {/*
+            Tingkat dan status dibedakan LATAR, bukan warna teks saja —
+            WCAG 1.4.1: informasi tak boleh disampaikan lewat warna
+            semata, dan layar ini dibaca di bawah matahari.
+          */}
+          {b.severity && warnaSev && (
+            <View style={[s.pil, { backgroundColor: warnaSev }]}>
+              <Text style={s.pilTeks}>{b.severity}</Text>
+            </View>
+          )}
+          {/*
+            ⚠ Pil STATUS tak lagi ikut memerah saat barisnya mendesak.
+
+            Terlihat dari potret 2026-09-04: kartu mendesak
+            menampilkan DUA pil merah berdampingan — "Berat" (tingkat)
+            dan "Menunggu Pengecekan" (status). Yang kedua bukan
+            keadaan bahaya; ia sekadar tahap kerja.
+
+            Akibatnya merah kehilangan artinya. Kalau "Sedang
+            Dikerjakan" semerah "Kritis", pembacanya berhenti memakai
+            warna sebagai isyarat dan harus membaca tiap kata —
+            persis kemampuan yang seharusnya diberikan warna.
+
+            Kemendesakan tetap terlihat, dan lewat isyarat yang tak
+            bersaing: garis kiri tebal pada kartunya (`kartuMendesak`)
+            plus pil tingkat yang memang berwarna semantik.
+          */}
+          <View style={[s.pil, s.pilStatus]}>
+            <Text style={[s.pilTeks, s.pilStatusTeks]}>
+              {petaStatus[b.status] ?? b.status}
+            </Text>
+          </View>
+        </View>
+      </View>
+  );
+});
+
 export default function PekerjaanSaya() {
   const { punyaIzin } = useAuth();
+  const { c } = useTema();
+  /*
+    Gaya dirakit di dalam komponen, bukan di lingkup modul.
+
+    `StyleSheet.create` di lingkup modul dievaluasi SEKALI saat impor —
+    sebelum satu hook pun berjalan — jadi ia tak bisa membaca `useTema()`.
+    Warna yang terkunci di sana tetap warna mode terang selamanya, dan
+    gejalanya di mode gelap adalah teks gelap di atas latar gelap: terbaca
+    seperti bug render, bukan seperti gaya yang tak pernah diperbarui.
+
+    `useMemo` sengaja TIDAK dipakai: `gaya()` merakit satu objek datar dan
+    hanya berubah saat palet berubah (dua kali seumur sesi, saat pengguna
+    mengganti tema HP). Memoisasi di sini menambah satu hook untuk
+    menghemat pekerjaan yang tak pernah jadi beban.
+  */
+  const s = gaya(c);
   const [baris, setBaris] = useState<Baris[]>([]);
   const [memuat, setMemuat] = useState(true);
   const [galatMuat, setGalatMuat] = useState<string | null>(null);
@@ -365,77 +522,77 @@ export default function PekerjaanSaya() {
     }, [muat]),
   );
 
-  if (!bolehApaPun) {
-    return (
-      <View style={s.tengah}>
-        <Text style={s.kosongJudul}>Tidak ada akses</Text>
-        <Text style={s.kosongIsi}>
-          Peran Anda belum diberi izin melihat temuan, NCR, maupun izin kerja.
-          Hubungi admin bila ini keliru.
-        </Text>
-      </View>
-    );
-  }
+  /*
+    ⚠ SEMUA hook DAN turunannya berada di ATAS early-return.
 
-  if (memuat) {
-    return (
-      <View style={s.tengah}>
-        <ActivityIndicator size="large" color="#003366" />
-      </View>
-    );
-  }
+    Versi pertama saya menaruh ketiga hook (`renderKartu`, `kepala`,
+    `kaki`) di BAWAH `if (!bolehApaPun)` dan `if (memuat)`. Layar ini lalu
+    CRASH: "Rendered more hooks than during the previous render" — saat
+    memuat, ketiganya tak dipanggil; sesudah data datang, dipanggil.
 
+    Yang membuatnya mahal: `tsc` hijau, keenam penjaga mobile hijau, dan
+    skrip potret melapor "✅ Semua layar terisi" — karena layar crash TETAP
+    berisi teks (stack trace React), tak menggulir mendatar, dan tak punya
+    teks di bawah 12px. Ketiga pengukuran benar untuk dirinya sendiri, dan
+    ketiganya melewatkan layar yang tak bisa dibuka.
+
+    Ia baru ketahuan saat saya menambahkan deteksi crash ke skrip potret
+    untuk cacat yang SAMA di layar notifikasi — dan deteksi itu langsung
+    menemukan layar ini juga, yang sudah rusak sejak migrasinya.
+
+    Turunan `mendesak`/`berjalan`/`selesai` ikut naik karena hook di
+    bawahnya bergantung padanya.
+  */
   const mendesak = baris.filter((b) => b.mendesak);
   const berjalan = baris.filter((b) => !b.mendesak && !b.beres);
   const selesai = baris.filter((b) => b.beres);
   const terlihat = tampilSelesai ? [...mendesak, ...berjalan, ...selesai] : [...mendesak, ...berjalan];
 
-  return (
-    <ScrollView
-      style={s.wadah}
-      contentContainerStyle={s.isi}
-      refreshControl={<RefreshControl refreshing={false} onRefresh={muat} />}
-    >
-      <Text style={s.judulHalaman}>Pekerjaan Saya</Text>
+  /*
+    `useCallback` + `useMemo`: `FlatList` membandingkan prop-nya secara
+    dangkal, jadi fungsi atau elemen baru tiap render membatalkan seluruh
+    manfaat `React.memo` pada kartunya. Pedoman stack menyebutnya dua kali
+    ("useCallback for handlers", "Avoid anonymous functions in JSX").
+  */
+  const renderKartu = useCallback(
+    ({ item }: { item: Baris }) => <KartuPekerjaan b={item} s={s} c={c} />,
+    [s, c]
+  );
 
-      {galatMuat && (
-        <View style={s.galat}>
-          <Text style={s.galatTeks}>{galatMuat}</Text>
-        </View>
-      )}
+  const kepala = useMemo(
+    () => (
+      <>
+        <KepalaLayar judul="Pekerjaan Saya" penjelas="Temuan, NCR, dan izin kerja yang Anda kirim" />
 
-      {/*
-        Kegagalan SEBAGIAN disebutkan, bukan disamarkan. Daftar yang diam-diam
-        kurang lebih berbahaya daripada daftar yang mengaku tak lengkap:
-        mandor menyimpulkan tak ada yang menggantung, padahal ada.
-      */}
-      {memuatSisa > 0 && (
-        <View style={s.peringatan}>
-          <Text style={s.peringatanTeks}>
-            Menambahkan {memuatSisa} proyek lagi… Daftar di bawah belum lengkap.
-          </Text>
-        </View>
-      )}
+        {galatMuat ? (
+          <View style={s.galat}>
+            <Text style={s.galatTeks}>{galatMuat}</Text>
+          </View>
+        ) : null}
 
-      {gagalSebagian > 0 && (
-        <View style={s.peringatan}>
-          <Text style={s.peringatanTeks}>
-            {gagalSebagian} bagian gagal dimuat — daftar di bawah BELUM lengkap.
-            Tarik ke bawah untuk mencoba lagi.
-          </Text>
-        </View>
-      )}
+        {/*
+          Kegagalan SEBAGIAN disebutkan, bukan disamarkan. Daftar yang
+          diam-diam kurang lebih berbahaya daripada daftar yang mengaku tak
+          lengkap: mandor menyimpulkan tak ada yang menggantung, padahal ada.
+        */}
+        {memuatSisa > 0 ? (
+          <View style={s.peringatan}>
+            <Text style={s.peringatanTeks}>
+              Menambahkan {memuatSisa} proyek lagi… Daftar di bawah belum lengkap.
+            </Text>
+          </View>
+        ) : null}
 
-      {baris.length === 0 && !galatMuat ? (
-        <View style={s.kosong}>
-          <Text style={s.kosongJudul}>Belum ada yang dilaporkan</Text>
-          <Text style={s.kosongIsi}>
-            Temuan, NCR, dan izin kerja yang Anda kirim dari lapangan muncul di sini
-            beserta nasibnya.
-          </Text>
-        </View>
-      ) : (
-        <>
+        {gagalSebagian > 0 ? (
+          <View style={s.peringatan}>
+            <Text style={s.peringatanTeks}>
+              {gagalSebagian} bagian gagal dimuat — daftar di bawah BELUM lengkap.
+              Tarik ke bawah untuk mencoba lagi.
+            </Text>
+          </View>
+        ) : null}
+
+        {baris.length > 0 ? (
           <View style={s.ringkas}>
             <View style={s.ringkasSel}>
               <Text style={[s.ringkasAngka, mendesak.length > 0 && s.ringkasAngkaMerah]}>
@@ -454,146 +611,236 @@ export default function PekerjaanSaya() {
               <Text style={s.ringkasLabel}>selesai</Text>
             </View>
           </View>
+        ) : null}
+      </>
+    ),
+    [s, galatMuat, memuatSisa, gagalSebagian, baris.length, mendesak.length, berjalan.length, selesai.length]
+  );
 
-          {terlihat.map((b) => {
-            const petaStatus =
-              b.jenis === 'punch' ? STATUS_PUNCH : b.jenis === 'ncr' ? STATUS_NCR : STATUS_IZIN;
-            const warnaSev = b.severity ? WARNA_SEVERITY[b.severity] : undefined;
-            return (
-              <View
-                key={b.kunci}
-                style={[s.kartu, b.mendesak && s.kartuMendesak, b.beres && s.kartuBeres]}
-              >
-                <View style={s.kartuKepala}>
-                  <Text style={s.jenisTag}>
-                    {LABEL_JENIS[b.jenis]}
-                    {b.nomor ? ` · ${b.nomor}` : ''}
-                  </Text>
-                  {b.tanggal && <Text style={s.usia}>{usia(b.tanggal)}</Text>}
-                </View>
+  const kaki = useMemo(
+    () => (
+      <>
+        {selesai.length > 0 ? (
+          <Tekan
+            onPress={() => setTampilSelesai((v) => !v)}
+            style={s.tombolSelesai}
+            accessibilityRole="button"
+          >
+            <Text style={s.tombolSelesaiTeks}>
+              {tampilSelesai
+                ? `Sembunyikan ${selesai.length} yang selesai`
+                : `Tampilkan ${selesai.length} yang selesai`}
+            </Text>
+          </Tekan>
+        ) : null}
 
-                <Text style={[s.judul, b.beres && s.judulBeres]} numberOfLines={2}>
-                  {b.judul}
-                </Text>
+        {/*
+          Batas disebutkan, bukan didiamkan. Mandor yang mencari tombol
+          "tutup temuan" di sini akan menyimpulkan aplikasinya rusak —
+          padahal yang menahannya izin, dan sebagian dijaga CHECK di basis.
+        */}
+        <Text style={s.catatan}>
+          Halaman ini hanya menampilkan. Menutup temuan, mendisposisi NCR, dan
+          memutuskan izin kerja dilakukan di portal oleh QC/PM — pengaju dan
+          pemutus wajib orang berbeda.
+        </Text>
 
-                {(b.lokasi || b.proyek) && (
-                  <Text style={s.tempat} numberOfLines={1}>
-                    {[b.proyek, b.lokasi].filter(Boolean).join(' · ')}
-                  </Text>
-                )}
+        <Tekan
+          onPress={() => router.push('/lainnya')}
+          style={s.tautan}
+          accessibilityRole="button"
+        >
+          <Text style={s.tautanTeks}>Lapor yang baru →</Text>
+        </Tekan>
+      </>
+    ),
+    [s, selesai.length, tampilSelesai, router]
+  );
 
-                <View style={s.kaki}>
-                  {/*
-                    Tingkat dan status dibedakan LATAR, bukan warna teks saja —
-                    WCAG 1.4.1: informasi tak boleh disampaikan lewat warna
-                    semata, dan layar ini dibaca di bawah matahari.
-                  */}
-                  {b.severity && warnaSev && (
-                    <View style={[s.pil, { backgroundColor: warnaSev }]}>
-                      <Text style={s.pilTeks}>{b.severity}</Text>
-                    </View>
-                  )}
-                  <View style={[s.pil, s.pilStatus, b.mendesak && s.pilStatusMendesak]}>
-                    <Text style={[s.pilTeks, s.pilStatusTeks, b.mendesak && s.pilTeks]}>
-                      {petaStatus[b.status] ?? b.status}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            );
-          })}
+  if (!bolehApaPun) {
+    return (
+      <View style={s.tengah}>
+        <Text style={s.kosongJudul}>Tidak ada akses</Text>
+        <Text style={s.kosongIsi}>
+          Peran Anda belum diberi izin melihat temuan, NCR, maupun izin kerja.
+          Hubungi admin bila ini keliru.
+        </Text>
+      </View>
+    );
+  }
 
-          {selesai.length > 0 && (
-            <Pressable
-              onPress={() => setTampilSelesai((v) => !v)}
-              style={s.tombolSelesai}
-              accessibilityRole="button"
-            >
-              <Text style={s.tombolSelesaiTeks}>
-                {tampilSelesai
-                  ? `Sembunyikan ${selesai.length} yang selesai`
-                  : `Tampilkan ${selesai.length} yang selesai`}
-              </Text>
-            </Pressable>
-          )}
-        </>
-      )}
+  if (memuat) {
+    return (
+      <View style={s.tengah}>
+        <ActivityIndicator size="large" color={c.navy} />
+      </View>
+    );
+  }
 
-      {/*
-        Batas disebutkan, bukan didiamkan. Mandor yang mencari tombol
-        "tutup temuan" di sini akan menyimpulkan aplikasinya rusak — padahal
-        yang menahannya izin, dan sebagian dijaga CHECK di basis.
-      */}
-      <Text style={s.catatan}>
-        Halaman ini hanya menampilkan. Menutup temuan, mendisposisi NCR, dan memutuskan
-        izin kerja dilakukan di portal oleh QC/PM — pengaju dan pemutus wajib orang berbeda.
-      </Text>
+  return (
+    /*
+      `FlatList`, bukan `ScrollView` + `.map()`.
 
-      <Pressable
-        onPress={() => router.push('/lainnya')}
-        style={s.tautan}
-        accessibilityRole="button"
-      >
-        <Text style={s.tautanTeks}>Lapor yang baru →</Text>
-      </Pressable>
-    </ScrollView>
+      Diukur 2026-09-04 dari potret layar ini: 25 perlu tindakan + 29
+      berjalan + 9 selesai = **63 baris**, semuanya dirakit sekaligus.
+      Ambang virtualisasi 50 (pedoman stack `react-native`, severity High).
+
+      Layar ini paling sering dibuka mandor — ia yang menjawab "apa yang
+      masih menggantung dari laporan saya". Gulir tersendat di sini terasa
+      tiap hari, bukan sesekali.
+
+      Ringkasan, peringatan, dan judul pindah ke `ListHeaderComponent`;
+      tombol "tampilkan selesai" dan catatan batas ke `ListFooterComponent`.
+      Keduanya ter-`useMemo` supaya tak merakit ulang elemen tiap render —
+      kalau tidak, `FlatList` menganggap header berubah dan ikut merender
+      ulang seluruh jendelanya.
+
+      `removeClippedSubviews` sengaja TIDAK dipasang: tinggi kartu di sini
+      bervariasi (judul bisa dua baris, lokasi bisa tak ada), dan ia dikenal
+      memunculkan baris kosong di Android pada daftar seperti itu.
+    */
+    <FlatList
+      style={s.wadah}
+      data={terlihat}
+      keyExtractor={ambilKunci}
+      renderItem={renderKartu}
+      contentContainerStyle={s.isi}
+      refreshControl={<RefreshControl refreshing={false} onRefresh={muat} />}
+      ListHeaderComponent={kepala}
+      ListFooterComponent={kaki}
+      ListEmptyComponent={
+        galatMuat ? null : (
+          <View style={s.kosong}>
+            <Text style={s.kosongJudul}>Belum ada yang dilaporkan</Text>
+            <Text style={s.kosongIsi}>
+              Temuan, NCR, dan izin kerja yang Anda kirim dari lapangan muncul di
+              sini beserta nasibnya. Pakai tombol di atas untuk membuat yang
+              pertama.
+            </Text>
+          </View>
+        )
+      }
+      initialNumToRender={8}
+      windowSize={7}
+    />
   );
 }
 
-const s = StyleSheet.create({
-  wadah: { flex: 1, backgroundColor: '#F8FAFC' },
-  isi: { padding: 16, paddingBottom: 40 },
-  tengah: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#F8FAFC' },
-  judulHalaman: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 14 },
-  ringkas: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB',
-    borderRadius: 12, paddingVertical: 14, marginBottom: 16,
-  },
-  ringkasSel: { flex: 1, alignItems: 'center' },
-  ringkasGaris: { width: 1, height: 28, backgroundColor: '#E5E7EB' },
-  ringkasAngka: { fontSize: 22, fontWeight: '700', color: '#111827' },
-  ringkasAngkaMerah: { color: '#B91C1C' },
-  ringkasLabel: { fontSize: 12, color: '#6B7280', marginTop: 2 },
-  kartu: {
-    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB',
-    borderRadius: 12, padding: 13, marginBottom: 10,
-  },
-  /* Garis kiri tebal, bukan latar merah penuh: kartunya masih harus terbaca,
-     dan latar jenuh membuat teks di atasnya melelahkan di bawah matahari. */
-  kartuMendesak: { borderColor: '#FECACA', borderLeftWidth: 4, borderLeftColor: '#DC2626' },
-  kartuBeres: { backgroundColor: '#FAFAFA', borderColor: '#F0F1F3' },
-  kartuKepala: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  jenisTag: { fontSize: 11, fontWeight: '700', color: '#003366', letterSpacing: 0.4, textTransform: 'uppercase' },
-  usia: { fontSize: 11, color: '#6B7280' },
-  judul: { fontSize: 14, color: '#111827', lineHeight: 20, fontWeight: '500' },
-  judulBeres: { color: '#6B7280' },
-  tempat: { fontSize: 12, color: '#6B7280', marginTop: 4 },
-  kaki: { flexDirection: 'row', gap: 6, marginTop: 10, flexWrap: 'wrap' },
-  pil: { paddingVertical: 4, paddingHorizontal: 9, borderRadius: 7 },
-  pilTeks: { fontSize: 11, fontWeight: '700', color: '#FFFFFF', textTransform: 'capitalize' },
-  pilStatus: { backgroundColor: '#F3F4F6' },
-  pilStatusTeks: { color: '#374151', textTransform: 'none' },
-  pilStatusMendesak: { backgroundColor: '#DC2626' },
-  tombolSelesai: {
-    marginTop: 6, paddingVertical: 12, alignItems: 'center',
-    borderRadius: 10, borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#FFFFFF',
-  },
-  tombolSelesaiTeks: { fontSize: 13, fontWeight: '600', color: '#374151' },
-  catatan: { fontSize: 12, color: '#6B7280', textAlign: 'center', marginTop: 18, lineHeight: 18 },
-  tautan: { marginTop: 12, paddingVertical: 12, alignItems: 'center' },
-  tautanTeks: { fontSize: 14, fontWeight: '600', color: '#003366' },
-  kosong: { paddingVertical: 40, alignItems: 'center' },
-  kosongJudul: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 6 },
-  kosongIsi: { fontSize: 13, color: '#5A616B', lineHeight: 19, textAlign: 'center' },
-  galat: {
-    backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA',
-    borderRadius: 10, padding: 12, marginBottom: 14,
-  },
-  galatTeks: { fontSize: 13, color: '#991B1B', lineHeight: 19 },
-  peringatan: {
-    backgroundColor: '#FFFBEB', borderWidth: 1, borderColor: '#FDE68A',
-    borderRadius: 10, padding: 12, marginBottom: 14,
-  },
-  peringatanTeks: { fontSize: 13, color: '#78350F', lineHeight: 19 },
-});
+/**
+ * Gaya layar ini, dirakit dari palet aktif.
+ *
+ * Menerima `Palet` alih-alih memanggil `useTema()` sendiri: fungsi ini
+ * BUKAN komponen, dan hook di dalamnya akan melanggar aturan hook tanpa
+ * galat yang menyebut sebabnya.
+ */
+function gaya(c: Palet) {
+  return StyleSheet.create({
+    wadah: { flex: 1, backgroundColor: c.surfaceSubtle },
+    isi: { padding: SPASI.lg, paddingBottom: 40 },
+    tengah: {
+      flex: 1, alignItems: 'center', justifyContent: 'center',
+      padding: SPASI.xxl, backgroundColor: c.surfaceSubtle,
+    },
+    ringkas: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: c.surfaceRaised, borderWidth: 1, borderColor: c.border,
+      borderRadius: RADIUS.md, paddingVertical: 14, marginBottom: SPASI.lg,
+    },
+    ringkasSel: { flex: 1, alignItems: 'center' },
+    ringkasGaris: { width: 1, height: 28, backgroundColor: c.border },
+    /*
+      Angka ringkasan memakai `FONT.judul` (Bricolage Grotesque) — bukan
+      font isi yang ditebalkan. Angka adalah hal pertama yang dicari mata
+      di layar ini, dan keluarga display memberi tinggi-x serta lebar yang
+      lebih tegas pada digit besar.
+    */
+    ringkasAngka: { fontSize: 22, fontFamily: FONT.judul, color: c.textPrimary },
+    ringkasAngkaMerah: { color: c.danger },
+    ringkasLabel: {
+      fontSize: HURUF.xs, fontFamily: FONT.isi, color: c.textSecondary, marginTop: 2,
+    },
+    kartu: {
+      backgroundColor: c.surfaceRaised, borderWidth: 1, borderColor: c.border,
+      borderRadius: RADIUS.md, padding: 13, marginBottom: 10,
+    },
+    /* Garis kiri tebal, bukan latar merah penuh: kartunya masih harus terbaca,
+       dan latar jenuh membuat teks di atasnya melelahkan di bawah matahari. */
+    kartuMendesak: {
+      borderColor: c.dangerBorder, borderLeftWidth: 4, borderLeftColor: c.danger,
+    },
+    kartuBeres: { backgroundColor: c.surfaceHover, borderColor: c.border },
+    kartuKepala: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', marginBottom: 6,
+    },
+    /*
+      12px, bukan 11.
+
+      Diukur 2026-09-04 lewat potret: 223 elemen teks di layar ini terender
+      di bawah 12px, dan SEMUANYA 11px dari tiga gaya di bawah — bukan 223
+      keputusan berbeda, melainkan tiga yang terulang di tiap kartu.
+
+      Ambang 12px bukan selera: di bawah itu teks tak terbaca di bawah
+      matahari langsung, dan layar ini dibuka di lokasi proyek. Isinya juga
+      bukan hiasan — nomor izin kerja, umur temuan, dan tingkat keparahan.
+    */
+    jenisTag: {
+      fontSize: HURUF.xs, fontFamily: FONT.isiTebal, color: c.navy,
+      letterSpacing: 0.4, textTransform: 'uppercase',
+    },
+    usia: { fontSize: HURUF.xs, fontFamily: FONT.isi, color: c.textSecondary },
+    judul: {
+      fontSize: HURUF.sm + 1, fontFamily: FONT.isiTebal,
+      color: c.textPrimary, lineHeight: 20,
+    },
+    judulBeres: { color: c.textSecondary },
+    tempat: {
+      fontSize: HURUF.xs, fontFamily: FONT.isi, color: c.textSecondary, marginTop: 4,
+    },
+    kaki: { flexDirection: 'row', gap: 6, marginTop: 10, flexWrap: 'wrap' },
+    pil: { paddingVertical: 4, paddingHorizontal: 9, borderRadius: 7 },
+    pilTeks: {
+      fontSize: HURUF.xs, fontFamily: FONT.isiTebal, color: c.onNavy,
+      textTransform: 'capitalize',
+    },
+    pilStatus: { backgroundColor: c.surfaceHover },
+    pilStatusTeks: { color: c.textPrimary, textTransform: 'none' },
+    tombolSelesai: {
+      marginTop: 6, paddingVertical: SPASI.md, alignItems: 'center',
+      borderRadius: 10, borderWidth: 1, borderColor: c.border,
+      backgroundColor: c.surfaceRaised,
+    },
+    tombolSelesaiTeks: {
+      fontSize: HURUF.sm, fontFamily: FONT.isiTebal, color: c.textPrimary,
+    },
+    catatan: {
+      fontSize: HURUF.xs, fontFamily: FONT.isi, color: c.textSecondary,
+      textAlign: 'center', marginTop: 18, lineHeight: 18,
+    },
+    tautan: { marginTop: SPASI.md, paddingVertical: SPASI.md, alignItems: 'center' },
+    tautanTeks: {
+      fontSize: HURUF.sm + 1, fontFamily: FONT.isiTebal, color: c.navy,
+    },
+    kosong: { paddingVertical: 40, alignItems: 'center' },
+    kosongJudul: {
+      fontSize: HURUF.lg - 1, fontFamily: FONT.judul,
+      color: c.textPrimary, marginBottom: 6,
+    },
+    kosongIsi: {
+      fontSize: HURUF.sm, fontFamily: FONT.isi, color: c.textSecondary,
+      lineHeight: 19, textAlign: 'center',
+    },
+    galat: {
+      backgroundColor: c.dangerBg, borderWidth: 1, borderColor: c.dangerBorder,
+      borderRadius: 10, padding: SPASI.md, marginBottom: 14,
+    },
+    galatTeks: { fontSize: HURUF.sm, fontFamily: FONT.isi, color: c.danger, lineHeight: 19 },
+    peringatan: {
+      backgroundColor: c.warningBg, borderWidth: 1, borderColor: c.warningBorder,
+      borderRadius: 10, padding: SPASI.md, marginBottom: 14,
+    },
+    peringatanTeks: {
+      fontSize: HURUF.sm, fontFamily: FONT.isi, color: c.warning, lineHeight: 19,
+    },
+  });
+}

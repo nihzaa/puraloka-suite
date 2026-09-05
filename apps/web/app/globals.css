@@ -635,6 +635,28 @@
     itu tak ikut berubah dari sini. Yang dipaku dikerjakan terpisah, bertahap,
     dengan potret layar tiap tahap: menaikkan ukuran mengubah tinggi kartu dan
     pembungkusan teks, dan hasilnya harus dilihat mata.
+
+    ── Kenapa BERHENTI di sini, dan apa yang tersisa
+
+    Diukur sesudah seluruh 2.067 fontSize dipaku dinaikkan ke token, 15
+    halaman produksi:
+
+        teks bacaan di bawah 12px : 238 -> 94
+        elemen meluber            : 0
+        pageerror                 : 0
+
+    Ke-94 sisanya SEMUA 11px — bukan 10px lagi. Artinya mereka sudah ikut naik
+    lewat `--t-mikro`, dan yang tersisa adalah label pendek: "Nilai Kontrak",
+    "Pendapatan Diterima", kode aksi audit ("ai.ingatan.simpan").
+
+    Menaikkan `--t-mikro` sekali lagi (11 -> 12) membuatnya KEMBAR dengan
+    `--t-kecil`: dua token yang tak bisa dibedakan mata, hierarkinya hilang,
+    dan yang menyunting berikutnya harus menebak mana yang dimaksud. Menaikkan
+    seluruh skala lagi mengubah tata letak jauh lebih dalam daripada yang
+    diminta.
+
+    11px untuk label pendek masih terbaca. Yang dulu bermasalah — 10px pada
+    label kartu angka dan label isian — sudah tak ada.
   */
   --t-mikro:   11px;   /* label kolom tabel, keterangan satuan */
   --t-kecil:   12px;   /* keterangan sekunder */

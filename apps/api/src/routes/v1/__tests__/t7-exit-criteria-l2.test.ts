@@ -66,10 +66,36 @@ describe('L2 · kriteria 2 — dual-axis RLS aktif', () => {
       .filter(([, v]) => ['ANCHOR', 'B', 'AB', 'C'].includes(v.kategori))
       .filter(([, v]) => !('view' in v && v.view))
       .map(([t]) => t)
+    /*
+      ⚠ Disaring lewat STRUKTUR, bukan NAMA — diperbaiki 2026-09-04.
+
+      Versi sebelumnya mencari `policyname='tenant_isolation'`, dan tiga tabel
+      jatuh sebagai "tak berpagar" padahal terlindungi dengan benar:
+
+          entitlement_snapshot   entitlement_baca_tenant · entitlement_pagar_tenant
+          situs_domain           situs_domain_baca · situs_domain_pagar
+          tagihan_tenant         tagihan_tenant_baca · tagihan_tenant_pagar
+
+      Ketiganya punya PERMISSIVE + RESTRICTIVE yang keduanya menyaring
+      `company_id`. Yang berbeda cuma namanya — dan nama itu justru membawa
+      informasi: `_baca` vs `_pagar` membedakan permissive dari restrictive,
+      yang hilang kalau keduanya dipaksa bernama `tenant_isolation` (dan satu
+      tabel tak bisa punya dua policy bernama sama).
+
+      Penyaringan lewat nama membuat perlindungan yang SAH terbaca sebagai
+      lubang, dan mendorong orang menamai policy demi lolos test alih-alih
+      demi kejelasan. CLAUDE.md mencatat kelas cacat ini; `t5a-policy-tenant`
+      di sebelah sudah menyaring lewat predikat, dan pola itu yang ditiru.
+    */
     const punya = new Set(
       (await c.query(
-        `SELECT tablename FROM pg_policies
-          WHERE schemaname='public' AND policyname='tenant_isolation'`
+        `SELECT DISTINCT c.relname AS tablename
+           FROM pg_policy p
+           JOIN pg_class c ON c.oid = p.polrelid
+           JOIN pg_namespace n ON n.oid = c.relnamespace
+          WHERE n.nspname = 'public'
+            AND (pg_get_expr(p.polqual, p.polrelid) LIKE '%auth_company_id%'
+              OR pg_get_expr(p.polwithcheck, p.polrelid) LIKE '%auth_company_id%')`
       )).rows.map((r) => r.tablename)
     )
     expect(berTenant.filter((t) => !punya.has(t))).toEqual([])

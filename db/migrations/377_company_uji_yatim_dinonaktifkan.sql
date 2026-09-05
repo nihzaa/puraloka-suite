@@ -44,12 +44,30 @@
 -- menjamin itu, dan blok verifikasi membuktikannya.
 -- ============================================================================
 
+-- ⚠ TIDAK berbuat apa-apa bila basis belum punya SATU PUN anggota.
+--
+-- Maksud migrasi ini menyapu company UJI yang yatim — dan itu hanya bermakna
+-- bila ada company NYATA sebagai pembandingnya. Di schema bersih tak ada
+-- anggota sama sekali (nol user → nol company_members), sehingga `NOT EXISTS`
+-- benar untuk SEMUA company, termasuk satu-satunya yang dibuat migrasi 126.
+--
+-- Akibatnya beruntun dan sulit dilacak: `companies WHERE is_active` jadi 0,
+-- migrasi 398 tak menyemai ambang EVM, dan pagarnya gagal dengan
+--
+--     398 gagal: value_type ambang EVM = "<NULL>", harus "number"
+--
+-- — galat yang menuduh TIPE DATA, dua puluh migrasi jauhnya dari sebabnya.
+--
+-- Ini berbeda dari pagar-pagar yang diperbaiki sebelumnya: yang itu salah
+-- MELAPOR, yang ini MENGUBAH KEADAAN. Diperbaiki 2026-09-04 atas keputusan
+-- founder; menyempitkan, tak mengubah perilaku di basis berisi data.
 UPDATE public.companies
    SET is_active = false
  WHERE is_active
    AND NOT EXISTS (
      SELECT 1 FROM public.company_members m WHERE m.company_id = companies.id
-   );
+   )
+   AND EXISTS (SELECT 1 FROM public.company_members);
 
 DO $$
 DECLARE
@@ -58,6 +76,16 @@ DECLARE
   n_nyata   int;
 BEGIN
   SELECT count(*) INTO n_aktif FROM public.companies WHERE is_active;
+
+  -- Penonaktifan di atas SENGAJA tak berjalan bila basis nol anggota, jadi
+  -- pemeriksaan di bawah pun tak berlaku: company yatim memang masih ada,
+  -- dan itu yang diinginkan. Syaratnya dibuat SAMA PERSIS dengan syarat
+  -- penonaktifannya — dua syarat berbeda untuk satu hal adalah cacat yang
+  -- baru saja diperbaiki di migrasi 250 dan 252.
+  IF NOT EXISTS (SELECT 1 FROM public.company_members) THEN
+    RAISE NOTICE '377: basis belum punya anggota — penyapuan & pemeriksaan DILEWATI (schema bersih)';
+    RETURN;
+  END IF;
 
   -- Nol company aktif tanpa anggota.
   SELECT count(*) INTO n_yatim
@@ -76,6 +104,9 @@ BEGIN
    WHERE co.is_active
      AND EXISTS (SELECT 1 FROM public.company_members m WHERE m.company_id = co.id);
   IF n_nyata = 0 THEN
+    -- Tak terjangkau bila basis nol anggota — blok itu sudah RETURN di
+    -- atas. Pagar ini tetap utuh untuk basis berisi data, yang justru
+    -- keadaan yang ingin dijaganya.
     RAISE EXCEPTION '377 gagal: NOL company beranggota yang masih aktif — terlalu banyak dimatikan';
   END IF;
 

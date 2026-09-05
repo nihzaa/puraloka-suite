@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert, StyleSheet,
+  View, Text, ScrollView, TextInput, ActivityIndicator, Alert, StyleSheet,
 } from 'react-native';
+import { Tekan } from '@/components/ui/Tekan';
+import { KepalaLayar } from '@/components/ui/KepalaLayar';
 import { router } from 'expo-router';
 import { api } from '@/lib/api';
 import { antrekan } from '@/lib/antrean';
 import { useAuth } from '@/hooks/useAuth';
+import { useTema } from '@/hooks/useTema';
+import { FONT, HURUF, RADIUS, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
 
 /*
   ══════════════════════════════════════════════════════════════════════════
@@ -53,14 +57,39 @@ import { useAuth } from '@/hooks/useAuth';
 
 type Proyek = { id: string; nama: string };
 
+/**
+ * Tingkat keparahan — warnanya menunjuk TOKEN, bukan hex.
+ *
+ * ⚠ Konstanta ini hidup di lingkup MODUL, jadi ia tak bisa memanggil
+ * `useTema()`. Versi sebelumnya memakai hex langsung (`#059669`, `#D97706`,
+ * `#DC2626`, `#7F1D1D`) — benar di mode terang, dan tak pernah ikut berubah
+ * di mode gelap.
+ *
+ * Yang disimpan sekarang NAMA tokennya; warnanya dibaca di titik render,
+ * tempat `c` sudah tersedia. Satu lapis tak langsung, dan itu yang membuat
+ * daftar statis ini tetap mengikuti tema.
+ *
+ * `kritis` memakai token yang sama dengan `berat` (`danger`) — palet mobile
+ * tak punya tingkat merah kedua, dan mengarang hex baru di sini akan
+ * mengulang persis cacat yang sedang diperbaiki. Yang membedakan keduanya
+ * LABEL-nya, dan itu memang pembeda yang sah (WCAG 1.4.1: warna tak boleh
+ * jadi satu-satunya pembawa makna).
+ */
 const SEVERITY = [
-  { nilai: 'ringan', label: 'Ringan', warna: '#059669' },
-  { nilai: 'sedang', label: 'Sedang', warna: '#D97706' },
-  { nilai: 'berat', label: 'Berat', warna: '#DC2626' },
-  { nilai: 'kritis', label: 'Kritis', warna: '#7F1D1D' },
-];
+  { nilai: 'ringan', label: 'Ringan', token: 'success' },
+  { nilai: 'sedang', label: 'Sedang', token: 'warning' },
+  { nilai: 'berat', label: 'Berat', token: 'danger' },
+  { nilai: 'kritis', label: 'Kritis', token: 'danger' },
+] as const;
 
 export default function LaporTemuan() {
+  /*
+    Gaya dirakit di dalam komponen — `StyleSheet.create` di lingkup
+    modul berjalan sebelum satu hook pun, jadi ia tak bisa membaca
+    `useTema()`. Lihat catatan panjangnya di `pekerjaan.tsx`.
+  */
+  const { c } = useTema();
+  const s = React.useMemo(() => gaya(c), [c]);
   const { punyaIzin } = useAuth();
   const [proyek, setProyek] = useState<Proyek[]>([]);
   const [proyekId, setProyekId] = useState<string | null>(null);
@@ -149,14 +178,14 @@ export default function LaporTemuan() {
   if (memuat) {
     return (
       <View style={s.tengah}>
-        <ActivityIndicator size="large" color="#003366" />
+        <ActivityIndicator size="large" color={c.navy} />
       </View>
     );
   }
 
   return (
     <ScrollView style={s.wadah} contentContainerStyle={s.isi} keyboardShouldPersistTaps="handled">
-      <Text style={s.judulHalaman}>Lapor Temuan</Text>
+      <KepalaLayar judul="Lapor Temuan" penjelas="Cacat yang tinggal dirapikan sebelum serah terima" />
 
       {galatMuat && (
         <View style={s.galat}>
@@ -166,11 +195,14 @@ export default function LaporTemuan() {
 
       <Text style={s.label}>Proyek</Text>
       {proyek.length === 0 ? (
-        <Text style={s.kosongIsi}>Belum ada proyek yang bisa Anda akses.</Text>
+        <Text style={s.kosongIsi}>
+          Belum ada proyek yang bisa Anda akses. Hubungi admin bila Anda
+          seharusnya ditugaskan di salah satunya.
+        </Text>
       ) : (
         <View style={s.pilihanBaris}>
           {proyek.map((p) => (
-            <Pressable
+            <Tekan
               key={p.id}
               onPress={() => setProyekId(p.id)}
               style={[s.chip, proyekId === p.id && s.chipAktif]}
@@ -178,7 +210,7 @@ export default function LaporTemuan() {
               accessibilityState={{ selected: proyekId === p.id }}
             >
               <Text style={[s.chipTeks, proyekId === p.id && s.chipTeksAktif]}>{p.nama}</Text>
-            </Pressable>
+            </Tekan>
           ))}
         </View>
       )}
@@ -188,7 +220,7 @@ export default function LaporTemuan() {
         value={judul}
         onChangeText={setJudul}
         placeholder="mis. Retak rambut di kolom K3 lantai 2"
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor={c.textMuted}
         style={s.input}
         accessibilityLabel="Judul temuan"
       />
@@ -198,7 +230,7 @@ export default function LaporTemuan() {
         value={lokasi}
         onChangeText={setLokasi}
         placeholder="mis. Lantai 2, grid C-4"
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor={c.textMuted}
         style={s.input}
         accessibilityLabel="Lokasi temuan"
       />
@@ -207,16 +239,18 @@ export default function LaporTemuan() {
       <View style={s.pilihanBaris}>
         {SEVERITY.map((sv) => {
           const aktif = severity === sv.nilai;
+          /* Token dibaca DI SINI — di lingkup modul `c` belum ada. */
+          const warna = c[sv.token];
           return (
-            <Pressable
+            <Tekan
               key={sv.nilai}
               onPress={() => setSeverity(sv.nilai)}
-              style={[s.chip, aktif && { backgroundColor: sv.warna, borderColor: sv.warna }]}
+              style={[s.chip, aktif && { backgroundColor: warna, borderColor: warna }]}
               accessibilityRole="button"
               accessibilityState={{ selected: aktif }}
             >
               <Text style={[s.chipTeks, aktif && s.chipTeksAktif]}>{sv.label}</Text>
-            </Pressable>
+            </Tekan>
           );
         })}
       </View>
@@ -226,20 +260,20 @@ export default function LaporTemuan() {
         value={deskripsi}
         onChangeText={setDeskripsi}
         placeholder="Rincian yang membantu yang memperbaiki"
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor={c.textMuted}
         multiline
         style={[s.input, s.inputPanjang]}
         accessibilityLabel="Keterangan temuan"
       />
 
-      <Pressable
+      <Tekan
         onPress={simpan}
         disabled={menyimpan || !proyekId || !judul.trim()}
         style={[s.simpan, (menyimpan || !proyekId || !judul.trim()) && s.simpanMati]}
         accessibilityRole="button"
       >
         <Text style={s.simpanTeks}>{menyimpan ? 'Menyimpan…' : 'Simpan temuan'}</Text>
-      </Pressable>
+      </Tekan>
 
       {/*
         Batasnya DISEBUTKAN, bukan didiamkan. Mandor yang mengira fotonya
@@ -254,41 +288,58 @@ export default function LaporTemuan() {
   );
 }
 
-const s = StyleSheet.create({
-  wadah: { flex: 1, backgroundColor: '#F8FAFC' },
-  isi: { padding: 16, paddingBottom: 40 },
-  tengah: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#F8FAFC' },
-  judulHalaman: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 14 },
-  label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 },
-  spasiAtas: { marginTop: 16 },
-  pilihanBaris: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    paddingVertical: 9, paddingHorizontal: 14, borderRadius: 10,
-    borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#FFFFFF',
-  },
-  /* Yang terpilih dibedakan LATAR + border, bukan warna teks saja — WCAG
-     1.4.1: informasi tak boleh disampaikan lewat warna semata. */
-  chipAktif: { backgroundColor: '#003366', borderColor: '#003366' },
-  chipTeks: { fontSize: 13, color: '#374151', fontWeight: '500' },
-  chipTeksAktif: { color: '#FFFFFF' },
-  input: {
-    borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10,
-    paddingVertical: 12, paddingHorizontal: 13, fontSize: 15,
-    color: '#111827', backgroundColor: '#FFFFFF',
-  },
-  inputPanjang: { minHeight: 88, textAlignVertical: 'top' },
-  simpan: {
-    marginTop: 22, backgroundColor: '#003366', borderRadius: 12,
-    paddingVertical: 15, alignItems: 'center',
-  },
-  simpanMati: { backgroundColor: '#9CA3AF' },
-  simpanTeks: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
-  catatan: { fontSize: 12, color: '#6B7280', textAlign: 'center', marginTop: 12, lineHeight: 18 },
-  galat: {
-    backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA',
-    borderRadius: 10, padding: 12, marginBottom: 14,
-  },
-  galatTeks: { fontSize: 13, color: '#991B1B', lineHeight: 19 },
-  kosongJudul: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 6 },
-  kosongIsi: { fontSize: 13, color: '#5A616B', lineHeight: 19, textAlign: 'center' },
-});
+function gaya(c: Palet) {
+  return StyleSheet.create({
+    wadah: { flex: 1, backgroundColor: c.surfaceSubtle },
+    isi: { padding: 16, paddingBottom: 40 },
+    tengah: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: c.surfaceSubtle },
+    label: { fontSize: 13, fontFamily: FONT.isiTebal, color: c.textPrimary, marginBottom: 8 },
+    spasiAtas: { marginTop: 16 },
+    pilihanBaris: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    /*
+      `maxWidth` WAJIB — ditemukan dari POTRET, bukan dari penjaga.
+
+      Nama proyek nyata sepanjang "[UJI] Renovasi Fasad Kantor CV Makmur —
+      Cihampelas" membentuk SATU chip yang lebih lebar daripada layar, dan
+      `flexWrap` tak bisa menolong: ia membungkus ANTAR-chip, tak bisa
+      mengecilkan satu chip yang sudah kebesaran. Ekornya terpotong di tepi
+      kanan — "…CV Makmur — Cihampela" — jadi dua proyek berawalan sama tak
+      bisa dibedakan sama sekali.
+
+      ⚠ `potret-mobile.mjs` melapor HIJAU: "nol gulir mendatar". Benar untuk
+      yang diukurnya (lebar dokumen vs viewport) — chip yang meluap terpotong
+      DI DALAM wadahnya, bukan melebarkan halaman. Pengukuran yang benar atas
+      hal yang salah.
+    */
+    chip: {
+      maxWidth: '100%',
+      paddingVertical: 9, paddingHorizontal: 14, borderRadius: 10,
+      borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised,
+    },
+    /* Yang terpilih dibedakan LATAR + border, bukan warna teks saja — WCAG
+       1.4.1: informasi tak boleh disampaikan lewat warna semata. */
+    chipAktif: { backgroundColor: c.navy, borderColor: c.navy },
+    chipTeks: { fontSize: 13, color: c.textPrimary, fontFamily: FONT.isiTebal },
+    chipTeksAktif: { color: c.surfaceRaised },
+    input: {
+      borderWidth: 1, borderColor: c.border, borderRadius: 10,
+      paddingVertical: 12, paddingHorizontal: 13, fontSize: 15,
+      color: c.textPrimary, backgroundColor: c.surfaceRaised,
+    },
+    inputPanjang: { minHeight: 88, textAlignVertical: 'top' },
+    simpan: {
+      marginTop: 22, backgroundColor: c.navy, borderRadius: 12,
+      paddingVertical: 15, alignItems: 'center',
+    },
+    simpanMati: { backgroundColor: c.borderStrong },
+    simpanTeks: { color: c.surfaceRaised, fontSize: 15, fontFamily: FONT.judul },
+    catatan: { fontSize: 12, color: c.textSecondary, textAlign: 'center', marginTop: 12, lineHeight: 18 },
+    galat: {
+      backgroundColor: c.dangerBg, borderWidth: 1, borderColor: c.dangerBorder,
+      borderRadius: 10, padding: 12, marginBottom: 14,
+    },
+    galatTeks: { fontSize: 13, color: c.danger, lineHeight: 19 },
+    kosongJudul: { fontSize: 16, fontFamily: FONT.judul, color: c.textPrimary, marginBottom: 6 },
+    kosongIsi: { fontSize: 13, color: c.textSecondary, lineHeight: 19, textAlign: 'center' },
+  });
+}

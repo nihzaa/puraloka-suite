@@ -52,10 +52,34 @@ beforeAll(async () => {
   if (!auth) throw new Error('tak ada pengguna ber-role admin untuk test ini')
   adminAuth = auth
 
-  const { rows } = await db.query(`
-    SELECT c.id FROM companies c
-    WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id) LIMIT 1
-  `)
+  /*
+    ⚠ Company DEFAULT milik admin yang login — BUKAN `LIMIT 1` sembarang.
+
+    Rute memakai `request.companyId`, yang datang dari KEANGGOTAAN DEFAULT
+    user yang login. Versi sebelumnya memilih company beranggota mana pun
+    lewat `LIMIT 1` tanpa `ORDER BY` — dan diukur 2026-09-04 keduanya
+    BERBEDA (test menyiapkan f7ff1870, rute membaca 0d7743dc).
+
+    Akibatnya `UPDATE ai_pengaturan_tenant SET ai_aktif = false` mengenai
+    baris di company yang TAK PERNAH dibaca rute: gerbang gratis tak menyala,
+    kode jalan terus sampai memeriksa kunci, dan hasilnya
+
+        expected 503 to be 403   "AI dimatikan → 403"
+        expected 503 to be 402   "batas terlampaui" / "asisten dinonaktifkan"
+
+    Galatnya menuduh kunci AI. Yang salah pemilihan company-nya.
+
+    Pola ini ditiru dari `gudang-kelola.test.ts:56`, yang sudah benar.
+  */
+  const { rows } = await db.query(
+    `SELECT m.company_id AS id
+       FROM company_members m
+       JOIN users u ON u.id = m.user_id
+      WHERE u.auth_id = $1 AND m.is_default AND m.is_active
+      LIMIT 1`,
+    [adminAuth],
+  )
+  if (!rows.length) throw new Error('admin uji tak punya keanggotaan default')
   companyId = rows[0].id
 
   await db.query(
