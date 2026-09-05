@@ -46,6 +46,43 @@ CREATE TABLE IF NOT EXISTS ci_seed_penanda (
   selesai_pada timestamptz            -- NULL = seed masih berjalan
 );
 
+/*
+  ── RLS: WAJIB, dan ketiadaannya memerahkan CI dengan pesan yang benar
+
+  Ember [C] — "RLS aktif/mati tidak boleh dikonfigurasi" (CLAUDE.md §5.3).
+  `audit-force-rls.mjs` menuntut TIAP tabel `public` ber-RLS, tanpa kecuali
+  untuk tabel infrastruktur.
+
+  ⚠ Ini tak terlihat dari dev. Diukur sesudah CI merah: di basis dev tabel ini
+  lahir dengan `relrowsecurity = true` tanpa satu baris pun yang menyalakannya
+  — ada yang melakukannya otomatis di sana. Di CI tidak, dan penjaga berbunyi
+  "1 tabel dengan RLS MATI" pada keenam shard. Menyalakannya EKSPLISIT membuat
+  kedua basis sama, alih-alih bergantung pada perilaku yang cuma ada di satu.
+
+  Policy-nya sengaja menolak SEMUA lewat jalur ber-RLS: tabel ini hanya
+  disentuh `ci-project-setup.mjs`, yang memakai peran pemilik (bypass RLS).
+  Tak ada pengguna aplikasi yang boleh melihat, apalagi menulis, penanda CI.
+*/
+ALTER TABLE ci_seed_penanda ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policy
+     WHERE polrelid = 'public.ci_seed_penanda'::regclass
+       AND polname = 'ci_seed_penanda_tertutup'
+  ) THEN
+    /*
+      PERMISSIVE yang selalu FALSE, bukan RESTRICTIVE. Tabel FORCE tanpa satu
+      pun PERMISSIVE tak terbaca SIAPA PUN dan `audit-tabel-force-berpagar`
+      menyebutnya "buntu" — jadi pagarnya ditulis sebagai policy yang ADA
+      tetapi tak pernah memulangkan baris.
+    */
+    CREATE POLICY ci_seed_penanda_tertutup ON ci_seed_penanda
+      FOR ALL USING (false) WITH CHECK (false);
+  END IF;
+END $$;
+
 COMMENT ON TABLE ci_seed_penanda IS
   'Penanda "seed CI sudah selesai" per run GitHub Actions. Shard 1 menulis, '
   'shard 2-6 menunggu. Bukan data aplikasi — aman dikosongkan kapan saja.';
@@ -53,7 +90,7 @@ COMMENT ON TABLE ci_seed_penanda IS
 -- ── VERIFIKASI ──────────────────────────────────────────────────────────────
 DO $$
 DECLARE
-  n_tabel int; n_kolom int; n_pk int; n_null int;
+  n_tabel int; n_kolom int; n_pk int; n_null int; n_rls int;
 BEGIN
   SELECT count(*) INTO n_tabel FROM information_schema.tables
    WHERE table_schema = 'public' AND table_name = 'ci_seed_penanda';
@@ -96,6 +133,17 @@ BEGIN
    WHERE conrelid = 'public.ci_seed_penanda'::regclass AND contype = 'p';
   IF n_pk <> 1 THEN
     RAISE EXCEPTION '567 gagal: ci_seed_penanda tanpa PRIMARY KEY — dua shard bisa sama-sama menyeed';
+  END IF;
+
+  /*
+    RLS diperiksa dari katalog, bukan diasumsikan dari ALTER di atas: tabel
+    yang sudah ada sejak jalan sebelumnya melewati CREATE, dan tanpa cek ini
+    migrasi akan melapor OK atas tabel yang RLS-nya mati.
+  */
+  SELECT count(*) INTO n_rls FROM pg_class
+   WHERE oid = 'public.ci_seed_penanda'::regclass AND relrowsecurity;
+  IF n_rls <> 1 THEN
+    RAISE EXCEPTION '567 gagal: RLS mati di ci_seed_penanda — Ember [C], dan tripwire F2-6 akan merah';
   END IF;
 
   RAISE NOTICE '567 OK — ci_seed_penanda siap (run_id PK, 4 kolom, selesai_pada nullable)';

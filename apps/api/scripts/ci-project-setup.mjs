@@ -51,6 +51,31 @@ const SHARD = process.env.MATRIX_SHARD || '?'
 let sayaPenyeed = true
 
 if (RUN) {
+  /*
+    ⚠ AYAM-TELUR, dan versi pertama gerbang ini jatuh ke dalamnya.
+
+    Tabelnya lahir dari migrasi 567 — yang dijalankan skrip INI, jauh
+    sesudah titik ini. Versi pertama cuma memeriksa keberadaan tabel dan
+    'lolos begitu saja' bila belum ada. Akibatnya di CI, keenam shard
+    mencetak baris yang sama dan menyeed bersamaan seperti sebelumnya:
+
+        6 × [gerbang] ci_seed_penanda belum ada — menyeed tanpa gerbang
+        6 × [gerbang] ⚠ penanda selesai gagal ditulis
+
+    Gerbang yang melapor alasannya lalu tak berbuat apa-apa tetap nol
+    gerbang. Jadi tabelnya dibuat DI SINI, sebelum dipakai — bentuknya
+    sama persis dengan migrasi 567, yang tetap menjadi sumber kebenaran
+    (termasuk RLS-nya) saat rantai migrasi diputar.
+  */
+  await c.query(`
+    CREATE TABLE IF NOT EXISTS ci_seed_penanda (
+      run_id       text PRIMARY KEY,
+      shard        text        NOT NULL,
+      mulai_pada   timestamptz NOT NULL DEFAULT now(),
+      selesai_pada timestamptz
+    )`).catch((e) => console.log('[gerbang] tabel penanda tak bisa dibuat:', e.code))
+  await c.query(`ALTER TABLE ci_seed_penanda ENABLE ROW LEVEL SECURITY`).catch(() => {})
+
   const { rows: ada } = await c.query(
     `SELECT to_regclass('public.ci_seed_penanda') IS NOT NULL AS ada`)
   if (ada[0].ada) {
