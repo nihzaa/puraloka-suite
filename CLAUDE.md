@@ -283,8 +283,8 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 ## 6. Penjaga CI (jangan dilemahkan — G-5)
 
 ⚠ **Tabel di bawah TIDAK lengkap, dan tak dimaksudkan lengkap.** Diukur
-2026-08-31: `ci.yml` menjalankan **206** penjaga; tabel ini memuat **49**.
-Yang 151 lainnya bukan penjaga kelas dua — sebagian besar penjaga visual dan
+2026-09-05: `ci.yml` menjalankan **241** penjaga; tabel ini memuat **71**.
+Yang 170 lainnya bukan penjaga kelas dua — sebagian besar penjaga visual dan
 invarian domain yang lahir belakangan dan tak pernah didaftarkan.
 
 Kalimat lama di sini berbunyi "`ci.yml` menjalankan, selain
@@ -299,9 +299,16 @@ dengan racun konteks di pembuka dokumen ini.
 cd apps/api && node scripts/jalankan-semua-penjaga.mjs
 ```
 
-Diukur 2026-08-31: **203 hijau · 3 MERAH · 0 tak ketemu** — ketiga merah
-butuh lingkungan CI (`CI_DIRECT_URL`, fingerprint, coverage-shards), bukan
-cacat kode.
+Diukur 2026-09-05: **236 hijau · 1 MERAH · 4 dilewati · 0 tak ketemu.**
+Yang empat dilewati butuh lingkungan CI (`CI_DIRECT_URL`, fingerprint,
+coverage-shards) — pelarinya menyebutnya sendiri "ini BUKAN lulus".
+
+Yang satu MERAH bukan cacat lama: `audit-akhir-baris.mjs` menangkap dua
+berkas yang BARU saja disunting sesi ini berubah LF → CRLF. Penyebabnya
+penyuntingan lewat Python (`io.open(...,'w')` menerjemahkan `
+` di
+Windows); `fs.writeFileSync` Node tak melakukannya. Perbaikannya dicetak
+penjaga itu sendiri.
 
 ⚠ Pelari itu sendiri pernah melewatkan dua penjaga nyata karena mencari di
 tiga akar dan `apps/web-publik` bukan salah satunya. Ia melapor "199 hijau"
@@ -344,7 +351,7 @@ sebelum menyentuh kode terkait** — bukan sekadar daftar isi.
 | `audit-batas-terpetakan.mjs` | tiap catatan batas wajib SUDAH DITIMBANG terhadap daftar klaim — penjaga di atasnya bekerja dari daftar tulisan tangan, jadi ia hanya menjaga yang didaftarkan. Dua catatan basi berjam-jam tanpa terdeteksi 2026-08-20. Penjaga yang tak bisa tahu dirinya tertinggal akan pelan-pelan berhenti menjaga tanpa gejala (ambang NOL) |
 | `audit-token-mobile-terenkripsi.mjs` | token mobile wajib lewat `expo-secure-store`, bukan AsyncStorage — file SQLite biasa di Android yang ikut backup tak terenkripsi; `refresh_token` memperpanjang dirinya sendiri, jadi sekali terbaca berarti akses tanpa kedaluwarsa (ambang NOL) |
 | `audit-a11y-mobile.mjs` | tiap `Pressable`/`TouchableOpacity` wajib punya `accessibilityRole` atau `accessibilityLabel` — axe-core tak jalan di React Native, jadi 137 halaman web yang nol pelanggaran tak menjaga mobile sama sekali. Diukur 2026-08-31: 25 dari 43 telanjang, termasuk "Keluar" dan "Kembali". Pembaca layar menyebutnya teks biasa (ambang NOL) |
-| `audit-penjaga-tercatat-jalan.mjs` | penjaga yang TERCATAT di tabel ini wajib benar-benar dijalankan `ci.yml` — dokumen yang menjanjikan perlindungan tak ada membuat pembacanya berhenti memeriksa hal yang tak dijaga siapa pun, tanpa gejala. Arah sebaliknya (jalan tapi tak tertabel) sengaja TIDAK dijaga: 206 jalan vs 49 tertabel, dan tabel 206 baris tak seorang pun baca (ambang NOL) |
+| `audit-penjaga-tercatat-jalan.mjs` | penjaga yang TERCATAT di tabel ini wajib benar-benar dijalankan `ci.yml` — dokumen yang menjanjikan perlindungan tak ada membuat pembacanya berhenti memeriksa hal yang tak dijaga siapa pun, tanpa gejala. Arah sebaliknya (jalan tapi tak tertabel) sengaja TIDAK dijaga — diukur 2026-09-05: 241 jalan vs 71 tertabel, dan tabel 241 baris tak seorang pun baca. ⚠ Angka di §6 ini sendiri sempat basi (206/49 bertahan sampai 2026-09-05, saat sesungguhnya 241/71) — bentuk yang persis diperingatkan pembuka dokumen ini, di paragraf yang menerangkan penjaganya (ambang NOL) |
 | `audit-kontras-mobile.mjs` | warna teks mobile wajib >= 4.5:1 (WCAG AA) — DIHITUNG, bukan ditaksir. `#9CA3AF` terlihat wajar tapi 2.54:1, dan dipakai 15 tempat plus label tab yang hadir di SETIAP layar. Berlatar gelap dinilai terhadap navy, bukan dilewati (ambang NOL) |
 | `audit-versi-expo-cocok.mjs` | versi paket mobile wajib cocok Expo SDK — diukur 2026-08-31 saat `expo export` pertama kali dijalankan: bundling GAGAL, 11 paket tak cocok, aplikasi TAK PERNAH bisa jadi APK. `tsc` hijau selama itu karena typecheck tak menjalankan Metro. Mayor+minor wajib sama, patch boleh lebih tinggi (ambang NOL) |
 | `audit-modul-mobile-nyata.mjs` | tiap modul WebView mobile wajib menunjuk halaman web yang ADA — jalur tanpa `page.tsx` membuka 404 di dalam bingkai aplikasi, tanpa tombol kembali. Peta di `web/[modul].tsx`, halaman di `apps/web/app/(dashboard)/`: dua tempat, tak ada yang menghubungkan. Pada jalan pertamanya menemukan `/sdm` sudah buntu sejak dibuat (ambang NOL) |
@@ -354,6 +361,7 @@ sebelum menyentuh kode terkait** — bukan sekadar daftar isi.
 | `audit-daftar-mobile-virtual.mjs` | daftar panjang wajib `FlatList`, bukan `ScrollView` + `.map()` — diukur 2026-09-04: **NOL FlatList** di seluruh apps/mobile, 14 layar memakai ScrollView+map. Baris nyata dari API: kasbons 67 · pekerjaan 63 · wage-reports 51 · notifications 30. Ambang virtualisasi 50 (pedoman stack react-native, severity High). `ScrollView` menahan SELURUH anaknya di memori termasuk yang tak pernah tergulir; gejalanya makin parah seiring bertambahnya data — jadi paling buruk persis saat aplikasinya paling dipakai, dan di perangkat penguji dengan 5 baris semuanya mulus (ratchet; lantai menyimpan DAFTAR NAMA, bukan cuma angka — merah tanpa menyebut pelakunya memaksa orang berikutnya menyisir 14 baris) |
 | `audit-status-mobile-berlabel.mjs` | tiap status yang bisa sampai ke layar mobile wajib punya label Indonesia — ditemukan dari MEMOTRET layar mandor: lencananya berbunyi **"submitted"**. `statusLabel()` memakai `map[status] ?? status`, jadi status tak terdaftar TIDAK gagal, ia muncul MENTAH. Daftarnya dibaca dari tipe ENUM PostgreSQL, bukan dari isi tabel (tabel yang hari ini cuma berisi dua nilai tetap boleh menghasilkan yang ketiga besok). ⚠ Hanya menjaga peta `Badge.statusLabel`; `pekerjaan.tsx` punya STATUS_PUNCH/NCR/IZIN sendiri yang TIDAK dijaga di sini (ambang NOL) |
 | `audit-bentuk-balasan-mobile.mjs` | kunci yang dibaca layar mobile wajib benar-benar DIKIRIM rutenya — diukur 2026-09-04, potret pertama dashboard yang berhasil login: "Proyek Aktif 0 · Total Kontrak Rp 0", sementara API pada detik yang sama mengirim 15 proyek dan Rp 7.135.525.000. API bersarang `{kpis:{…}}`, layar membaca datar, dan `?? 0` menelan seluruhnya — **nol yang salah tak bisa dibedakan dari nol yang benar**. `tsc` hijau karena `res.data` bertipe `any` dari axios. ⚠ Ia menangkap kunci SALAH NAMA, BUKAN kunci SALAH SARANG (terukur lewat mutasi; batasnya tertulis di kepala berkas) (ambang NOL) |
+| `audit-kosong-berpetunjuk.mjs` | layar KOSONG wajib menyebut langkah berikutnya, bukan cuma keadaannya — "Belum ada kasbon" benar dan berhenti di situ; pembacanya tetap tak tahu harus menunggu, menekan sesuatu, atau menelepon seseorang. Yang paling mahal bentuk ketiga: layar yang kosong KARENA IZIN dibaca sebagai aplikasi rusak, lalu ditinggalkan tanpa dilaporkan. ⚠ Aturannya DIGANTI 2026-09-05 dan alasannya wajib dibaca sebelum mengubahnya lagi: versi pertama menghitung ELEMEN (satu `<Text>` = keadaan saja), proksi yang salah di KEDUA arah — lima gerbang "Tidak ada akses" yang sudah benar terhitung melanggar SELAMANYA, sementara dua `<Text>` yang keduanya menyatakan keadaan lolos bersih. Penjaga yang merah atas hal yang BENAR akan diabaikan seluruh keluarannya, lalu berhenti menjaga tanpa gejala. Sekarang yang dibaca TEKSNYA (kata AKSI/TUNGGU/ORANG), dan gerbang izin dibaca berpasangan `kosongJudul`+`kosongIsi` sebab pengguna juga begitu. Tetap pemeriksaan KATA, bukan pemahaman (ratchet, lantai 0) |
 | `audit-warna-mobile-bertoken.mjs` | warna mobile wajib dari token, bukan hex diketik — diukur 2026-09-04 sebelum `lib/tema.ts` ada: 39 hex unik di 445 tempat, `#003366` sendiri 88 kali, nol token, nol mode gelap. Web punya 105 token berriwayat WCAG; mobile mewarisi nol, sehingga dua hal MUSTAHIL: ganti merek tanpa ratusan suntingan, dan mode gelap tanpa membuka ulang tiap layar (ratchet) |
 | `audit-font-mobile-terpakai.mjs` | font merek yang DIMUAT wajib DIPAKAI — diukur 2026-09-04 tepat sesudah dua keluarga font dipasang dan splash ditahan menunggunya: `fontFamily` di seluruh layar **NOL**. Biaya penuh (dua unduhan + splash menunggu), nol hasil, dan tsc/Metro/a11y/kontras semuanya hijau karena tak ada yang SALAH — cuma tak ada yang memanggilnya. Kembaran cacat `useData()` di web. Merah untuk TIGA keadaan: dimuat-tapi-nol-dipakai, dipakai-tapi-tak-dimuat (RN jatuh diam-diam ke bawaan), dan pemakaian yang TURUN (ratchet naik) |
 | `audit-hook-eas-utuh.mjs` | rantai hook build EAS wajib utuh — SEMBILAN build APK gagal karena celah dua versi pnpm (server 9.15.5, lokal 11.11.0): `overrides` di `pnpm-workspace.yaml` adalah fitur pnpm 10+, dan pnpm 9 tak membacanya lalu menolak dengan galat yang menuduh lockfile. Menghapus satu mata rantai tak menggagalkan tsc maupun test; yang gagal cuma build di server 20 menit kemudian (ambang NOL) |

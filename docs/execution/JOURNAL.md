@@ -5,6 +5,101 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-05 (lanjutan) — penjaga yang mengukur PROKSI, dan animasi yang tak pernah ada
+
+Dua pekerjaan yang tersisa dari daftar mobile: dua belas layar kosong tanpa
+petunjuk, dan nol transisi antar-layar. Keduanya selesai, dan keduanya
+membuka sesuatu yang tak ada di daftar.
+
+### 1. Penjaganya sendiri yang salah ukur
+
+`audit-kosong-berpetunjuk.mjs` (lahir kemarin) menghitung ELEMEN: satu
+`<Text>` = "keadaan saja", dua atau lebih = "sudah menuntun". Proksi yang
+terlihat masuk akal, dan baru ketahuan salah setelah kedua belas
+temuannya dibaca satu per satu:
+
+| Arah | Yang terjadi |
+|---|---|
+| PALSU-MERAH | **Lima** gerbang "Tidak ada akses" sudah berakhir "Hubungi admin bila ini keliru" sejak awal — bentuk ORANG yang persis diminta. Dua `<Text>`, jadi melanggar selamanya. |
+| PALSU-HIJAU | `pekerjaan.tsx:712` punya dua `<Text>` yang KEDUANYA menyatakan keadaan, di layar yang punya tiga tombol "+". Lolos bersih. |
+
+Yang kedua justru bentuk yang **kepala berkas penjaganya sendiri akui tak
+bisa ia tangkap** — tertulis di sana sebagai batas yang diketahui, lalu
+dibiarkan.
+
+Aturannya diganti: baca TEKSNYA, cari penyebutan langkah berikutnya
+(AKSI/TUNGGU/ORANG). Gerbang izin dibaca berpasangan `kosongJudul` +
+`kosongIsi`, sebab pengguna juga membacanya begitu.
+
+    12 → 0, lantai 12 → 0
+
+Mutasi dua bentuk, keduanya MERAH exit 1 dan menyebut berkas:baris —
+termasuk bentuk "dua kalimat, dua-duanya keadaan" yang aturan lama
+tak mungkin tangkap.
+
+> **Penjaga yang merah atas hal yang BENAR akan diabaikan seluruh
+> keluarannya, lalu berhenti menjaga tanpa satu pun gejala.**
+
+### 2. Cacat yang bukan soal kalimat
+
+Menelusuri kenapa tiap daftar kosong membuka `progress/input.tsx`:
+
+- muat proyek **tanpa `.catch` sama sekali** → gagal memuat menyisakan
+  penggulung mendatar KOSONG. Bukan kalimat yang kurang menolong —
+  nol tulisan.
+- `.catch(() => setRabItems([]))` mengubah GAGAL MUAT jadi "Belum ada RAB".
+  Kebohongan yang sudah diperbaiki **dua kali** di repo ini
+  (`notifications`, `proyek/[id]`); berkas ini yang tersisa.
+
+⚠ `audit-catch-senyap.mjs` melapor **0** — dan benar, sebab cakupannya
+`apps/api/src` saja. Bentuk §8a.2: alatnya benar, kalimatnya kehilangan
+syarat.
+
+### 3. Nol transisi — diukur, bukan diingat
+
+`Animated` cuma di `SplashMerek`, reanimated tak terpasang, `animation`
+tak disebut di satu layout pun. Membaca `(app)/_layout.tsx` untuk memilih
+presetnya justru membuka bentuk navigasinya:
+
+**13 dari 15 `Tabs.Screen` bertanda `href: null`**, dan tak ada `Stack` di
+mana pun — hanya dua `_layout.tsx` di seluruh aplikasi. Layar-layar itu
+tab bersaudara secara struktur, layar bertumpuk secara makna.
+
+Karena itu `fade`, bukan `shift`: geseran mendatar berarti "pindah ke
+sebelah", arah yang benar untuk dua tab sungguhan dan berbohong untuk
+tiga belas sisanya.
+
+Nilai & durasi dibaca dari paket terpasang (`types.d.ts:58`,
+`TransitionSpecs.js` 150ms), dan `BottomTabView.js:91` memperlihatkan
+bawaannya memang `'none'` — bukti bahwa app ini sebelumnya nol transisi.
+
+`hooks/useKurangiGerak` dipisah dari `SplashMerek` sebelum dipakai di
+tempat kedua. Arah jatuhannya sengaja BERBEDA di dua tempat: hook gagal
+baca → `false` (tak tahu ≠ sensitif gerak); layout belum baca → `'none'`
+(jendela sekejap, tapi terjadi tiap kali aplikasi dibuka).
+
+### Yang TIDAK terbukti
+
+Fade-nya terlihat mata. Butuh sesi ber-login; `.env` mobile menunjuk
+`192.168.50.114:3007` (nol yang mendengarkan), domain VPS hanya menyajikan
+web, dan menyalakan API lokal bertentangan dengan "nol server lokal".
+Yang dibuktikan: opsinya sampai ke navigator dan dikonsumsi
+(`Animated[spec.animation]`), aplikasi boot bersih (633 huruf, nol
+overlay, nol galat konsol), `expo export` 4,43 MB.
+
+Dicatat sebagai batas, bukan ditutup dengan cerita.
+
+### Terukur
+
+    kosong tanpa petunjuk   12 → 0   (lantai 0, dijaga CI)
+    tsc                     exit 0
+    expo export android     4,43 MB
+    penjaga mobile          14/14 hijau
+    daftar belum virtual    9 — dan itu BENAR: workers 63 total,
+                            maks 11 per mandor, jauh di bawah ambang 50
+
+---
+
 ## 2026-09-05 (koreksi) — saya salah menuduh `git add .`, dan celahnya lebih halus
 
 Entri di bawah menulis bahwa enam berkas saya tersapu karena bentuk yang
