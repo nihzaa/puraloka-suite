@@ -53,10 +53,34 @@ beforeAll(async () => {
     { data: { user: { id: auth } }, error: null } as never,
   )
 
-  const { rows } = await db.query(`
-    SELECT c.id FROM companies c
-    WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id) LIMIT 1
-  `)
+  /*
+    Company diambil dari keanggotaan DEFAULT admin sesi, bukan company
+    beranggota mana pun.
+
+    Versi sebelumnya memakai `LIMIT 1` tanpa ORDER BY atas SELURUH
+    companies yang punya anggota — dan basis ini punya banyak. RLS
+    `wa_template` menyaring `company_id = auth_company_id()`, dan
+    `auth_company_id()` datang dari keanggotaan DEFAULT. Begitu keduanya
+    berbeda, baris yang BARU SAJA disisipkan test tak terlihat oleh rute:
+
+        AssertionError: expected 404 to be 200
+
+    ⚠ Yang membuatnya bertahan lama: test yang MENGHARAPKAN 404 tetap
+    hijau — mereka lulus karena alasan yang salah. Komentar di berkas ini
+    sendiri sudah memperingatkannya: "penjaga yang hanya membuktikan
+    'menolak yang salah' bisa hijau dengan menolak SEMUANYA".
+
+    Pola diambil dari `ai-chat.test.ts` yang sudah diperbaiki lebih dulu.
+  */
+  const { rows } = await db.query(
+    `SELECT m.company_id AS id
+       FROM company_members m
+       JOIN users u ON u.id = m.user_id
+      WHERE u.auth_id = $1 AND m.is_default AND m.is_active
+      LIMIT 1`,
+    [auth],
+  )
+  if (!rows.length) throw new Error('admin uji tak punya keanggotaan default')
   companyId = rows[0].id
 
   app = Fastify()
