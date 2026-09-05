@@ -980,13 +980,29 @@ await seed('rab_items kategori (bahan uji portofolio biaya)', async () => {
 
   await c.query(
     `INSERT INTO rab_items (project_id, name, level)
-     SELECT $1::uuid, $2::text, 'category'
-      WHERE NOT EXISTS (SELECT 1 FROM rab_items WHERE name = $2::text)`,
-    [pr.id, 'CI seed kategori RAB'])
+     SELECT $1::uuid, v.nama, 'category'
+       FROM (VALUES ('CI seed kategori RAB'), ('CI seed kategori RAB 2')) AS v(nama)
+      WHERE NOT EXISTS (SELECT 1 FROM rab_items x WHERE x.name = v.nama)`,
+    [pr.id])
 
+  /*
+    DUA, bukan satu. `work-scope-kategori.test.ts` mengambil `LIMIT 2` dari
+    kategori pada proyek yang sama, sebab yang diuji PERPINDAHAN kategori —
+    satu baris hanya membuktikan 'tidak null', bukan bahwa nilainya berganti.
+
+        butuh dua kategori RAB di proyek ini - fixture tak terbentuk
+
+    Ambangnya dihitung PER-PROYEK, bukan global: dua kategori yang tersebar
+    di dua proyek berbeda lolos hitungan global tetapi tetap memerahkan test,
+    karena query-nya menyaring `ri.project_id = a.project_id`.
+  */
   const { rows } = await c.query(
-    `SELECT count(*)::int n FROM rab_items WHERE level = 'category'`)
-  if (rows[0].n < 1) throw new Error('nol rab_items level category')
+    `SELECT count(*)::int n FROM rab_items
+      WHERE level = 'category' AND project_id = $1::uuid`, [pr.id])
+  if (rows[0].n < 2) {
+    throw new Error(
+      `hanya ${rows[0].n} rab_items level category di proyek fixture — butuh 2`)
+  }
 
   /*
     ANAK berbobot & berjadwal — menutup TIGA kegagalan sekaligus.
@@ -1558,6 +1574,44 @@ await seed('kasbon x2 (approved + pending, bahan uji saringan status)', async ()
   riwayat, dan median dari satu titik tak membedakan apa pun. Nominalnya
   sengaja berjauhan supaya median dan pencilan benar-benar berbeda.
 */
+/*
+  Lingkup kerja bersistem `progress_pct` — bahan uji opname bersama.
+
+      Error: tak ada work_scope progress_pct untuk diuji
+
+  Seed di bawah membuat lingkup bersistem `harian`, dan itu sistem yang
+  BERBEDA: opname progres hanya berlaku bagi lingkup yang dibayar menurut
+  persentase penyelesaian. Satu baris `harian` tak bisa menggantikannya.
+
+  ⚠ CHECK-nya diukur, bukan ditebak:
+
+      CHECK (payment_system = 'harian' OR borongan_value IS NOT NULL)
+      CHECK (borongan_value IS NULL OR borongan_value > 0)
+
+  Jadi `borongan_value` WAJIB terisi dan positif di sini — tanpanya barisnya
+  ditolak, dan galatnya menyebut constraint, bukan seed ini.
+*/
+await seed('work_scope progress_pct (bahan uji opname bersama)', async () => {
+  await c.query(
+    `INSERT INTO work_scopes (assignment_id, scope_name, payment_system,
+                              borongan_value, status)
+     SELECT ma.id, 'CI Seed Lingkup Progres', 'progress_pct'::payment_system,
+            250000000, 'active'
+       FROM mandor_assignments ma
+      WHERE NOT EXISTS (SELECT 1 FROM work_scopes w
+                         WHERE w.scope_name = 'CI Seed Lingkup Progres')
+      ORDER BY ma.created_at LIMIT 1`)
+
+  const { rows } = await c.query(
+    `SELECT count(*)::int n FROM work_scopes ws
+       JOIN mandor_assignments ma ON ma.id = ws.assignment_id
+       JOIN projects p ON p.id = ma.project_id
+      WHERE ws.payment_system = 'progress_pct'`)
+  if (rows[0].n === 0) {
+    throw new Error('nol work_scope progress_pct sesudah seed — CHECK menolaknya?')
+  }
+})
+
 await seed('work_scope + weekly_wage_reports x3 (bahan uji upah menyimpang)', async () => {
   await c.query(
     `INSERT INTO work_scopes (assignment_id, scope_name, payment_system, status)
