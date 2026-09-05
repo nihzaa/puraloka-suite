@@ -59,15 +59,15 @@
  * menyalakan Reduce Motion melihat lambang yang sudah utuh — bukan animasi
  * yang dipercepat, melainkan TANPA gerak sama sekali.
  */
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef } from 'react'
 import {
-  AccessibilityInfo,
   Animated,
   Easing,
   StyleSheet,
   Text,
   View,
 } from 'react-native'
+import { useKurangiGerak } from '@/hooks/useKurangiGerak'
 
 const NAVY = '#003366'
 
@@ -152,8 +152,19 @@ export function LambangPuraloka({
 }
 
 export function SplashMerek({ selesai }: { selesai?: boolean }) {
-  const [kurangiGerak, setKurangiGerak] = useState(false)
-  const [siapDicek, setSiapDicek] = useState(false)
+  /*
+    Dulu sepasang state di sini (`kurangiGerak` + `siapDicek`) dengan
+    blok `useEffect` + `.catch`-nya sendiri. Dipindah ke
+    `hooks/useKurangiGerak` saat transisi antar-layar lahir dan
+    membutuhkan pembacaan yang sama — dua salinan berarti dua tempat yang
+    harus diingat bersamaan ketika salah satunya diperbaiki.
+
+    Tri-state hook itu memetakan persis pasangan lama: `null` = belum
+    dibaca (dulu `siapDicek === false`), `true`/`false` = jawabannya.
+  */
+  const kurangiGerakMentah = useKurangiGerak()
+  const siapDicek = kurangiGerakMentah !== null
+  const kurangiGerak = kurangiGerakMentah === true
 
   /*
     Satu nilai per pilar. 0 = belum ada, 1 = penuh. Alas dan wordmark memakai
@@ -165,21 +176,6 @@ export function SplashMerek({ selesai }: { selesai?: boolean }) {
   const kata = useRef(new Animated.Value(0)).current
   const keluar = useRef(new Animated.Value(1)).current
 
-  useEffect(() => {
-    let hidup = true
-    AccessibilityInfo.isReduceMotionEnabled()
-      .then((aktif) => {
-        if (!hidup) return
-        setKurangiGerak(aktif)
-        setSiapDicek(true)
-      })
-      .catch(() => {
-        // Kegagalan membaca preferensi tak boleh membuat splash menggantung
-        // selamanya — layar biru tanpa logo lebih buruk daripada animasi.
-        if (hidup) setSiapDicek(true)
-      })
-    return () => { hidup = false }
-  }, [])
 
   useEffect(() => {
     if (!siapDicek) return

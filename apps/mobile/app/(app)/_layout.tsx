@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/useAuth';
+import { useKurangiGerak } from '@/hooks/useKurangiGerak';
 import { useTema } from '@/hooks/useTema';
 import { FONT } from '@/lib/tema';
 
@@ -118,6 +119,40 @@ export default function AppLayout() {
   const { punyaIzin } = useAuth();
   const { c } = useTema();
 
+  /*
+    ── Transisi antar-layar: `fade`, dan pilihannya diukur ──────────────
+
+    Sampai hari ini aplikasi ini punya NOL transisi. Tiap perpindahan
+    layar adalah potongan mendadak — layar lama hilang, layar baru ada.
+    Yang hilang bukan keindahan melainkan KETERANGAN: tak ada isyarat
+    bahwa perpindahan itu benar-benar terjadi, dan pada HP lambat
+    ketukan yang belum sempat memuat terasa seperti ketukan yang tak
+    terbaca. Penggunanya menekan lagi.
+
+    `@react-navigation/bottom-tabs` 7.18.0 menyediakan tiga nilai
+    (dibaca dari `lib/typescript/src/types.d.ts`, bukan dari ingatan):
+    `'none' | 'fade' | 'shift'`, keduanya berdurasi 150ms.
+
+    Dipilih `fade`, BUKAN `shift`, dan itu bukan selera:
+
+      Dari 15 `Tabs.Screen` di berkas ini, TIGA BELAS bertanda
+      `href: null` — layar yang dibuka lewat `router.push()` dari
+      `lainnya.tsx` dan `kasbon/index.tsx`, bukan dari bilah tab.
+      Secara struktur mereka tab bersaudara; secara makna mereka layar
+      yang DITUMPUK di atas.
+
+      `shift` menggeser mendatar, dan geseran mendatar berarti
+      "berpindah ke sebelah" — arah yang benar untuk tab sungguhan dan
+      berbohong untuk tiga belas sisanya. `fade` tak menjanjikan arah
+      apa pun; ia cuma mengatakan isinya berganti.
+
+    150ms juga bukan angka yang dipilih sendiri — itu bawaan presetnya,
+    dan kebetulan tepat di batas bawah jendela 150–300ms untuk
+    mikro-interaksi. Perpindahan layar yang lebih lambat dari itu di HP
+    lapangan terasa seperti aplikasi yang tersendat, bukan yang halus.
+  */
+  const kurangiGerak = useKurangiGerak();
+
   const bolehKasbon = punyaIzin('mandor:kasbon:create');
   const bolehProgres = punyaIzin('reports:progress') && punyaIzin('mandor:kasbon:create');
   const bolehMandor = punyaIzin('mandor:assign');
@@ -126,6 +161,18 @@ export default function AppLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        /*
+          `null` (belum terbaca) diperlakukan seperti "kurangi" — animasi
+          baru menyala sesudah preferensinya diketahui.
+
+          Arah jatuhan ini kebalikan dari `useKurangiGerak` sendiri, dan
+          sengaja: di sana yang tak diketahui adalah KEGAGALAN membaca
+          (jarang, permanen); di sini yang tak diketahui adalah beberapa
+          milidetik pertama (selalu, sekejap). Menganimasikan selama
+          jendela itu memberi gerakan justru kepada orang yang memintanya
+          jangan ada — tiap kali aplikasi dibuka.
+        */
+        animation: kurangiGerak === false ? 'fade' : 'none',
         tabBarActiveTintColor: c.navy,
         tabBarInactiveTintColor: c.textSecondary,
         tabBarStyle: {
