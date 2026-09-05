@@ -416,6 +416,23 @@ async function seed(label, fn) {
 // users (admin/pm/mandor/client) + auth.users (hanya `id` yang wajib)
 const USERS = [
   ['admin', 'ci-admin@puraloka.test', 'CI Admin'],
+  /*
+    Admin KEDUA — bukan duplikat, melainkan syarat yang tak bisa dipenuhi
+    oleh peran lain.
+
+        Error: tak ada company yang punya pengguna kedua berizin
+               opname:verifikasi - periksa seed/keanggotaan, bukan berkas ini
+
+    `companyDenganIzinKedua()` mencari anggota LAIN (`u2.id <> admin`) di
+    company yang sama, yang perannya memegang izin itu. Dari empat akun seed,
+    hanya `ci-admin` yang perannya punya `opname:verifikasi` — dan ia justru
+    admin sesi, jadi tersaring oleh `u2.id <> $1`. `pm`, `mandor`, `client`
+    tak memegang izin itu.
+
+    Jadi yang kurang BUKAN izin dan bukan keanggotaan: kurang satu orang
+    kedua yang berperan sama. Opname dua pihak memang menuntut dua manusia.
+  */
+  ['admin', 'ci-admin2@puraloka.test', 'CI Admin Kedua'],
   ['pm', 'ci-pm@puraloka.test', 'CI PM'],
   ['mandor', 'ci-mandor@puraloka.test', 'CI Mandor'],
   ['client', 'ci-client@puraloka.test', 'CI Client'],
@@ -441,7 +458,7 @@ const USERS = [
   */
 ]
 for (const [role, email, name] of USERS) {
-  await seed(`user ${role}`, async () => {
+  await seed(`user ${role} <${email}>`, async () => {
     const { rows: existing } = await c.query(`SELECT auth_id FROM public.users WHERE email=$1`, [email])
     if (existing.length && existing[0].auth_id) return
     const { rows: r } = await c.query(`SELECT id FROM roles WHERE name=$1`, [role])
