@@ -1341,13 +1341,42 @@ await seed('resource (bahan uji jembatan RAB↔material)', async () => {
     `INSERT INTO resources (code, name, category, unit_code)
      SELECT v.kode, v.nama, v.kategori, v.satuan
        FROM (VALUES
-         ('CI-RES-MAT', 'CI Seed Semen',  'material', 'sak'),
-         ('CI-RES-LAB', 'CI Seed Tukang', 'labor',    'OH')
+         ('CI-RES-MAT', 'CI Seed Semen',    'material',    'sak'),
+         ('CI-RES-LAB', 'CI Seed Tukang',   'labor',       'OH'),
+         ('CI-RES-MA2', 'CI Seed Pasir',    'material',    'm3'),
+         ('CI-RES-MA3', 'CI Seed Besi',     'material',    'kg'),
+         ('CI-RES-LA2', 'CI Seed Mandor',   'labor',       'OH'),
+         ('CI-RES-EQ1', 'CI Seed Molen',    'equipment',   'hari'),
+         ('CI-RES-EQ2', 'CI Seed Vibrator', 'equipment',   'hari'),
+         ('CI-RES-SUB', 'CI Seed Subkon',   'subcontract', 'ls')
        ) AS v(kode, nama, kategori, satuan)
       WHERE NOT EXISTS (SELECT 1 FROM resources r WHERE r.code = v.kode)`)
 
-  const { rows } = await c.query(`SELECT count(*)::int n FROM resources`)
-  if (rows[0].n === 0) throw new Error('nol resource sesudah seed')
+  /*
+    Yang diperiksa BUKAN 'ada resource', melainkan 'cukup resource yang BISA
+    DIPINJAM' — dua hal yang mudah tertukar dan hanya yang kedua bermakna.
+
+    `price-book-triase.test.ts` meminjam EMPAT kali dalam satu jalan
+    (resSama, resBeda, resBaru, resJauh), tiap kali menolak resource yang
+    sudah punya harga `active` atau `draft`. Seed dua baris membuat dua
+    pinjaman pertama berhasil dan yang ketiga melempar 'fixture tak
+    terbentuk' — pesan yang menuduh test, padahal seed-nya yang kurang.
+
+    Harga `expired` sengaja TIDAK didiskualifikasi: itulah sisa yang
+    ditinggalkan `bersihkan()`, dan trigger 104 melarang menghapusnya.
+    Resource ber-`expired` adalah papan tulis bersih, bukan yang terpakai.
+  */
+  const { rows } = await c.query(`
+    SELECT count(*)::int n FROM resources r
+     WHERE r.status = 'active'
+       AND NOT EXISTS (SELECT 1 FROM price_book_entries p
+                        WHERE p.resource_id = r.id
+                          AND p.status IN ('active', 'draft'))`)
+  if (rows[0].n < 4) {
+    throw new Error(
+      `hanya ${rows[0].n} resource bisa dipinjam sesudah seed — ` +
+      `price-book-triase butuh 4 dalam satu jalan`)
+  }
 })
 
 /*
