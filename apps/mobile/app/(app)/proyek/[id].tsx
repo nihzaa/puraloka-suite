@@ -559,11 +559,11 @@ export default function ProyekDetailScreen() {
             </View>
             {loadingRab ? (
               <View style={{ padding: 40, alignItems: 'center' }}>
-                <ActivityIndicator size="small" color="#003366" />
+                <ActivityIndicator size="small" color={c.navy} />
               </View>
             ) : rabTree.length === 0 ? (
               <View style={{ padding: 40, alignItems: 'center' }}>
-                <Text style={{ color: '#6B7280', fontSize: 13 }}>Belum ada RAB untuk proyek ini</Text>
+                <Text style={styles.kosongInline}>Belum ada RAB untuk proyek ini</Text>
               </View>
             ) : (
               <RabTree
@@ -692,7 +692,7 @@ export default function ProyekDetailScreen() {
               </View>
             ) : (
               <View style={{ padding: 40, alignItems: 'center' }}>
-                <Text style={{ color: '#6B7280', fontSize: 13 }}>Belum ada log progress</Text>
+                <Text style={styles.kosongInline}>Belum ada log progress</Text>
               </View>
             )}
           </>
@@ -705,6 +705,22 @@ export default function ProyekDetailScreen() {
 function gaya(c: Palet) {
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: c.surfaceSubtle },
+    /*
+      Keadaan kosong sebaris di dalam tab, bukan layar penuh — karena itu
+      tak memakai `<Kosong>`, yang berpadding 56px dan dimaksudkan mengisi
+      layar sendirian.
+
+      Sebelumnya gaya sebaris ber-hex: `{ color: '#6B7280', fontSize: 13 }`
+      ditulis DUA KALI. Abu-abu itu benar di mode terang dan nyaris tak
+      terbaca di mode gelap — cacat yang tak bergejala sampai layarnya
+      dibuka malam hari.
+    */
+    kosongInline: {
+      fontSize: HURUF.sm,
+      fontFamily: FONT.isi,
+      color: c.textSecondary,
+      lineHeight: 19,
+    },
     centered: {
       flex: 1, alignItems: 'center', justifyContent: 'center',
       backgroundColor: c.surfaceSubtle, padding: SPASI.lg,

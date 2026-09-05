@@ -150,7 +150,7 @@ export function PenandaAntrean() {
           </Text>
         </View>
         {sedangKirim ? (
-          <ActivityIndicator size="small" color="#92400E" />
+          <ActivityIndicator size="small" color={c.warning} />
         ) : (
           <TouchableOpacity onPress={coba} style={styles.tombol} accessibilityRole="button">
             <Text style={styles.tombolTeks}>Coba kirim</Text>
@@ -228,7 +228,7 @@ function gaya(c: Palet) {
       borderTopWidth: 1,
       borderTopColor: c.dangerBorder,
     },
-    macetRingkas: { fontSize: 12, fontFamily: FONT.isiTebal, color: '#7F1D1D' },
+    macetRingkas: { fontSize: 12, fontFamily: FONT.isiTebal, color: c.danger },
     // #B91C1C di atas #FEF2F2 = 6,4:1 — lolos WCAG AA.
     macetGalat: { fontSize: 12, color: c.danger, marginTop: 1 },
     tombolBuang: {

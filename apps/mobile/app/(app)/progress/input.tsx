@@ -418,7 +418,7 @@ export default function InputProgressScreen() {
             <Card style={styles.section}>
               <Text style={styles.label}>Item Pekerjaan (RAB)</Text>
               {loadingRab ? (
-                <ActivityIndicator size="small" color="#003366" style={{ marginTop: 8 }} />
+                <ActivityIndicator size="small" color={c.navy} style={{ marginTop: 8 }} />
               ) : galatRab ? (
                 <Text style={styles.galatTeks}>{galatRab}</Text>
               ) : rabItems.length === 0 ? (
@@ -525,7 +525,7 @@ function gaya(c: Palet) {
     addPhotoText: { fontSize: 12, color: c.textSecondary },
     /* Cokelat-oranye, bukan merah: ini keadaan sementara yang diketahui, bukan
        galat yang baru terjadi. Merah membuat mandor mengira laporannya gagal. */
-    fotoMati: { fontSize: 12, color: '#92400E', lineHeight: 17, flex: 1 },
+    fotoMati: { fontSize: 12, color: c.warning, lineHeight: 17, flex: 1 },
     rabList: { maxHeight: 280, marginTop: 4 },
     rabItem: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: c.border, marginBottom: 6, backgroundColor: c.surfaceRaised },
     rabItemActive: { backgroundColor: c.navy, borderColor: c.navy },

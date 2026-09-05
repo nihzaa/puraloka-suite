@@ -290,7 +290,7 @@ function gaya(c: Palet) {
     /* Bukan merah: ini bukan galat melainkan keadaan yang wajar pada build
        tertentu. Merah di dua belas baris sekaligus membuat layar terbaca
        seperti rusak. */
-    barisBelumSiap: { fontSize: 12, color: '#92400E', marginTop: 2 },
+    barisBelumSiap: { fontSize: 12, color: c.warning, marginTop: 2 },
     panah: { fontSize: 22, color: c.textSecondary, marginLeft: 8 },
     kosong: { paddingVertical: 40, alignItems: 'center' },
     kosongJudul: { fontSize: 15, fontFamily: FONT.isiTebal, color: c.textPrimary, marginBottom: 6 },

@@ -397,7 +397,7 @@ function gaya(c: Palet) {
     /* 26px — target sentuh efektifnya seluruh baris kartu, bukan kotak ini. */
     kotak: {
       width: 26, height: 26, borderRadius: 7, borderWidth: 2,
-      borderColor: '#D1D5DB', alignItems: 'center', justifyContent: 'center',
+      borderColor: c.borderStrong, alignItems: 'center', justifyContent: 'center',
     },
     kotakAktif: { backgroundColor: c.navy, borderColor: c.navy },
     centang: { color: c.surfaceRaised, fontSize: 15, fontFamily: FONT.judul },
