@@ -176,7 +176,10 @@ export default function LaporTemuan() {
 
       <Text style={s.label}>Proyek</Text>
       {proyek.length === 0 ? (
-        <Text style={s.kosongIsi}>Belum ada proyek yang bisa Anda akses.</Text>
+        <Text style={s.kosongIsi}>
+          Belum ada proyek yang bisa Anda akses. Hubungi admin bila Anda
+          seharusnya ditugaskan di salah satunya.
+        </Text>
       ) : (
         <View style={s.pilihanBaris}>
           {proyek.map((p) => (

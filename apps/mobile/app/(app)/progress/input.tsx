@@ -54,26 +54,64 @@ export default function InputProgressScreen() {
 
   const [loading, setLoading] = useState(false);
   const [loadingProjects, setLoadingProjects] = useState(true);
+  /*
+    Galat MUAT terpisah dari galat SIMPAN — pola yang sama dengan
+    `punch/lapor.tsx`. Berbagi satu state membuat gagal-simpan menghapus
+    pesan gagal-muat; cacat yang sudah ditemukan di 11 halaman web
+    (`uji-galat-muat-terpisah.mjs`).
+  */
+  const [galatProyek, setGalatProyek] = useState<string | null>(null);
+  const [galatRab, setGalatRab] = useState<string | null>(null);
 
   useEffect(() => {
-    api.get('/api/v1/projects').then((res) => {
-      const active = (res.data?.projects ?? []).filter((p: any) => p.status === 'active');
-      setProjects(active);
-      if (active.length > 0) setSelectedProject(active[0].id);
-    }).finally(() => setLoadingProjects(false));
+    api
+      .get('/api/v1/projects')
+      .then((res) => {
+        const active = (res.data?.projects ?? []).filter((p: any) => p.status === 'active');
+        setProjects(active);
+        setGalatProyek(null);
+        if (active.length > 0) setSelectedProject(active[0].id);
+      })
+      /*
+        Sebelumnya rantai ini TAK punya `.catch` sama sekali. Permintaan yang
+        gagal menyisakan `projects` kosong dan `loadingProjects` false — dan
+        layar memperlihatkan pemilih proyek kosong tanpa satu pun keterangan.
+
+        Mandor menyimpulkan ia belum ditugaskan ke proyek mana pun, lalu
+        berhenti. Laporan progres hari itu tak pernah masuk, dan tak ada
+        yang tahu kenapa.
+      */
+      .catch(() => setGalatProyek('Gagal memuat daftar proyek. Periksa koneksi.'))
+      .finally(() => setLoadingProjects(false));
   }, []);
 
   useEffect(() => {
     if (mode === 'detail' && selectedProject) {
       setLoadingRab(true);
       setSelectedRabItem('');
+      setGalatRab(null);
       api.get(`/api/v1/projects/${selectedProject}/rab/items`)
         .then(res => {
           const items = res.data?.items ?? [];
           setRabItems(items);
           if (items.length > 0) setSelectedRabItem(items[0].id);
         })
-        .catch(() => setRabItems([]))
+        /*
+          ⚠ `.catch(() => setRabItems([]))` — bentuk lamanya — mengubah
+          GAGAL MUAT jadi "Belum ada RAB untuk proyek ini". Dua keadaan yang
+          berbeda jauh: yang pertama perlu dicoba lagi, yang kedua perlu
+          menghubungi PM.
+
+          Kebohongan yang sama sudah diperbaiki dua kali di repo ini
+          (`notifications/index.tsx`, `proyek/[id].tsx`), dan berkas ini
+          yang tersisa. Penjaga `audit-catch-senyap.mjs` tak menangkapnya
+          karena ia hanya memindai `apps/api/src` — nolnya benar untuk
+          cakupannya sendiri, dan tak mengatakan apa pun tentang mobile.
+        */
+        .catch(() => {
+          setRabItems([]);
+          setGalatRab('Gagal memuat item RAB. Periksa koneksi, lalu coba lagi.');
+        })
         .finally(() => setLoadingRab(false));
     }
   }, [mode, selectedProject]);
@@ -226,6 +264,20 @@ export default function InputProgressScreen() {
         {/* Proyek */}
         <Card>
           <Text style={styles.label}>Proyek</Text>
+          {/*
+            TIGA keadaan, bukan dua. Sebelumnya nol proyek merender
+            penggulung mendatar yang KOSONG — bukan kalimat yang kurang
+            menolong, melainkan tak ada tulisan sama sekali. Pembacanya
+            melihat strip kosong dan tak diberi tahu apa pun.
+          */}
+          {galatProyek ? (
+            <Text style={styles.galatTeks}>{galatProyek}</Text>
+          ) : projects.length === 0 ? (
+            <Text style={styles.emptyText}>
+              Belum ada proyek aktif yang bisa Anda akses. Hubungi admin bila
+              Anda seharusnya ditugaskan di salah satunya.
+            </Text>
+          ) : (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
             {projects.map((p) => (
               <TouchableOpacity
@@ -238,6 +290,7 @@ export default function InputProgressScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
+          )}
         </Card>
 
         {/* Mode toggle */}
@@ -367,8 +420,20 @@ export default function InputProgressScreen() {
               <Text style={styles.label}>Item Pekerjaan (RAB)</Text>
               {loadingRab ? (
                 <ActivityIndicator size="small" color="#003366" style={{ marginTop: 8 }} />
+              ) : galatRab ? (
+                <Text style={styles.galatTeks}>{galatRab}</Text>
               ) : rabItems.length === 0 ? (
-                <Text style={styles.emptyText}>Belum ada RAB untuk proyek ini</Text>
+                /*
+                  Yang ditambahkan bukan hiasan: mode "Harian Umum" TIDAK
+                  butuh RAB sama sekali. Tanpa kalimat kedua, pembacanya
+                  menyimpulkan laporan hari ini mustahil — padahal jalan
+                  keluarnya ada satu ketukan di atas layar ini.
+                */
+                <Text style={styles.emptyText}>
+                  RAB proyek ini belum disusun, jadi progres per item belum
+                  bisa dicatat. Pakai mode Harian Umum, atau hubungi PM
+                  proyek untuk menyusun RAB-nya.
+                </Text>
               ) : (
                 <ScrollView style={styles.rabList} nestedScrollEnabled>
                   {rabItems.map(item => (
@@ -472,7 +537,20 @@ function gaya(c: Palet) {
     rabItemName: { flex: 1, fontSize: 13, color: c.textPrimary, fontFamily: FONT.isiTebal },
     rabItemPct: { fontSize: 12, color: c.navy, fontFamily: FONT.judul, flexShrink: 0 },
     rabItemTextActive: { color: c.surfaceRaised },
-    emptyText: { fontSize: 13, color: c.textSecondary, textAlign: 'center', paddingVertical: 16 },
+    emptyText: {
+      fontSize: 13,
+      color: c.textSecondary,
+      textAlign: 'center',
+      paddingVertical: 16,
+      lineHeight: 19,
+    },
+    galatTeks: {
+      fontSize: 13,
+      color: c.danger,
+      textAlign: 'center',
+      paddingVertical: 16,
+      lineHeight: 19,
+    },
     infoRow: { flexDirection: 'column', gap: 2, marginTop: 4 },
     infoText: { fontSize: 12, color: c.textSecondary },
   });

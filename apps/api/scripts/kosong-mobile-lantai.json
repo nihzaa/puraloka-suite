@@ -1,17 +1,4 @@
 {
-  "kosong": 12,
-  "daftar": [
-    "app/(app)/absensi/input.tsx:210",
-    "app/(app)/absensi/input.tsx:237",
-    "app/(app)/absensi/input.tsx:267",
-    "app/(app)/izin-kerja/ajukan.tsx:213",
-    "app/(app)/izin-kerja/ajukan.tsx:252",
-    "app/(app)/kasbon/ajukan.tsx:233",
-    "app/(app)/ncr/lapor.tsx:182",
-    "app/(app)/ncr/lapor.tsx:213",
-    "app/(app)/pekerjaan.tsx:663",
-    "app/(app)/progress/input.tsx:371",
-    "app/(app)/punch/lapor.tsx:152",
-    "app/(app)/punch/lapor.tsx:179"
-  ]
+  "kosong": 0,
+  "daftar": []
 }

@@ -713,7 +713,8 @@ export default function PekerjaanSaya() {
             <Text style={s.kosongJudul}>Belum ada yang dilaporkan</Text>
             <Text style={s.kosongIsi}>
               Temuan, NCR, dan izin kerja yang Anda kirim dari lapangan muncul di
-              sini beserta nasibnya.
+              sini beserta nasibnya. Pakai tombol di atas untuk membuat yang
+              pertama.
             </Text>
           </View>
         )

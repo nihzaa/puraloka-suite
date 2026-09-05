@@ -230,7 +230,10 @@ export default function AjukanKasbonScreen() {
           {galatMuat ? (
             <Text style={styles.galatTeks}>{galatMuat}</Text>
           ) : projects.length === 0 ? (
-            <Text style={styles.emptyText}>Belum ada proyek yang di-assign</Text>
+            <Text style={styles.emptyText}>
+              Belum ada proyek yang di-assign kepada Anda. Hubungi admin —
+              kasbon hanya bisa diajukan atas proyek tempat Anda bertugas.
+            </Text>
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 6 }}>
               {projects.map((p) => (

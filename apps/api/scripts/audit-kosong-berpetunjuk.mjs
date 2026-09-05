@@ -96,6 +96,49 @@ const bersih = (s) =>
     .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
     .replace(/\/\/[^\n]*/g, (m) => ' '.repeat(m.length))
 
+/*
+  ── Apa yang dianggap "menyebut langkah berikutnya" ────────────────────
+
+  Tiga bentuk jawaban yang didokumentasikan di `components/ui/Kosong.tsx`,
+  masing-masing dengan kata kuncinya:
+
+      AKSI    tekan, buat, tambah, pilih, ajukan, isi, mulai, pakai, coba
+      TUNGGU  akan muncul, setelah, begitu, sedang diproses, menunggu
+      ORANG   hubungi, minta, tanyakan, admin, PM, atasan, mandor
+
+  Daftar kata, bukan pemahaman — batas yang sama dengan versi sebelumnya,
+  cuma dipindah ke permukaan yang benar. Yang ingin menipu penjaga ini
+  cukup menulis "hubungi" tanpa maksud; yang tak diinginkan adalah orang
+  JUJUR yang perbaikannya tak terbaca, dan itu yang sudah terjadi.
+*/
+const PETUNJUK = [
+  /* AKSI */
+  /\btekan\b/i, /\bbuat\b/i, /\btambah/i, /\bpilih\b/i, /\bajukan\b/i,
+  /\bisi(?:kan)?\b/i, /\bmulai\b/i, /\bpakai\b/i, /\bcoba\b/i, /\bgunakan\b/i,
+  /* TUNGGU */
+  /akan muncul/i, /\bsetelah\b/i, /\bbegitu\b/i, /sedang diproses/i, /\bmenunggu\b/i,
+  /* ORANG */
+  /\bhubungi\b/i, /\bminta\b/i, /\btanyakan\b/i, /\badmin\b/i, /\bPM\b/,
+  /\batasan\b/i, /\bmandor\b/i,
+]
+
+/*
+  Teks yang terlihat MATA, dirakit dari satu blok JSX.
+
+  Tag, atribut, dan `{ekspresi}` dibuang; yang tersisa kalimatnya. Tanpa
+  ini `style={styles.emptyText}` menyumbang kata "empty" ke pencarian, dan
+  tiap blok terlihat punya petunjuk.
+*/
+function tekstualkan(jsx) {
+  return jsx
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\{[^{}]*\}/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+const berpetunjuk = (teks) => PETUNJUK.some((r) => r.test(teks))
+
 const temuan = []
 
 for (const p of berkas) {
@@ -103,26 +146,18 @@ for (const p of berkas) {
   const rel = relative(MOBILE, p).replace(/\\/g, '/')
   if (rel === 'components/ui/Kosong.tsx') continue
 
+  const sudah = new Set()
+
   /*
-    Blok kosong tulisan tangan: `<View style={…empty…}>` atau `…kosong…`
-    sampai `</View>` penutupnya.
-
-    Yang dihitung sebagai PUNYA petunjuk: dua `<Text>` atau lebih di
-    dalamnya. Satu `<Text>` berarti hanya keadaannya yang disebut.
-
-    ⚠ Ini pemeriksaan BENTUK, bukan makna. Dua `<Text>` yang keduanya
-    menyatakan keadaan tetap lolos — penjaga tak bisa membaca kalimat.
-    Batas itu disebutkan supaya hijaunya tak dibaca sebagai "semua empty
-    state sudah menuntun".
+    Bentuk PERTAMA: blok `<View style={…empty…}>` … `</View>`.
+    Seluruh isinya dibaca sebagai SATU pesan — pembacanya juga begitu.
   */
   for (const m of kode.matchAll(/<View\s+style=\{[^}]*(?:empty|kosong)[^}]*\}[^>]*>([\s\S]*?)<\/View>/gi)) {
-    const isi = m[1]
-    const jumlahTeks = (isi.match(/<Text\b/g) ?? []).length
-    if (jumlahTeks === 1) {
-      const baris = kode.slice(0, m.index).split('\n').length
-      const cuplikan = (isi.match(/>([^<>{]{6,60})</) ?? [, ''])[1].trim()
-      temuan.push({ rel, baris, cuplikan })
-    }
+    const teks = tekstualkan(m[1])
+    if (teks.length < 6) continue
+    const baris = kode.slice(0, m.index).split('\n').length
+    sudah.add(baris)
+    if (!berpetunjuk(teks)) temuan.push({ rel, baris, cuplikan: teks.slice(0, 60) })
   }
 
   /*
@@ -130,9 +165,7 @@ for (const p of berkas) {
 
     ⚠ Draf pertama penjaga ini hanya mencari `<View style={…empty}>` dan
     memulangkan NOL — padahal empty state tulisan tangan masih ada di
-    beberapa layar.
-
-    Bentuk yang paling umum ternyata tanpa pembungkus sama sekali:
+    beberapa layar. Bentuk yang paling umum ternyata tanpa pembungkus:
 
         ) : projects.length === 0 ? (
           <Text style={styles.emptyText}>Belum ada proyek yang di-assign</Text>
@@ -141,23 +174,29 @@ for (const p of berkas) {
     Nol temuan dari pola yang salah terlihat sama persis dengan nol temuan
     dari keadaan yang bersih — dan saya nyaris memasangnya dengan lantai 0,
     yang berarti penjaga hijau selamanya atas cacat yang masih ada.
-
-    Yang dicari sekarang: `<Text style={…emptyText/kosongIsi…}>` yang TIDAK
-    diikuti `<Text>` lain dalam 200 huruf berikutnya. Jendela 200 huruf
-    cukup untuk satu elemen berikutnya, dan tak sampai melompat ke blok
-    lain.
   */
-  for (const m of kode.matchAll(/<Text\s+style=\{[^}]*(?:emptyText|kosongIsi|emptyPetunjuk)[^}]*\}[^>]*>/gi)) {
-    const sesudah = kode.slice(m.index + m[0].length, m.index + m[0].length + 200)
-    if (/<Text\b/.test(sesudah)) continue
+  for (const m of kode.matchAll(
+    /<Text\s+style=\{[^}]*(?:emptyText|kosongIsi|emptyPetunjuk)[^}]*\}[^>]*>([\s\S]*?)<\/Text>/gi,
+  )) {
+    const baris = kode.slice(0, m.index).split('\n').length
+    if (sudah.has(baris)) continue
+
+    const sebelum = kode.slice(Math.max(0, m.index - 400), m.index)
 
     /* Sudah terhitung lewat pembungkus `<View>`? Jangan dihitung dua kali. */
-    const sebelum = kode.slice(Math.max(0, m.index - 200), m.index)
-    if (/<View\s+style=\{[^}]*(?:empty|kosong)[^}]*\}/i.test(sebelum)) continue
+    if (/<View\s+style=\{[^}]*(?:empty|kosong)[^}]*\}[^>]*>\s*(?:<Text\b[\s\S]*?<\/Text>\s*)*$/i.test(sebelum)) continue
 
-    const baris = kode.slice(0, m.index).split('\n').length
-    const cuplikan = (kode.slice(m.index + m[0].length).match(/^([^<>{]{6,60})/) ?? [, ''])[1].trim()
-    temuan.push({ rel, baris, cuplikan })
+    /*
+      Gerbang izin memakai `kosongJudul` + `kosongIsi` BERPASANGAN, dan
+      yang dibaca pengguna adalah keduanya. Membacanya terpisah membuat
+      "Tidak ada akses" terlihat tanpa petunjuk, padahal kalimat di
+      bawahnya justru menyebut siapa yang harus dihubungi — lima gerbang
+      izin merah PALSU karena persis ini.
+    */
+    const judulDekat = /<Text\s+style=\{[^}]*kosongJudul[^}]*\}[^>]*>([\s\S]*?)<\/Text>\s*$/i.exec(sebelum)
+    const teks = tekstualkan((judulDekat ? judulDekat[1] + ' ' : '') + m[1])
+    if (teks.length < 6) continue
+    if (!berpetunjuk(teks)) temuan.push({ rel, baris, cuplikan: teks.slice(0, 60) })
   }
 }
 
@@ -247,5 +286,5 @@ if (temuan.length < lantai) {
 
 console.log('')
 console.log(`✅ ${temuan.length} kosong tanpa petunjuk (lantai ${lantai}) — tidak bertambah.`)
-console.log('   Batas: ini pemeriksaan BENTUK (jumlah <Text>), bukan makna.')
-console.log('   Dua kalimat yang keduanya menyatakan keadaan tetap lolos.')
+console.log('   Batas: ini pemeriksaan KATA, bukan pemahaman. Kalimat yang')
+console.log('   memuat "hubungi"/"tekan" tanpa maksud benar tetap lolos.')

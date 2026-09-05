@@ -235,7 +235,8 @@ export default function InputAbsensi() {
       <Text style={s.label}>Lingkup kerja</Text>
       {scopes.length === 0 ? (
         <Text style={s.kosongIsi}>
-          Belum ada lingkup kerja yang ditugaskan kepada Anda.
+          Belum ada lingkup kerja yang ditugaskan kepada Anda. Hubungi admin
+          proyek untuk menugaskannya — absensi belum bisa dicatat tanpa itu.
         </Text>
       ) : (
         <View style={s.pilihanBaris}>
@@ -264,7 +265,10 @@ export default function InputAbsensi() {
       </View>
 
       {tukang.length === 0 ? (
-        <Text style={s.kosongIsi}>Belum ada tukang terdaftar.</Text>
+        <Text style={s.kosongIsi}>
+          Belum ada tukang terdaftar di bawah Anda. Minta admin mendaftarkan
+          tim Anda lebih dulu.
+        </Text>
       ) : (
         tukang.map((t) => {
           const e = entri[t.id];
