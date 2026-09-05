@@ -210,15 +210,14 @@ function SheetCatatPemakaian({ terbuka, onTutup, proyekId, stok }: { terbuka: bo
             {stok.map((s) => <option key={s.id} value={s.material?.id}>{s.material?.name} (tersedia {s.qty_on_hand})</option>)}
           </Pilihan>
         </label>
-        <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
-          Jenis
-          <Pilihan value={jenis} onChange={(e) => setJenis(e.target.value as typeof jenis)}
+        <label htmlFor="jenis-213" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+          Jenis</label>
+          <Pilihan id="jenis-213" value={jenis} onChange={(e) => setJenis(e.target.value as typeof jenis)}
             style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 10px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13, background: "var(--surface)" }}>
             <option value="usage">Pemakaian</option>
             <option value="return">Retur (masuk kembali)</option>
             <option value="adjustment">Penyesuaian (qty absolut baru)</option>
           </Pilihan>
-        </label>
         <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
           Qty
           <input type="number" min="0" step="0.01" value={qty} onChange={(e) => setQty(e.target.value)}

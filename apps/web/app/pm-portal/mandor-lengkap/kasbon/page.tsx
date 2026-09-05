@@ -267,9 +267,9 @@ function FormKasbon({ onBatal, onSukses }: { onBatal: () => void; onSukses: () =
         </label>
       </div>
 
-      <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
-        Tujuan
-        <Pilihan
+      <label htmlFor="tujuan-270" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+        Tujuan</label>
+        <Pilihan id="tujuan-270"
           value={purpose} onChange={(e) => setPurpose(e.target.value)}
           style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
         >
@@ -279,7 +279,6 @@ function FormKasbon({ onBatal, onSukses }: { onBatal: () => void; onSukses: () =
           <option value="operasional">Operasional</option>
           <option value="lain_lain">Lain-lain</option>
         </Pilihan>
-      </label>
 
       <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
         Catatan (opsional)

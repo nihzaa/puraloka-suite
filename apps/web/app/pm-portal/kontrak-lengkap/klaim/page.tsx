@@ -300,9 +300,9 @@ export default function PmKlaimKontraktualPage() {
             <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
               {klaimDiputuskan.title} — diklaim {fmtRupiah(klaimDiputuskan.amount_claimed)}
             </div>
-            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
-              Status
-              <Pilihan
+            <label htmlFor="status-303" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+              Status</label>
+              <Pilihan id="status-303"
                 value={statusPutus}
                 onChange={(e) => {
                   const v = e.target.value as typeof statusPutus;
@@ -319,7 +319,6 @@ export default function PmKlaimKontraktualPage() {
                 <option value="ditolak">Ditolak</option>
                 <option value="gugur">Gugur</option>
               </Pilihan>
-            </label>
             {(statusPutus === "disetujui" || statusPutus === "disetujui_sebagian") && (
               <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
                 Nilai Disetujui (Rp)
