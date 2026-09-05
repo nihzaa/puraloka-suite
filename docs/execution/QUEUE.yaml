@@ -3756,3 +3756,45 @@ items:
         salinan tenant (company_id ada)   : DELETE BOLEH    ✓
 
       Diuji di dalam transaksi yang di-ROLLBACK — nol jejak di basis.
+
+  - id: MOBILE-TABULAR-IOS
+    fase: F5
+    judul: "fontVariant tabular-nums di 17 tempat — gagal SENYAP di iOS pada font kustom expo-font (expo/expo#20048), tak bisa diverifikasi tanpa perangkat"
+    status: todo
+    prioritas: rendah
+    catatan: |
+      Diukur 2026-09-05: `fontVariant: ['tabular-nums']` dipakai 17 kali di
+      LIMA layar (dashboard 4, proyek/[id] 6, mandor 3, proyek/index 2,
+      kasbon/index 2) — semuanya di atas keluarga font yang dimuat lewat
+      `expo-font` (@expo-google-fonts/plus-jakarta-sans).
+
+      Riset UI 2026-09-05 menemukan expo/expo#20048: `fontVariant` TIDAK
+      diterapkan pada font kustom yang dimuat `expo-font` di iOS. Jalan
+      untuk font SISTEM; jalan di Android sejak react-native#27006 (RN di
+      repo ini 0.79.6, aman). Issue-nya ditutup, tetapi tak terverifikasi
+      pada konfigurasi ini.
+
+      ⚠ GAGAL SENYAP: kode terlihat benar, `tsc` hijau, penjaga hijau, dan
+      angkanya tetap bergoyang antar-baris. Tak ada satu pun alat di repo
+      ini yang bisa membedakannya dari yang bekerja.
+
+      Kenapa prioritas RENDAH, bukan nol:
+
+        - `app.json` punya `ios.bundleIdentifier`, jadi iOS dikonfigurasi;
+        - TAPI `eas.json` tak punya satu pun profil build iOS, dan mandor
+          di lapangan memakai Android. Risikonya nyata tetapi BELUM AKTIF.
+
+      Kenapa TIDAK dibuatkan penjaga: yang bisa dijaga tanpa perangkat cuma
+      "fontVariant tertulis di kode" — dan itu justru SUDAH benar. Yang
+      gagal ada di lapisan render iOS, yang tak terjangkau dari mesin ini.
+      Penjaga yang mengukur hal yang sudah benar akan hijau selamanya di
+      atas cacat yang masih hidup.
+
+      Syarat masuk (terukur, bukan "kalau sempat"):
+        1. profil build iOS ditambahkan ke eas.json, ATAU
+        2. ada perangkat/simulator iOS yang bisa dipakai memotret.
+
+      Cara memeriksanya nanti: render dua baris angka berbeda lebar digit
+      (mis. 1.111.111 dan 8.888.888) berdampingan di layar iOS. Kalau
+      kolomnya sejajar, tabular-nums bekerja; kalau bergoyang, tidak.
+
