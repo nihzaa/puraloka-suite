@@ -2704,6 +2704,7 @@ jobs:
       # di laporan upah, jadi constraint yang bocor di sana adalah uang yang
       # salah bayar tanpa satu pun gejala di layar.
       - name: Invarian absensi (porsi, lembur, tanggal, anti dobel-absen)
+        if: matrix.shard == 1
         run: node scripts/uji-invarian-absensi.mjs
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
@@ -2719,6 +2720,7 @@ jobs:
       # Diuji-mutasi 2026-08-06: melepas tiap CHECK, menjadikan RLS satu sisi,
       # dan mematikan RLS — keempatnya membuat penjaga ini merah.
       - name: Invarian transfer stok (qty, beda proyek, RLS dua sisi)
+        if: matrix.shard == 1
         run: node scripts/uji-invarian-transfer-stok.mjs
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
@@ -2737,6 +2739,7 @@ jobs:
       # Rancangannya diganti jadi tabel tersendiri. Tripwire ini menjaga agar
       # tak ada yang diam-diam menempuh jalur lama itu lagi.
       - name: Invarian material milik klien (+ tripwire G-2 goods_receipts)
+        if: matrix.shard == 1
         run: node scripts/uji-invarian-material-klien.mjs
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
@@ -2751,6 +2754,7 @@ jobs:
       # unik): penawaran revisi yang masuk sebagai baris kedua membuat satu
       # vendor terhitung dua kali dengan dua harga berbeda.
       - name: Invarian RFQ & penawaran vendor
+        if: matrix.shard == 1
         run: node scripts/uji-invarian-rfq.mjs
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
@@ -2765,6 +2769,7 @@ jobs:
       # nilai pertanggungan terhitung dua kali, dan perusahaan tampak lebih
       # terlindungi daripada kenyataannya.
       - name: Invarian polis asuransi
+        if: matrix.shard == 1
         run: node scripts/uji-invarian-asuransi.mjs
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
@@ -2782,6 +2787,7 @@ jobs:
       # sini akan menyembunyikan kejadian yang paling perlu dilihat; yang
       # benar adalah menandainya di lapis perhitungan sebagai `terlampaui`.
       - name: Invarian contingency
+        if: matrix.shard == 1
         run: node scripts/uji-invarian-contingency.mjs
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
@@ -2794,6 +2800,7 @@ jobs:
       #   • yang TAK MENAWAR bisa menang → pelaksana yang tak pernah
       #     mengajukan harga ditunjuk lewat satu salah klik
       - name: Invarian tender subkontraktor
+        if: matrix.shard == 1
         run: node scripts/uji-invarian-tender-subkon.mjs
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
@@ -2811,6 +2818,7 @@ jobs:
       #   • potongan lain tanpa alasan  → kolom yang menyerap selisih apa pun
       #     tanpa pernah ditanyakan
       - name: Invarian sertifikat IPC
+        if: matrix.shard == 1
         run: node scripts/uji-invarian-sertifikat-ipc.mjs
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
@@ -2863,6 +2871,7 @@ jobs:
       #     rezeki orang, lalu tak ada yang bisa dijawab saat ditanya
       #   • skor di luar 0-100 — peringkat vendor jadi omong kosong
       - name: Invarian kualifikasi vendor
+        if: matrix.shard == 1
         run: node scripts/uji-invarian-vendor.mjs
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
@@ -2878,6 +2887,7 @@ jobs:
       #   • akumulasi penyusutan < nilai bulan ini — beban melebihi totalnya
       #     sendiri; neraca tak akan pernah cocok
       - name: Invarian operasional alat
+        if: matrix.shard == 1
         run: node scripts/uji-invarian-alat.mjs
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
@@ -2894,6 +2904,7 @@ jobs:
       #   • libur nasional kembar — `UNIQUE` biasa TIDAK mengikat saat
       #     `project_id` NULL (NULL <> NULL); ditutup migrasi 213
       - name: Invarian jadwal CPM & kalender
+        if: matrix.shard == 1
         run: node scripts/uji-invarian-jadwal.mjs
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
@@ -2910,6 +2921,7 @@ jobs:
       #     dikerjakan, dan rapat berikutnya membahasnya lagi
       #   • tanda tangan tanpa sidik SHA-256 sah — tak bisa diverifikasi ulang
       - name: Invarian kendali dokumen
+        if: matrix.shard == 1
         run: node scripts/uji-invarian-dokumen.mjs
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
@@ -2943,6 +2955,7 @@ jobs:
       # permission yang tak dimiliki siapa pun membuat halamannya lahir
       # TERKUNCI, dan gejalanya layar kosong — bukan "akses ditolak".
       - name: Invarian kepatuhan & K3
+        if: matrix.shard == 1
         run: node scripts/uji-invarian-kepatuhan.mjs
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
@@ -2962,16 +2975,19 @@ jobs:
       # itu, PO tak bisa ditautkan ke kontrak dan penarikan kuota kehilangan
       # jejaknya.
       - name: Invarian pengadaan lanjutan
+        if: matrix.shard == 1
         run: node scripts/uji-invarian-pengadaan.mjs
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       - name: Invarian NCR
+        if: matrix.shard == 1
         run: node scripts/uji-invarian-ncr.mjs
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       - name: Invarian geotag
+        if: matrix.shard == 1
         run: node scripts/uji-invarian-geotag.mjs
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
