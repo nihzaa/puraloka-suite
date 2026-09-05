@@ -29,21 +29,26 @@ import { FONT, HURUF, RADIUS, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
   tiap kali web menambah halaman — dan tertinggalnya tak bergejala, cuma
   menu yang tak ada.
 
-  ── Sesi diteruskan lewat token, bukan lewat cookie
+  ── Sesi diteruskan lewat COOKIE yang ditulis di dalam WebView
 
   WebView tak berbagi cookie dengan permintaan `axios` aplikasi. Tanpa
-  penerusan token, pengguna yang SUDAH login di aplikasi akan disambut layar
-  login lagi di dalam WebView — dan itu terbaca seperti aplikasi yang rusak,
-  bukan seperti keamanan yang bekerja.
+  penerusan sesi, pengguna yang SUDAH login akan disambut layar login lagi
+  di dalam WebView — dan itu terbaca seperti aplikasi yang rusak, bukan
+  seperti keamanan yang bekerja.
 
-  Token dikirim lewat header `Authorization` pada permintaan pertama, dan
-  ditanam ke `localStorage` lewat `injectedJavaScriptBeforeContentLoaded`
-  supaya navigasi BERIKUTNYA di dalam WebView tetap membawa sesi.
+  Gerbangnya ada di `apps/web/middleware.ts`, dan ia membaca **cookie**
+  `puraloka_token`. Karena itu `injectedJavaScriptBeforeContentLoaded`
+  menulis `document.cookie` (bukan hanya `localStorage`), lalu mengisi
+  `localStorage` juga untuk kode halaman yang memanggil API dari klien.
 
-  ⚠ `injectedJavaScriptBeforeContentLoaded` berjalan SEBELUM skrip halaman,
-  jadi token sudah ada saat aplikasi web memeriksanya. Memakai
-  `injectedJavaScript` (tanpa `BeforeContentLoaded`) menanamnya SESUDAH —
-  terlambat, dan halamannya sudah mengalihkan ke login.
+  ⚠ Paragraf ini pernah berbunyi "lewat token, bukan lewat cookie" dan
+  keliru sepanjang umurnya — akibatnya SEMUA modul WebView mengalihkan ke
+  login. Riwayat lengkap pengukurannya ada di komentar dekat `const suntik`.
+
+  ⚠ `injectedJavaScriptBeforeContentLoaded` berjalan SEBELUM skrip halaman.
+  Itu perlu, tetapi TIDAK cukup: middleware berjalan di server, sebelum
+  bingkai WebView menerima HTML sama sekali. Yang menolongnya cuma cookie,
+  sebab cookie ikut terkirim bersama permintaan navigasi berikutnya.
 */
 
 /**
@@ -222,20 +227,74 @@ export default function LayarWeb() {
   }
 
   const url = `${basis}${entri.jalur}`;
-  /*
-    Kegagalan `localStorage` TIDAK ditelan.
 
-    Ia bisa gagal nyata: mode privat, penyimpanan penuh, atau kebijakan situs
-    yang memblokirnya. Kalau itu terjadi, halaman web di dalam WebView akan
-    mengalihkan ke login — dan gejalanya terbaca seperti "sesi habis", bukan
-    seperti penyimpanan yang ditolak.
+  /*
+    ── Sesi diteruskan lewat COOKIE, bukan localStorage ───────────────────
+
+    ⚠ Versi pertama menanam token ke `localStorage` saja, dan itu TIDAK
+    PERNAH bisa bekerja. Diukur 2026-09-05 terhadap produksi, sesudah
+    founder melaporkan "beberapa tak bisa menampilkan WebView":
+
+        GET https://app.…/keuangan                        -> 307  /login
+        GET …  --cookie "puraloka_token=<access_token>"   -> 200
+
+    Ketujuh belas modul memberi 307 yang sama. Bukan sebagian — SEMUANYA;
+    laporan "beberapa" datang dari pengguna yang wajar berhenti mencoba
+    setelah dua atau tiga.
+
+    Sebabnya tiga lapis yang masing-masing benar sendiri:
+
+      1. `apps/web/middleware.ts:214` menggerbang dengan
+         `request.cookies.get('puraloka_token')` — COOKIE, bukan header
+         dan bukan localStorage.
+      2. Middleware Next.js berjalan di SERVER, sebelum satu baris JS
+         halaman pun jalan. `localStorage` belum berwujud di sana, dan tak
+         akan pernah.
+      3. Header `Authorization` yang ikut dikirim juga tak menolong:
+         middleware tak membacanya, dan header itu hanya menempel pada
+         permintaan PERTAMA — navigasi berikutnya berangkat telanjang.
+
+    Catatan lama di kepala berkas ini menegaskan `BeforeContentLoaded`
+    penting supaya token ada "sebelum aplikasi web memeriksanya".
+    Penalarannya benar untuk pemeriksaan di KLIEN, dan tak menyentuh
+    gerbang di SERVER — yang mengalihkan sebelum HTML dikirim. Penjelasan
+    yang benar mendampingi keadaan yang salah (CLAUDE.md §8a.2).
+
+    ⚠ Cookie ini TAK BISA diwarisi dari yang dipasang API: ia `HttpOnly`
+    (terbaca di `Set-Cookie` balasan login) dan terikat domain `api.`,
+    sementara middleware membacanya di domain `app.`. Ia memang harus
+    ditulis dari sisi WebView.
+  */
+  const pakaiHttps = url.startsWith('https://');
+
+  /*
+    Kegagalan penyimpanan TIDAK ditelan.
+
+    Ia bisa gagal nyata: mode privat, penyimpanan penuh, atau kebijakan
+    situs yang memblokirnya. Kalau itu terjadi, halaman di dalam WebView
+    mengalihkan ke login — dan gejalanya terbaca seperti "sesi habis",
+    bukan seperti penyimpanan yang ditolak.
 
     Pesannya dikirim ke React Native lewat `postMessage` supaya terlihat di
     log aplikasi, bukan hilang di konsol WebView yang tak seorang pun buka.
+
+    ⚠ `Secure` HANYA saat HTTPS. Memasangnya di `http://` pengembangan
+    membuat peramban menolak cookie-nya DIAM-DIAM — dan gejalanya kembali
+    persis seperti cacat yang baru saja diperbaiki, tanpa satu pun galat.
   */
   const suntik = `
     try {
-      localStorage.setItem('puraloka_token', ${JSON.stringify(token ?? '')});
+      var t = ${JSON.stringify(token ?? '')};
+      var atribut = '; path=/; SameSite=Lax${pakaiHttps ? '; Secure' : ''}';
+      document.cookie = 'puraloka_token=' + t + atribut;
+
+      /*
+        localStorage TETAP diisi. Cookie melewatkan gerbang middleware;
+        localStorage melayani kode halaman yang membacanya langsung untuk
+        memanggil API dari sisi klien. Keduanya dibutuhkan, bukan salah
+        satu — itu sebabnya yang lama tak "diganti", melainkan ditambahi.
+      */
+      localStorage.setItem('puraloka_token', t);
     } catch (e) {
       window.ReactNativeWebView && window.ReactNativeWebView.postMessage(
         JSON.stringify({ jenis: 'galat-storage', pesan: String(e && e.message || e) })

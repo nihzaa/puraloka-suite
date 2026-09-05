@@ -2274,6 +2274,21 @@ jobs:
       - name: Modul mobile menunjuk halaman nyata
         run: node scripts/audit-modul-mobile-nyata.mjs
 
+      # Halaman yang ADA belum tentu BISA DIBUKA. Penjaga di atas membuktikan
+      # `page.tsx`-nya nyata; yang ini membuktikan sesinya nyambung.
+      #
+      # Founder melaporkan 2026-09-05 "beberapa tak bisa menampilkan WebView".
+      # Diukur terhadap produksi: bukan beberapa, SEMUA tujuh belas modul
+      # menjawab 307 -> /login. Dengan cookie dipasang manual: 200.
+      #
+      # Tiga lapis yang masing-masing benar sendiri — WebView menanam token ke
+      # localStorage (sah), middleware menggerbang lewat cookie (sah), dan
+      # middleware berjalan di SERVER sebelum JS halaman ada (sah). Tak ada
+      # yang salah kecuali sambungannya, dan tak satu pun dari 241 penjaga
+      # lain melihat kedua sisi sekaligus.
+      - name: Sesi WebView nyambung ke gerbang web
+        run: node scripts/audit-sesi-webview-nyambung.mjs
+
       # Tiap kiriman antrean mobile wajib menunjuk rute API yang ADA. Gejalanya
       # paling buruk dari semua kelas cacat di aplikasi ini, karena antrean
       # dirancang untuk MENAHAN kegagalan: mandor mengisi laporan di lokasi,
