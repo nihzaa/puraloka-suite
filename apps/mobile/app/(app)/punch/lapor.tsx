@@ -57,12 +57,30 @@ import { FONT, HURUF, RADIUS, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
 
 type Proyek = { id: string; nama: string };
 
+/**
+ * Tingkat keparahan — warnanya menunjuk TOKEN, bukan hex.
+ *
+ * ⚠ Konstanta ini hidup di lingkup MODUL, jadi ia tak bisa memanggil
+ * `useTema()`. Versi sebelumnya memakai hex langsung (`#059669`, `#D97706`,
+ * `#DC2626`, `#7F1D1D`) — benar di mode terang, dan tak pernah ikut berubah
+ * di mode gelap.
+ *
+ * Yang disimpan sekarang NAMA tokennya; warnanya dibaca di titik render,
+ * tempat `c` sudah tersedia. Satu lapis tak langsung, dan itu yang membuat
+ * daftar statis ini tetap mengikuti tema.
+ *
+ * `kritis` memakai token yang sama dengan `berat` (`danger`) — palet mobile
+ * tak punya tingkat merah kedua, dan mengarang hex baru di sini akan
+ * mengulang persis cacat yang sedang diperbaiki. Yang membedakan keduanya
+ * LABEL-nya, dan itu memang pembeda yang sah (WCAG 1.4.1: warna tak boleh
+ * jadi satu-satunya pembawa makna).
+ */
 const SEVERITY = [
-  { nilai: 'ringan', label: 'Ringan', warna: '#059669' },
-  { nilai: 'sedang', label: 'Sedang', warna: '#D97706' },
-  { nilai: 'berat', label: 'Berat', warna: '#DC2626' },
-  { nilai: 'kritis', label: 'Kritis', warna: '#7F1D1D' },
-];
+  { nilai: 'ringan', label: 'Ringan', token: 'success' },
+  { nilai: 'sedang', label: 'Sedang', token: 'warning' },
+  { nilai: 'berat', label: 'Berat', token: 'danger' },
+  { nilai: 'kritis', label: 'Kritis', token: 'danger' },
+] as const;
 
 export default function LaporTemuan() {
   /*
@@ -221,11 +239,13 @@ export default function LaporTemuan() {
       <View style={s.pilihanBaris}>
         {SEVERITY.map((sv) => {
           const aktif = severity === sv.nilai;
+          /* Token dibaca DI SINI — di lingkup modul `c` belum ada. */
+          const warna = c[sv.token];
           return (
             <Tekan
               key={sv.nilai}
               onPress={() => setSeverity(sv.nilai)}
-              style={[s.chip, aktif && { backgroundColor: sv.warna, borderColor: sv.warna }]}
+              style={[s.chip, aktif && { backgroundColor: warna, borderColor: warna }]}
               accessibilityRole="button"
               accessibilityState={{ selected: aktif }}
             >
