@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TextInput, ActivityIndicator, Alert, StyleSheet,
 } from 'react-native';
 import { Tekan } from '@/components/ui/Tekan';
+import { KepalaLayar } from '@/components/ui/KepalaLayar';
 import { router } from 'expo-router';
 import { api } from '@/lib/api';
 import { antrekan } from '@/lib/antrean';
@@ -224,7 +225,7 @@ export default function InputAbsensi() {
 
   return (
     <ScrollView style={s.wadah} contentContainerStyle={s.isi}>
-      <Text style={s.judul}>Absensi {tanggal}</Text>
+      <KepalaLayar judul={`Absensi ${tanggal}`} penjelas="Centang tukang yang hadir hari ini" />
 
       {galat && (
         <View style={s.galat}>
@@ -352,13 +353,28 @@ function gaya(c: Palet) {
     wadah: { flex: 1, backgroundColor: c.surfaceSubtle },
     isi: { padding: 16, paddingBottom: 40 },
     tengah: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: c.surfaceSubtle },
-    judul: { fontSize: 20, fontFamily: FONT.judul, color: c.textPrimary, marginBottom: 14 },
     label: { fontSize: 13, fontFamily: FONT.isiTebal, color: c.textPrimary, marginBottom: 8 },
     barisJudul: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     hitung: { fontSize: 13, color: c.navy, fontFamily: FONT.isiTebal },
     pemisah: { height: 1, backgroundColor: c.border, marginVertical: 16 },
     pilihanBaris: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    /*
+      `maxWidth` WAJIB — ditemukan dari POTRET, bukan dari penjaga.
+
+      Nama proyek nyata sepanjang "[UJI] Renovasi Fasad Kantor CV Makmur —
+      Cihampelas" membentuk SATU chip yang lebih lebar daripada layar, dan
+      `flexWrap` tak bisa menolong: ia membungkus ANTAR-chip, tak bisa
+      mengecilkan satu chip yang sudah kebesaran. Ekornya terpotong di tepi
+      kanan — "…CV Makmur — Cihampela" — jadi dua proyek berawalan sama tak
+      bisa dibedakan sama sekali.
+
+      ⚠ `potret-mobile.mjs` melapor HIJAU: "nol gulir mendatar". Benar untuk
+      yang diukurnya (lebar dokumen vs viewport) — chip yang meluap terpotong
+      DI DALAM wadahnya, bukan melebarkan halaman. Pengukuran yang benar atas
+      hal yang salah.
+    */
     chip: {
+      maxWidth: '100%',
       paddingVertical: 9, paddingHorizontal: 13, borderRadius: 10,
       borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised,
     },

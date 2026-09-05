@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TextInput, ActivityIndicator, Alert, StyleSheet,
 } from 'react-native';
 import { Tekan } from '@/components/ui/Tekan';
+import { KepalaLayar } from '@/components/ui/KepalaLayar';
 import { router } from 'expo-router';
 import { api } from '@/lib/api';
 import { antrekan } from '@/lib/antrean';
@@ -196,7 +197,20 @@ export default function LaporNcr() {
 
   return (
     <ScrollView style={s.wadah} contentContainerStyle={s.isi} keyboardShouldPersistTaps="handled">
-      <Text style={s.judulHalaman}>Lapor NCR</Text>
+      {/*
+        `penjelas` sengaja TIDAK diisi di sini, meski layar isian lain
+        memakainya.
+
+        Percobaan pertama mengisinya "Penyimpangan dari spesifikasi, gambar,
+        atau standar" — dan itu mengulang kalimat PERTAMA `subJudul` di
+        bawahnya nyaris kata per kata. Dua baris berurutan yang mengatakan
+        hal sama membuat pembacanya melewati keduanya.
+
+        Yang penting justru kalimat KEDUA `subJudul`: kapan harus memakai
+        Lapor Temuan. NCR dan temuan mudah tertukar, dan salah pilih berarti
+        pekerjaan yang menyimpang dicatat sebagai cacat rapi-rapi.
+      */}
+      <KepalaLayar judul="Lapor NCR" />
       <Text style={s.subJudul}>
         Pekerjaan yang menyimpang dari spesifikasi, gambar, atau standar. Untuk cacat
         biasa yang tinggal dirapikan, pakai Lapor Temuan.
@@ -333,13 +347,28 @@ function gaya(c: Palet) {
     wadah: { flex: 1, backgroundColor: c.surfaceSubtle },
     isi: { padding: 16, paddingBottom: 40 },
     tengah: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: c.surfaceSubtle },
-    judulHalaman: { fontSize: 20, fontFamily: FONT.judul, color: c.textPrimary, marginBottom: 6 },
     subJudul: { fontSize: 13, color: c.textSecondary, lineHeight: 19, marginBottom: 16 },
     label: { fontSize: 13, fontFamily: FONT.isiTebal, color: c.textPrimary, marginBottom: 8 },
     bantuan: { fontSize: 12, color: c.textSecondary, lineHeight: 17, marginTop: 6 },
     spasiAtas: { marginTop: 16 },
     pilihanBaris: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    /*
+      `maxWidth` WAJIB — ditemukan dari POTRET, bukan dari penjaga.
+
+      Nama proyek nyata sepanjang "[UJI] Renovasi Fasad Kantor CV Makmur —
+      Cihampelas" membentuk SATU chip yang lebih lebar daripada layar, dan
+      `flexWrap` tak bisa menolong: ia membungkus ANTAR-chip, tak bisa
+      mengecilkan satu chip yang sudah kebesaran. Ekornya terpotong di tepi
+      kanan — "…CV Makmur — Cihampela" — jadi dua proyek berawalan sama tak
+      bisa dibedakan sama sekali.
+
+      ⚠ `potret-mobile.mjs` melapor HIJAU: "nol gulir mendatar". Benar untuk
+      yang diukurnya (lebar dokumen vs viewport) — chip yang meluap terpotong
+      DI DALAM wadahnya, bukan melebarkan halaman. Pengukuran yang benar atas
+      hal yang salah.
+    */
     chip: {
+      maxWidth: '100%',
       paddingVertical: 9, paddingHorizontal: 14, borderRadius: 10,
       borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised,
     },

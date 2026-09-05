@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TextInput, ActivityIndicator, Alert, StyleSheet,
 } from 'react-native';
 import { Tekan } from '@/components/ui/Tekan';
+import { KepalaLayar } from '@/components/ui/KepalaLayar';
 import { router } from 'expo-router';
 import { api } from '@/lib/api';
 import { antrekan } from '@/lib/antrean';
@@ -227,7 +228,7 @@ export default function AjukanIzinKerja() {
 
   return (
     <ScrollView style={s.wadah} contentContainerStyle={s.isi} keyboardShouldPersistTaps="handled">
-      <Text style={s.judulHalaman}>Ajukan Izin Kerja</Text>
+      <KepalaLayar judul="Ajukan Izin Kerja" penjelas="Pekerjaan berbahaya butuh persetujuan sebelum mulai" />
 
       {/*
         Peringatan di ATAS, sebelum satu medan pun diisi. Menaruhnya di bawah
@@ -412,10 +413,6 @@ function gaya(c: Palet) {
       flex: 1, alignItems: 'center', justifyContent: 'center',
       padding: SPASI.xxl, backgroundColor: c.surfaceSubtle,
     },
-    judulHalaman: {
-      fontSize: HURUF.xl, fontFamily: FONT.judul,
-      color: c.textPrimary, marginBottom: SPASI.md,
-    },
     label: {
       fontSize: HURUF.sm, fontFamily: FONT.isiTebal,
       color: c.textPrimary, marginBottom: SPASI.sm,
@@ -437,7 +434,23 @@ function gaya(c: Palet) {
       color: c.warning, lineHeight: 19,
     },
     pilihanBaris: { flexDirection: 'row', flexWrap: 'wrap', gap: SPASI.sm },
+    /*
+      `maxWidth` WAJIB — ditemukan dari POTRET, bukan dari penjaga.
+
+      Nama proyek nyata sepanjang "[UJI] Renovasi Fasad Kantor CV Makmur —
+      Cihampelas" membentuk SATU chip yang lebih lebar daripada layar, dan
+      `flexWrap` tak bisa menolong: ia membungkus ANTAR-chip, tak bisa
+      mengecilkan satu chip yang sudah kebesaran. Ekornya terpotong di tepi
+      kanan — "…CV Makmur — Cihampela" — jadi dua proyek berawalan sama tak
+      bisa dibedakan sama sekali.
+
+      ⚠ `potret-mobile.mjs` melapor HIJAU: "nol gulir mendatar". Benar untuk
+      yang diukurnya (lebar dokumen vs viewport) — chip yang meluap terpotong
+      DI DALAM wadahnya, bukan melebarkan halaman. Pengukuran yang benar atas
+      hal yang salah.
+    */
     chip: {
+      maxWidth: '100%',
       paddingVertical: 9, paddingHorizontal: 14, borderRadius: 10,
       borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised,
     },

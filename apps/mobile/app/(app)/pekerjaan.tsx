@@ -4,6 +4,7 @@ import {
   RefreshControl, StyleSheet,
 } from 'react-native';
 import { Tekan } from '@/components/ui/Tekan';
+import { KepalaLayar } from '@/components/ui/KepalaLayar';
 import { router, useFocusEffect } from 'expo-router';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
@@ -561,7 +562,7 @@ export default function PekerjaanSaya() {
   const kepala = useMemo(
     () => (
       <>
-        <Text style={s.judulHalaman}>Pekerjaan Saya</Text>
+        <KepalaLayar judul="Pekerjaan Saya" penjelas="Temuan, NCR, dan izin kerja yang Anda kirim" />
 
         {galatMuat ? (
           <View style={s.galat}>
@@ -739,10 +740,6 @@ function gaya(c: Palet) {
     tengah: {
       flex: 1, alignItems: 'center', justifyContent: 'center',
       padding: SPASI.xxl, backgroundColor: c.surfaceSubtle,
-    },
-    judulHalaman: {
-      fontSize: HURUF.xl, fontFamily: FONT.judul, color: c.textPrimary,
-      marginBottom: 14,
     },
     ringkas: {
       flexDirection: 'row', alignItems: 'center',

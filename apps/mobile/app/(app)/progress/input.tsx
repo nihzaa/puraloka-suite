@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
+import { KepalaLayar } from '@/components/ui/KepalaLayar';
 import { Card } from '@/components/ui/Card';
 import { api } from '@/lib/api';
 import { antrekan } from '@/lib/antrean';
@@ -256,9 +257,7 @@ export default function InputProgressScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Input Progress</Text>
-      </View>
+      <KepalaLayar judul="Input Progress" penjelas="Laporan kemajuan pekerjaan di lapangan" />
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
 
         {/* Proyek */}
@@ -494,8 +493,6 @@ function gaya(c: Palet) {
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: c.surfaceSubtle },
     centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surfaceSubtle },
-    header: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
-    title: { fontSize: 22, fontFamily: FONT.judul, color: c.textPrimary },
     container: { padding: 16, gap: 16 },
     section: { gap: 10 },
     label: { fontSize: 13, fontFamily: FONT.isiTebal, color: c.textPrimary, marginBottom: 4 },

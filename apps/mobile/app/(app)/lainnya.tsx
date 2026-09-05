@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTema } from '@/hooks/useTema';
 import { FONT, HURUF, RADIUS, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
 import { PenandaAntrean } from '@/components/PenandaAntrean';
+import { KepalaLayar } from '@/components/ui/KepalaLayar';
 
 /*
   Apakah WebView benar-benar bisa dipakai?
@@ -207,10 +208,10 @@ export default function Lainnya() {
 
   return (
     <ScrollView style={s.wadah} contentContainerStyle={s.isi}>
-      <Text style={s.judulHalaman}>Lainnya</Text>
-      <Text style={s.keterangan}>
-        Modul kantor. Dibuka di dalam aplikasi — sesi Anda ikut, tak perlu masuk lagi.
-      </Text>
+      <KepalaLayar
+        judul="Lainnya"
+        penjelas="Modul kantor — dibuka di dalam aplikasi, sesi Anda ikut"
+      />
 
       {/*
         Penanda antrean — ditaruh di sini karena "Lainnya" adalah tempat
@@ -270,8 +271,6 @@ function gaya(c: Palet) {
   return StyleSheet.create({
     wadah: { flex: 1, backgroundColor: c.surfaceSubtle },
     isi: { padding: 16, paddingBottom: 32 },
-    judulHalaman: { fontSize: 22, fontFamily: FONT.judul, color: c.textPrimary, marginBottom: 4 },
-    keterangan: { fontSize: 13, color: c.textSecondary, marginBottom: 18, lineHeight: 19 },
     baris: {
       flexDirection: 'row',
       alignItems: 'center',
