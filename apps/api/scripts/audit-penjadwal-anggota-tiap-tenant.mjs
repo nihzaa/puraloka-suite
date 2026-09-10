@@ -92,13 +92,68 @@ const c = new Client({ connectionString: dsn })
 try {
   await c.connect()
 
-  const u = await c.query('SELECT id FROM users WHERE email = $1', [emailPenjadwal])
+  const u = await c.query(
+    'SELECT id, is_active FROM users WHERE email = $1', [emailPenjadwal])
   if (u.rowCount === 0) {
     console.error(`✗ Akun penjadwal (${emailPenjadwal}) TIDAK ADA di tabel users.`)
     console.error('  Penjadwal tak akan bisa masuk, dan SELURUH tugas terjadwal gagal.')
     process.exit(1)
   }
   const uid = u.rows[0].id
+
+  /*
+    ── AKUN yang HIDUP, bukan cuma akun yang ADA ──────────────────────────
+
+    Ditambahkan 2026-09-11 sesudah cacat yang berjalan berhari-hari tanpa
+    seorang pun melihatnya.
+
+    Diukur: 194 dari 207 tugas terjadwal AKTIF berstatus `gagal`, ketiganya
+    di company yang HIDUP (Persada 72 · Properti 61 · Nusantara 61), dengan
+    galat yang seragam:
+
+        /api/v1/otomasi/jalankan/kesiapan-audit membalas 403:
+        {"error":"Akun Anda dinonaktifkan. Hubungi admin perusahaan."}
+
+    Sebabnya satu baris: `users.is_active = false` pada akun penjadwal,
+    sementara SELURUH keanggotaannya aktif.
+
+    ── Kenapa lima penjaga lain hijau selama itu
+
+    Rantai penjadwal dijaga berlapis — `jadwal_tugas` → katalog → rute →
+    workflow, plus `audit-jadwal-company-hidup` (company) dan bagian bawah
+    berkas INI (keanggotaan tiap tenant). Tak satu pun memeriksa akunnya
+    sendiri masih hidup. Lapis yang patah justru satu-satunya tanpa penjaga.
+
+    Dan penjaga ini sendiri sudah memegang `uid`-nya sejak awal — ia
+    menanyakan "ADA?" lalu berhenti, satu kolom sebelum pertanyaan yang
+    sesungguhnya menentukan.
+
+    ── Kenapa gejalanya tak pernah sampai ke siapa pun
+
+    Kegagalannya hanya tercatat di `jadwal_tugas.terakhir_galat`, kolom yang
+    tak dibuka siapa pun, dan otomasi yang tak berjalan tidak menerbitkan
+    apa-apa — hal yang TIDAK terjadi tak menimbulkan tiket. Nol jejak di
+    `audit_logs` juga, sebab akunnya dimatikan lewat SQL langsung.
+
+    ⚠ Batas: yang diperiksa KEADAAN kolomnya, bukan apakah login benar-benar
+    berhasil. Kredensial salah atau Supabase Auth yang menolak tetap lolos
+    di sini — itu hanya ketahuan dari denyut sungguhan.
+  */
+  if (u.rows[0].is_active === false) {
+    console.error(`✗ Akun penjadwal (${emailPenjadwal}) ADA tetapi is_active = false.`)
+    console.error('')
+    console.error('  SELURUH tugas terjadwal gagal 403 "Akun Anda dinonaktifkan"')
+    console.error('  pada tiap denyut — dan diamnya bukan galat yang terlihat:')
+    console.error('  kegagalannya cuma tercatat di jadwal_tugas.terakhir_galat.')
+    console.error('')
+    console.error('  Perbaikan:')
+    console.error(`    UPDATE users SET is_active = true WHERE email = '${emailPenjadwal}';`)
+    console.error('')
+    console.error('  ⚠ `company_members.is_active` adalah kolom LAIN. Keanggotaan')
+    console.error('    yang aktif TIDAK menutup akun yang mati — plugins/auth.ts')
+    console.error('    menolak di 403 sebelum keanggotaan dibaca sama sekali.')
+    process.exit(1)
+  }
 
   /*
     Hanya tenant AKTIF yang dituntut.

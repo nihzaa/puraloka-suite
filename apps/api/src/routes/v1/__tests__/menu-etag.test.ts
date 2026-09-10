@@ -57,10 +57,18 @@ beforeAll(async () => {
   // ia menyaring `is_active = true`, dan `authenticate()` menuntut
   // `users.role_id` terisi. Kandidat yang hanya "punya baris di
   // company_members" dibalas 403 — pernah terjadi di berkas ini.
+  //
+  // ⚠ DUA kolom `is_active`, bukan satu. Kalimat di atas menyebut
+  // `resolveCompanyId()` menyaring `is_active` — itu `company_members`.
+  // `plugins/auth.ts:181` menyaring `users.is_active`, LEBIH DULU, dan
+  // menolak akun nonaktif dengan 403 sebelum keanggotaan dibaca sama
+  // sekali. Versi pertama query ini hanya membawa `cm.is_active`, dan
+  // penjelasan yang benar di atasnya membuatnya tampak sudah lengkap.
   const a = await c.query(
     `SELECT u.auth_id, cm.company_id, cm.role_id
        FROM company_members cm JOIN users u ON u.id = cm.user_id
       WHERE u.auth_id IS NOT NULL AND cm.is_active AND u.role_id IS NOT NULL
+        AND u.is_active
       LIMIT 1`)
   userA = a.rows[0].auth_id
   const companyA = a.rows[0].company_id
@@ -75,6 +83,7 @@ beforeAll(async () => {
     `SELECT u.auth_id, cm.company_id
        FROM company_members cm JOIN users u ON u.id = cm.user_id
       WHERE u.auth_id IS NOT NULL AND cm.is_active AND u.role_id IS NOT NULL
+        AND u.is_active
         AND cm.company_id <> $1 LIMIT 1`, [companyA])
 
   if (adaB.rows[0]) {

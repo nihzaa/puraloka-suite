@@ -72,6 +72,19 @@ beforeAll(async () => {
        JOIN users u ON u.id = cm.user_id
        LEFT JOIN roles r2 ON r2.id = u.role_id
       WHERE u.auth_id IS NOT NULL AND cm.is_active AND u.role_id IS NOT NULL
+      -- ⚠ u.is_active DAN cm.is_active — dua kolom, dua hal berbeda.
+      --
+      -- cm.is_active menyaring KEANGGOTAAN; u.is_active menyaring AKUN.
+      -- plugins/auth.ts:181 menolak akun nonaktif dengan 403 SEBELUM
+      -- keanggotaan sempat dibaca, jadi menyaring yang satu tak mencakup
+      -- yang lain.
+      --
+      -- Tanpa baris ini, ORDER BY … u.email LIMIT 1 mendarat di akun uji
+      -- nonaktif yang menang secara alfabetis (isolasi-…@ujicoba.test),
+      -- dan SELURUH berkas gugur dengan "expected 403 to be 200" — galat
+      -- yang menuduh rutenya, bukan fixture-nya. Terjadi sungguhan
+      -- 2026-09-11: 68 test merah dari sebab ini.
+      AND u.is_active
       -- Peran 'client' DIKECUALIKAN.
       --
       -- proyekBolehDibaca() memfilter lewat request.db.projectIds(), dan
