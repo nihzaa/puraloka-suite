@@ -64,11 +64,19 @@ beforeAll(async () => {
   // menolak akun nonaktif dengan 403 sebelum keanggotaan dibaca sama
   // sekali. Versi pertama query ini hanya membawa `cm.is_active`, dan
   // penjelasan yang benar di atasnya membuatnya tampak sudah lengkap.
+  //
+  // `cm.is_default` dituntut di SINI juga, dengan alasan yang sama seperti
+  // di pemilihan tenant B beberapa baris ke bawah: `auth.ts:99` masuk ke
+  // company default, bukan ke baris `company_members` yang dipungut query.
+  // Untuk A akibatnya lebih halus — `companyA` jadi pembanding `<> $1` bagi
+  // B, jadi A yang keliru bisa membuat B memungut company yang SAMA dengan
+  // yang benar-benar dilihat A.
   const a = await c.query(
     `SELECT u.auth_id, cm.company_id, cm.role_id
        FROM company_members cm JOIN users u ON u.id = cm.user_id
       WHERE u.auth_id IS NOT NULL AND cm.is_active AND u.role_id IS NOT NULL
         AND u.is_active
+        AND cm.is_default
       LIMIT 1`)
   userA = a.rows[0].auth_id
   const companyA = a.rows[0].company_id
@@ -79,11 +87,32 @@ beforeAll(async () => {
   // tenant kedua muncul sendiri akan melewati pemeriksaan terpentingnya
   // selamanya — hijau tanpa menguji apa pun. Fixture-nya dibuat di sini,
   // lalu dibongkar di `afterAll`.
+  //
+  // ⚠ `cm.is_default` WAJIB, dan itu bukan kerapian.
+  //
+  // `plugins/auth.ts:99` memilih company lewat
+  // `keanggotaan.find(k => k.is_default) ?? keanggotaan[0]` — jadi user
+  // MULTI-TENANT selalu masuk ke company DEFAULT-nya, apa pun baris
+  // `company_members` yang kebetulan dipungut query ini.
+  //
+  // Tanpa syarat ini, fixture bisa memungut baris "userX @ company B"
+  // untuk user yang default-nya company A. Test lalu menyembunyikan menu
+  // di B, memanggil sebagai userX, dan menerima menu A — ETag-nya sama,
+  // dan kegagalannya terbaca sebagai KEBOCORAN TENANT (ember [C]) padahal
+  // produknya benar.
+  //
+  // Terjadi 2026-09-11: begitu akun penjadwal dihidupkan (migrasi 568) ia
+  // masuk ke himpunan kandidat — anggota di SEMUA tenant, default-nya
+  // Puraloka Persada — dan memerahkan test isolasi yang paling menentukan
+  // di berkas ini. Alarm palsu pada pemeriksaan ember [C] jauh lebih mahal
+  // daripada test yang gagal: ia mengirim orang berikutnya memburu
+  // kebocoran yang tak ada.
   const adaB = await c.query(
     `SELECT u.auth_id, cm.company_id
        FROM company_members cm JOIN users u ON u.id = cm.user_id
       WHERE u.auth_id IS NOT NULL AND cm.is_active AND u.role_id IS NOT NULL
         AND u.is_active
+        AND cm.is_default
         AND cm.company_id <> $1 LIMIT 1`, [companyA])
 
   if (adaB.rows[0]) {
