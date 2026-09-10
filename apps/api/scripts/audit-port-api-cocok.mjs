@@ -191,15 +191,80 @@ for (const p of PASANGAN) {
   if (envMobile) {
     const urlMobile = envMobile.EXPO_PUBLIC_API_URL ?? ''
     const portMobile = portDariUrl(urlMobile)
-    const cocokMobile = portApi !== null && portApi === portMobile
+
+    /*
+      ── HOST JAUH bukan ketidakcocokan port ────────────────────────────────
+
+      Diperbaiki 2026-09-11. Penjaga ini MERAH atas konfigurasi yang BENAR:
+
+          nyata (.env)  api 3007 · web 3007  ✓
+            └ mobile    https://api.puraloka-suite.duckdns.org  ✗
+                        "API melayani 3007 tetapi mobile menuju 443"
+
+      Padahal beberapa baris di bawah, `eas.json` profil `preview` dan
+      `production` memuat URL yang SAMA PERSIS dan dinilai ✓.
+
+      Kontradiksi itu menunjukkan premisnya yang salah, bukan datanya.
+      Premis api↔web sah karena keduanya berjalan di MESIN YANG SAMA: web
+      yang bicara ke port lain berarti bicara ke instance lain, dan itulah
+      empat jam yang hilang pada 2026-08-10.
+
+      Untuk HP premis itu runtuh. Ponsel tak punya API lokal untuk dituju;
+      menuntutnya menunjuk port mesin ini justru mustahil dipenuhi — dan
+      `apps/mobile/.env` memang WAJAR menunjuk VPS, sebab di situlah API
+      yang bisa dijangkau HP sungguhan berada.
+
+      ⚠ Kenapa ini penting melampaui satu baris merah: penjaga yang merah
+      atas hal yang BENAR akan diabaikan SELURUH keluarannya, lalu berhenti
+      menjaga tanpa gejala. Pelajaran yang sama sudah memaksa
+      `audit-kosong-berpetunjuk.mjs` mengganti aturannya.
+
+      Yang TETAP dijaga (di bawah): `localhost`/`127.0.0.1`, yang di HP
+      selalu salah. Dan bila mobile menunjuk mesin ini juga — host lokal
+      ber-port — portnya wajib cocok, sebab di situ premis api↔web berlaku
+      lagi.
+    */
+    const hostMobile = (() => {
+      try { return new URL(urlMobile).hostname } catch { return '' }
+    })()
+    const lokal = /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/.test(hostMobile)
+      || /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(hostMobile)
+
+    /*
+      Host jauh = kesengajaan, bukan kelalaian. Host lokal/LAN = mesin ini,
+      jadi portnya wajib cocok.
+    */
+    const cocokMobile = lokal
+      ? portApi !== null && portApi === portMobile
+      : hostMobile !== ''
+
+    /*
+      `localhost` diperiksa lagi DI SINI, bukan hanya di bawah.
+
+      Uji mutasi 2026-09-11 menemukan baris ini mencetak ✓ untuk
+      `http://localhost:3001` — port memang cocok, jadi `cocokMobile`
+      benar — sementara beberapa baris kemudian penjaga MENOLAKNYA.
+
+      Ringkasan yang berkata ✓ atas nilai yang membuat exit 1 melatih
+      pembacanya mengabaikan kolom itu; ia lalu berhenti memberi tahu
+      apa pun. Tanda di layar wajib sepakat dengan putusannya.
+    */
+    const localhostMobile = /\/\/(localhost|127\.0\.0\.1)/.test(urlMobile)
+    const sehatMobile = cocokMobile && !localhostMobile
+
     console.log(
       `  ${'  └ mobile'.padEnd(22)}: ${urlMobile || '(kosong)'}`
-      + `  ${cocokMobile ? '✓' : '✗'}`,
+      + `  ${sehatMobile ? '✓' : '✗'}`
+      + (sehatMobile && !lokal ? '  (host jauh — port tak dibandingkan)' : ''),
     )
     if (!cocokMobile) {
       masalah.push(
-        `${p.label} (mobile): API melayani ${portApi} tetapi mobile menuju ${portMobile}.\n`
-        + `     EXPO_PUBLIC_API_URL=${urlMobile}`,
+        hostMobile === ''
+          ? `${p.label} (mobile): EXPO_PUBLIC_API_URL kosong atau bukan URL sah.\n`
+            + `     Nilai sekarang: ${urlMobile || '(kosong)'}`
+          : `${p.label} (mobile): API melayani ${portApi} tetapi mobile menuju ${portMobile}\n`
+            + `     di HOST YANG SAMA (${hostMobile}) — jadi ia bicara ke instance lain.\n`
+            + `     EXPO_PUBLIC_API_URL=${urlMobile}`,
       )
     }
 
