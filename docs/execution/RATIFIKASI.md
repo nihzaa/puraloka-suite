@@ -6,6 +6,97 @@ bawah entrinya.
 
 ---
 
+# ⏳ R-025 · Akun penjadwal dihidupkan lewat migrasi 568 — dan siapa yang mematikannya TIDAK diketahui (2026-09-11)
+
+## Kenapa ini sampai ke Anda
+
+Migrasi 568 **mengubah data**, bukan skema: ia menyetel `is_active = true`
+pada satu akun pengguna. Menghidupkan kembali akun yang seseorang matikan
+adalah keputusan yang berhak Anda tolak — apalagi karena saya **tidak tahu
+siapa yang mematikannya, atau kenapa**.
+
+## Apa yang rusak
+
+    jadwal_tugas aktif : 207 · sukses 13 · GAGAL 194
+
+Ketiga company yang gagal semuanya HIDUP — Persada 72, Properti 61,
+Nusantara 61 — jadi ini bukan pengulangan 563 (yang soal company mati).
+Galatnya seragam di seluruh 194:
+
+    /api/v1/otomasi/jalankan/kesiapan-audit membalas 403:
+    {"error":"Akun Anda dinonaktifkan. Hubungi admin perusahaan."}
+
+Sebabnya satu baris: `users.is_active = false` pada
+`layar.admin@puraloka.test` — nilai `SCHEDULER_EMAIL` — sementara SELURUH
+keanggotaan `company_members`-nya aktif.
+
+Basis produksi dan dev **sama** (diverifikasi lewat SSH ke VPS: keduanya
+`aws-1-ap-southeast-1.pooler.supabase.com`), jadi ini kegagalan produksi
+sungguhan, bukan artefak lokal.
+
+## Kenapa tak seorang pun tahu selama itu
+
+Rantai penjadwal dijaga berlapis — jadwal → katalog → rute → workflow, plus
+penjaga company-hidup dan penjaga keanggotaan-penjadwal-tiap-tenant. Tak
+satu pun memeriksa apakah AKUN-nya masih hidup. Lapis yang patah justru
+satu-satunya yang tak punya penjaga.
+
+Dan gejalanya nol. Kegagalan hanya tercatat di `jadwal_tugas.terakhir_galat`,
+kolom yang tak dibuka siapa pun. Otomasi yang tak berjalan tidak menerbitkan
+apa-apa — **hal yang TIDAK terjadi tak menimbulkan tiket**.
+
+## Yang TIDAK saya ketahui, dan tidak saya tebak
+
+`users.updated_at` = 2026-09-01 03:15:31, dengan **NOL baris di
+`audit_logs`**. Rute toggle di `routes/v1/users.ts` selalu menulis audit,
+jadi perubahan ini datang dari SQL langsung — di luar aplikasi.
+
+`bersihkan-sisa-uji-isolasi.mjs` menonaktifkan akun uji, tetapi hanya yang
+ber-email `%@ujicoba.test` atau bernama `[UJI-ISOLASI]%`. Akun ini bukan
+keduanya.
+
+**Kalau Anda yang mematikannya dengan sengaja, tulis TOLAK di bawah** — dan
+yang benar bukan menghidupkan akunnya, melainkan mengganti `SCHEDULER_EMAIL`
+ke akun layanan tersendiri.
+
+## Yang dilakukan, dan batasnya
+
+Predikat migrasi menyebut akun lewat **sifatnya**, bukan email yang dipaku:
+akun nonaktif yang punya keanggotaan aktif di SETIAP company hidup yang
+memiliki jadwal. Tak ada akun manusia yang berbentuk begitu.
+
+Diuji dalam transaksi yang di-ROLLBACK sebelum diterapkan:
+
+    akan dihidupkan : 1 dari 7 akun nonaktif
+      ★ layar.admin@puraloka.test
+    tetap nonaktif  : 6  (3 isolasi-*, uji.admin, uji.direktur, leo@gmail.com)
+
+Verifikasi migrasi memeriksa **dua arah**: gagal bila akun penjadwal masih
+mati, DAN mencatat berapa akun uji tetap nonaktif — supaya predikat yang
+terlalu longgar terlihat, bukan diam-diam membuka akun yang sengaja ditutup.
+
+## Yang BELUM terbukti
+
+Akun sudah hidup dan penjaganya hijau, tetapi **saya belum melihat 194 tugas
+itu benar-benar sukses**. Memicu denyut di produksi diblokir — ia mengirim
+WhatsApp dan notifikasi sungguhan, dan itu bukan efek yang boleh saya
+timbulkan tanpa izin Anda.
+
+Buktinya akan ada sendiri pada denyut terjadwal berikutnya. Ukur:
+
+    cd apps/api && node -r dotenv/config scripts/lapor-otomasi-hidup.mjs
+
+Yang dicari: baris `aktif & GAGAL terakhir` turun dari 194.
+
+## Pencegahan kekambuhan
+
+`audit-penjadwal-anggota-tiap-tenant.mjs` kini memeriksa akunnya HIDUP, bukan
+cuma ADA — ia sudah memegang `uid`-nya sejak awal dan berhenti satu kolom
+sebelum pertanyaan yang menentukan. Terbukti MERAH atas cacat produksi nyata
+sebelum migrasi, HIJAU sesudah.
+
+---
+
 # ⏳ R-024 · DUA migrasi lama disunting supaya rantai bisa diputar dari nol (2026-09-04)
 
 ## Kenapa ini sampai ke Anda

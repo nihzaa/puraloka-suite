@@ -5,6 +5,136 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-11 — satu akun mati memutus 194 tugas DAN 68 test
+
+Founder bertanya "apa yang belum selesai, dan apa lagi yang bisa
+disempurnakan". Diukur, bukan dibaca dari dokumen — dan dua gejala yang
+tampak tak berhubungan ternyata satu akar.
+
+### Yang ditemukan
+
+    jadwal_tugas aktif : 207 · sukses 13 · GAGAL 194
+    suite penuh        : 7.131 lulus · 68 gagal (32/494 berkas)
+
+194 kegagalan itu di tiga company yang HIDUP — Persada 72, Properti 61,
+Nusantara 61 — jadi BUKAN pengulangan migrasi 563. Galatnya seragam:
+403 "Akun Anda dinonaktifkan".
+
+Sebabnya satu baris: `users.is_active = false` pada `SCHEDULER_EMAIL`,
+sementara SELURUH keanggotaan `company_members`-nya aktif.
+
+68 test merah punya sebab sama dari arah lain: fixture memilih user dengan
+`cm.is_active` tanpa `u.is_active`, lalu `ORDER BY u.email LIMIT 1` mendarat
+di akun uji nonaktif yang menang alfabetis.
+
+**Dua kolom bernama sama, menyaring hal berbeda.** `company_members.is_active`
+= KEANGGOTAAN (`resolveCompanyId`), `users.is_active` = AKUN
+(`plugins/auth.ts:181`, LEBIH DULU). Berkas `auth.ts` sudah memperingatkannya:
+"Jangan menganggap salah satunya mencakup yang lain."
+
+### Kenapa lima penjaga rantai penjadwal hijau selama itu
+
+Rantainya dijaga berlapis — jadwal → katalog → rute → workflow, plus penjaga
+company-hidup (563) dan keanggotaan-tiap-tenant (523). Tak satu pun memeriksa
+akunnya sendiri masih hidup. **Lapis yang patah justru satu-satunya tanpa
+penjaga** — dan `audit-penjadwal-anggota-tiap-tenant` sudah memegang `uid`-nya
+sejak awal, lalu berhenti satu kolom sebelum pertanyaan yang menentukan.
+
+Gejalanya nol: kegagalan hanya tercatat di `jadwal_tugas.terakhir_galat` yang
+tak dibuka siapa pun, dan otomasi yang tak berjalan tidak menerbitkan apa-apa.
+Hal yang TIDAK terjadi tak menimbulkan tiket.
+
+### Yang saya TIDAK bisa jawab, dan tidak saya tebak
+
+Siapa yang menonaktifkan akun itu. `updated_at` 2026-09-01 03:15, NOL baris
+`audit_logs` — perubahan lewat SQL langsung, di luar aplikasi.
+`bersihkan-sisa-uji-isolasi.mjs` hanya menyasar `%@ujicoba.test`; akun ini
+bukan. Dibiarkan terbuka (§8a.2).
+
+### Perbaikan berantai: satu cacat menampakkan berikutnya
+
+Sesudah 568 menghidupkan akun penjadwal, `menu-etag` merah pada pemeriksaan
+paling menentukan di berkas itu — "dua tenant TIDAK berbagi ETag", ember [C].
+
+Produknya benar. Fixture memungut baris "userX @ company B" untuk user yang
+DEFAULT-nya A, sementara `auth.ts:99` masuk ke company default. Akun penjadwal
+— anggota di semua tenant — baru masuk himpunan kandidat setelah dihidupkan.
+
+**Alarm palsu pada pemeriksaan ember [C] lebih mahal daripada test merah
+biasa:** ia mengirim orang berikutnya memburu kebocoran tenant yang tak ada.
+
+### Saya salah empat kali, semuanya soal ALAT UKUR
+
+1. **"222 commit tertahan"** — dihitung terhadap `main` LOKAL yang basi 89
+   commit. Angka benarnya 133 terhadap `origin/main`.
+2. **`audit-batas-tak-basi.mjs` saya kira hilang** — ia ada; saya
+   menjalankannya dari cwd yang salah.
+3. **Backtick di dalam komentar SQL** menutup template literal lebih awal,
+   memotong query yang baru saja saya perbaiki. Penjaga baru saya sendiri
+   yang menangkapnya.
+4. **Penjaga fixture versi pertama melaporkan 10 pelanggaran, KESEMBILAN
+   benar** — `WHERE u.auth_id = $1` MENERIMA identitas, tak memilihnya.
+   Diperketat, sebab penjaga yang merah atas hal benar akan diabaikan
+   seluruh keluarannya lalu berhenti menjaga tanpa gejala.
+
+### Dua penjaga yang ternyata MERAH atas hal yang BENAR
+
+`audit-port-api-cocok` menolak `apps/mobile/.env` yang menunjuk VPS —
+sementara beberapa baris di bawahnya `eas.json` preview DAN production memuat
+URL yang SAMA PERSIS dan dinilai ✓. Kontradiksi di dalam satu keluaran
+penjaga menunjuk premisnya: api↔web sah karena satu mesin; ponsel tak punya
+API lokal untuk dituju.
+
+Mutasi menemukan cacat kedua di penjaga yang sama: baris ringkasan mencetak ✓
+untuk `http://localhost:3001` sementara penjaga itu MENOLAKNYA beberapa baris
+kemudian.
+
+### `audit-akhir-baris` BUTA dari cwd pelarinya — kambuh
+
+    dari akar repo → exit 1, tiga berkas CRLF
+    dari apps/api  → exit 0, "tak ada yang berubah"   ← cwd pelari
+
+`git diff --name-only` memulangkan jalur relatif akar repo;
+`existsSync`/`readFileSync` menyelesaikannya terhadap cwd pemanggil. Kepala
+berkasnya sudah menjelaskan cacat cwd ini sejak 2026-08-31 sambil menyebut
+`cwd` "sudah dipaku" — yang dipaku hanya cwd `git`. Penjelasan benar
+mendampingi keadaan salah, di berkas yang menerangkan cacatnya.
+
+### Yang ditambahkan tanpa diminta
+
+- **`/health` menyebut versinya.** Hari ini berulang kali muncul pertanyaan
+  "produksi menjalankan commit mana?", dan tiap kali jawabannya butuh SSH.
+  Tanpa ini "sudah ter-deploy" adalah keyakinan, bukan pengukuran.
+- **`audit-migrasi-tertinggal-deploy.mjs`** — langkah 8 `perbarui-vps.sh`.
+  MELAPOR, tidak menjalankan (G-2). Yang ditutup bukan "migrasi tak berjalan"
+  melainkan "tak berjalan TANPA ADA YANG TAHU". Ia langsung menemukan 11
+  entri buku tanpa berkas (59, 478-482, 497-501) — semuanya nyata, ter-commit
+  di `feat/sumbu-ui-roadmap` yang **73 commit belum ter-merge**.
+- **`audit-health-kontrak-utuh.mjs`** — `/health` dibaca EMPAT konsumen dan
+  nol test. Healthcheck hanya memeriksa `r.ok`, jadi badan KOSONG pun
+  dinyatakan SEHAT oleh semuanya.
+
+### Terukur
+
+    penjaga CI   : 236 hijau · 3 MERAH  ->  241 hijau · 0 MERAH · 0 tak ketemu
+    ci.yml       : 241 penjaga · 71 tertabel  ->  245 · 73
+    suite        : 7.131 lulus · 68 gagal  ->  7.148 lulus · 49 gagal
+    tsc          : exit 0, tanpa filter
+    merge        : 28 commit dari integrasi/porto-vs-main (migrasi 567 masuk)
+
+Sisa 49 kegagalan **pra-ada**, dibuktikan lewat worktree di `4c3810ab`
+dijalankan BERURUTAN: baseline 12 gagal / 37 lulus, HEAD identik. Sebabnya
+beragam dan tak berhubungan — masing-masing perlu penelusuran sendiri.
+
+### Yang TIDAK bisa saya tuntaskan
+
+Memicu denyut penjadwal di produksi diblokir classifier (efek nyata: kirim
+WhatsApp/notifikasi). Akun sudah hidup dan penjaganya hijau, tetapi **bukti
+bahwa 194 tugas benar-benar sukses** baru ada sesudah denyut terjadwal
+berikutnya berjalan sendiri.
+
+---
+
 ## 2026-09-05 (lanjutan) — penjaga yang mengukur PROKSI, dan animasi yang tak pernah ada
 
 Dua pekerjaan yang tersisa dari daftar mobile: dua belas layar kosong tanpa

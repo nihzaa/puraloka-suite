@@ -1,6 +1,6 @@
 # STATUS — Puraloka Suite (penunjuk satu pintu)
 
-**Diperbarui:** 2026-08-07 (rev-21: **compro publik terbit** — `apps/web-publik` hidup dari CMS, 7 tabel situs_* ber-RLS, 28 foto ber-EXIF-bersih, revalidate-on-save terbukti end-to-end. Empat cacat UI dan dua cacat cache hanya ketahuan lewat potret & uji rantai penuh; tiga penjaga repo menangkap kelalaian, nol yang dilemahkan. Di luar QUEUE atas keputusan founder — item SITUS-1/2/3 ditambahkan. Sebelumnya rev-20: alat introspeksi DB kanonik; cacat P0 tabrakan GL 047/167.)
+**Diperbarui:** 2026-09-11 (rev-22: **penjadwal hidup kembali** — satu akun `is_active = false` memutus 194 tugas terjadwal DAN 68 test sekaligus; keduanya berakhir di `plugins/auth.ts:181` dengan 403 yang sama. Rantai penjadwal dijaga BERLAPIS dan tak satu pun memeriksa akunnya sendiri masih hidup. Ditutup migrasi 568 + dua penjaga baru. 28 commit ter-merge dari `integrasi/porto-vs-main`. Penjaga CI 236 hijau · 3 MERAH → **241 hijau · 0 MERAH · 0 tak ketemu**; suite 7.131→**7.148 lulus**, 68→**49 gagal** (sisa PRA-ADA, terbukti lewat worktree baseline). Ditambahkan tanpa diminta: `/health` menyebut commit yang dilayani, penjaga migrasi tertinggal di langkah 8 deploy, penjaga kontrak `/health`. Detail: JOURNAL 2026-09-11. Sebelumnya rev-21: compro publik terbit.)
 — penunjuk TIPIS, bukan duplikasi konten. Update tanggal + baris "Fase aktif" setiap
 kali keadaan berubah; detail selalu di dokumen rujukan.
 

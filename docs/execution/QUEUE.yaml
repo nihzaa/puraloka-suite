@@ -3798,3 +3798,79 @@ items:
       (mis. 1.111.111 dan 8.888.888) berdampingan di layar iOS. Kalau
       kolomnya sejajar, tabular-nums bekerja; kalau bergoyang, tidak.
 
+
+  - id: TEST-SISA-49
+    fase: null
+    judul: "49 test merah dari 27 berkas — sebab BERAGAM, bukan satu akar"
+    status: todo
+    prioritas: sedang
+    catatan: |
+      Diukur 2026-09-11 sesudah cacat akun penjadwal ditutup:
+
+          sebelum : 7.131 lulus · 68 gagal · 32/494 berkas
+          sesudah : 7.148 lulus · 49 gagal · 27/494 berkas
+
+      Yang 19 tertutup punya satu akar (fixture memilih akun nonaktif).
+      Sisa 49 TIDAK — dan itu yang membuatnya lebih mahal per-kegagalan.
+
+      PRA-ADA, bukan dari perubahan hari ini. Dibuktikan lewat worktree
+      terpisah di `4c3810ab` (commit sebelum sesi itu), dijalankan
+      BERURUTAN — bukan paralel (CLAUDE.md §7):
+
+          baseline 4c3810ab : 12 gagal / 37 lulus   (4 berkas contoh)
+          HEAD sesudah fix  : 12 gagal / 37 lulus   ← identik
+
+      Sebab yang sudah terbaca dari keluaran, masing-masing berdiri sendiri:
+
+        · ai-isolasi-tenant  — "prasyarat gagal: 'users:roles:manage'
+          dipegang 2 role aktif, bukan 1". Uji lockout hanya bermakna saat
+          ada pemegang TERAKHIR; basis dev punya dua. Ini kemungkinan
+          fixture, bukan produk.
+        · ai-gerbang-biaya   — 'kuota_habis' vs 'batas_terlampaui' dan
+          vs 'nonaktif'. Nama status yang bergeser di satu sisi saja.
+        · situs              — 403 vs 422, dan 403 vs 200. Izin, bukan
+          bentuk balasan.
+        · approval-inbox     — expected false to be true.
+        · lessons-writeback  — "Approval tercatat tapi propagasi gagal:
+          Transaction…"
+
+      ⚠ JANGAN memperlakukan ini sebagai satu tiket. Tiap berkas perlu
+      penelusuran sendiri, dan menggabungkannya jadi "perbaiki 49 test"
+      mengundang perbaikan borongan yang menyembunyikan sebab aslinya —
+      persis kebalikan dari yang dilakukan hari ini.
+
+      Urutan yang disarankan: mulai dari yang galatnya menyebut PRASYARAT
+      (ai-isolasi-tenant), sebab itu paling mungkin fixture yang bisa
+      diperbaiki tanpa menyentuh produk.
+
+  - id: MERGE-SUMBU-UI
+    fase: null
+    judul: "73 commit tertahan di feat/sumbu-ui-roadmap — 11 migrasinya SUDAH jalan di basis"
+    status: todo
+    prioritas: sedang
+    catatan: |
+      Ditemukan 2026-09-11 oleh `audit-migrasi-tertinggal-deploy.mjs` pada
+      jalan pertamanya, dari arah yang tak diduga: entri buku migrasi yang
+      BERKASNYA TAK ADA.
+
+          59, 478, 479, 480, 481, 482, 497, 498, 499, 500, 501
+
+      Kesebelasnya nyata dan sudah ter-commit — semuanya di
+      `feat/sumbu-ui-roadmap`, yang **73 commit** belum ter-merge ke
+      `origin/main`.
+
+      Artinya basis dev SUDAH memutar migrasi itu, sementara kodenya belum
+      menyatu. Di basis BARU (VPS bersih, CI dari nol) migrasi itu tak akan
+      pernah berjalan — dan ketiadaannya tak menimbulkan galat apa pun
+      sampai ada kode yang menyentuh kolomnya.
+
+      ⚠ Ini BUKAN pelanggaran G-2 (entri palsu). Buku dan artefaknya cocok;
+      yang tertinggal pohon kerjanya. Bedanya penting: G-2 butuh ratifikasi,
+      merge tidak.
+
+      Tidak dikerjakan hari ini karena di luar cakupan — 73 commit adalah
+      merge tersendiri yang butuh suite penuh sesudahnya, bukan sisipan.
+
+      Ukur ulang sebelum mulai:
+        node apps/api/scripts/audit-migrasi-tertinggal-deploy.mjs
+        git log --oneline origin/main..feat/sumbu-ui-roadmap | wc -l
