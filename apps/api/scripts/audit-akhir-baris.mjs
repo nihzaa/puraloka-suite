@@ -35,6 +35,7 @@
  */
 import { execFileSync } from 'node:child_process'
 import { readFileSync, existsSync } from 'node:fs'
+import { join } from 'node:path'
 
 /** Ekstensi yang isinya dibaca sebagai teks oleh test/alat. */
 const DIPERIKSA = /\.(ts|tsx|mjs|js|json|md|yaml|yml|sql|css)$/
@@ -87,8 +88,28 @@ try {
 const temuan = []
 
 for (const f of berubah) {
-  if (!existsSync(f)) continue                    // dihapus
-  const kerja = readFileSync(f)
+  /*
+    ⚠ Jalur DIRESOLUSI ke akar repo, bukan dipakai apa adanya.
+
+    `git diff --name-only` selalu memulangkan jalur relatif AKAR REPO, tetapi
+    `existsSync`/`readFileSync` menyelesaikannya terhadap cwd PEMANGGIL.
+    Dari `apps/api` — cwd yang dipakai `jalankan-semua-penjaga.mjs` — berkas
+    seperti `CLAUDE.md` atau `.github/workflows/ci.yml` tak ditemukan, lalu
+    `continue` melewatinya TANPA SUARA.
+
+    Akibatnya penjaga ini melapor "✅ tak ada yang berubah" atas berkas yang
+    benar-benar berubah — dan kepala berkas ini sudah menjelaskan cacat cwd
+    itu dengan percaya diri sejak 2026-08-31, sambil menyebut `cwd` sudah
+    dipaku. Yang dipaku hanya cwd `git`; pembacaan berkasnya tidak. Penjelasan
+    yang benar mendampingi keadaan yang salah (CLAUDE.md §8a.2), di berkas
+    yang justru menerangkan cacatnya.
+
+    Diukur 2026-09-11: tiga berkas CRLF (ci.yml, CLAUDE.md, src/index.ts)
+    terlihat dari akar repo, tak terlihat sama sekali dari `apps/api`.
+  */
+  const jalur = join(AKAR_REPO, f)
+  if (!existsSync(jalur)) continue                // dihapus
+  const kerja = readFileSync(jalur)
   if (!kerja.includes('\r\n')) continue           // pohon kerja LF → aman
 
   let head

@@ -283,7 +283,7 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 ## 6. Penjaga CI (jangan dilemahkan — G-5)
 
 ⚠ **Tabel di bawah TIDAK lengkap, dan tak dimaksudkan lengkap.** Diukur
-2026-09-05: `ci.yml` menjalankan **241** penjaga; tabel ini memuat **71**.
+2026-09-11: `ci.yml` menjalankan **244** penjaga; tabel ini memuat **73**.
 Yang 170 lainnya bukan penjaga kelas dua — sebagian besar penjaga visual dan
 invarian domain yang lahir belakangan dan tak pernah didaftarkan.
 

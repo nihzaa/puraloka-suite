@@ -391,6 +391,30 @@ app.get('/health', async (_request, reply) => {
     app: 'Puraloka Suite API',
     timestamp: new Date().toISOString(),
     env: process.env.NODE_ENV ?? 'development',
+    /*
+      ── VERSI YANG SEDANG DILAYANI ────────────────────────────────────────
+
+      Ditambahkan 2026-09-11 sesudah pertanyaan sesederhana "produksi
+      menjalankan commit mana?" hanya bisa dijawab dengan SSH ke server.
+
+      Itu bukan ketidaknyamanan; itu lubang pengukuran. Sepanjang hari ini
+      berulang kali muncul pertanyaan yang bergantung padanya — apakah
+      temuan X sudah tayang, apakah perbaikan Y sudah sampai — dan tiap kali
+      jawabannya harus diambil dari luar sistem.
+
+      Yang lebih berbahaya: tanpa ini, "sudah ter-deploy" adalah KEYAKINAN,
+      bukan pengukuran. Sesi 2026-09-05 sempat menyimpulkan deploy belum
+      pernah terjadi padahal sudah dua jam sebelumnya (JOURNAL).
+
+      `GIT_COMMIT` dipanggang saat build (docker-compose args ← perbarui-vps.sh).
+      Bila kosong ia berkata 'tak diketahui' dan BUKAN menebak: nilai jatuhan
+      yang terlihat masuk akal lebih buruk daripada mengaku tak tahu —
+      pelajaran pemantau EAS yang mencetak `?` selama enam menit (CLAUDE.md §7).
+    */
+    versi: {
+      commit: process.env.GIT_COMMIT || 'tak diketahui',
+      dibangun: process.env.BUILD_TIME || 'tak diketahui',
+    },
     checks: {
       database: { status: dbStatus, latencyMs: dbLatencyMs, ...(dbError ? { error: dbError } : {}) },
     },

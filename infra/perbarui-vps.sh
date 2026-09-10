@@ -62,6 +62,13 @@ echo "   Semua variabel terisi."
 
 echo ""
 echo "== 3. Bangun & jalankan ==================================="
+# Versi dipanggang ke image supaya `/health` bisa menjawab "produksi
+# menjalankan commit mana?" tanpa SSH ke sini. Sebelum ini, satu-satunya
+# cara mengetahuinya adalah perintah yang sedang Anda jalankan.
+GIT_COMMIT="$SESUDAH"
+BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+export GIT_COMMIT BUILD_TIME
+echo "   versi yang dipanggang: $GIT_COMMIT ($BUILD_TIME)"
 docker compose up -d --build
 
 echo ""
@@ -159,6 +166,30 @@ echo "== 7. Host porto yang menyala wajib bisa dibuka ============"
 # adalah keadaan sesudah deploy — persis di titik ini.
 if [ -f "$AKAR/apps/api/scripts/audit-situs-host-dilayani.mjs" ]; then
   node "$AKAR/apps/api/scripts/audit-situs-host-dilayani.mjs" || exit 1
+else
+  echo "   LEWAT: penjaga belum ada di versi ini."
+fi
+
+echo ""
+echo "== 8. Migrasi yang ikut ter-deploy tetapi belum jalan ======"
+# Deploy ini TIDAK menjalankan migrasi, dan itu disengaja — buku migrasi ada
+# di Gerbang Keras G-2, jadi `git pull` tak boleh bisa mengubah schema tanpa
+# seorang pun menekan apa pun.
+#
+# Yang ditutup di sini bukan "migrasi tak berjalan", melainkan "migrasi tak
+# berjalan TANPA ADA YANG TAHU". Tanpa langkah ini deploy tetap hijau
+# seluruhnya — container sehat, semua situs 200 — dan kode yang menyentuh
+# kolom baru gagal berhari-hari kemudian dengan galat yang menuduh KODE.
+#
+# JOURNAL 2026-09-05 mencatat lubang ini terbuka; 2026-09-11 ia menggigit
+# lagi (migrasi 568 harus diterapkan tangan).
+#
+# Sengaja TIDAK `--tegas`: exit 1 akan menggagalkan deploy yang SUDAH
+# berhasil, dan menyuruh operator mengulang tak memperbaiki apa pun.
+# Kegagalan yang tak bisa ditindaklanjuti melatih orang mengabaikan langkah
+# verifikasi — persis yang sudah tertulis di langkah 5.
+if [ -f "$AKAR/apps/api/scripts/audit-migrasi-tertinggal-deploy.mjs" ]; then
+  node "$AKAR/apps/api/scripts/audit-migrasi-tertinggal-deploy.mjs" || true
 else
   echo "   LEWAT: penjaga belum ada di versi ini."
 fi

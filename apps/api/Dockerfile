@@ -119,5 +119,25 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3001)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
+# ── Versi yang dipanggang ke dalam image ────────────────────────────────────
+#
+# Dipakai `/health` untuk menjawab "produksi menjalankan commit mana?" tanpa
+# SSH. Sebelum ini satu-satunya cara adalah masuk ke server — dan itu membuat
+# "sudah ter-deploy" jadi KEYAKINAN, bukan pengukuran. Sesi 2026-09-05 sempat
+# menyimpulkan deploy belum terjadi padahal sudah dua jam sebelumnya.
+#
+# ⚠ Ditaruh DI SINI, sesudah seluruh COPY, dan itu bukan selera: nilainya
+# berubah TIAP commit, jadi menaruhnya di atas akan membatalkan cache setiap
+# lapisan di bawahnya — install dan build ikut diulang tiap deploy. Di bawah,
+# yang dibangun ulang hanya dua lapisan ENV ini.
+#
+# Kosong bila pembuild tak mengopernya; `/health` lalu berkata 'tak diketahui'
+# alih-alih menebak. Nilai jatuhan yang terlihat masuk akal lebih buruk
+# daripada mengaku tak tahu (pelajaran pemantau EAS, CLAUDE.md §7).
+ARG GIT_COMMIT=""
+ARG BUILD_TIME=""
+ENV GIT_COMMIT=$GIT_COMMIT
+ENV BUILD_TIME=$BUILD_TIME
+
 ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "apps/api/dist/index.js"]

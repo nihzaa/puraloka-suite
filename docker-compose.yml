@@ -39,6 +39,12 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
+      # Versi yang dipanggang ke image, dibaca `/health`.
+      # Diisi `infra/perbarui-vps.sh`; kosong saat build manual, dan
+      # `/health` lalu berkata 'tak diketahui' alih-alih menebak.
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-}
+        BUILD_TIME: ${BUILD_TIME:-}
     # Nama dipaku supaya `docker inspect` di infra/perbarui-vps.sh bisa
     # menanyakan kesehatannya tanpa menebak awalan proyek.
     container_name: puraloka-api

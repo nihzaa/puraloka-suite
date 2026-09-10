@@ -477,6 +477,18 @@ jobs:
       - name: Akun penjadwal anggota tiap tenant aktif
         run: node scripts/audit-penjadwal-anggota-tiap-tenant.mjs
 
+      # Fixture test yang MEMILIH identitas untuk login wajib menyaring akun
+      # aktif — `cm.is_active` (keanggotaan) tidak mencakup `u.is_active`
+      # (akun), dan plugins/auth.ts menolak akun mati dengan 403 sebelum
+      # keanggotaan dibaca sama sekali.
+      #
+      # Diukur 2026-09-11: fixture mendarat di akun uji nonaktif yang menang
+      # alfabetis, dan 68 test merah dengan "expected 403 to be 200" — galat
+      # yang menuduh rute, bukan fixture. Test yang HIJAU selama basis
+      # kebetulan bersih, lalu merah karena DATA berubah, bukan kode.
+      - name: Fixture yang memilih akun untuk login
+        run: node scripts/audit-fixture-akun-hidup.mjs
+
 
 
 
