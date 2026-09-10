@@ -489,6 +489,15 @@ jobs:
       - name: Fixture yang memilih akun untuk login
         run: node scripts/audit-fixture-akun-hidup.mjs
 
+      # `/health` dibaca EMPAT konsumen (Dockerfile HEALTHCHECK,
+      # docker-compose, perbarui-vps.sh langkah 4 & 5) dan tak punya satu pun
+      # test. Healthcheck container hanya memeriksa `r.ok` — status HTTP —
+      # jadi /health yang membalas 200 dengan badan KOSONG dinyatakan SEHAT
+      # oleh semuanya. Seluruh isi balasan bisa lenyap tanpa satu pun deploy
+      # berubah warna.
+      - name: Kontrak /health utuh
+        run: node scripts/audit-health-kontrak-utuh.mjs
+
 
 
 

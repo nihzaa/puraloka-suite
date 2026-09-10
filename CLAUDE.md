@@ -299,16 +299,23 @@ dengan racun konteks di pembuka dokumen ini.
 cd apps/api && node scripts/jalankan-semua-penjaga.mjs
 ```
 
-Diukur 2026-09-05: **236 hijau · 1 MERAH · 4 dilewati · 0 tak ketemu.**
+Diukur 2026-09-11: **241 hijau · 0 MERAH · 4 dilewati · 0 tak ketemu.**
 Yang empat dilewati butuh lingkungan CI (`CI_DIRECT_URL`, fingerprint,
 coverage-shards) — pelarinya menyebutnya sendiri "ini BUKAN lulus".
 
-Yang satu MERAH bukan cacat lama: `audit-akhir-baris.mjs` menangkap dua
-berkas yang BARU saja disunting sesi ini berubah LF → CRLF. Penyebabnya
-penyuntingan lewat Python (`io.open(...,'w')` menerjemahkan `
-` di
-Windows); `fs.writeFileSync` Node tak melakukannya. Perbaikannya dicetak
-penjaga itu sendiri.
+⚠ **`audit-akhir-baris.mjs` BUTA dari cwd yang dipakai pelarinya**, dan
+kambuh sesudah pernah tercatat. Diukur 2026-09-11:
+
+    dari akar repo → exit 1, tiga berkas CRLF
+    dari apps/api  → exit 0, "tak ada yang berubah"   ← cwd pelari
+
+`git diff --name-only` memulangkan jalur relatif AKAR REPO, tetapi
+`existsSync`/`readFileSync` menyelesaikannya terhadap cwd PEMANGGIL — jadi
+`CLAUDE.md` dan `.github/**` tak ditemukan lalu dilewati TANPA SUARA.
+Kepala berkasnya sudah menjelaskan cacat cwd ini sejak 2026-08-31 sambil
+menyebut `cwd` sudah dipaku; yang dipaku hanya cwd `git`. Penjelasan benar
+mendampingi keadaan salah (§8a.2), di berkas yang menerangkan cacatnya.
+Sudah diperbaiki — kedua cwd kini sepakat.
 
 ⚠ Pelari itu sendiri pernah melewatkan dua penjaga nyata karena mencari di
 tiga akar dan `apps/web-publik` bukan salah satunya. Ia melapor "199 hijau"
@@ -368,6 +375,8 @@ sebelum menyentuh kode terkait** — bukan sekadar daftar isi.
 | `audit-font-mobile-terpakai.mjs` | font merek yang DIMUAT wajib DIPAKAI — diukur 2026-09-04 tepat sesudah dua keluarga font dipasang dan splash ditahan menunggunya: `fontFamily` di seluruh layar **NOL**. Biaya penuh (dua unduhan + splash menunggu), nol hasil, dan tsc/Metro/a11y/kontras semuanya hijau karena tak ada yang SALAH — cuma tak ada yang memanggilnya. Kembaran cacat `useData()` di web. Merah untuk TIGA keadaan: dimuat-tapi-nol-dipakai, dipakai-tapi-tak-dimuat (RN jatuh diam-diam ke bawaan), dan pemakaian yang TURUN (ratchet naik) |
 | `audit-hook-eas-utuh.mjs` | rantai hook build EAS wajib utuh — SEMBILAN build APK gagal karena celah dua versi pnpm (server 9.15.5, lokal 11.11.0): `overrides` di `pnpm-workspace.yaml` adalah fitur pnpm 10+, dan pnpm 9 tak membacanya lalu menolak dengan galat yang menuduh lockfile. Menghapus satu mata rantai tak menggagalkan tsc maupun test; yang gagal cuma build di server 20 menit kemudian (ambang NOL) |
 | `audit-versi-pnpm-satu-suara.mjs` | versi pnpm dideklarasikan di **SEPULUH** tempat — dua di `package.json` (`packageManager` + `devEngines`) dan delapan `version:` di `ci.yml`/`ci-isolation`/`ci-keepalive`. `pnpm/action-setup` membaca dua sumber dan MENOLAK bila berbeda (*"Multiple versions of pnpm specified"*). Diukur 2026-09-04: menaikkan pnpm hanya di `package.json` memerahkan SEPULUH job di langkah setup — termasuk tiga yang tak menyentuh kode. Lokal semuanya hijau; tak satu pun alat di sini membandingkan kesepuluh angka itu (ambang NOL) |
+| `audit-fixture-akun-hidup.mjs` | fixture test yang MEMILIH identitas untuk login wajib menyaring `u.is_active` — `cm.is_active` menyaring KEANGGOTAAN, `u.is_active` menyaring AKUN, dan `plugins/auth.ts:181` menolak akun mati dengan 403 SEBELUM keanggotaan dibaca sama sekali. Diukur 2026-09-11: fixture mendarat di akun uji nonaktif yang menang alfabetis lewat `ORDER BY u.email LIMIT 1`, dan **68 test merah** di 32 berkas dengan "expected 403 to be 200" — galat yang menuduh RUTE, bukan fixture. Tiga hal berkonspirasi: test HIJAU selama basis kebetulan bersih (jadi ia merah karena DATA berubah, bukan kode, dan `git bisect` menunjuk commit tak bersalah), galatnya terbaca sebagai cacat otorisasi, dan `menu-etag.test.ts` punya komentar BENAR di atas query yang salah — "ia menyaring is_active" merujuk `resolveCompanyId()`, sehingga pembaca berikutnya menyimpulkan query itu sudah lengkap (§8a.2). ⚠ Versi pertama penjaga ini melaporkan 10 pelanggaran dan KESEMBILAN benar (`WHERE u.auth_id = $1` MENERIMA identitas, tak memilihnya); diperketat, sebab penjaga yang merah atas hal benar akan diabaikan seluruh keluarannya (ambang NOL) |
+| `audit-health-kontrak-utuh.mjs` | kunci yang dijanjikan `/health` wajib benar-benar ada di kode — rute itu dibaca EMPAT konsumen (`Dockerfile` HEALTHCHECK, `docker-compose`, `perbarui-vps.sh` langkah 4 & 5, dan manusia yang bertanya "produksi menjalankan commit mana?") tanpa satu pun test. Yang membuatnya berbahaya: healthcheck container hanya memeriksa `r.ok` — STATUS HTTP — jadi `/health` yang membalas 200 dengan badan KOSONG dinyatakan SEHAT oleh keempat-empatnya, dan seluruh isi balasan bisa lenyap tanpa satu pun deploy berubah warna. Ikut menjaga `versi.commit` punya jatuhan `'tak diketahui'`: nilai jatuhan yang terlihat masuk akal lebih buruk daripada mengaku tak tahu (pemantau EAS mencetak `?` enam menit atas perintah yang GAGAL, §7). ⚠ Batas: yang dibaca BENTUK DI KODE, bukan balasan sungguhan — ia tak tahu apakah `GIT_COMMIT` benar-benar terisi saat build (ambang NOL) |
 
 **Host porto yang menyala wajib bisa dibuka — SESUDAH DEPLOY, bukan di CI:**
 
@@ -392,6 +401,36 @@ tayang; ia hanya bisa mengukur server versi lama. Tempatnya
 tertutup, TLS ditolak, dan waktu habis — empat sebab, empat perbaikan. Penjaga
 ini membaca EXIT CODE-nya. Dan `-o /dev/null` TAK ADA di Windows (exit 23),
 yang pada jalan pertamanya melaporkan host sehat sebagai MERAH.
+
+**Migrasi yang ikut ter-deploy tetapi belum dijalankan — SESUDAH DEPLOY:**
+
+```bash
+node apps/api/scripts/audit-migrasi-tertinggal-deploy.mjs          # melapor
+node apps/api/scripts/audit-migrasi-tertinggal-deploy.mjs --tegas  # exit 1
+```
+
+`infra/perbarui-vps.sh` **tidak menjalankan migrasi**, dan itu disengaja —
+buku migrasi ada di Gerbang Keras G-2, jadi `git pull` tak boleh mengubah
+schema tanpa seorang pun menekan apa pun.
+
+Yang ditutup penjaga ini bukan "migrasi tak berjalan" melainkan **"tak
+berjalan TANPA ADA YANG TAHU"**. Tanpanya deploy tetap hijau seluruhnya —
+container sehat, semua situs 200 — dan kode yang menyentuh kolom baru gagal
+berhari-hari kemudian dengan galat yang menuduh KODE (`column does not
+exist`). Pada saat itu tak seorang pun menghubungkannya dengan pembaruan
+yang sudah lama dinyatakan berhasil.
+
+Terpasang sebagai langkah 8 `perbarui-vps.sh`, sengaja **tanpa** `--tegas`:
+exit 1 akan menggagalkan deploy yang SUDAH berhasil, dan kegagalan yang tak
+bisa ditindaklanjuti melatih orang mengabaikan langkah verifikasi.
+
+⚠ Sama seperti `audit-situs-host-dilayani.mjs`, ia **sengaja TIDAK di
+`ci.yml`** — jangan menabelkannya di §6. CI menilai kode yang BELUM tayang.
+
+Ia juga memeriksa arah sebaliknya: entri buku **tanpa berkas**. Diukur
+2026-09-11: sebelas (59, 478-482, 497-501), semuanya nyata dan sudah
+ter-commit di `feat/sumbu-ui-roadmap` yang **73 commit belum ter-merge** —
+migrasinya sudah jalan di basis, kodenya belum menyatu.
 
 **Alur take-off → RAB — MANUAL, butuh API hidup:**
 
