@@ -60,7 +60,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { buatClient } from '../../../scripts/db/_koneksi.mjs'
+import { buatClient, adaKoneksi } from '../../../scripts/db/_koneksi.mjs'
 
 const AKAR = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 const BADGE = join(AKAR, 'apps', 'mobile', 'components', 'ui', 'Badge.tsx')
@@ -146,6 +146,25 @@ const berlabel = new Set(
 if (berlabel.size === 0) {
   console.error('❌ Nol kunci terbaca dari peta — pembacaannya meleset.')
   process.exit(1)
+}
+
+/*
+  ⚠ `adaKoneksi()` DULU — `buatClient()` melakukan `process.exit(2)` saat DSN
+  tak ada, dan `process.exit` TIDAK bisa ditangkap `try/catch` di sekelilingnya.
+
+  Diukur 2026-09-05, run CI pertama PR #149: keenam shard API gagal di
+  langkah INI dengan exit 2 dan NOL keluaran penjaga. Sebabnya bukan
+  pelanggaran — langkahnya tak mendeklarasikan `DIRECT_URL`, sementara 45
+  langkah ber-basis lainnya di job yang sama mendeklarasikannya. Env-nya
+  sudah ditambahkan; gerbang ini menutup sisi satunya supaya jalan LOKAL
+  tanpa .env melewati diri dengan sopan alih-alih mati.
+
+  ⚠ Melewati BUKAN lulus, dan kalimatnya harus mengatakan begitu — penjaga
+  yang diam saat dilewati terbaca seperti hijau.
+*/
+if (!adaKoneksi()) {
+  console.log('LEWAT: tak ada koneksi basis (butuh .env). Ini BUKAN lulus.')
+  process.exit(0)
 }
 
 const c = buatClient()

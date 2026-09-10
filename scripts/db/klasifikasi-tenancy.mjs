@@ -103,6 +103,16 @@ const D_KHUSUS = new Map([
   ['marketing_testimonials', 'testimoni situs publik — konten pemasaran'],
   ['marketing_pricing_plans', 'tampilan harga di situs publik; yang mengikat langganan adalah `plans`'],
 
+  // Infrastruktur CI — bukan data aplikasi sama sekali. `ci_seed_penanda`
+  // memegang satu baris per run GitHub Actions supaya tepat SATU dari enam
+  // shard menyeed basis dan sisanya menunggu; isinya `run_id`, nomor shard,
+  // dan dua stempel waktu. Tak ada tenant di dalamnya untuk disaring, dan
+  // tabelnya aman dikosongkan kapan saja.
+  //
+  // RLS-nya tetap AKTIF dengan policy yang menolak semua (migrasi 567):
+  // kategori A berarti 'tak disaring per-tenant', bukan 'boleh telanjang'.
+  ['ci_seed_penanda', 'penanda seed CI per-run — infrastruktur, nol data tenant'],
+
   // Katalog paket: sama untuk semua pelanggan — itulah gunanya. Harga khusus
   // per pelanggan tempatnya `tenant_feature_overrides` (kategori B), bukan di sini.
   ['plans', 'katalog paket langganan — sama untuk semua pelanggan'],

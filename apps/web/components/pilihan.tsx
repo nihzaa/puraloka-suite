@@ -289,6 +289,11 @@ export function Pilihan({
         onKeyDown={onTombol}
         onFocus={onFocus}
         onBlur={onBlur}
+        // `role="combobox"` BUKAN hiasan: `aria-required` tak didukung role
+        // `button` (implisit di sini), jadi "wajib diisi" tak pernah sampai ke
+        // pembaca layar — dan lint memerahkannya. `combobox` adalah pola APG
+        // resmi untuk select kustom, dan mendukung ketiga atribut di bawah.
+        role="combobox"
         aria-haspopup="listbox"
         aria-expanded={buka}
         aria-controls={buka ? daftarId : undefined}

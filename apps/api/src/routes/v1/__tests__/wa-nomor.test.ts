@@ -45,11 +45,27 @@ beforeAll(async () => {
     { data: { user: { id: auth } }, error: null } as never,
   )
 
-  const { rows: c } = await db.query(`
-    SELECT c.id FROM companies c
-    WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id) LIMIT 1
-  `)
-  companyId = c[0].id
+  /*
+    Company diambil dari keanggotaan DEFAULT admin sesi, bukan company
+    beranggota mana pun.
+
+    `LIMIT 1` tanpa ORDER BY atas seluruh companies beranggota memilih tenant
+    yang belum tentu sama dengan `auth_company_id()` — dan RLS menyaring lewat
+    yang kedua. Begitu keduanya berbeda, baris yang BARU SAJA disisipkan test
+    tak terlihat oleh rute, dan gejalanya `expected 404 to be 200`.
+
+    Pola diambil dari `ai-chat.test.ts` yang sudah diperbaiki lebih dulu.
+  */
+  const { rows } = await db.query(
+    `SELECT m.company_id AS id
+       FROM company_members m
+       JOIN users u ON u.id = m.user_id
+      WHERE u.auth_id = $1 AND m.is_default AND m.is_active
+      LIMIT 1`,
+    [auth],
+  )
+  if (!rows.length) throw new Error('admin uji tak punya keanggotaan default')
+  companyId = rows[0].id
   const { rows: u } = await db.query(
     `SELECT user_id FROM company_members WHERE company_id = $1 LIMIT 1`, [companyId])
   userId = u[0].user_id

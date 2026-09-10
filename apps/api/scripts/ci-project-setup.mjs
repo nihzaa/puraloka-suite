@@ -16,6 +16,109 @@ try { console.log('Target host:', new URL(url.replace('postgresql://', 'http://'
 const c = new pg.Client({ connectionString: url })
 await c.connect()
 
+/*
+  ── GERBANG SATU-PENYEED, dan kenapa idempotensi tak cukup
+
+  Job `api` adalah matriks 6 shard TANPA `needs`, jadi keenamnya start
+  bersamaan dan masing-masing menjalankan skrip INI. Diukur di run
+  33972614249, seed `resource` selesai di tiga shard dengan selang 48 detik:
+
+      shard 1  14:45:22      shard 5  14:45:43      shard 3  14:46:10
+
+  Yang jadi soal BUKAN baris yang ditulis dua kali — seed ini memang
+  idempoten. Yang merusak: seed shard N berjalan SEMENTARA shard M sudah
+  menguji basis yang sama. `rls-harness.ts` menguji di `public`; env
+  `TEST_SCHEMA` hanya melindungi suite `test-db.ts`, bukan harness itu.
+
+  Gejalanya mudah salah baca: daftar berkas merah BERGANTI tiap run dengan
+  total tetap. Ronde 4 vs 5 pada kode yang sama — 6 sembuh, 6 baru, 38
+  tetap. Yang bergantian bukan cacat; itu tanda balapan. Pembanding lain:
+  13 berkas merah di dev vs 44 di CI, kode identik.
+
+  ── Bagaimana pemenangnya ditentukan
+
+  PRIMARY KEY `run_id`, bukan `matrix.shard == 1` di ci.yml. Bedanya nyata:
+  gerbang di YAML membuat shard 2-6 berjalan TANPA seed sama sekali kalau
+  shard 1 gagal atau lambat. Klaim lewat PK membuat tepat satu shard
+  menyeed dan sisanya MENUNGGU hasilnya.
+
+  ⚠ Tabelnya lahir dari migrasi 567 — yang dijalankan skrip ini juga. Jadi
+  pada basis yang belum punya 567, gerbang ini WAJIB lolos begitu saja,
+  bukan gagal. `to_regclass` memulangkan NULL alih-alih melempar.
+*/
+const RUN = process.env.GITHUB_RUN_ID || ''
+const SHARD = process.env.MATRIX_SHARD || '?'
+let sayaPenyeed = true
+
+if (RUN) {
+  /*
+    ⚠ AYAM-TELUR, dan versi pertama gerbang ini jatuh ke dalamnya.
+
+    Tabelnya lahir dari migrasi 567 — yang dijalankan skrip INI, jauh
+    sesudah titik ini. Versi pertama cuma memeriksa keberadaan tabel dan
+    'lolos begitu saja' bila belum ada. Akibatnya di CI, keenam shard
+    mencetak baris yang sama dan menyeed bersamaan seperti sebelumnya:
+
+        6 × [gerbang] ci_seed_penanda belum ada — menyeed tanpa gerbang
+        6 × [gerbang] ⚠ penanda selesai gagal ditulis
+
+    Gerbang yang melapor alasannya lalu tak berbuat apa-apa tetap nol
+    gerbang. Jadi tabelnya dibuat DI SINI, sebelum dipakai — bentuknya
+    sama persis dengan migrasi 567, yang tetap menjadi sumber kebenaran
+    (termasuk RLS-nya) saat rantai migrasi diputar.
+  */
+  await c.query(`
+    CREATE TABLE IF NOT EXISTS ci_seed_penanda (
+      run_id       text PRIMARY KEY,
+      shard        text        NOT NULL,
+      mulai_pada   timestamptz NOT NULL DEFAULT now(),
+      selesai_pada timestamptz
+    )`).catch((e) => console.log('[gerbang] tabel penanda tak bisa dibuat:', e.code))
+  await c.query(`ALTER TABLE ci_seed_penanda ENABLE ROW LEVEL SECURITY`).catch(() => {})
+
+  const { rows: ada } = await c.query(
+    `SELECT to_regclass('public.ci_seed_penanda') IS NOT NULL AS ada`)
+  if (ada[0].ada) {
+    const klaim = await c.query(
+      `INSERT INTO ci_seed_penanda (run_id, shard) VALUES ($1, $2)
+       ON CONFLICT (run_id) DO NOTHING`, [RUN, SHARD])
+    sayaPenyeed = klaim.rowCount === 1
+
+    if (!sayaPenyeed) {
+      /*
+        Shard lain menang klaim. Menunggu SELESAINYA, bukan sekadar
+        klaimnya: baris ditulis di AWAL, jadi keberadaannya hanya berarti
+        'ada yang sedang menyeed'. Yang ditunggu `selesai_pada` terisi.
+
+        Batas 12 menit dengan denyut 5 detik. Kalau habis, skrip LANJUT
+        menyeed sendiri — lebih baik dua penyeed daripada nol, dan
+        keadaannya dicetak supaya terbaca, bukan diam.
+      */
+      console.log(`[gerbang] shard ${SHARD}: shard lain menyeed run ${RUN} — menunggu`)
+      const batas = Date.now() + 12 * 60 * 1000
+      let siap = false
+      while (Date.now() < batas) {
+        const { rows } = await c.query(
+          `SELECT selesai_pada IS NOT NULL AS beres FROM ci_seed_penanda WHERE run_id = $1`,
+          [RUN])
+        if (rows[0]?.beres) { siap = true; break }
+        await new Promise((r) => setTimeout(r, 5000))
+      }
+      if (siap) {
+        console.log(`[gerbang] seed run ${RUN} selesai — shard ${SHARD} lanjut tanpa menyeed`)
+        await c.end()
+        process.exit(0)
+      }
+      console.log(`[gerbang] ⚠ 12 menit habis tanpa penanda selesai — shard ${SHARD} menyeed sendiri`)
+      sayaPenyeed = true
+    } else {
+      console.log(`[gerbang] shard ${SHARD} MENYEED run ${RUN}`)
+    }
+  } else {
+    console.log('[gerbang] ci_seed_penanda belum ada (migrasi 567 belum jalan) — menyeed tanpa gerbang')
+  }
+}
+
 // ── 0. (opsional) WIPE — replay BERSIH dari nol. HANYA bila WIPE=1 (project CI disposable).
 if (process.env.WIPE === '1') {
   /*
@@ -416,6 +519,23 @@ async function seed(label, fn) {
 // users (admin/pm/mandor/client) + auth.users (hanya `id` yang wajib)
 const USERS = [
   ['admin', 'ci-admin@puraloka.test', 'CI Admin'],
+  /*
+    Admin KEDUA — bukan duplikat, melainkan syarat yang tak bisa dipenuhi
+    oleh peran lain.
+
+        Error: tak ada company yang punya pengguna kedua berizin
+               opname:verifikasi - periksa seed/keanggotaan, bukan berkas ini
+
+    `companyDenganIzinKedua()` mencari anggota LAIN (`u2.id <> admin`) di
+    company yang sama, yang perannya memegang izin itu. Dari empat akun seed,
+    hanya `ci-admin` yang perannya punya `opname:verifikasi` — dan ia justru
+    admin sesi, jadi tersaring oleh `u2.id <> $1`. `pm`, `mandor`, `client`
+    tak memegang izin itu.
+
+    Jadi yang kurang BUKAN izin dan bukan keanggotaan: kurang satu orang
+    kedua yang berperan sama. Opname dua pihak memang menuntut dua manusia.
+  */
+  ['admin', 'ci-admin2@puraloka.test', 'CI Admin Kedua'],
   ['pm', 'ci-pm@puraloka.test', 'CI PM'],
   ['mandor', 'ci-mandor@puraloka.test', 'CI Mandor'],
   ['client', 'ci-client@puraloka.test', 'CI Client'],
@@ -441,7 +561,7 @@ const USERS = [
   */
 ]
 for (const [role, email, name] of USERS) {
-  await seed(`user ${role}`, async () => {
+  await seed(`user ${role} <${email}>`, async () => {
     const { rows: existing } = await c.query(`SELECT auth_id FROM public.users WHERE email=$1`, [email])
     if (existing.length && existing[0].auth_id) return
     const { rows: r } = await c.query(`SELECT id FROM roles WHERE name=$1`, [role])
@@ -980,13 +1100,29 @@ await seed('rab_items kategori (bahan uji portofolio biaya)', async () => {
 
   await c.query(
     `INSERT INTO rab_items (project_id, name, level)
-     SELECT $1::uuid, $2::text, 'category'
-      WHERE NOT EXISTS (SELECT 1 FROM rab_items WHERE name = $2::text)`,
-    [pr.id, 'CI seed kategori RAB'])
+     SELECT $1::uuid, v.nama, 'category'
+       FROM (VALUES ('CI seed kategori RAB'), ('CI seed kategori RAB 2')) AS v(nama)
+      WHERE NOT EXISTS (SELECT 1 FROM rab_items x WHERE x.name = v.nama)`,
+    [pr.id])
 
+  /*
+    DUA, bukan satu. `work-scope-kategori.test.ts` mengambil `LIMIT 2` dari
+    kategori pada proyek yang sama, sebab yang diuji PERPINDAHAN kategori —
+    satu baris hanya membuktikan 'tidak null', bukan bahwa nilainya berganti.
+
+        butuh dua kategori RAB di proyek ini - fixture tak terbentuk
+
+    Ambangnya dihitung PER-PROYEK, bukan global: dua kategori yang tersebar
+    di dua proyek berbeda lolos hitungan global tetapi tetap memerahkan test,
+    karena query-nya menyaring `ri.project_id = a.project_id`.
+  */
   const { rows } = await c.query(
-    `SELECT count(*)::int n FROM rab_items WHERE level = 'category'`)
-  if (rows[0].n < 1) throw new Error('nol rab_items level category')
+    `SELECT count(*)::int n FROM rab_items
+      WHERE level = 'category' AND project_id = $1::uuid`, [pr.id])
+  if (rows[0].n < 2) {
+    throw new Error(
+      `hanya ${rows[0].n} rab_items level category di proyek fixture — butuh 2`)
+  }
 
   /*
     ANAK berbobot & berjadwal — menutup TIGA kegagalan sekaligus.
@@ -1341,13 +1477,42 @@ await seed('resource (bahan uji jembatan RAB↔material)', async () => {
     `INSERT INTO resources (code, name, category, unit_code)
      SELECT v.kode, v.nama, v.kategori, v.satuan
        FROM (VALUES
-         ('CI-RES-MAT', 'CI Seed Semen',  'material', 'sak'),
-         ('CI-RES-LAB', 'CI Seed Tukang', 'labor',    'OH')
+         ('CI-RES-MAT', 'CI Seed Semen',    'material',    'sak'),
+         ('CI-RES-LAB', 'CI Seed Tukang',   'labor',       'OH'),
+         ('CI-RES-MA2', 'CI Seed Pasir',    'material',    'm3'),
+         ('CI-RES-MA3', 'CI Seed Besi',     'material',    'kg'),
+         ('CI-RES-LA2', 'CI Seed Mandor',   'labor',       'OH'),
+         ('CI-RES-EQ1', 'CI Seed Molen',    'equipment',   'hari'),
+         ('CI-RES-EQ2', 'CI Seed Vibrator', 'equipment',   'hari'),
+         ('CI-RES-SUB', 'CI Seed Subkon',   'subcontract', 'ls')
        ) AS v(kode, nama, kategori, satuan)
       WHERE NOT EXISTS (SELECT 1 FROM resources r WHERE r.code = v.kode)`)
 
-  const { rows } = await c.query(`SELECT count(*)::int n FROM resources`)
-  if (rows[0].n === 0) throw new Error('nol resource sesudah seed')
+  /*
+    Yang diperiksa BUKAN 'ada resource', melainkan 'cukup resource yang BISA
+    DIPINJAM' — dua hal yang mudah tertukar dan hanya yang kedua bermakna.
+
+    `price-book-triase.test.ts` meminjam EMPAT kali dalam satu jalan
+    (resSama, resBeda, resBaru, resJauh), tiap kali menolak resource yang
+    sudah punya harga `active` atau `draft`. Seed dua baris membuat dua
+    pinjaman pertama berhasil dan yang ketiga melempar 'fixture tak
+    terbentuk' — pesan yang menuduh test, padahal seed-nya yang kurang.
+
+    Harga `expired` sengaja TIDAK didiskualifikasi: itulah sisa yang
+    ditinggalkan `bersihkan()`, dan trigger 104 melarang menghapusnya.
+    Resource ber-`expired` adalah papan tulis bersih, bukan yang terpakai.
+  */
+  const { rows } = await c.query(`
+    SELECT count(*)::int n FROM resources r
+     WHERE r.status = 'active'
+       AND NOT EXISTS (SELECT 1 FROM price_book_entries p
+                        WHERE p.resource_id = r.id
+                          AND p.status IN ('active', 'draft'))`)
+  if (rows[0].n < 4) {
+    throw new Error(
+      `hanya ${rows[0].n} resource bisa dipinjam sesudah seed — ` +
+      `price-book-triase butuh 4 dalam satu jalan`)
+  }
 })
 
 /*
@@ -1529,6 +1694,44 @@ await seed('kasbon x2 (approved + pending, bahan uji saringan status)', async ()
   riwayat, dan median dari satu titik tak membedakan apa pun. Nominalnya
   sengaja berjauhan supaya median dan pencilan benar-benar berbeda.
 */
+/*
+  Lingkup kerja bersistem `progress_pct` — bahan uji opname bersama.
+
+      Error: tak ada work_scope progress_pct untuk diuji
+
+  Seed di bawah membuat lingkup bersistem `harian`, dan itu sistem yang
+  BERBEDA: opname progres hanya berlaku bagi lingkup yang dibayar menurut
+  persentase penyelesaian. Satu baris `harian` tak bisa menggantikannya.
+
+  ⚠ CHECK-nya diukur, bukan ditebak:
+
+      CHECK (payment_system = 'harian' OR borongan_value IS NOT NULL)
+      CHECK (borongan_value IS NULL OR borongan_value > 0)
+
+  Jadi `borongan_value` WAJIB terisi dan positif di sini — tanpanya barisnya
+  ditolak, dan galatnya menyebut constraint, bukan seed ini.
+*/
+await seed('work_scope progress_pct (bahan uji opname bersama)', async () => {
+  await c.query(
+    `INSERT INTO work_scopes (assignment_id, scope_name, payment_system,
+                              borongan_value, status)
+     SELECT ma.id, 'CI Seed Lingkup Progres', 'progress_pct'::payment_system,
+            250000000, 'active'
+       FROM mandor_assignments ma
+      WHERE NOT EXISTS (SELECT 1 FROM work_scopes w
+                         WHERE w.scope_name = 'CI Seed Lingkup Progres')
+      ORDER BY ma.created_at LIMIT 1`)
+
+  const { rows } = await c.query(
+    `SELECT count(*)::int n FROM work_scopes ws
+       JOIN mandor_assignments ma ON ma.id = ws.assignment_id
+       JOIN projects p ON p.id = ma.project_id
+      WHERE ws.payment_system = 'progress_pct'`)
+  if (rows[0].n === 0) {
+    throw new Error('nol work_scope progress_pct sesudah seed — CHECK menolaknya?')
+  }
+})
+
 await seed('work_scope + weekly_wage_reports x3 (bahan uji upah menyimpang)', async () => {
   await c.query(
     `INSERT INTO work_scopes (assignment_id, scope_name, payment_system, status)
@@ -1761,6 +1964,26 @@ console.log('[DIAG] get_role_permissions(admin):', await one(`SELECT count(*)::i
 // ── PostgREST reload schema — DROP SCHEMA public bisa menyisakan cache stale ──
 await c.query(`NOTIFY pgrst, 'reload schema'`).catch(() => {})
 console.log('[pgrst] NOTIFY reload schema dikirim')
+
+/*
+  ── TANDAI SELESAI
+
+  Baris klaim ditulis di AWAL supaya shard lain tahu ada yang mengerjakan.
+  `selesai_pada` baru diisi DI SINI, sesudah seluruh seed lewat — sebab yang
+  ditunggu shard lain bukan 'ada yang mulai', melainkan 'basisnya sudah siap'.
+
+  Dua stempel yang dibedakan, dan itu bukan kerapian: menunggu klaim saja
+  membuat shard 2-6 berangkat saat seed baru separuh jalan — persis balapan
+  yang gerbang ini seharusnya tutup, cuma jendelanya lebih sempit.
+*/
+if (RUN && sayaPenyeed) {
+  const { rowCount } = await c.query(
+    `UPDATE ci_seed_penanda SET selesai_pada = now() WHERE run_id = $1`, [RUN])
+    .catch(() => ({ rowCount: 0 }))
+  console.log(rowCount
+    ? `[gerbang] seed run ${RUN} DITANDAI selesai oleh shard ${SHARD}`
+    : `[gerbang] ⚠ penanda selesai gagal ditulis — shard lain akan menunggu sampai batas`)
+}
 
 await c.end()
 // Seed non-fatal: exit 0 supaya migrasi tetap tercatat; isu seed dilaporkan utk ditindak.

@@ -31,7 +31,6 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { api } from "@/lib/api";
 import { muatMenu, menuDariCache } from "@/lib/muat-menu";
 import { C } from "@/lib/warna-ui";
 import { IkonMenu } from "@/lib/ikon-menu";

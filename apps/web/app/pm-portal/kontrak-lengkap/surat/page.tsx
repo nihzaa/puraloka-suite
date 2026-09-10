@@ -198,14 +198,13 @@ export default function PmSuratPage() {
               {(data?.proyek ?? []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </Pilihan>
           </label>
-          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
-            Arah
-            <Pilihan value={form.arah} onChange={(e) => setForm((f) => ({ ...f, arah: e.target.value as "masuk" | "keluar" }))}
+          <label htmlFor="arah-201" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Arah</label>
+            <Pilihan id="arah-201" value={form.arah} onChange={(e) => setForm((f) => ({ ...f, arah: e.target.value as "masuk" | "keluar" }))}
               style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)", boxSizing: "border-box" }}>
               <option value="keluar">Keluar</option>
               <option value="masuk">Masuk</option>
             </Pilihan>
-          </label>
           <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
             Nomor
             <input type="text" value={form.nomor} onChange={(e) => setForm((f) => ({ ...f, nomor: e.target.value }))}

@@ -230,28 +230,26 @@ await app.register(cors, {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   /*
-    `X-Client` WAJIB ada di sini, dan ketiadaannya tersembunyi rapat.
+    `X-Client` WAJIB ada di sini, dan ketiadaannya nol gejala selama tiga hari.
 
-    Header itu yang membuat `/auth/login` memulangkan `access_token` di
-    badan (aplikasi native tak bisa memakai cookie HttpOnly). Ditambahkan
-    2026-09-01, tetapi tak pernah didaftarkan ke CORS.
+    Header itu yang membuat `/auth/login` memulangkan `access_token` di BADAN
+    — aplikasi native tak bisa memakai cookie HttpOnly. Ditambahkan
+    2026-09-01, tak pernah didaftarkan ke CORS.
 
-    Kenapa tak ada yang tahu selama itu: aplikasi native TIDAK mengirim
-    preflight — tak ada Origin, jadi tak ada CORS sama sekali. Cacat ini
-    hanya muncul dari peramban, dan sampai 2026-09-04 tak seorang pun
-    pernah membuka aplikasi mobile lewat peramban.
+    Kenapa tak ketahuan: aplikasi NATIVE tak mengirim preflight (tak ada
+    Origin, jadi tak ada CORS sama sekali). Cacatnya hanya hidup di peramban.
 
-    Ketahuan pada jalan pertama `potret-mobile.mjs`:
+    Dan dua pengukuran yang KEDUANYA BENAR melewatkannya — terukur di
+    produksi 2026-09-04:
 
-        Request header field x-client is not allowed by
-        Access-Control-Allow-Headers in preflight response
+        OPTIONS /api/v1/auth/login  →  204 No Content
+        access-control-allow-headers: Content-Type, Authorization
 
-    ⚠ Gejalanya menipu ke arah yang paling mahal: preflight OPTIONS
-    menjawab 204 dengan `access-control-allow-origin` yang BENAR, dan
-    `curl` POST menjawab 200. Dua pengukuran yang keduanya benar untuk
-    dirinya sendiri, dan keduanya melewatkan sebabnya — `curl` tak
-    menegakkan CORS, dan OPTIONS yang lolos origin masih bisa menolak
-    header.
+    Perhatikan `204` — status SUKSES. `curl` POST juga menjawab 200, karena
+    curl tak menegakkan CORS. OPTIONS yang lolos ORIGIN masih bisa menolak
+    HEADER-nya, dan hanya peramban yang menegakkan bedanya.
+
+    Dijaga `audit-auth-mobile-utuh.mjs`. Ditemukan sesi `puraloka-suite-42`.
   */
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Client'],
 })

@@ -14,7 +14,7 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 import {
-  getStoredUser, logout, api,
+  getStoredUser, logout,
   type PuralokaUser,
 } from "@/lib/api";
 import { SidebarFokus } from "@/components/sidebar-fokus";
