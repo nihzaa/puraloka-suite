@@ -87,6 +87,133 @@ function skala(v: unknown, nama: string): { nilai: number } | { galat: string } 
 }
 
 export default async function risikoProyekRoutes(app: FastifyInstance) {
+  /*
+    ── GET /risiko — register LINTAS PROYEK ─────────────────────────────────
+
+    Ditambahkan 2026-09-11 untuk layar mobile.
+
+    Rute per-proyek di bawah sudah ada sejak awal, dan cukup untuk halaman
+    web: di sana orang membuka proyeknya dulu, lalu tab risikonya.
+
+    Di HP urutan itu terbalik. Yang dibawa ke lapangan bukan "risiko proyek
+    X" melainkan "risiko mana yang paling mendesak hari ini" — dan
+    menuntut memilih proyek lebih dulu berarti dua ketukan sebelum
+    melihat apa pun, untuk pertanyaan yang tak menyebut proyek sama
+    sekali.
+
+    ── Tenancy
+
+    `risiko_proyek` kategori C — mewarisi lewat `project_id`, jadi
+    `db.from()` menolaknya. Disaring `in('project_id', idProyek)` dengan
+    daftar dari `db.projectIds()`, pola yang sama dengan
+    `analisa-keterlambatan.ts:46`.
+
+    ⚠ `idProyek` kosong WAJIB memulangkan kosong, bukan melewatkan
+    saringannya: `.in()` dengan larik kosong memulangkan nol baris, tetapi
+    kode yang "melewati filter saat kosong" akan membocorkan seluruh
+    tenant. Fail-closed, bukan fail-open.
+
+    ── Mitigasi TIDAK ikut
+
+    Rute per-proyek mengirim mitigasi bersama risikonya, sebab halamannya
+    menampilkan keduanya. Layar mobile hanya menampilkan register —
+    mitigasi per risiko butuh layar detail yang belum ada, dan mengirim
+    data yang tak dirender adalah muatan yang dibuang di jaringan
+    seluler.
+  */
+  app.get<{ Querystring: { status?: string } }>(
+    '/api/v1/risiko',
+    { preHandler: [authenticate, requireModul('modul.risiko'), requirePermission('risiko:view')] },
+    async (request, reply) => {
+      const db = request.db!
+      const idProyek = await db.projectIds()
+
+      if (idProyek.length === 0) {
+        return reply.send({ risiko: [], ringkasan: { total: 0, terbuka: 0, tinggi: 0, terjadi: 0 } })
+      }
+
+      let q = db
+        .unsafe('risiko_proyek', 'kategori C; disaring in(project_id, idProyek) di baris berikutnya')
+        .select(RISIKO_SELECT)
+        .in('project_id', idProyek)
+        // Skor tertinggi di atas — yang paling mendesak, bukan yang terbaru.
+        .order('skor', { ascending: false, nullsFirst: false })
+        .limit(200)
+
+      if (request.query.status) q = q.eq('status', request.query.status)
+
+      const { data, error } = await q
+      if (error) {
+        request.log.error({ err: error }, 'gagal memuat register risiko lintas proyek')
+        return reply.status(500).send({ error: 'Gagal memuat register risiko' })
+      }
+
+      const baris = (data ?? []) as Array<Record<string, unknown>>
+
+      /*
+        Nama proyek diambil SEKALI untuk seluruh daftar, bukan per baris.
+
+        200 baris × 1 query = 200 perjalanan bolak-balik untuk data yang
+        muat dalam satu panggilan. Pola yang sama dipakai
+        `estimate-versions.ts` dengan alasan tertulis di sana.
+      */
+      const { data: proyek, error: eNama } = await db
+        .from('projects')
+        .select('id, name')
+        .in('id', idProyek)
+      /*
+        Galatnya DIPERIKSA, tidak ditelan.
+
+        `audit-kegagalan-senyap.mjs` menangkap ini pada jalan pertama:
+        query tanpa pemeriksaan error memulangkan `data: null`, dan
+        `?? []` mengubahnya jadi peta nama KOSONG — seluruh kartu lalu
+        kehilangan nama proyeknya tanpa satu pun galat.
+
+        Kepala penjaga itu menyebut preseden yang lebih mahal: kurva-s
+        kehilangan Rp 631,7 juta dari AC dengan cara yang sama persis.
+      */
+      if (eNama) {
+        request.log.error({ err: eNama }, 'gagal memuat nama proyek untuk register risiko')
+        return reply.status(500).send({ error: 'Gagal memuat nama proyek' })
+      }
+      const namaProyek = new Map(
+        ((proyek ?? []) as Array<Record<string, unknown>>).map(
+          (p) => [String(p.id), String(p.name)]))
+
+      /*
+        Tipe hasil disebut EKSPLISIT — `...r` pada `Record<string, unknown>`
+        menghasilkan tipe yang kehilangan seluruh medannya, dan `tsc` lalu
+        menolak `r.skor` di baris bawah.
+
+        `as any` akan menyembunyikannya sekaligus menaikkan ratchet `any`;
+        pola yang sama sudah tertulis di `assets.ts:100`.
+      */
+      const hasil: Array<Record<string, unknown>> = baris.map((r) => ({
+        ...r,
+        proyek_nama: namaProyek.get(String(r.project_id)) ?? null,
+      }))
+
+      /*
+        Ringkasan dihitung di SERVER, bukan diserahkan ke klien.
+
+        Ambang "tinggi" (skor >= 15) adalah aturan domain — matriks
+        5×5 dengan dampak × kemungkinan. Menuliskannya di klien berarti
+        setiap konsumen baru menyalinnya, dan satu salinan yang salah
+        menandai risiko berat sebagai biasa tanpa satu pun galat.
+      */
+      const terbuka = hasil.filter((r) => r.status !== 'tertutup')
+      return reply.send({
+        risiko: hasil,
+        ringkasan: {
+          total: hasil.length,
+          terbuka: terbuka.length,
+          tinggi: terbuka.filter((r) => (Number(r.skor) || 0) >= 15).length,
+          terjadi: hasil.filter((r) => r.status === 'terjadi').length,
+        },
+      })
+    },
+  )
+
   // ── GET /proyek/:id/risiko ───────────────────────────────────────────────
   //
   // Register + mitigasinya dalam satu panggilan: mitigasi tanpa risikonya

@@ -29,6 +29,237 @@ const KEPALA = `
 `
 
 export default async function baselineJadwalRoutes(app: FastifyInstance) {
+  /*
+    ── GET /proyek/:id/kurva-s — rencana vs aktual ──────────────────────────
+
+    Ditambahkan 2026-09-11. Sebelumnya TIDAK ADA rute kurva S di repo ini,
+    meski entri menu menjanjikannya ("Jadwal — Milestone & kurva S").
+
+    ⚠ Tiga rute bernama mirip yang BUKAN ini, dan ketiganya sempat dikira
+    ini saat merencanakan gelombang mobile:
+
+        /api/v1/jadwal                penjadwal OTOMASI (tugas cron)
+        /api/v1/jadwal-cpm/*          dependensi & lintasan kritis
+        /api/v1/proyek/:id/baseline   perbandingan tanggal, bukan kurva
+
+    Nama yang mirip pada hal yang berbeda adalah cara tercepat membangun
+    layar yang jalan dan memperlihatkan hal yang keliru.
+
+    ── Dua sumber, dan kenapa keduanya perlu
+
+      RENCANA  baseline_jadwal_item — bobot per item + tanggal rencana.
+               Kurva rencana dibangun dari bobot yang terakumulasi pada
+               tanggal planned_end tiap item.
+
+      AKTUAL   progress_logs.pct_overall — progres yang dilaporkan
+               lapangan, diambil nilai TERAKHIR per tanggal.
+
+    Kurva S tanpa salah satunya bukan kurva S: rencana saja adalah jadwal,
+    aktual saja adalah grafik progres. Yang bermakna justru JARAKNYA.
+
+    ── Kenapa titik AKTUAL berhenti di laporan terakhir
+
+    Rencana membentang sampai akhir proyek; aktual tidak. Menarik garis
+    aktual ke depan (mis. mengulang nilai terakhir) membuatnya terlihat
+    "datar tapi ada" di masa depan — dan itu terbaca sebagai proyek yang
+    berhenti, bukan sebagai masa depan yang memang belum terjadi.
+
+    ── Tenancy
+
+    baseline_jadwal_item dan progress_logs keduanya kategori C.
+    viaProject dipakai untuk yang punya project_id langsung;
+    baseline_jadwal_item mewarisi lewat baseline_id, jadi disaring
+    terhadap baseline milik proyek itu — dan baseline-nya sendiri sudah
+    lewat viaProject.
+  */
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/proyek/:id/kurva-s',
+    { preHandler: [authenticate, requirePermission('projects:view')] },
+    async (request, reply) => {
+      const { id } = request.params
+      const db = request.db!
+
+      const { data: proyek, error: eProy } = await db
+        .from('projects')
+        .select('id, name, start_date, end_date')
+        .eq('id', id)
+        .maybeSingle()
+      if (eProy) {
+        request.log.error({ err: eProy, id }, 'gagal memuat proyek untuk kurva-s')
+        return reply.status(500).send({ error: 'Gagal memuat proyek' })
+      }
+      if (!proyek) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+
+      // ── RENCANA: baseline aktif + itemnya ────────────────────────────────
+      const { data: baseline, error: eBase } = await db
+        .viaProject('baseline_jadwal', id)
+        .select('id, nomor, nama, ditetapkan_pada')
+        .eq('aktif', true)
+        .maybeSingle()
+      if (eBase) {
+        request.log.error({ err: eBase, id }, 'gagal memuat baseline')
+        return reply.status(500).send({ error: 'Gagal memuat baseline' })
+      }
+
+      let rencana: Array<{ tanggal: string; pct: number }> = []
+      if (baseline) {
+        const { data: item, error: eItem } = await db
+          .unsafe(
+            'baseline_jadwal_item',
+            'kategori C lewat baseline_id; disaring eq(baseline_id) ke baseline yang sudah lewat viaProject',
+          )
+          .select('planned_end, weight_pct')
+          .eq('baseline_id', baseline.id)
+          .order('planned_end', { ascending: true })
+        if (eItem) {
+          request.log.error({ err: eItem, id }, 'gagal memuat item baseline')
+          return reply.status(500).send({ error: 'Gagal memuat item baseline' })
+        }
+
+        /*
+          Bobot DIAKUMULASI per tanggal, bukan per item.
+
+          Dua item yang selesai di tanggal sama menghasilkan satu titik,
+          bukan dua titik bertumpuk — dan grafik dengan titik bertumpuk
+          membuat garisnya patah tegak lurus di tempat yang tak berarti.
+        */
+        const perTanggal = new Map<string, number>()
+        for (const it of (item ?? []) as Array<Record<string, unknown>>) {
+          const t = it.planned_end ? String(it.planned_end).slice(0, 10) : null
+          if (!t) continue
+          perTanggal.set(t, (perTanggal.get(t) ?? 0) + (Number(it.weight_pct) || 0))
+        }
+        let kumulatif = 0
+        rencana = [...perTanggal.entries()]
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .map(([tanggal, bobot]) => {
+            kumulatif += bobot
+            /*
+              Dijepit 100. Bobot baseline SEHARUSNYA berjumlah 100, tetapi
+              baseline yang disusun sebagian bisa melebihinya — dan kurva
+              yang menembus 100% membuat skalanya salah untuk seluruh
+              grafik, termasuk garis aktual yang benar.
+            */
+            return { tanggal, pct: Math.round(Math.min(100, kumulatif) * 100) / 100 }
+          })
+      }
+
+      // ── AKTUAL: progres terakhir per tanggal ─────────────────────────────
+      /*
+        ⚠ HANYA mode 'daily' — dan ini cacat yang nyaris lolos.
+
+        `progress_logs` menyimpan DUA jenis laporan dalam satu tabel:
+
+            mode 'daily'   pct_overall terisi   progres KESELURUHAN proyek
+            mode 'detail'  pct_overall NULL     progres per item RAB
+                                                (`rab_item_id` + `pct_completion`)
+
+        Diukur pada proyek contoh: 71 baris daily, 173 baris detail — jadi
+        yang NULL justru MAYORITAS, dan semuanya bertanggal paling akhir.
+
+        Versi pertama rute ini menyaring dengan `Number.isFinite(pct)`.
+        Itu tidak cukup: `Number(null)` adalah **0**, dan `isFinite(0)`
+        true — jadi 173 baris detail lolos sebagai "progres 0%", menimpa
+        nilai daily yang benar pada tanggal yang sama.
+
+        Akibatnya kurva aktual berakhir di **0%** setelah sempat 2% —
+        proyek yang terlihat mundur ke nol. Nol galat, dan angkanya
+        terlihat seperti data sungguhan.
+
+        Disaring di SERVER (`.eq('mode','daily')`), bukan di klien: setiap
+        konsumen baru akan mengulangi kesalahan yang sama kalau
+        penyaringannya diserahkan ke sana.
+      */
+      const { data: log, error: eLog } = await db
+        .viaProject('progress_logs', id)
+        .select('logged_at, pct_overall')
+        .eq('mode', 'daily')
+        .not('pct_overall', 'is', null)
+        .order('logged_at', { ascending: true })
+        .limit(1000)
+      if (eLog) {
+        request.log.error({ err: eLog, id }, 'gagal memuat progress log')
+        return reply.status(500).send({ error: 'Gagal memuat progres' })
+      }
+
+      /*
+        Nilai TERAKHIR per tanggal, bukan rata-rata atau maksimum.
+
+        Satu hari bisa punya beberapa laporan (pagi & sore, atau koreksi).
+        Yang berlaku laporan terakhir — persis seperti yang dilihat orang di
+        layar progres. Rata-rata menghasilkan angka yang tak pernah
+        dilaporkan siapa pun.
+      */
+      const aktualPerTanggal = new Map<string, number>()
+      for (const l of (log ?? []) as Array<Record<string, unknown>>) {
+        const t = l.logged_at ? String(l.logged_at).slice(0, 10) : null
+        if (!t) continue
+        /*
+          `l.pct_overall == null` diperiksa SEBELUM Number().
+
+          `Number(null)` adalah 0, bukan NaN — jadi `isFinite` saja
+          meloloskannya. Pemeriksaan ini bertahan meski saringan `mode`
+          di query kelak diubah; dua lapis untuk kesalahan yang sama
+          bukan berlebihan di sini, sebab gejalanya adalah angka yang
+          terlihat sah.
+        */
+        if (l.pct_overall == null) continue
+        const pct = Number(l.pct_overall)
+        if (!Number.isFinite(pct)) continue
+        aktualPerTanggal.set(t, Math.round(Math.max(0, Math.min(100, pct)) * 100) / 100)
+      }
+      const aktual = [...aktualPerTanggal.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([tanggal, pct]) => ({ tanggal, pct }))
+
+      /*
+        DEVIASI dihitung di server terhadap tanggal aktual TERAKHIR.
+
+        Membandingkan "aktual hari ini" dengan "rencana hari ini" menuntut
+        mencari titik rencana yang berlaku pada tanggal itu — dan pencarian
+        yang ditulis ulang di tiap klien pasti berselisih suatu saat. Di
+        sini sekali, dan angkanya sama untuk semua pembaca.
+      */
+      const terakhir = aktual.length > 0 ? aktual[aktual.length - 1] : null
+      let rencanaPadaTanggalItu: number | null = null
+      if (terakhir && rencana.length > 0) {
+        const sebelum = rencana.filter((r) => r.tanggal <= terakhir.tanggal)
+        rencanaPadaTanggalItu = sebelum.length > 0 ? sebelum[sebelum.length - 1].pct : 0
+      }
+
+      return reply.send({
+        proyek: {
+          id: proyek.id,
+          nama: proyek.name,
+          mulai: proyek.start_date,
+          selesai: proyek.end_date,
+        },
+        /*
+          baseline: null DIBEDAKAN dari baseline kosong.
+
+          Proyek tanpa baseline tak punya kurva rencana sama sekali — dan
+          itu keadaan yang sah, bukan kesalahan. Klien perlu bisa berkata
+          "belum ada baseline" alih-alih menggambar garis rencana datar di
+          nol, yang terbaca sebagai rencana nol persen.
+        */
+        baseline: baseline
+          ? { id: baseline.id, nomor: baseline.nomor, nama: baseline.nama }
+          : null,
+        rencana,
+        aktual,
+        deviasi:
+          terakhir && rencanaPadaTanggalItu != null
+            ? {
+                tanggal: terakhir.tanggal,
+                aktual_pct: terakhir.pct,
+                rencana_pct: rencanaPadaTanggalItu,
+                selisih_pct: Math.round((terakhir.pct - rencanaPadaTanggalItu) * 100) / 100,
+              }
+            : null,
+      })
+    },
+  )
+
   // ── GET /proyek/:id/baseline — daftar ────────────────────────────────────
   app.get<{ Params: { id: string } }>(
     '/api/v1/proyek/:id/baseline',

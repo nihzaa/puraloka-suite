@@ -160,6 +160,19 @@ const LAYAR = [
   ['laporan', '/laporan'],
 
   /*
+    Gelombang 2c + dua rute baru.
+
+    `kurva-s` TIDAK ada di sini: ia layar detail ber-parameter proyek,
+    dan skrip ini memotret jalur statis. Memotretnya butuh id proyek
+    contoh — mekanisme yang sama dengan rute [id] di audit a11y web, dan
+    itu pekerjaan tersendiri.
+  */
+  ['akuntansi', '/akuntansi'],
+  ['estimasi', '/estimasi'],
+  ['sdm', '/sdm'],
+  ['risiko', '/risiko'],
+
+  /*
     ── Layar TULIS ─────────────────────────────────────────────────────
 
     Ditambahkan 2026-09-05. Kelima layar ini tak pernah dipotret sama

@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -580,6 +580,49 @@ export default function ProyekDetailScreen() {
         {/* ── Tab: Progress ── */}
         {tab === 'progress' && (
           <>
+            {/*
+              Pintu ke KURVA S — rencana dibanding realisasi.
+
+              Ditaruh di tab Progres, bukan di menu "Lainnya": kurva S
+              selalu tentang SATU proyek, dan entri menu yang meminta
+              memilih proyek dulu berarti dua ketukan untuk sesuatu yang
+              sudah ada konteksnya di sini.
+
+              Log progres di bawah menjawab "apa yang terjadi";
+              kurva S menjawab "apakah cukup cepat". Keduanya di satu tab
+              sebab pertanyaannya berurutan.
+            */}
+            <Tekan
+              onPress={() => router.push(`/(app)/kurva-s/${id}` as Href)}
+              accessibilityRole="button"
+              accessibilityLabel="Buka kurva S — rencana dibanding realisasi"
+            >
+              <Card style={styles.kurvaKartu}>
+                <View style={styles.kurvaBaris}>
+                  <Ionicons
+                    name="analytics-outline"
+                    size={20}
+                    color={c.navy}
+                    accessibilityElementsHidden
+                    importantForAccessibility="no"
+                  />
+                  <View style={styles.kurvaIsi}>
+                    <Text style={styles.kurvaJudul}>Kurva S</Text>
+                    <Text style={styles.kurvaPenjelas}>
+                      Rencana dibanding realisasi
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={c.textSecondary}
+                    accessibilityElementsHidden
+                    importantForAccessibility="no"
+                  />
+                </View>
+              </Card>
+            </Tekan>
+
             {project.progress_logs && project.progress_logs.length > 0 ? (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Log Progress</Text>
@@ -779,6 +822,11 @@ function gaya(c: Palet) {
       height: 8, backgroundColor: c.surfaceHover, borderRadius: 4, overflow: 'hidden',
     },
     progressFill: { height: '100%', backgroundColor: c.navy, borderRadius: 4 },
+    kurvaKartu: { marginBottom: 12 },
+    kurvaBaris: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    kurvaIsi: { flex: 1, gap: 1 },
+    kurvaJudul: { fontSize: HURUF.base, fontFamily: FONT.isiTebal, color: c.textPrimary },
+    kurvaPenjelas: { fontSize: HURUF.xs, fontFamily: FONT.isi, color: c.textSecondary },
     section: { gap: SPASI.sm },
     sectionTitle: {
       fontSize: HURUF.lg - 1, fontFamily: FONT.judul, color: c.textPrimary,

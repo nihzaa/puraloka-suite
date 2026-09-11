@@ -484,6 +484,31 @@ export default function AppLayout() {
       <Tabs.Screen name="aset/index" options={{ href: null }} />
       <Tabs.Screen name="kalender/index" options={{ href: null }} />
       <Tabs.Screen name="laporan/index" options={{ href: null }} />
+
+      {/*
+        ── GELOMBANG 2c + dua rute BARU ────────────────────────────────────
+
+        Tiga modul terakhir dari peta "Lainnya":
+
+          akuntansi  /api/v1/gl/laporan          neraca + laba rugi
+          estimasi   /api/v1/estimate-versions   daftar versi RAB
+          sdm        /api/v1/sdm/pegawai/kelola  pegawai + kelengkapan data
+
+        Dan dua yang menuntut rute API dibangun lebih dulu:
+
+          risiko     /api/v1/risiko              BARU — lintas proyek
+          kurva-s    /api/v1/proyek/:id/kurva-s  BARU — rencana vs aktual
+
+        ⚠ `kurva-s` adalah layar DETAIL per proyek, bukan daftar. Kurva S
+        lintas proyek tak bermakna: dua proyek dengan durasi dan lingkup
+        berbeda tak bisa dibandingkan kurvanya. Dibuka dari entri "Jadwal"
+        yang meminta proyek dulu.
+      */}
+      <Tabs.Screen name="akuntansi/index" options={{ href: null }} />
+      <Tabs.Screen name="estimasi/index" options={{ href: null }} />
+      <Tabs.Screen name="sdm/index" options={{ href: null }} />
+      <Tabs.Screen name="risiko/index" options={{ href: null }} />
+      <Tabs.Screen name="kurva-s/[id]" options={{ href: null }} />
     </Tabs>
   );
 }

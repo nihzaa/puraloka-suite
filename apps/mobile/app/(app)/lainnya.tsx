@@ -137,8 +137,8 @@ const MODUL: Modul[] = [
   },
   { kunci: 'approval', judul: 'Persetujuan', ringkas: 'Yang menunggu keputusan Anda', emoji: '✅', izin: null, nativeJalur: '/persetujuan' },
   { kunci: 'keuangan', judul: 'Keuangan', ringkas: 'Piutang, tagihan, yang lewat tempo', emoji: '💰', izin: 'finance:view', nativeJalur: '/keuangan' },
-  { kunci: 'akuntansi', judul: 'Akuntansi', ringkas: 'Jurnal & buku besar', emoji: '📒', izin: 'gl:view' },
-  { kunci: 'estimasi', judul: 'Estimasi', ringkas: 'RAB, AHSP, harga satuan', emoji: '📐', izin: 'cecep:price:view' },
+  { kunci: 'akuntansi', judul: 'Akuntansi', ringkas: 'Neraca dan laba rugi', emoji: '📒', izin: 'gl:view', nativeJalur: '/akuntansi' },
+  { kunci: 'estimasi', judul: 'Estimasi', ringkas: 'Versi RAB dan nilainya', emoji: '📐', izin: 'cecep:price:view', nativeJalur: '/estimasi' },
   { kunci: 'procurement', judul: 'Pengadaan', ringkas: 'Permintaan material & pesanan supplier', emoji: '🚚', izin: 'procurement:view', nativeJalur: '/pengadaan' },
   { kunci: 'gudang', judul: 'Gudang', ringkas: 'Stok & pergerakan material', emoji: '📦', izin: 'gudang:view', nativeJalur: '/gudang' },
   { kunci: 'kontrak', judul: 'Kontrak', ringkas: 'Kontrak, addendum, dan nilainya', emoji: '📄', izin: 'projects:view', nativeJalur: '/kontrak' },
@@ -159,7 +159,24 @@ const MODUL: Modul[] = [
     Milestone SUDAH tampil di layar `/lapangan`, yang memang membacanya
     dari `/api/v1/lapangan/ringkasan`.
   */
-  { kunci: 'jadwal', judul: 'Jadwal', ringkas: 'Kurva S & baseline — milestone ada di Lapangan', emoji: '🗓️', izin: 'projects:view' },
+  /*
+    "Jadwal" TETAP baris mati, dan itu keputusan — bukan kelalaian.
+
+    Kurva S SUDAH ADA sejak 2026-09-11 (`/api/v1/proyek/:id/kurva-s` +
+    layar `kurva-s/[id]`), tetapi ia layar DETAIL per proyek. Menaruhnya
+    di sini berarti entri yang ditekan lalu bertanya "proyek mana?" —
+    dan itu dua ketukan untuk sesuatu yang sudah punya konteks di tempat
+    lain.
+
+    Pintunya ada di tab Progres halaman detail proyek, tempat orang sudah
+    memilih proyeknya. Ringkas di bawah menyebutkan itu, jadi yang
+    membaca daftar ini tahu ke mana harus pergi — bukan menyimpulkan
+    fiturnya tak ada.
+
+    Kurva S lintas proyek tak dibangun sebab tak bermakna: dua proyek
+    dengan durasi dan lingkup berbeda tak bisa dibandingkan kurvanya.
+  */
+  { kunci: 'jadwal', judul: 'Jadwal', ringkas: 'Kurva S ada di detail proyek → tab Progres', emoji: '🗓️', izin: 'projects:view' },
   { kunci: 'mutu', judul: 'Mutu & K3', ringkas: 'NCR, inspeksi, dokumen kepatuhan', emoji: '🔍', izin: 'ncr:view', nativeJalur: '/mutu' },
   { kunci: 'aset', judul: 'Aset', ringkas: 'Alat, kendaraan, dan nilainya', emoji: '🏗️', izin: 'assets:view', nativeJalur: '/aset' },
   /* Menuju `/sdm/timesheet`, bukan `/sdm` — yang terakhir tak punya halaman
@@ -167,7 +184,7 @@ const MODUL: Modul[] = [
      itu di `menu_items` (`sdm:timesheet:view`); sebelumnya
      `sdm:pegawai:view`, yang membuat entri tampil bagi orang yang justru
      ditolak halamannya. */
-  { kunci: 'sdm', judul: 'Absensi & Timesheet', ringkas: 'Jam kerja pegawai', emoji: '👥', izin: 'sdm:timesheet:view' },
+  { kunci: 'sdm', judul: 'Pegawai', ringkas: 'Daftar pegawai dan kelengkapan data', emoji: '👥', izin: 'sdm:timesheet:view', nativeJalur: '/sdm' },
   { kunci: 'laporan', judul: 'Laporan', ringkas: 'Kinerja biaya, jadwal, dan tender', emoji: '📊', izin: 'reports:view', nativeJalur: '/laporan' },
 
   /*
@@ -209,7 +226,7 @@ const MODUL: Modul[] = [
   { kunci: 'lapangan', judul: 'Lapangan', ringkas: 'Progres, milestone, temuan proyek', emoji: '🏗️', izin: 'projects:view', nativeJalur: '/lapangan' },
   { kunci: 'proyek', judul: 'Proyek', ringkas: 'Daftar proyek & baseline', emoji: '📁', izin: 'projects:view', nativeJalur: '/proyek' },
   { kunci: 'kalender', judul: 'Kalender', ringkas: 'Milestone, termin, dan tenggat', emoji: '📅', izin: ['projects:view', 'mandor:view'], nativeJalur: '/kalender' },
-  { kunci: 'risiko', judul: 'Risiko', ringkas: 'Register risiko, izin, sengketa', emoji: '⚠️', izin: 'risiko:view' },
+  { kunci: 'risiko', judul: 'Risiko', ringkas: 'Register risiko lintas proyek', emoji: '⚠️', izin: 'risiko:view', nativeJalur: '/risiko' },
 ];
 
 export default function Lainnya() {
