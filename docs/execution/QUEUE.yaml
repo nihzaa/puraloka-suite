@@ -3944,11 +3944,49 @@ items:
       diuji adalah tempat cacat paling mungkin bersembunyi**, sebab
       kegagalannya tak menggagalkan apa pun yang menulis.
 
-      G2b (butuh rute ikhtisar lebih dulu — kerjakan API dulu, lalu layar):
-        aset · risiko · kalender · laporan · jadwal (kurva S)
+      G2b — SELESAI 2026-09-11 (commit a7b3d20b): aset · kalender · laporan.
+      Terukur sesudahnya: 15 native · 5 baris mati · 0 buntu.
+
+      ⚠ RENCANA G2b TERBUKTI KELIRU, dan cara kelirunya layak dicatat:
+      ketiganya ditempatkan di sini sebagai "butuh rute ikhtisar lebih
+      dulu", dan tak SATU PUN benar.
+
+          aset      `/api/v1/assets` sudah lengkap — saya mencari berkas
+                    bernama `aset.ts`, sementara rutenya di `assets.ts`
+                    (nama berkas Inggris, modulnya Indonesia)
+          kalender  tak ada tabel kalender di basis SAMA SEKALI; halaman
+                    web menyusunnya dari `/api/v1/projects`
+          laporan   `/api/v1/reports/kpi-perusahaan` sudah ada
+
+      **Survei ketersediaan API dilakukan lewat DAFTAR RUTE, bukan
+      tebakan nama berkas atau nama modul.** Perintahnya:
+
+          grep -rhoE "'/api/v1/[a-z0-9/:_-]+'" apps/api/src/routes/v1/*.ts | sort -u
+
+      Diuji 2026-09-11: memulangkan 601 rute unik. Cari modulnya di
+      sana — bukan menebak dari nama berkas.
+
+      G2b sisa (benar-benar butuh rute baru):
+        risiko · jadwal (kurva S)
 
       G2c (paling besar / paling jarang dipakai di lapangan):
         akuntansi · estimasi · sdm
+
+      ── `risiko`: syarat masuk TERUKUR, bukan "kalau sempat"
+
+      Rutenya hanya per-proyek (`/api/v1/proyek/:id/risiko`), jadi
+      layarnya menuntut memilih proyek dulu — dua ketukan sebelum
+      melihat apa pun.
+
+      Diukur 2026-09-11: **8 risiko di 1 proyek** (6 terpantau, 1
+      terjadi, 1 tertutup). Membangun rute lintas-proyek untuk volume
+      itu belum sepadan.
+
+      Syarat masuk: risiko tersebar di >= 3 proyek, ATAU founder meminta
+      pemantauan risiko dari HP. Ukur:
+
+          SELECT count(*) n, count(DISTINCT project_id) proyek
+            FROM risiko_proyek WHERE status <> 'tertutup';
 
       ── Pola yang WAJIB diikuti
 

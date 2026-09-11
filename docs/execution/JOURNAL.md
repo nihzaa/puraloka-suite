@@ -5,6 +5,76 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-11 (lanjutan 3) — gelombang 2b, dan rencana saya sendiri yang keliru
+
+Tiga modul jadi native: `aset` · `kalender` · `laporan`.
+12 native → **15**, 8 baris mati → **5**.
+
+### Rencana di QUEUE salah untuk KETIGANYA
+
+Saya menempatkan ketiganya di G2b sebagai *"butuh rute ikhtisar lebih
+dulu"*. Tak satu pun benar:
+
+| modul | kenyataan |
+|---|---|
+| `aset` | `/api/v1/assets` sudah lengkap — saya mencari berkas `aset.ts`, rutenya di `assets.ts` |
+| `kalender` | tak ada tabel kalender di basis SAMA SEKALI; web menyusunnya dari `/api/v1/projects` |
+| `laporan` | `/api/v1/reports/kpi-perusahaan` sudah ada |
+
+Yang salah bukan ketelitiannya melainkan **caranya**: survei disusun dari
+nama modul dan tebakan nama berkas, bukan dari daftar rute. Nama berkas
+di repo ini campur Inggris-Indonesia, dan satu modul bisa tak punya tabel
+sendiri sama sekali.
+
+Perintah surveinya sekarang ditulis di QUEUE, dan **diuji sebelum
+ditulis** — 601 rute unik.
+
+### Dua cacat yang hanya MEMOTRET bisa temukan
+
+**Kalender: sembilan baris berjudul sama.** Potret memperlihatkan sembilan
+baris "Terlambat" yang SEMUANYA berjudul "Target selesai"; yang
+membedakan justru baris kedua yang lebih redup. Mata melewatinya.
+
+Dibalik — nama proyek jadi judul, jenisnya sudah disampaikan ikon. Dan
+medan `proyekNama` dinamai ulang jadi `subjudul`: medan yang isinya
+berubah peran wajib bernama sesuai PERANNYA, bukan sesuai isi yang paling
+sering.
+
+**Laporan: `name`, bukan `nama`.** Saya menebak dan salah.
+`lib/kpi-perusahaan.ts:110` menulis `{ id, name, cpi, spi, … }`. Baris
+"Terendah: …" TIDAK PERNAH tampil meski SPI 0,39 — field opsional, `?.`
+menelannya, `tsc` hijau, dan layarnya terlihat wajar sambil kehilangan
+satu-satunya baris yang mengubah angka jadi sesuatu yang bisa
+ditindaklanjuti.
+
+Terukur: teks layar 555 → 673 karakter sesudah diperbaiki.
+
+### Yang saya periksa silang dan ternyata BENAR
+
+Layar Aset menampilkan "Rp 6,2 M nilai buku" sementara setiap kartu
+berkata "belum disusutkan" — terlihat kontradiktif. Diukur: 18 aset milik
+senilai Rp 6.241.900.000, dan **nol baris** di `asset_depreciation_logs`.
+Keduanya benar.
+
+Kedua kalinya dalam dua sesi berturut-turut angka yang terlihat janggal
+ternyata akurat. Yang berubah bukan hasilnya melainkan kebiasaannya:
+selisih dibuka dengan pengukuran, bukan ditutup dengan cerita.
+
+### `risiko` belum, dengan syarat masuk terukur
+
+Rutenya hanya per-proyek, jadi layarnya menuntut memilih proyek dulu —
+dua ketukan sebelum melihat apa pun. Diukur: 8 risiko di 1 proyek.
+Syarat masuknya ditulis di QUEUE, bukan "kalau sempat".
+
+### Terukur
+
+    expo export android : BERHASIL
+    tsc mobile + api    : exit 0, tanpa filter
+    penjaga CI          : 241 hijau · 0 MERAH · 0 tak ketemu
+    entri "Lainnya"     : 15 native · 5 baris mati · 0 buntu
+
+---
+
 ## 2026-09-11 (lanjutan 2) — gelombang 2a, dan rute yang rusak berbulan-bulan
 
 Tiga modul kantor jadi native: `keuangan` · `pengadaan` · `kontrak`.
