@@ -16,7 +16,7 @@ import { Kosong } from '@/components/ui/Kosong';
 import { api } from '@/lib/api';
 import { pesanGalat } from '@/lib/galat';
 import { useTema } from '@/hooks/useTema';
-import { FONT, HURUF, SPASI, type Palet } from '@/lib/tema';
+import { FONT, HURUF, RAPAT, SPASI, type Palet } from '@/lib/tema';
 
 /*
   LAPORAN — KPI perusahaan (EVM, piutang, backlog), NATIVE. Gelombang 2b.
@@ -156,6 +156,7 @@ function ikonKeadaan(
 /** Satu indeks EVM dengan artinya — bukan angka telanjang. */
 function KartuIndeks({
   nama,
+  metrik,
   nilai,
   status,
   terendah,
@@ -163,6 +164,18 @@ function KartuIndeks({
   c,
 }: {
   nama: string;
+  /**
+   * Metrik yang diwakili kartu ini.
+   *
+   * Ditambahkan 2026-09-12 karena kartunya TIDAK tahu dirinya CPI atau
+   * SPI, dan akibatnya baris "Terendah" mencetak KEDUANYA — lihat
+   * catatan di tempat pemakaiannya.
+   *
+   * Dilewatkan eksplisit, bukan ditebak dari `nama`: `nama` adalah teks
+   * yang ditampilkan ("CPI — efisiensi biaya") dan boleh berubah kapan
+   * saja tanpa ada yang sadar ia dipakai sebagai penanda logika.
+   */
+  metrik: 'cpi' | 'spi';
   nilai: number | null;
   status: StatusKpi;
   terendah: ProyekTerendah | null;
@@ -221,10 +234,29 @@ function KartuIndeks({
             accessibilityElementsHidden
             importantForAccessibility="no"
           />
+          {/*
+            SATU angka — milik metrik kartu ini saja.
+
+            ⚠ Ditemukan dari MEMOTRET 2026-09-12. Sebelumnya kedua baris
+            dicetak tanpa syarat, jadi kartu CPI berbunyi:
+
+                Terendah: Pembangunan Rumah Bu Sari (0.00) (0.00)
+
+            Dua angka dalam kurung berurutan tanpa label: pembacanya tak
+            bisa tahu mana CPI mana SPI, dan di kartu CPI angka SPI tak
+            ada urusannya sama sekali. Lebih buruk lagi keduanya kebetulan
+            sama (0.00), sehingga terbaca seperti salah cetak — bukan
+            seperti dua metrik berbeda.
+
+            `tsc` hijau: keduanya memang field yang sah. Yang salah bukan
+            tipenya melainkan MAKNANYA di tempat ini.
+          */}
           <Text style={s.terendahTeks} numberOfLines={2}>
             Terendah: {terendah.name}
-            {terendah.cpi != null ? ` (${terendah.cpi.toFixed(2)})` : ''}
-            {terendah.spi != null ? ` (${terendah.spi.toFixed(2)})` : ''}
+            {(() => {
+              const v = metrik === 'cpi' ? terendah.cpi : terendah.spi
+              return v != null ? ` (${v.toFixed(2)})` : ''
+            })()}
           </Text>
         </View>
       ) : null}
@@ -306,6 +338,7 @@ export default function LaporanScreen() {
 
             <KartuIndeks
               nama="CPI — efisiensi biaya"
+              metrik="cpi"
               nilai={evm.cpi}
               status={evm.statusCpi}
               terendah={evm.cpiTerendah}
@@ -314,6 +347,7 @@ export default function LaporanScreen() {
             />
             <KartuIndeks
               nama="SPI — ketepatan jadwal"
+              metrik="spi"
               nilai={evm.spi}
               status={evm.statusSpi}
               terendah={evm.spiTerendah}
@@ -451,10 +485,29 @@ function gaya(c: Palet) {
     },
     indeksKiri: { flex: 1, gap: 1 },
     indeksNama: { fontSize: HURUF.xs, fontFamily: FONT.isi, color: c.textSecondary },
+    /*
+      Tingkat DISPLAY (kandidat C, 2026-09-12) — satu angka memimpin layar.
+
+      Sebelumnya `xxl` (24px). Naik ke 38px + tracking rapat karena
+      jangkauan skala kita 2,50x sementara Linear 6,00x dan Ramp 6,40x;
+      pada 2,5x tak ada yang bisa memimpin, jadi hierarki jatuh ke warna
+      dan kotak. Rinciannya di ARAH-VISUAL-2026 §12b.
+
+      ⚠ SATU display per layar. Kalau angka kedua ikut memakainya, tak ada
+      yang memimpin dan skalanya rata lagi — hanya dengan angka lebih besar.
+    */
     indeksNilai: {
-      fontSize: HURUF.xxl,
+      fontSize: HURUF.display,
       fontFamily: FONT.judul,
+      letterSpacing: RAPAT.display,
+      lineHeight: 42,
       fontVariant: ['tabular-nums'],
+      /*
+        Tak boleh menyusut: ia berbagi baris `space-between` dengan teks
+        arti. Teks yang boleh menyusut akan MEMBUNGKUS di tengah angka —
+        cacat yang sudah terjadi di `kasbon/index.tsx` (JOURNAL 2026-09-12).
+      */
+      flexShrink: 0,
     },
     indeksArti: {
       fontSize: HURUF.sm,

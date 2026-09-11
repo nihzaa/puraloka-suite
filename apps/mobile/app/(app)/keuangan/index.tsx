@@ -17,7 +17,7 @@ import { Kosong } from '@/components/ui/Kosong';
 import { api } from '@/lib/api';
 import { pesanGalat } from '@/lib/galat';
 import { useTema } from '@/hooks/useTema';
-import { FONT, HURUF, SPASI, type Palet } from '@/lib/tema';
+import { FONT, HURUF, RAPAT, SPASI, type Palet } from '@/lib/tema';
 
 /*
   KEUANGAN — piutang & tagihan, NATIVE. Gelombang 2a.
@@ -458,9 +458,22 @@ function gaya(c: Palet) {
     },
     utamaKotak: { paddingHorizontal: SPASI.lg, gap: 2 },
     utamaLabel: { fontSize: HURUF.xs, fontFamily: FONT.isi, color: c.textSecondary },
+    /*
+      Tingkat DISPLAY (kandidat C, 2026-09-12) — satu angka memimpin layar.
+
+      Sebelumnya `xxl` (24px). Naik ke 38px + tracking rapat karena
+      jangkauan skala kita 2,50x sementara Linear 6,00x dan Ramp 6,40x;
+      pada 2,5x tak ada yang bisa memimpin, jadi hierarki jatuh ke warna
+      dan kotak. Rinciannya di ARAH-VISUAL-2026 §12b.
+
+      ⚠ SATU display per layar. Kalau angka kedua ikut memakainya, tak ada
+      yang memimpin dan skalanya rata lagi — hanya dengan angka lebih besar.
+    */
     utamaNilai: {
-      fontSize: HURUF.xxl,
+      fontSize: HURUF.display,
       fontFamily: FONT.judul,
+      letterSpacing: RAPAT.display,
+      lineHeight: 42,
       color: c.textPrimary,
       fontVariant: ['tabular-nums'],
     },
