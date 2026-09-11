@@ -8,42 +8,49 @@ import { PenandaAntrean } from '@/components/PenandaAntrean';
 import { KepalaLayar } from '@/components/ui/KepalaLayar';
 
 /*
-  Apakah WebView benar-benar bisa dipakai?
+  ══════════════════════════════════════════════════════════════════════════
+  TIDAK ADA WEBVIEW LAGI — keputusan founder 2026-09-11
+  ══════════════════════════════════════════════════════════════════════════
 
-  Dua belas modul kantor di daftar ini semuanya menuju layar WebView. Kalau
-  `react-native-webview` tak terpasang, layar itu sudah menangani
-  ketiadaannya dengan pesan yang menyebut perintah pemasangannya — tapi orang
-  baru tahu SESUDAH menekan, dan daftar yang menampilkan dua belas pintu yang
-  semuanya buntu mengajari orang bahwa aplikasinya tak bisa dipercaya.
+  "saya gamau ada webview lagi, suka gagal dan ga nampil"
 
-  Diperiksa SEKALI saat modul dimuat, bukan tiap render: `require` yang gagal
-  itu mahal, dan hasilnya tak berubah selama aplikasi hidup.
+  Diukur ke produksi hari itu, dan keluhannya benar — SEMUA modul, bukan
+  sebagian:
 
-  Keadaannya DIPERIKSA, bukan ditulis sebagai konstanta yang harus diingat
-  seseorang untuk diubah — jadi begitu paketnya ada, penanda hilang sendiri.
+      app.puraloka-suite.duckdns.org/keuangan      307 → /login
+      …procurement · gudang · mutu · k3            307 → /login
 
-  ── Yang TIDAK bisa dibuktikan dari luar aplikasi
+  ── Kenapa penjaga hijau selama itu
 
-  `require` ini hanya berhasil di bawah Metro. Paketnya menunjuk
-  `"react-native": "src/index.ts"` sebagai entry, sementara Node memakai
-  `"main": "index.js"` yang meminta `lib/WebView` — berkas yang hanya ada
-  sebagai `WebView.android.js` / `WebView.ios.js` dan diselesaikan Metro
-  lewat ekstensi platform.
+  `audit-sesi-webview-nyambung.mjs` memeriksa bahwa NAMA cookie yang ditulis
+  WebView sama dengan yang dibaca middleware — dan itu memang benar. Batas
+  itu tertulis di kepalanya sendiri: "ini sambungan NAMA, bukan bukti sesi
+  hidup". Penjaga yang mengukur sambungan nama tak akan pernah bisa
+  membuktikan halamannya tampil.
 
-  Artinya menjalankan pemeriksaan ini di Node SELALU memulangkan false,
-  bahkan saat paketnya terpasang benar (diukur 2026-08-31: terpasang
-  14.0.1, `require` dari Node gagal dengan "Cannot find module …
-  lib/WebView"). Jadi jangan memakai skrip Node untuk membuktikan penanda
-  ini bekerja — yang membuktikannya cuma menjalankan aplikasinya.
+  ── Kenapa arsitekturnya memang rapuh
+
+  Tiga lapis yang masing-masing BENAR sendiri: penanaman token di klien,
+  gerbang cookie di `middleware.ts`, dan SSR Next.js yang berjalan di server
+  sebelum satu baris JS halaman ada. Yang patah cuma sambungannya — dan
+  bentuk kegagalan itu tak menghasilkan galat di lapisan mana pun.
+
+  Layar native tak punya lapis itu sama sekali. Ia memanggil API dengan
+  header `Authorization` yang sama seperti layar native lain yang sudah
+  terbukti bekerja setiap hari.
+
+  ── Yang menggantikannya, dan yang BELUM
+
+  Modul ber-`nativeJalur` membuka layar native. Yang belum punya
+  ditampilkan sebagai baris MATI — tak bisa ditekan, dengan sebabnya
+  tertulis.
+
+  Baris mati sengaja tidak dihapus dari daftar. Menghilangkannya membuat
+  orang yang tahu modulnya ada menyimpulkan aplikasinya kehilangan fitur,
+  lalu mencari-cari. Yang terlihat-tapi-belum-ada lebih jujur daripada yang
+  hilang tanpa penjelasan — dan daftarnya sendiri jadi peta pekerjaan yang
+  tersisa.
 */
-const WEBVIEW_SIAP = (() => {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    return !!require('react-native-webview')?.WebView;
-  } catch {
-    return false;
-  }
-})();
 
 /*
   ══════════════════════════════════════════════════════════════════════════
@@ -128,15 +135,15 @@ const MODUL: Modul[] = [
     kunci: 'izin-kerja', judul: 'Izin Kerja', ringkas: 'Ajukan izin pekerjaan berbahaya',
     emoji: '🦺', izin: 'k3:permit:manage', nativeJalur: '/izin-kerja/ajukan',
   },
-  { kunci: 'approval', judul: 'Persetujuan', ringkas: 'Yang menunggu keputusan Anda', emoji: '✅', izin: null },
+  { kunci: 'approval', judul: 'Persetujuan', ringkas: 'Yang menunggu keputusan Anda', emoji: '✅', izin: null, nativeJalur: '/persetujuan' },
   { kunci: 'keuangan', judul: 'Keuangan', ringkas: 'Invoice, kas, piutang', emoji: '💰', izin: 'finance:view' },
   { kunci: 'akuntansi', judul: 'Akuntansi', ringkas: 'Jurnal & buku besar', emoji: '📒', izin: 'gl:view' },
   { kunci: 'estimasi', judul: 'Estimasi', ringkas: 'RAB, AHSP, harga satuan', emoji: '📐', izin: 'cecep:price:view' },
   { kunci: 'procurement', judul: 'Pengadaan', ringkas: 'PO, permintaan material, vendor', emoji: '🚚', izin: 'procurement:view' },
-  { kunci: 'gudang', judul: 'Gudang', ringkas: 'Stok & pergerakan material', emoji: '📦', izin: 'gudang:view' },
+  { kunci: 'gudang', judul: 'Gudang', ringkas: 'Stok & pergerakan material', emoji: '📦', izin: 'gudang:view', nativeJalur: '/gudang' },
   { kunci: 'kontrak', judul: 'Kontrak', ringkas: 'Kontrak, addendum, klaim', emoji: '📄', izin: 'projects:view' },
   { kunci: 'jadwal', judul: 'Jadwal', ringkas: 'Milestone & kurva S', emoji: '🗓️', izin: 'projects:view' },
-  { kunci: 'mutu', judul: 'Mutu', ringkas: 'NCR, inspeksi, uji', emoji: '🔍', izin: 'ncr:view' },
+  { kunci: 'mutu', judul: 'Mutu & K3', ringkas: 'NCR, inspeksi, dokumen kepatuhan', emoji: '🔍', izin: 'ncr:view', nativeJalur: '/mutu' },
   { kunci: 'aset', judul: 'Aset', ringkas: 'Alat, sewa, penyusutan', emoji: '🏗️', izin: 'assets:view' },
   /* Menuju `/sdm/timesheet`, bukan `/sdm` — yang terakhir tak punya halaman
      indeks dan menuju 404. Izinnya disamakan dengan yang dituntut halaman
@@ -182,9 +189,8 @@ const MODUL: Modul[] = [
     memegang `projects:view`, dan isi halamannya (punch, ncr, inspeksi,
     submittal) semuanya izin yang klien punya.
   */
-  { kunci: 'lapangan', judul: 'Lapangan', ringkas: 'Harian, inspeksi, punch list, serah terima', emoji: '🏗️', izin: 'projects:view' },
-  { kunci: 'k3', judul: 'K3', ringkas: 'Inspeksi, insiden, JSA, RK3K', emoji: '🦺', izin: 'k3:inspeksi:view' },
-  { kunci: 'proyek', judul: 'Proyek', ringkas: 'Daftar proyek & baseline', emoji: '📁', izin: 'projects:view' },
+  { kunci: 'lapangan', judul: 'Lapangan', ringkas: 'Progres, milestone, temuan proyek', emoji: '🏗️', izin: 'projects:view', nativeJalur: '/lapangan' },
+  { kunci: 'proyek', judul: 'Proyek', ringkas: 'Daftar proyek & baseline', emoji: '📁', izin: 'projects:view', nativeJalur: '/proyek' },
   { kunci: 'kalender', judul: 'Kalender', ringkas: 'Jadwal kerja', emoji: '📅', izin: ['projects:view', 'mandor:view'] },
   { kunci: 'risiko', judul: 'Risiko', ringkas: 'Register risiko, izin, sengketa', emoji: '⚠️', izin: 'risiko:view' },
 ];
@@ -242,26 +248,59 @@ export default function Lainnya() {
           </Text>
         </View>
       ) : (
-        terlihat.map((m) => (
-          <Pressable
-            key={m.kunci}
-            style={({ pressed }) => [s.baris, pressed && s.barisTekan]}
-            onPress={() => router.push(m.nativeJalur ?? (`/web/${m.kunci}` as Href))}
-            accessibilityRole="button"
-            accessibilityLabel={`Buka ${m.judul}`}
-          >
-            <Text style={s.emoji}>{m.emoji}</Text>
-            <View style={s.teks}>
-              <Text style={s.barisJudul}>{m.judul}</Text>
-              <Text style={m.nativeJalur || WEBVIEW_SIAP ? s.barisRingkas : s.barisBelumSiap}>
-                {m.nativeJalur || WEBVIEW_SIAP
-                  ? m.ringkas
-                  : 'Belum tersedia di aplikasi — buka lewat browser'}
-              </Text>
-            </View>
-            <Text style={s.panah}>›</Text>
-          </Pressable>
-        ))
+        terlihat.map((m) => {
+          const siap = Boolean(m.nativeJalur);
+
+          /*
+            Modul tanpa layar native TIDAK BISA DITEKAN — bukan ditekan
+            lalu memunculkan pesan.
+
+            Sebelumnya barisnya tetap hidup dan membuka WebView yang gagal.
+            Menekan sesuatu yang tak pernah berhasil, berulang, adalah cara
+            tercepat mengajari orang bahwa aplikasinya tak bisa dipercaya —
+            dan itu persis keluhan yang menghapus WebView.
+
+            `disabled` + `accessibilityState.disabled` supaya pembaca layar
+            mengumumkannya juga; tanpa itu TalkBack menyebutnya tombol biasa
+            dan penggunanya menekan tanpa tahu.
+          */
+          if (!siap) {
+            return (
+              <View
+                key={m.kunci}
+                style={[s.baris, s.barisMati]}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: true }}
+                accessibilityLabel={`${m.judul}, belum tersedia di aplikasi`}
+              >
+                <Text style={[s.emoji, s.emojiMati]}>{m.emoji}</Text>
+                <View style={s.teks}>
+                  <Text style={[s.barisJudul, s.barisJudulMati]}>{m.judul}</Text>
+                  <Text style={s.barisBelumSiap}>
+                    Belum ada di aplikasi — buka lewat komputer
+                  </Text>
+                </View>
+              </View>
+            );
+          }
+
+          return (
+            <Pressable
+              key={m.kunci}
+              style={({ pressed }) => [s.baris, pressed && s.barisTekan]}
+              onPress={() => router.push(m.nativeJalur as Href)}
+              accessibilityRole="button"
+              accessibilityLabel={`Buka ${m.judul}`}
+            >
+              <Text style={s.emoji}>{m.emoji}</Text>
+              <View style={s.teks}>
+                <Text style={s.barisJudul}>{m.judul}</Text>
+                <Text style={s.barisRingkas}>{m.ringkas}</Text>
+              </View>
+              <Text style={s.panah}>›</Text>
+            </Pressable>
+          );
+        })
       )}
     </ScrollView>
   );
@@ -283,6 +322,25 @@ function gaya(c: Palet) {
       borderColor: c.border,
     },
     barisTekan: { backgroundColor: c.surfaceHover },
+    /*
+      Baris MATI: diredupkan, tanpa panah, tanpa latar hover.
+
+      Redup lewat opacity BUKAN lewat warna teks kelabu — kelabu di atas
+      putih gagal kontras WCAG (`audit-kontras-mobile.mjs`, ambang 4.5:1);
+      satu kelabu yang "terlihat wajar" tercatat di berkas itu hanya 2,54:1.
+      Opacity menurunkan teks dan latarnya bersama-sama, jadi rasio di
+      antara keduanya tetap.
+
+      ⚠ Nilai hex-nya sengaja TIDAK ditulis di sini: `audit-warna-mobile-
+      bertoken.mjs` memindai TEKS, jadi menyebut hex untuk menerangkan
+      kenapa ia dihindari tetap terhitung sebagai pemakaian. Penjaga itu
+      merah atas komentar ini pada percobaan pertama (CLAUDE.md §8a.2).
+
+      Panah SENGAJA tak digambar: panah adalah janji bahwa ada tujuan.
+    */
+    barisMati: { opacity: 0.55 },
+    emojiMati: { opacity: 0.7 },
+    barisJudulMati: { color: c.textSecondary },
     emoji: { fontSize: 22, marginRight: 12 },
     teks: { flex: 1 },
     barisJudul: { fontSize: 15, fontFamily: FONT.isiTebal, color: c.textPrimary },

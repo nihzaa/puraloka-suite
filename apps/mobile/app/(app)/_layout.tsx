@@ -405,7 +405,34 @@ export default function AppLayout() {
       */}
       <Tabs.Screen name="pekerjaan" options={{ href: null }} />
 
-      <Tabs.Screen name="web/[modul]" options={{ href: null }} />
+      {/*
+        ── EMPAT LAYAR MODUL, menggantikan WebView ──────────────────────────
+
+        Keputusan founder 2026-09-11: "saya gamau ada webview lagi, suka
+        gagal dan ga nampil". Diukur ke produksi dan keluhannya benar —
+        SEMUA tujuh belas modul menjawab 307 → /login, bukan sebagian.
+
+        Keempatnya `href: null` dan dibuka dari "Lainnya": bilah tab sudah
+        memuat delapan, dan yang kesembilan membuat tiap ikon menyempit
+        sampai sulit ditekan dengan ibu jari kotor di lapangan — alasan
+        yang sama yang tertulis di layar-layar lapor di atas.
+
+        Gelombang 1 dipilih dari "dipakai sambil BERDIRI di proyek":
+
+          persetujuan  keputusan diambil di jalan, bukan di depan komputer
+          gudang       dibuka tepat saat orangnya di depan rak
+          mutu         satu endpoint memuat mutu DAN k3 sekaligus
+          lapangan     progres & milestone proyek berjalan
+
+        Modul kantor (keuangan, akuntansi, estimasi, pengadaan, kontrak,
+        aset, laporan, jadwal, kalender, risiko, sdm) belum punya layar —
+        di "Lainnya" mereka tampil sebagai baris MATI yang tak bisa
+        ditekan, bukan pintu yang gagal saat dibuka.
+      */}
+      <Tabs.Screen name="persetujuan/index" options={{ href: null }} />
+      <Tabs.Screen name="gudang/index" options={{ href: null }} />
+      <Tabs.Screen name="mutu/index" options={{ href: null }} />
+      <Tabs.Screen name="lapangan/index" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -2327,8 +2327,20 @@ jobs:
       # middleware berjalan di SERVER sebelum JS halaman ada (sah). Tak ada
       # yang salah kecuali sambungannya, dan tak satu pun dari 241 penjaga
       # lain melihat kedua sisi sekaligus.
-      - name: Sesi WebView nyambung ke gerbang web
-        run: node scripts/audit-sesi-webview-nyambung.mjs
+      # MENGGANTIKAN `audit-sesi-webview-nyambung.mjs`, yang dihapus
+      # 2026-09-11 bersama WebView-nya.
+      #
+      # Penjaga lama menjaga sambungan NAMA cookie antara WebView dan
+      # middleware web. Ia hijau sampai akhir dan tetap benar — batasnya
+      # tertulis sendiri: "sambungan NAMA, bukan bukti sesi hidup". Yang
+      # tak bisa ia lihat: apakah halamannya TAMPIL. Diukur ke produksi,
+      # SELURUH 17 modul menjawab 307 → /login.
+      #
+      # Subjeknya tak ada lagi, jadi ia MERAH selamanya — dan penjaga yang
+      # merah tanpa cacat mengajari orang mengabaikan keluarannya. Yang
+      # menggantikan perannya: memastikan WebView tak bisa kembali.
+      - name: Mobile tanpa WebView
+        run: node scripts/audit-mobile-tanpa-webview.mjs
 
       # Tiap kiriman antrean mobile wajib menunjuk rute API yang ADA. Gejalanya
       # paling buruk dari semua kelas cacat di aplikasi ini, karena antrean
