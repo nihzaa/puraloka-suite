@@ -3874,3 +3874,127 @@ items:
       Ukur ulang sebelum mulai:
         node apps/api/scripts/audit-migrasi-tertinggal-deploy.mjs
         git log --oneline origin/main..feat/sumbu-ui-roadmap | wc -l
+
+  - id: MOBILE-NATIVE-G2
+    fase: null
+    judul: "Gelombang 2 — sebelas modul kantor masih baris MATI di aplikasi HP"
+    status: todo
+    prioritas: tinggi
+    catatan: |
+      Keputusan founder 2026-09-11: "saya gamau ada webview lagi, suka gagal
+      dan ga nampil" — dan pilihan cakupannya "native semua 17 modul,
+      bertahap".
+
+      Gelombang 1 SELESAI (commit 464bd3e9, 0e35c82d):
+
+          persetujuan · gudang · mutu & k3 · lapangan
+
+      Terukur sesudahnya:
+
+          node apps/api/scripts/audit-modul-mobile-nyata.mjs
+          → 9 native · 11 baris mati · 0 buntu · 0 jejak WebView
+
+      ── Sebelas yang tersisa, DENGAN ketersediaan API-nya
+
+      Disurvei 2026-09-11. Yang menentukan urutan bukan besarnya modul di
+      web, melainkan apakah sudah ADA endpoint ikhtisar yang bisa dipakai
+      satu layar — modul tanpa itu menuntut rute baru lebih dulu, dan itu
+      pekerjaan sisi server yang terpisah.
+
+          modul         rute ikhtisar               halaman web
+          keuangan      keuangan-ikhtisar.ts ✅      9
+          procurement   procurement.ts ✅           13
+          kontrak       kontrak.ts ✅                6
+          jadwal        jadwal.ts ✅                 1
+          akuntansi     — belum ada                  4
+          estimasi      — belum ada                  7
+          aset          — belum ada                  3
+          laporan       — belum ada                  2
+          kalender      — belum ada                  1
+          risiko        — belum ada                  3
+          sdm           — belum ada                  5
+
+      ── Urutan yang disarankan
+
+      G2a (rute sudah ada, langsung bisa dikerjakan):
+        keuangan · procurement · kontrak · jadwal
+
+      G2b (butuh rute ikhtisar lebih dulu — kerjakan API dulu, lalu layar):
+        aset · risiko · kalender · laporan
+
+      G2c (paling besar / paling jarang dipakai di lapangan):
+        akuntansi · estimasi · sdm
+
+      ── Pola yang WAJIB diikuti
+
+      `apps/mobile/app/(app)/persetujuan/index.tsx` adalah acuannya:
+      FlatList + React.memo (bukan ScrollView+map — dijaga
+      `audit-daftar-mobile-virtual.mjs`), galat MUAT terpisah dari keadaan
+      KOSONG, token `lib/tema.ts` (nol hex diketik), sasaran sentuh >=44px,
+      `accessibilityState` pada kontrol berstatus.
+
+      ⚠ BENTUK BALASAN WAJIB DIBACA KE RUTENYA, bukan ditebak dari pola.
+      Terbukti dalam satu sesi: `/approval/inbox` bersarang di `.data`,
+      `/mutu/ikhtisar` DATAR. `res.data` bertipe `any` dari axios, jadi tsc
+      TIDAK menolong — kunci yang salah menghasilkan layar yang tampak
+      sehat dengan nol di mana-mana.
+
+      ⚠ SESUDAH tiap layar: MEMOTRET, lalu LIHAT gambarnya. Gelombang 1
+      lolos tsc, seluruh penjaga, DAN pengukuran potret sendiri ("semua
+      layar terisi, nol teks kecil") sambil menampilkan UUID sebagai nama
+      barang, `kritis` berwarna kelabu di sebelah `major` merah, dan
+      `gaji_tukang` di kartu bernominal dua juta rupiah.
+
+          UJI_BASIS=http://localhost:8081 \
+            node apps/mobile/scripts/potret-mobile.mjs
+
+      ⚠ Dan periksa `apps/mobile/.env` menunjuk ke mana. Ia default ke VPS
+      produksi; perbaikan API yang belum ter-deploy TIDAK akan terlihat,
+      dan potretnya terbaca seperti perbaikan yang gagal.
+
+      Tiap layar baru wajib ditambahkan ke `potret-mobile.mjs` DAN
+      didaftarkan `Tabs.Screen ... href: null` di `(app)/_layout.tsx`.
+      Tipe rute expo-router dihasilkan saat build — kalau `nativeJalur`
+      memerahkan tsc, regenerasi dulu (`npx expo customize tsconfig.json`),
+      jangan mengubah tipenya jadi `string`.
+
+  - id: MOBILE-NCR-BERAT-KRITIS
+    fase: null
+    judul: "`kritis` tak terhitung sebagai NCR berat — angka ringkasan lebih kecil dari kenyataan"
+    status: todo
+    prioritas: sedang
+    catatan: |
+      Ditemukan 2026-09-11 saat membangun layar Mutu & K3 native, dari
+      MEMOTRET — bukan dari test.
+
+      `mutu-ikhtisar.ts:70` menghitung "NCR berat" dengan
+
+          /major|mayor|tinggi|high/i
+
+      sementara kolom `ncr_items.severity` di basis memuat TIGA nilai:
+
+          minor · major · kritis
+
+      `kritis` tak cocok pola itu, jadi ia TIDAK masuk hitungan "berat".
+      Angka "5 NCR berat" di ringkasan karenanya lebih kecil daripada yang
+      sesungguhnya berat — dan `kritis` justru yang paling berat.
+
+      ── Kenapa TIDAK diperbaiki sepihak di klien
+
+      Layar mobile sudah memetakan `kritis` → merah (itu soal warna, dan
+      salah warnanya terbaca sebagai "kritis lebih ringan dari major").
+      Tetapi mengubah HITUNGANNYA di klien membuat kartu dan ringkasan di
+      layar yang sama saling bertentangan — dua angka yang keduanya "benar
+      menurut aturannya sendiri" adalah bentuk yang paling sulit
+      ditelusuri (CLAUDE.md §8a.2).
+
+      Perbaikannya di server, satu tempat, dan seluruh konsumen ikut.
+
+      ── Sebelum memperbaiki, UKUR dulu daftar nilainya
+
+          SELECT DISTINCT severity FROM ncr_items WHERE severity IS NOT NULL;
+
+      Kalau ada nilai keempat yang belum terpikirkan, pola regex akan
+      melewatkannya lagi dengan cara yang sama. Pertimbangkan membaca dari
+      tipe ENUM/CHECK-nya alih-alih mencocokkan kata — pola yang sama
+      dipakai `audit-status-mobile-berlabel.mjs`.

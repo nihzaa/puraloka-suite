@@ -5,6 +5,113 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-11 (lanjutan) — WebView dicabut, dan lima cacat yang hanya MEMOTRET bisa temukan
+
+Founder: *"saya gamau ada webview lagi, suka gagal dan ga nampil"* — lalu
+*"dan saya mau ui ux nya di enhanced lagi"*.
+
+### Keluhannya benar, dan lebih luas dari yang dilaporkan
+
+Diukur ke produksi:
+
+    app.puraloka-suite.duckdns.org/keuangan      307 → /login
+    …procurement · gudang · mutu · k3            307 → /login
+
+**SEMUA tujuh belas modul**, bukan sebagian.
+
+### Dua penjaga hijau, dan keduanya jujur
+
+`audit-sesi-webview-nyambung` memeriksa NAMA cookie yang ditulis WebView
+sama dengan yang dibaca middleware — benar, dan batasnya tertulis di
+kepalanya sendiri: *"sambungan NAMA, bukan bukti sesi hidup"*.
+
+`audit-modul-mobile-nyata` hijau sebab ketujuh belas halamannya MEMANG ada.
+
+Yang tak bisa dilihat keduanya: apakah halamannya TAMPIL. **Dua penjaga
+yang keduanya benar, dan cacatnya hidup di antara mereka.**
+
+### Kenapa dicabut, bukan diperbaiki
+
+Tiga lapis yang masing-masing BENAR sendiri: token ditanam klien ke
+localStorage+header, `middleware.ts` menggerbang lewat cookie, dan SSR
+Next.js berjalan di server sebelum satu baris JS halaman ada. Yang patah
+cuma sambungannya — tanpa galat di lapisan mana pun.
+
+Memperbaikinya berarti menambah lapis keempat; menghapusnya menghilangkan
+ketiganya sekaligus.
+
+### Gelombang 1 — empat layar native
+
+`persetujuan` · `gudang` · `mutu & k3` · `lapangan`, dipilih dari "dipakai
+sambil BERDIRI di proyek". Sebelas modul kantor jadi baris MATI: tak bisa
+ditekan, `disabled` + `accessibilityState`, tanpa panah (panah adalah janji
+bahwa ada tujuan). Tak dihapus dari daftar — yang hilang tanpa penjelasan
+membuat orang mencari-cari; daftarnya sendiri jadi peta pekerjaan tersisa.
+
+### Lima cacat yang lolos tsc, seluruh penjaga, DAN pengukuran potret
+
+Skrip potret melapor *"semua layar terisi, nol gulir mendatar, nol teks di
+bawah 12px"* — jujur, dan tetap melewatkan semuanya:
+
+| Cacat | Kenapa angka tak menangkapnya |
+|---|---|
+| UUID sebagai nama barang di Gudang | teks ADA, panjangnya wajar, tak kecil |
+| `kritis` KELABU di sebelah `major` MERAH | kelabu keadaan sah bagi lencana |
+| `gaji_tukang` di kartu Rp 2.000.000 | kunci mentah tetap terbaca sebagai teks |
+| chip terpotong persis di ANGKANYA | tak menggulir mendatar — ia terpotong |
+| nama proyek terpotong `— …` | `numberOfLines={2}`; yang kurang LEBAR |
+
+### Empat kali saya salah
+
+1. **Menebak nama token** (`HURUF.badan`, `FONT.tebal`) — tak ada. Yang
+   benar `HURUF.base`/`FONT.isiTebal`.
+2. **Komentar saya sendiri melanggar penjaga.** Saya menyebut satu nilai
+   hex untuk menerangkan kenapa warna itu dihindari, dan
+   `audit-warna-mobile-bertoken` merah 23→24 — ia memindai TEKS. Kelas
+   cacat §8a.2, di sesi yang sama saya menulis peringatan tentangnya di
+   kepala penjaga WebView yang baru.
+3. **`paddingRight` untuk chip terpotong.** Alasannya benar (daftar
+   mendatar butuh isyarat "ada lagi"), penerapannya salah — chip ketiga
+   memang LEBIH LEBAR dari sisa layar. Yang bekerja `maxWidth` + label dan
+   angka jadi dua `Text`.
+4. **Menyimpulkan perbaikan API gagal** saat potret masih memperlihatkan
+   UUID. `apps/mobile/.env` menunjuk VPS yang menjalankan kode 5 Sep —
+   alat ukurnya menunjuk server lain, bukan perbaikan yang gagal.
+
+### Penjaga
+
+`audit-mobile-tanpa-webview.mjs` (BARU) — empat jalur kembalinya WebView.
+Mutasi keempatnya MERAH, menyebut berkas+baris, pulih HIJAU.
+
+`audit-modul-mobile-nyata.mjs` DITULIS ULANG, bukan dihapus. Premisnya
+hilang; bentuk cacatnya tidak — peta di satu berkas, tujuan di berkas lain.
+
+`audit-sesi-webview-nyambung.mjs` dihapus bersama subjeknya: ia merah
+selamanya tanpa berkas yang dijaganya, dan penjaga yang merah tanpa cacat
+mengajari orang mengabaikan keluarannya.
+
+### Terukur
+
+    expo export android : BERHASIL, bundle 4,47 MB   ← Metro benar jalan
+    tsc mobile + api    : exit 0, tanpa filter
+    penjaga CI          : 241 hijau · 0 MERAH · 0 tak ketemu
+    ci.yml              : 245 penjaga · 75 tertabel
+    entri "Lainnya"     : 9 native · 11 baris mati · 0 buntu
+    gudang-kelola       : 13/13 hijau
+
+### Yang tersisa
+
+`MOBILE-NATIVE-G2` di QUEUE — sebelas modul, diurut menurut ketersediaan
+rute ikhtisar (bukan besarnya di web): empat sudah punya rute dan bisa
+langsung dikerjakan, empat butuh rute baru lebih dulu, tiga paling besar.
+
+`MOBILE-NCR-BERAT-KRITIS` — `kritis` tak terhitung sebagai "NCR berat" di
+`mutu-ikhtisar.ts`. Sengaja TIDAK diperbaiki sepihak di klien: dua angka
+yang keduanya benar menurut aturannya sendiri adalah bentuk yang paling
+sulit ditelusuri.
+
+---
+
 ## 2026-09-11 — satu akun mati memutus 194 tugas DAN 68 test
 
 Founder bertanya "apa yang belum selesai, dan apa lagi yang bisa
