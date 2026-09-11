@@ -5,6 +5,80 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-11 (lanjutan 2) — gelombang 2a, dan rute yang rusak berbulan-bulan
+
+Tiga modul kantor jadi native: `keuangan` · `pengadaan` · `kontrak`.
+9 native → **12**, 11 baris mati → **8**.
+
+### Layar Kontrak menemukan cacat API pada potret pertamanya
+
+    GET /api/v1/kontrak
+    → "Could not find a relationship between 'kontrak' and 'kontrak'
+       in the schema cache"
+
+Embed self-join ditulis dengan nama CONSTRAINT alih-alih KOLOM. FK-nya ADA
+dan namanya BENAR (diverifikasi ke `pg_constraint`) — yang tak dikenali
+PostgREST adalah bentuk penulisannya untuk relasi ke tabel diri sendiri.
+
+**24 test kontrak hijau sepanjang itu.** Semuanya menguji POST/PATCH dan
+invarian nilai; tak satu pun memanggil GET daftarnya — padahal berkas itu
+punya helper `get()` sejak awal, tak terpakai untuk rute ini.
+
+Cacat pada rute BACA tak menggagalkan apa pun yang menulis. Ia hanya
+membuat layar kosong — dan layar kosong terbaca *"belum ada data"*, bukan
+*"rutenya rusak"*. Yang membuatnya ketahuan: layar native memisahkan galat
+MUAT dari keadaan KOSONG, disiplin yang disalin dari
+`uji-galat-muat-terpisah.mjs` di web.
+
+Dua test ditambahkan; mutasi memulihkan bentuk lama → MERAH dengan pesan
+yang memuat galat aslinya → 26/26.
+
+### `jadwal` tidak dibangun, dan itu keputusan
+
+`/api/v1/jadwal` ternyata **penjadwal otomasi** — membaca `jadwal_tugas`
+(jam, hari_pekan, terakhir_galat), bukan jadwal proyek. Entri "Jadwal" di
+Lainnya menjanjikan "Milestone & kurva S": dua hal berbeda yang namanya
+kebetulan sama.
+
+Layar yang JALAN dan memperlihatkan hal yang keliru lebih mahal daripada
+layar yang tak ada. Ringkas entrinya dikoreksi; milestone sudah di
+`/lapangan`. Kurva S butuh rute baru — dipindah ke G2b.
+
+### Empat bentuk balasan berbeda, dan tak ada yang bisa ditebak
+
+    /approval/inbox                 → .data
+    /mutu/ikhtisar                  → datar
+    /procurement/material-requests  → .material_requests
+    /kontrak                        → .kontrak
+
+Masing-masing dibaca ke rutenya. `res.data` bertipe `any` dari axios, jadi
+`tsc` tak menolong sama sekali.
+
+### Yang saya periksa silang dan ternyata BENAR
+
+Layar Keuangan menampilkan "Piutang Rp 32.400" di sebelah "Tertagih Rp 2,1
+M / Terbayar Rp 2,1 M" — terlihat janggal. Diukur ke basis: tagih
+Rp 2.094.212.400, bayar Rp 2.094.180.000, sisa Rp 32.400 dari SATU
+invoice. Angkanya benar; "Rp 2,1 M" hanya pembulatan angka orientasi.
+
+Selisih yang tak bisa dijelaskan adalah temuan yang belum dibuka — dan
+yang ini dibuka, lalu ditutup dengan pengukuran.
+
+### Terukur
+
+    tsc mobile + api : exit 0, tanpa filter
+    kontrak.test.ts  : 26/26 (dari 24)
+    penjaga CI       : 241 hijau · 0 MERAH · 0 tak ketemu
+    entri "Lainnya"  : 12 native · 8 baris mati · 0 buntu
+
+### Pelajaran untuk gelombang berikutnya
+
+**Rute BACA yang tak pernah diuji adalah tempat cacat paling mungkin
+bersembunyi** — sebab kegagalannya tak menggagalkan apa pun yang menulis,
+dan gejalanya (layar kosong) terbaca sebagai keadaan yang wajar.
+
+---
+
 ## 2026-09-11 (lanjutan) — WebView dicabut, dan lima cacat yang hanya MEMOTRET bisa temukan
 
 Founder: *"saya gamau ada webview lagi, suka gagal dan ga nampil"* — lalu

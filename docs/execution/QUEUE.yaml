@@ -3916,11 +3916,36 @@ items:
 
       ── Urutan yang disarankan
 
-      G2a (rute sudah ada, langsung bisa dikerjakan):
-        keuangan · procurement · kontrak · jadwal
+      G2a — SELESAI 2026-09-11 (commit 28a58ac8): keuangan · procurement ·
+      kontrak. Terukur sesudahnya: 12 native · 8 baris mati · 0 buntu.
+
+      ⚠ `jadwal` DIKELUARKAN dari G2a, dan alasannya wajib dibaca sebelum
+      menjadwalkannya lagi: `/api/v1/jadwal` ternyata PENJADWAL OTOMASI —
+      ia membaca `jadwal_tugas` (jam, hari_pekan, terakhir_galat), bukan
+      jadwal proyek. Entri "Jadwal" di Lainnya menjanjikan "Milestone &
+      kurva S": dua hal berbeda yang namanya kebetulan sama.
+
+      Membangun layar di atas rute itu menghasilkan layar yang JALAN dan
+      memperlihatkan hal yang keliru — lebih mahal daripada layar yang
+      tak ada. Milestone sudah tampil di `/lapangan`; yang belum ada
+      KURVA S, dan itu butuh rute baru (masuk G2b).
+
+      ── Yang G2a temukan di sisi API
+
+      Layar Kontrak langsung memerahkan rute yang sudah rusak
+      berbulan-bulan: `GET /api/v1/kontrak` melempar
+      "Could not find a relationship between 'kontrak' and 'kontrak'".
+
+      Embed self-join ditulis dengan nama constraint alih-alih kolom.
+      24 test kontrak hijau sepanjang itu — semuanya menguji POST/PATCH,
+      tak satu pun memanggil GET daftarnya. Diperbaiki + 2 test baru.
+
+      **Pelajaran untuk gelombang berikutnya: rute BACA yang tak pernah
+      diuji adalah tempat cacat paling mungkin bersembunyi**, sebab
+      kegagalannya tak menggagalkan apa pun yang menulis.
 
       G2b (butuh rute ikhtisar lebih dulu — kerjakan API dulu, lalu layar):
-        aset · risiko · kalender · laporan
+        aset · risiko · kalender · laporan · jadwal (kurva S)
 
       G2c (paling besar / paling jarang dipakai di lapangan):
         akuntansi · estimasi · sdm
