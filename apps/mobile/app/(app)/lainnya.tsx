@@ -227,6 +227,66 @@ const MODUL: Modul[] = [
   { kunci: 'proyek', judul: 'Proyek', ringkas: 'Daftar proyek & baseline', emoji: '📁', izin: 'projects:view', nativeJalur: '/proyek' },
   { kunci: 'kalender', judul: 'Kalender', ringkas: 'Milestone, termin, dan tenggat', emoji: '📅', izin: ['projects:view', 'mandor:view'], nativeJalur: '/kalender' },
   { kunci: 'risiko', judul: 'Risiko', ringkas: 'Register risiko lintas proyek', emoji: '⚠️', izin: 'risiko:view', nativeJalur: '/risiko' },
+
+  /*
+    ══════════════════════════════════════════════════════════════════════
+    TIGA LAYAR YANG PINDAH DARI BILAH TAB — 2026-09-12
+    ══════════════════════════════════════════════════════════════════════
+
+    Bilah tab dipotong dari DELAPAN ke LIMA (batas Material, dan aritmetika
+    yang memaksanya: 8 tab pada layar 360px = 45px/tab sementara
+    "Notifikasi" 11px butuh 61px — labelnya terpotong di setiap layar).
+
+    ⚠ KETIGANYA WAJIB ADA DI SINI. Menghapus tabnya tanpa menambahkan
+    entri ini berarti MENGHAPUS FITURNYA: dua di antaranya layar TULIS
+    yang dipakai mandor tiap hari, dan tak ada jalan lain mencapainya.
+
+    Nyaris terjadi saat perubahan ini dibuat — tabnya sudah di-`href: null`
+    dan ketiganya sempat jadi layar tanpa pintu. Ketahuan dari memeriksa
+    berkas ini, bukan dari galat: aplikasi tetap jalan, layarnya tetap ada
+    di router, cuma tak ada yang bisa membukanya.
+
+    `audit-modul-mobile-nyata.mjs` (ambang NOL) menjaga arah sebaliknya —
+    entri yang menunjuk layar tak ada. Ia TIDAK bisa melihat layar yang
+    kehilangan seluruh pintunya, sebab dari sisinya tak ada yang salah.
+
+    Izinnya disalin PERSIS dari gerbang tab lamanya di `_layout.tsx`,
+    bukan ditebak ulang:
+
+        progress/input   reports:progress + mandor:kasbon:create
+        absensi/input    mandor:wage:create
+        mandor/index     mandor:assign
+  */
+  {
+    kunci: 'progress',
+    judul: 'Lapor Progres',
+    ringkas: 'Foto & persentase pekerjaan hari ini',
+    emoji: '📷',
+    /*
+      DUA izin, dan yang kedua bukan hiasan: `reports:progress` juga
+      dimiliki CLIENT (untuk MELIHAT laporan), sementara layar ini
+      MENGISI. `mandor:kasbon:create` yang memisahkan keduanya — alasan
+      lengkapnya di `_layout.tsx` tempat syarat ini pertama ditulis.
+    */
+    izin: ['reports:progress', 'mandor:kasbon:create'],
+    nativeJalur: '/progress/input',
+  },
+  {
+    kunci: 'absensi',
+    judul: 'Absensi Harian',
+    ringkas: 'Kehadiran tukang & lembur',
+    emoji: '🗓️',
+    izin: 'mandor:wage:create',
+    nativeJalur: '/absensi/input',
+  },
+  {
+    kunci: 'mandor',
+    judul: 'Mandor',
+    ringkas: 'Ringkasan penugasan & upah',
+    emoji: '👷',
+    izin: 'mandor:assign',
+    nativeJalur: '/mandor',
+  },
 ];
 
 export default function Lainnya() {

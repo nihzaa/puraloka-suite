@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/useAuth';
 import { useKurangiGerak } from '@/hooks/useKurangiGerak';
 import { useTema } from '@/hooks/useTema';
-import { FONT } from '@/lib/tema';
+import { BilahTab } from '@/components/BilahTab';
 
 /**
  * Ikon bilah tab.
@@ -159,6 +159,7 @@ export default function AppLayout() {
 
   return (
     <Tabs
+      tabBar={(props) => <BilahTab {...props} />}
       screenOptions={{
         headerShown: false,
         /*
@@ -175,63 +176,41 @@ export default function AppLayout() {
         animation: kurangiGerak === false ? 'fade' : 'none',
         tabBarActiveTintColor: c.navy,
         tabBarInactiveTintColor: c.textSecondary,
-        tabBarStyle: {
-          borderTopColor: c.border,
-          backgroundColor: c.surfaceRaised,
-          paddingTop: 6,
-          /*
-            Tinggi DINYATAKAN, bukan diserahkan ke bawaan.
-
-            Bawaan (44px) memeras label 11px jadi kotak setinggi 6px —
-            terukur, dan terlihat di potret sebagai huruf terpotong di
-            tengah. 58px memberi ikon 22px + label 11px + jarak, dengan
-            ruang untuk `paddingBottom` perangkat bergestur.
-          */
-          height: 58,
-          paddingBottom: 6,
-        },
         /*
-          TETAP 11px, dan itu keputusan yang dihitung — bukan kelalaian.
+          ── Bilah tab DIGANTI komponen sendiri, 2026-09-12 ────────────────
 
-          Delapan tab pada layar 360px = ~45px per tab. Lebar label pada
-          font sistem kira-kira 0,55 x fontSize per huruf:
+          Founder: *"bottom nav nyaa saya mau lebih di enhance dan punya
+          khas, jugaa terasa lebih modern"*.
 
-              "Notifikasi" 10 huruf  11px = 61px   SUDAH melebihi 45
-              "Dashboard"   9 huruf  11px = 54px   melebihi juga
-              pada 12px keduanya jadi 66px dan 59px
+          Gaya bawaan (`tabBarStyle` / `tabBarLabelStyle`) tak dipakai lagi
+          — seluruh tampilannya hidup di `components/BilahTab.tsx`, termasuk
+          pil aktif yang bergeser, ikon padat-saat-aktif, dan label yang
+          hanya tampil pada tab aktif.
 
-          Jadi menaikkan ke 12px memperburuk pemotongan yang sudah terjadi.
-          Yang diperbaiki LABELNYA: Notifikasi -> Notif, Dashboard ->
-          Beranda, Progress -> Progres (yang terakhir sekalian: "Progress"
-          bahasa Inggris di antara tujuh label Indonesia).
+          ⚠ RIWAYAT YANG TAK BOLEH HILANG BERSAMA BLOK YANG DIHAPUS:
 
-              "Notif"    5 huruf  11px = 30px  muat
-              "Beranda"  7 huruf  11px = 42px  muat
-              "Progres"  7 huruf  11px = 42px  muat
+          1. Riwayat kontras `tabBarInactiveTintColor` ada di komentar
+             di ATAS berkas ini (cari "riwayat yang tak boleh hilang") —
+             sengaja TIDAK diulang di sini, sebab nilai heksanya dipindai
+             `audit-warna-mobile-bertoken` dan penyebutan kedua membuat
+             hitungannya naik (CLAUDE.md §8a.2: penjelasan benar yang
+             melanggar penjaga yang sama). Yang berlaku: `c.textSecondary`
+             MASIH dipakai, diteruskan ke `BilahTab` sebagai `warnaMati`.
 
-          Teks 11px di bilah tab dikecualikan dari kenaikan 11->12 yang
-          dilakukan pada 13 gaya lain hari ini. Kalau nanti bilahnya
-          berkurang jadi enam tab (60px per tab), 12px muat untuk semuanya.
+          2. Tinggi bilah pernah dibiarkan bawaan (44px) dan memeras label
+             jadi kotak 6px. `BilahTab` tak memakukan tinggi sama sekali —
+             ia tumbuh dari isinya plus `insets.bottom` perangkat.
+
+          3. `lineHeight` label WAJIB dinyatakan: tanpanya `react-native-web`
+             memberi elemen label `height: 5px; overflow: hidden`. Tetap
+             dinyatakan di `BilahTab.gaya.label`.
+
+          4. Aritmetika yang memaksa perubahan ini: 8 tab pada layar 360px
+             = 45px/tab, sementara "Notifikasi" 11px butuh 61px. Label
+             dipendekkan dulu (Notifikasi->Notif) sebagai tambalan; sekarang
+             akarnya yang diperbaiki — LIMA tab, dan label hanya pada yang
+             aktif sehingga punya seluruh lebar selnya.
         */
-        /*
-          `lineHeight` WAJIB dinyatakan, dan itu bukan soal selera.
-
-          Tanpanya, `react-native-web` memberi elemen label
-          `height: 5px; overflow: hidden` untuk teks 11px — terukur di DOM.
-          Hurufnya terpotong di tengah, di SETIAP layar aplikasi, dan
-          menaikkan tinggi BILAH tak memperbaikinya sama sekali (dicoba:
-          bilah 44 → 58px, label tetap 5px).
-
-          Sebabnya label mewarisi `lineHeight: normal` dari induk ber-fontSize
-          16px, lalu tingginya dihitung dari sesuatu yang bukan fontSize-nya
-          sendiri. 14 = 11px + ruang pangkal huruf turun (g, y, p).
-        */
-        tabBarLabelStyle: {
-          fontSize: 11,
-          lineHeight: 14,
-          fontFamily: FONT.isiTebal,
-          marginTop: 2,
-        },
       }}
     >
       <Tabs.Screen
@@ -258,19 +237,48 @@ export default function AppLayout() {
       />
 
       {/* Mandor-only: input progress + kasbon */}
-      <Tabs.Screen
-        name="progress/input"
-        options={
-          bolehProgres
-            ? {
-                title: 'Progres',
-                tabBarIcon: ({ focused, color }) => (
-                  <TabIcon nama={focused ? 'camera' : 'camera-outline'} focused={focused} warna={color} />
-                ),
-              }
-            : { href: null }
-        }
-      />
+      {/*
+        ══════════════════════════════════════════════════════════════════
+        LIMA TAB — batas Material, dan aritmetika yang memaksanya
+        ══════════════════════════════════════════════════════════════════
+
+        Sebelum 2026-09-12 bilah ini punya DELAPAN tab, dan labelnya
+        terpotong di setiap layar. Sebabnya bukan gaya melainkan hitungan
+        yang sudah tertulis di berkas ini sendiri:
+
+            8 tab pada layar 360px  =  ~45px per tab
+            "Notifikasi" 11px       =  61px   <- melebihi 45
+
+        Tambalan sebelumnya MEMENDEKKAN kata (Notifikasi->Notif,
+        Dashboard->Beranda). Itu menahan gejala satu putaran; delapan tab
+        tetap delapan tab.
+
+        Material dan `ui-ux-pro-max` prioritas 9 (`bottom-nav-limit`)
+        sama-sama memberi batas LIMA.
+
+        ── Yang TETAP jadi tab, dan alasannya
+
+            Beranda    titik masuk; selalu ada
+            Proyek     entitas inti aplikasi ini
+            Kasbon     satu-satunya tab TULIS harian mandor
+            Notif      butuh lencana jumlah; mustahil di dalam menu
+            Lainnya    pintu ke 20 modul kantor
+
+        ── Yang PINDAH ke "Lainnya", dan kenapa bukan yang lain
+
+            Progres    layar tulis, TAPI dipakai per-kunjungan-lokasi,
+                       bukan tiap membuka aplikasi
+            Absensi    sama; harian tetapi sekali sehari
+            Mandor     layar BACA (ringkasan), dan hanya untuk PM —
+                       bukan alur harian siapa pun
+
+        ⚠ Ketiganya TIDAK hilang: `lainnya.tsx` memuatnya sebagai entri
+        native, dan `audit-modul-mobile-nyata.mjs` (ambang NOL) merahkan CI
+        kalau salah satunya jadi jalur buntu. Yang berubah cuma pintunya,
+        bukan keberadaannya.
+      */}
+      {/* Pindah ke "Lainnya" — lihat catatan di atas. Layarnya tetap ada. */}
+      <Tabs.Screen name="progress/input" options={{ href: null }} />
       <Tabs.Screen
         name="kasbon/index"
         options={
@@ -290,19 +298,8 @@ export default function AppLayout() {
       />
 
       {/* PM-only: mandor summary */}
-      <Tabs.Screen
-        name="mandor/index"
-        options={
-          bolehMandor
-            ? {
-                title: 'Mandor',
-                tabBarIcon: ({ focused, color }) => (
-                  <TabIcon nama={focused ? 'people' : 'people-outline'} focused={focused} warna={color} />
-                ),
-              }
-            : { href: null }
-        }
-      />
+      {/* Pindah ke "Lainnya" — layar BACA, bukan alur harian. */}
+      <Tabs.Screen name="mandor/index" options={{ href: null }} />
 
       <Tabs.Screen
         name="notifications/index"
@@ -350,16 +347,8 @@ export default function AppLayout() {
       */}
       <Tabs.Screen
         name="absensi/input"
-        options={
-          punyaIzin('mandor:wage:create')
-            ? {
-                title: 'Absensi',
-                tabBarIcon: ({ focused, color }) => (
-                  <TabIcon nama={focused ? 'calendar' : 'calendar-outline'} focused={focused} warna={color} />
-                ),
-              }
-            : { href: null }
-        }
+        /* Pindah ke "Lainnya" — harian, tetapi sekali sehari. */
+        options={{ href: null }}
       />
 
       {/*
