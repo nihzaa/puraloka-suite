@@ -454,6 +454,36 @@ export default function AppLayout() {
       <Tabs.Screen name="keuangan/index" options={{ href: null }} />
       <Tabs.Screen name="pengadaan/index" options={{ href: null }} />
       <Tabs.Screen name="kontrak/index" options={{ href: null }} />
+
+      {/*
+        ── GELOMBANG 2b ────────────────────────────────────────────────────
+
+        Rencana di QUEUE menyebut ketiganya "butuh rute ikhtisar lebih
+        dulu". Survei ulang membuktikan itu KELIRU untuk dua di antaranya:
+
+          aset      /api/v1/assets sudah lengkap (data + meta + nilai buku)
+          kalender  tak ada tabel kalender sama sekali; halaman web
+                    menyusunnya dari /api/v1/projects yang sudah mengirim
+                    milestones + termin_schedules bersarang
+          laporan   /api/v1/reports/kpi-perusahaan sudah ada
+
+        Yang salah bukan ketelitian surveinya melainkan CARANYA: saya
+        mencari berkas bernama `aset.ts` sementara rutenya di `assets.ts`,
+        dan menyimpulkan "kalender butuh rute" dari nama modul alih-alih
+        dari sumber datanya.
+
+        Pelajarannya dicatat di QUEUE: survei ketersediaan API dilakukan
+        lewat DAFTAR RUTE, bukan tebakan nama berkas.
+
+        ⚠ `risiko` belum ikut — rutenya hanya per-proyek
+        (`/api/v1/proyek/:id/risiko`), jadi layarnya menuntut memilih
+        proyek dulu. Diukur: 8 risiko di 1 proyek. Membangun rute
+        lintas-proyek untuk volume itu belum sepadan; dicatat di QUEUE
+        dengan syarat masuk terukur.
+      */}
+      <Tabs.Screen name="aset/index" options={{ href: null }} />
+      <Tabs.Screen name="kalender/index" options={{ href: null }} />
+      <Tabs.Screen name="laporan/index" options={{ href: null }} />
     </Tabs>
   );
 }

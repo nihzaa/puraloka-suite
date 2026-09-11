@@ -154,6 +154,11 @@ const LAYAR = [
   ['pengadaan', '/pengadaan'],
   ['kontrak', '/kontrak'],
 
+  /* Gelombang 2b — ketiganya ternyata tak butuh rute baru. */
+  ['aset', '/aset'],
+  ['kalender', '/kalender'],
+  ['laporan', '/laporan'],
+
   /*
     ── Layar TULIS ─────────────────────────────────────────────────────
 

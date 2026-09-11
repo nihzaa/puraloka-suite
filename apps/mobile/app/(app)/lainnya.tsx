@@ -161,14 +161,14 @@ const MODUL: Modul[] = [
   */
   { kunci: 'jadwal', judul: 'Jadwal', ringkas: 'Kurva S & baseline — milestone ada di Lapangan', emoji: '🗓️', izin: 'projects:view' },
   { kunci: 'mutu', judul: 'Mutu & K3', ringkas: 'NCR, inspeksi, dokumen kepatuhan', emoji: '🔍', izin: 'ncr:view', nativeJalur: '/mutu' },
-  { kunci: 'aset', judul: 'Aset', ringkas: 'Alat, sewa, penyusutan', emoji: '🏗️', izin: 'assets:view' },
+  { kunci: 'aset', judul: 'Aset', ringkas: 'Alat, kendaraan, dan nilainya', emoji: '🏗️', izin: 'assets:view', nativeJalur: '/aset' },
   /* Menuju `/sdm/timesheet`, bukan `/sdm` — yang terakhir tak punya halaman
      indeks dan menuju 404. Izinnya disamakan dengan yang dituntut halaman
      itu di `menu_items` (`sdm:timesheet:view`); sebelumnya
      `sdm:pegawai:view`, yang membuat entri tampil bagi orang yang justru
      ditolak halamannya. */
   { kunci: 'sdm', judul: 'Absensi & Timesheet', ringkas: 'Jam kerja pegawai', emoji: '👥', izin: 'sdm:timesheet:view' },
-  { kunci: 'laporan', judul: 'Laporan', ringkas: 'Laporan progres & keuangan', emoji: '📊', izin: 'reports:view' },
+  { kunci: 'laporan', judul: 'Laporan', ringkas: 'Kinerja biaya, jadwal, dan tender', emoji: '📊', izin: 'reports:view', nativeJalur: '/laporan' },
 
   /*
     Lima modul LAPANGAN, ditambahkan 2026-08-31. Izinnya diambil dari kolom
@@ -208,7 +208,7 @@ const MODUL: Modul[] = [
   */
   { kunci: 'lapangan', judul: 'Lapangan', ringkas: 'Progres, milestone, temuan proyek', emoji: '🏗️', izin: 'projects:view', nativeJalur: '/lapangan' },
   { kunci: 'proyek', judul: 'Proyek', ringkas: 'Daftar proyek & baseline', emoji: '📁', izin: 'projects:view', nativeJalur: '/proyek' },
-  { kunci: 'kalender', judul: 'Kalender', ringkas: 'Jadwal kerja', emoji: '📅', izin: ['projects:view', 'mandor:view'] },
+  { kunci: 'kalender', judul: 'Kalender', ringkas: 'Milestone, termin, dan tenggat', emoji: '📅', izin: ['projects:view', 'mandor:view'], nativeJalur: '/kalender' },
   { kunci: 'risiko', judul: 'Risiko', ringkas: 'Register risiko, izin, sengketa', emoji: '⚠️', izin: 'risiko:view' },
 ];
 
