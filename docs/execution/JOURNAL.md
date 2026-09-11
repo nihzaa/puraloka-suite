@@ -5,6 +5,79 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-12 — DEPLOY, dan dua penjaga deploy yang tak pernah bisa bekerja
+
+149 commit tayang ke produksi: `265afa75` (5 Sep) → `1fe48c09`.
+Kedelapan langkah `perbarui-vps.sh` hijau — untuk pertama kalinya.
+
+### Tiga kegagalan berturut-turut sebelum sampai ke sana
+
+**1. Langkah 8 gagal: `pg` tak ada di host.** Penjaga migrasi yang saya
+tambahkan kemarin melempar `Cannot find module 'pg'` — VPS tak punya
+`node_modules` sama sekali; dependensi hidup di dalam image.
+
+**2. Perbaikan pertama gagal juga.** Dugaan "taruh di dalam container"
+masuk akal dan SALAH: API memakai Supabase client, bukan driver Postgres
+langsung, jadi `pg` memang tak pernah ada di image-nya. Yang
+membuktikannya menjalankannya di sana, bukan menalarkannya.
+
+**3. Bit executable hilang.** Deploy kedua ditolak
+`Permission denied` — `perbarui-vps.sh` tersimpan `100644` di git.
+Deploy PERTAMA berhasil karena VPS memegang salinan lama yang
+executable; `git pull` menimpanya.
+
+⚠ Saya sempat menyangka suntingan saya penyebabnya. Diperiksa ke
+riwayat: commit sebelumnya juga `100644` — bit itu tak pernah
+ter-commit sejak awal.
+
+### Dan yang paling mahal: langkah 7 TAK PERNAH bekerja
+
+Saat memperbaiki langkah 8, ketahuan `audit-situs-host-dilayani.mjs`
+(langkah 7) punya cacat yang SAMA — dan ia ada sejak 2026-09-04.
+
+**Deploy-deploy sebelumnya melaporkan "SELESAI" dengan langkah 7
+melempar stack trace**, dan tak seorang pun melihatnya sebab keluarannya
+dipotong `tail`. Penjaga yang ditulis untuk memeriksa host porto tak
+pernah sekali pun memeriksanya.
+
+Bentuk yang sama dengan yang berulang di repo ini: **hijau yang berarti
+"tak terukur", bukan "tak ada masalah"**.
+
+### Yang ditempuh
+
+`pg` dipasang SENDIRI di `/opt/puraloka-alat`, lalu di-symlink ke
+`/srv/puraloka-suite/node_modules/pg`. Satu paket, bukan seluruh
+workspace — `pnpm install` di VPS pernah mengosongkan node_modules
+workspace lain (§8a.1), dan `npm install` di sana DITOLAK `devEngines`.
+
+Cara memulihkannya ditulis di skripnya: tanpa symlink itu, KEDUA langkah
+merah dengan galat yang menuduh modul, bukan pemasangan yang kurang.
+
+### Terbukti tayang, bukan diperkirakan
+
+    /health          versi {"commit":"1fe48c09","dibangun":"...17:38:12Z"}
+    /api/v1/risiko   8 risiko · 7 terbuka · 4 tinggi      ← rute BARU
+    /kurva-s         14 titik rencana · 26 aktual
+                     deviasi −20,43%                      ← rute BARU
+    /gudang/ikhtisar "Besi Hollow 40×40×2mm · 40 batang"  ← bukan UUID lagi
+
+Langkah 7 : "HIJAU: 1 host semuanya menjawab 200"
+Langkah 8 : "544 berkas · 555 tercatat · 0 BELUM dijalankan"
+
+### Test sebelum deploy
+
+    7.151 lulus · 48 gagal · 76 dilewati (7.275) · 26/494 berkas · 1.967s
+
+Sisa 48 PRA-ADA — dibuktikan lewat worktree baseline di `e9fd39ea`:
+empat berkas contoh (situs, gl-api, approval-inbox, template-wbs) sudah
+gagal di sana juga, 15 gagal / 50 lulus.
+
+`risiko-proyek-endpoint.test.ts` sempat merah di suite penuh, lalu
+**44/44 hijau** saat dijalankan sendiri — test konkurensi yang goyah
+karena suite paralel, bukan cacat rute baru.
+
+---
+
 ## 2026-09-11 (lanjutan 3) — gelombang 2b, dan rencana saya sendiri yang keliru
 
 Tiga modul jadi native: `aset` · `kalender` · `laporan`.
