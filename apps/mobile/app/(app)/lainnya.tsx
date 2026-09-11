@@ -136,13 +136,30 @@ const MODUL: Modul[] = [
     emoji: '🦺', izin: 'k3:permit:manage', nativeJalur: '/izin-kerja/ajukan',
   },
   { kunci: 'approval', judul: 'Persetujuan', ringkas: 'Yang menunggu keputusan Anda', emoji: '✅', izin: null, nativeJalur: '/persetujuan' },
-  { kunci: 'keuangan', judul: 'Keuangan', ringkas: 'Invoice, kas, piutang', emoji: '💰', izin: 'finance:view' },
+  { kunci: 'keuangan', judul: 'Keuangan', ringkas: 'Piutang, tagihan, yang lewat tempo', emoji: '💰', izin: 'finance:view', nativeJalur: '/keuangan' },
   { kunci: 'akuntansi', judul: 'Akuntansi', ringkas: 'Jurnal & buku besar', emoji: '📒', izin: 'gl:view' },
   { kunci: 'estimasi', judul: 'Estimasi', ringkas: 'RAB, AHSP, harga satuan', emoji: '📐', izin: 'cecep:price:view' },
-  { kunci: 'procurement', judul: 'Pengadaan', ringkas: 'PO, permintaan material, vendor', emoji: '🚚', izin: 'procurement:view' },
+  { kunci: 'procurement', judul: 'Pengadaan', ringkas: 'Permintaan material & pesanan supplier', emoji: '🚚', izin: 'procurement:view', nativeJalur: '/pengadaan' },
   { kunci: 'gudang', judul: 'Gudang', ringkas: 'Stok & pergerakan material', emoji: '📦', izin: 'gudang:view', nativeJalur: '/gudang' },
-  { kunci: 'kontrak', judul: 'Kontrak', ringkas: 'Kontrak, addendum, klaim', emoji: '📄', izin: 'projects:view' },
-  { kunci: 'jadwal', judul: 'Jadwal', ringkas: 'Milestone & kurva S', emoji: '🗓️', izin: 'projects:view' },
+  { kunci: 'kontrak', judul: 'Kontrak', ringkas: 'Kontrak, addendum, dan nilainya', emoji: '📄', izin: 'projects:view', nativeJalur: '/kontrak' },
+  /*
+    ⚠ "Jadwal" TIDAK punya rute ikhtisar, meski `/api/v1/jadwal` ADA.
+
+    Ditemukan 2026-09-11 saat merencanakan gelombang 2a: rute bernama
+    `/api/v1/jadwal` ternyata PENJADWAL OTOMASI — ia membaca `jadwal_tugas`
+    (tugas cron: jam, hari_pekan, terakhir_jalan, terakhir_galat), bukan
+    jadwal proyek.
+
+    Namanya kebetulan sama; isinya sama sekali berbeda. Membangun layar
+    "Milestone & kurva S" di atasnya akan menghasilkan layar yang JALAN
+    dan memperlihatkan hal yang keliru — bentuk kegagalan yang jauh lebih
+    mahal daripada layar yang tak ada.
+
+    Ringkasnya dikoreksi supaya tak menjanjikan yang belum bisa diberikan.
+    Milestone SUDAH tampil di layar `/lapangan`, yang memang membacanya
+    dari `/api/v1/lapangan/ringkasan`.
+  */
+  { kunci: 'jadwal', judul: 'Jadwal', ringkas: 'Kurva S & baseline — milestone ada di Lapangan', emoji: '🗓️', izin: 'projects:view' },
   { kunci: 'mutu', judul: 'Mutu & K3', ringkas: 'NCR, inspeksi, dokumen kepatuhan', emoji: '🔍', izin: 'ncr:view', nativeJalur: '/mutu' },
   { kunci: 'aset', judul: 'Aset', ringkas: 'Alat, sewa, penyusutan', emoji: '🏗️', izin: 'assets:view' },
   /* Menuju `/sdm/timesheet`, bukan `/sdm` — yang terakhir tak punya halaman

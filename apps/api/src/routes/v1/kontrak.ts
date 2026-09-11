@@ -35,7 +35,7 @@ export default async function kontrakRoutes(app: FastifyInstance) {
     file_url, catatan, project_id, client_id, kontrak_induk_id, dibuat_pada,
     proyek:projects ( id, name, contract_value ),
     klien:clients ( id, company_name, contact_person ),
-    induk:kontrak!kontrak_kontrak_induk_id_fkey ( id, nomor, judul )
+    induk:kontrak_induk_id ( id, nomor, judul )
   `
 
   // ── GET /api/v1/kontrak ──────────────────────────────────────────────────

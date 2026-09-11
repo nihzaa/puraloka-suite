@@ -433,6 +433,27 @@ export default function AppLayout() {
       <Tabs.Screen name="gudang/index" options={{ href: null }} />
       <Tabs.Screen name="mutu/index" options={{ href: null }} />
       <Tabs.Screen name="lapangan/index" options={{ href: null }} />
+
+      {/*
+        ── GELOMBANG 2a — tiga modul kantor yang rutenya SUDAH ada ─────────
+
+        Diurut menurut ketersediaan rute ikhtisar, bukan besarnya modul di
+        web (`MOBILE-NATIVE-G2` di QUEUE).
+
+          keuangan   /api/v1/keuangan/ikhtisar
+          pengadaan  /api/v1/procurement/{material-requests,purchase-orders}
+          kontrak    /api/v1/kontrak
+
+        ⚠ `jadwal` TIDAK ikut, dan itu temuan: `/api/v1/jadwal` ternyata
+        PENJADWAL OTOMASI (tugas cron `jadwal_tugas`), bukan jadwal proyek.
+        Entri "Jadwal" di Lainnya menjanjikan "Milestone & kurva S" — dua
+        hal yang sama sekali berbeda, dan namanya kebetulan sama.
+        Dicatat di QUEUE; membangunnya di atas rute yang salah akan
+        menghasilkan layar yang jalan dan memperlihatkan hal yang keliru.
+      */}
+      <Tabs.Screen name="keuangan/index" options={{ href: null }} />
+      <Tabs.Screen name="pengadaan/index" options={{ href: null }} />
+      <Tabs.Screen name="kontrak/index" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -145,6 +145,16 @@ const LAYAR = [
   ['lapangan', '/lapangan'],
 
   /*
+    Gelombang 2a — tiga modul kantor yang rutenya sudah ada.
+
+    `jadwal` sengaja tak ada: rutenya ternyata penjadwal otomasi, bukan
+    jadwal proyek (catatan lengkapnya di `lainnya.tsx`).
+  */
+  ['keuangan', '/keuangan'],
+  ['pengadaan', '/pengadaan'],
+  ['kontrak', '/kontrak'],
+
+  /*
     ── Layar TULIS ─────────────────────────────────────────────────────
 
     Ditambahkan 2026-09-05. Kelima layar ini tak pernah dipotret sama

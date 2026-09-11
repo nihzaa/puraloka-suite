@@ -96,6 +96,76 @@ afterAll(async () => {
   await db.end()
 })
 
+/*
+  DAFTAR kontrak — rute yang TAK PERNAH diuji, dan karenanya rusak
+  berbulan-bulan tanpa ketahuan.
+
+  Ditemukan 2026-09-11 saat membangun layar Kontrak native: layarnya
+  menampilkan galat merah alih-alih daftar.
+
+      GET /api/v1/kontrak
+      → {"error":"Could not find a relationship between 'kontrak' and
+                  'kontrak' in the schema cache"}
+
+  Sebabnya embed self-join yang ditulis dengan nama CONSTRAINT:
+
+      induk:kontrak!kontrak_kontrak_induk_id_fkey ( … )   ✗
+      induk:kontrak_induk_id ( … )                        ✓
+
+  FK-nya ADA dan namanya BENAR (diverifikasi ke `pg_constraint`) — yang
+  tak dikenali PostgREST adalah bentuk penulisannya untuk relasi ke tabel
+  DIRI SENDIRI. Untuk self-join, embed disebut lewat KOLOM-nya.
+
+  ── Kenapa 24 test lain hijau sepanjang itu
+
+  Seluruhnya menguji POST, PATCH, dan invarian nilai. Tak satu pun
+  memanggil GET daftarnya — dan berkas ini punya helper `get()` sejak
+  awal, tak terpakai untuk rute ini.
+
+  Cacat pada rute BACA tak menggagalkan apa pun yang menulis; ia hanya
+  membuat layar kosong. Dan layar kosong terbaca sebagai "belum ada
+  data", bukan sebagai "rutenya rusak" — persis kenapa layar Kontrak
+  native memisahkan galat MUAT dari keadaan KOSONG.
+*/
+describe('daftar kontrak', () => {
+  it('GET /api/v1/kontrak memulangkan larik, bukan galat relasi', async () => {
+    const r = await get('/api/v1/kontrak')
+
+    /*
+      Status DULU, sebelum bentuk. Galat PostgREST dibalas 500 dengan
+      badan `{error}` — assertion yang langsung memeriksa `.kontrak`
+      akan gagal dengan "undefined is not an array", pesan yang
+      menyembunyikan sebab aslinya.
+    */
+    expect(r.statusCode, r.body).toBe(200)
+
+    const b = JSON.parse(r.body)
+    expect(Array.isArray(b.kontrak), `bentuk balasan: ${r.body.slice(0, 200)}`).toBe(true)
+  })
+
+  it('embed `induk` ikut terbaca pada kontrak turunan', async () => {
+    /*
+      Bukan sekadar "tak galat": embed yang SALAH NAMA memang melempar,
+      tetapi embed yang dihapus diam-diam akan membuat test di atas tetap
+      hijau sambil menghilangkan data induknya dari layar.
+
+      Dilewati bila tenant uji belum punya kontrak turunan — dan
+      dinyatakan, bukan lolos diam-diam: test yang hijau tanpa menguji
+      apa pun lebih buruk daripada test yang berkata "tak teruji".
+    */
+    const r = await get('/api/v1/kontrak')
+    expect(r.statusCode).toBe(200)
+    const daftar = JSON.parse(r.body).kontrak as Array<Record<string, unknown>>
+
+    const turunan = daftar.find((k) => k.kontrak_induk_id)
+    if (!turunan) {
+      console.warn('⚠ tak ada kontrak turunan di tenant uji — embed `induk` TAK TERUJI')
+      return
+    }
+    expect(turunan).toHaveProperty('induk')
+  })
+})
+
 describe('validasi masukan', () => {
   it('menolak tanpa project_id', async () => {
     const r = await post('/api/v1/kontrak', { jenis: 'induk', nomor: 'X', nilai: 1 })
