@@ -126,6 +126,27 @@ function RootGuard() {
     const inAuth = segments[0] === '(auth)';
     const diKenalan = segments[1] === 'kenalan';
 
+    /*
+      Halaman perbandingan desain berdiri di luar gerbang.
+
+      `app/_banding/` memuat perbandingan visual berdampingan yang dipakai
+      founder untuk memutuskan arah (CLAUDE.md §8a.3 — *"Founder memutuskan
+      dari gambar"*). Isinya data contoh yang DIPAKU di berkasnya sendiri;
+      ia tak memanggil API, tak membaca sesi, dan tak bisa menampilkan data
+      siapa pun.
+
+      Tanpa pengecualian ini ia mustahil dipotret: gerbang di bawah
+      mengalihkan semua rute tak-ber-sesi ke `/login`, dan alat potret lalu
+      menyimpan gambar layar LOGIN dengan nama berkas kandidat desain —
+      kelas kesalahan yang sudah tercatat di §8a.3.
+
+      ⚠ Awalan garis bawah membuat expo-router tidak menjadikannya rute
+      produk: ia tak muncul di navigasi mana pun, dan hanya bisa dicapai
+      dengan mengetik alamatnya. Kalau kelak ada berkas di `_banding/` yang
+      MENGAMBIL data sungguhan, pengecualian ini harus dicabut.
+    */
+    if (segments[0] === '_banding') return;
+
     if (!user && !kenalanSelesai && !diKenalan) {
       router.replace('/(auth)/kenalan');
     } else if (!user && kenalanSelesai && !inAuth) {

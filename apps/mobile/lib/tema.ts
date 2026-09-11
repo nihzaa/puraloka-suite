@@ -216,6 +216,85 @@ export const HURUF = {
   xl: 20,
   xxl: 24,
   xxxl: 30,
+
+  /*
+    ── Tingkat DISPLAY, ditambahkan 2026-09-12 ────────────────────────────
+
+    Founder: *"harus terasa fluid dan mahal"*. Diukur terhadap tiga sistem
+    yang memang dibaca mahal, dan selisihnya BUKAN soal selera:
+
+        JANGKAUAN SKALA (terbesar ÷ terkecil)
+          Puraloka   2,50x   (12 → 30)
+          Linear     6,00x   (12 → 72)
+          Ramp       6,40x   (10 → 64)
+
+    Jangkauan 2,5x berarti tak ada apa pun yang bisa tampil JAUH lebih
+    penting daripada yang lain. Hierarki lalu terpaksa dititipkan ke warna
+    dan kotak — dan itulah kerataan yang terlihat di tiap potret: kartu
+    berbobot sama, dibedakan cuma oleh lencana kecil di pojok.
+
+    Menambah tingkat display TIDAK memaksa layar mana pun berubah: tujuh
+    nilai di atas tak disentuh, jadi 19 layar merender sama persis sampai
+    seseorang memakai tingkat ini dengan sengaja.
+
+    ⚠ Dipakai HEMAT — satu per layar, untuk angka atau judul yang memang
+    memimpin. Kalau dua hal memakai `display` di satu layar, tak ada yang
+    memimpin dan skalanya kembali rata dengan angka yang lebih besar.
+  */
+  /** Angka utama sebuah kartu ringkasan. */
+  display: 38,
+  /** Angka pahlawan — nilai tunggal yang menjadi alasan layar itu dibuka. */
+  displayBesar: 48,
+} as const
+
+/**
+ * Kerapatan huruf (tracking), TERIKAT pada ukuran.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA INI TOKEN, BUKAN ANGKA DI TIAP LAYAR
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Diukur 2026-09-12: `letterSpacing` dipakai 12 tempat dengan DELAPAN nilai
+ * berbeda (0.8 · -0.5 · -0.3 · 4.5 · 0.6 · 0.4 · -1 · -0.4), nol token.
+ * Delapan tebakan yang masing-masing masuk akal sendiri-sendiri.
+ *
+ * Ketiga rujukan justru menanganinya sebagai FUNGSI UKURAN, bukan pilihan
+ * bebas — makin besar teksnya, makin rapat trackingnya:
+ *
+ *     Linear   72px → -1,584   48px → -1,056   32px → -0,704   16px → 0
+ *     Ramp     10px uppercase → +0,018em       body & display → 0
+ *
+ * Alasannya optik, bukan gaya: pada ukuran besar, jarak antar-huruf
+ * tampak MELEBAR sendiri, jadi tracking negatif mengembalikannya ke rapat
+ * yang terbaca disengaja. Pada teks kecil kebalikannya — huruf saling
+ * berdempet, dan label kapital butuh diregangkan supaya tak terbaca murah.
+ *
+ * Angka di bawah memakai rasio Linear (≈ -0,022 × ukuran) yang dibulatkan
+ * ke sepersepuluh piksel — React Native menerima pecahan, tetapi selisih
+ * di bawah 0,1px tak terlihat di kerapatan layar mana pun.
+ */
+export const RAPAT = {
+  /** 48px — angka pahlawan. */
+  displayBesar: -1.1,
+  /** 38px — angka utama kartu. */
+  display: -0.8,
+  /** 30px — judul layar. */
+  xxxl: -0.7,
+  /** 24px — nominal di kartu daftar. */
+  xxl: -0.5,
+  /** 20px — subjudul. */
+  xl: -0.4,
+  /**
+   * Label KAPITAL kecil — satu-satunya yang POSITIF.
+   *
+   * Huruf besar tak punya ascender/descender yang memberi ritme, jadi
+   * tanpa regangan ia terbaca sebagai blok padat. Ramp memakai +0,018em
+   * pada 10px; di 12px itu ≈ +0,2px, dibulatkan naik karena Plus Jakarta
+   * Sans lebih rapat daripada Lausanne.
+   */
+  labelKapital: 0.8,
+  /** Teks isi — jangan diutak-atik. Tracking pada teks badan merusak baca. */
+  isi: 0,
 } as const
 
 /**

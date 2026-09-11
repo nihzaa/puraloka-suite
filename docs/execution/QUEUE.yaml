@@ -3757,6 +3757,69 @@ items:
 
       Diuji di dalam transaksi yang di-ROLLBACK — nol jejak di basis.
 
+  - id: MOBILE-DISPLAY-SISA-LAYAR
+    fase: F5
+    judul: "tingkat HURUF.display baru dipakai 2 layar dari 19 — sisanya masih memimpin pada 17px"
+    status: todo
+    prioritas: sedang
+    catatan: |
+      Founder memilih kandidat C 2026-09-12 (banding tiga kandidat, dirender
+      mesin React Native). Yang SUDAH memakai tingkat display: `persetujuan`
+      dan `kasbon` — dua layar keputusan uang.
+
+      `Card` sudah membawa hairline + gerak bertahap ke SEMUA 22 layar
+      pemakainya, jadi permukaannya seragam. Yang belum: TIPOGRAFI
+      pemimpin di layar lain yang punya satu angka utama.
+
+      Kandidat yang jelas, ukur dulu apakah angkanya memang memimpin di
+      sana (jangan menaikkan ukuran hanya karena bisa):
+
+        keuangan    total piutang
+        akuntansi   laba/rugi
+        estimasi    nilai RAB
+        kontrak     nilai kontrak
+        laporan     KPI EVM
+
+      ⚠ Aturannya SATU display per layar. Kalau dua hal memakai tingkat
+      ini di satu layar, tak ada yang memimpin dan skalanya kembali rata
+      dengan angka yang lebih besar.
+
+      ⚠ Dan jebakan yang SUDAH menggigit sekali (JOURNAL 2026-09-12):
+      nominal 38px yang berbagi baris flex dengan lencana akan MEMBUNGKUS
+      di tengah angka kalau diberi `flexShrink: 1` — "Rp 1.200.00" lalu
+      "0". Pakai `numberOfLines={1}` dan pindahkan lencana ke baris
+      sendiri. `tsc` hijau pada kedua bentuk; yang menemukannya potret.
+
+      Ukur yang belum memakainya:
+        grep -rL "HURUF.display" apps/mobile/app/\(app\)/*/index.tsx
+
+  - id: MOBILE-HAPTIK-BELUM-DIPAKAI
+    fase: F5
+    judul: "expo-haptics terpasang 2026-09-12 tetapi NOL tempat memakainya"
+    status: todo
+    prioritas: rendah
+    catatan: |
+      Dipasang bersama reanimated + linear-gradient saat menggarap kandidat
+      C, lalu tak terpakai. Ini bentuk cacat yang sama dengan
+      `audit-font-mobile-terpakai` lahir darinya: biaya penuh (paket ikut
+      bundle), nol hasil, dan semua alat hijau karena tak ada yang SALAH —
+      cuma tak ada yang memanggilnya.
+
+      Dua pilihan, dan keduanya sah:
+        1. Pakai — `Haptics.notificationAsync` pada KONFIRMASI tindakan
+           tulis (kasbon terkirim, NCR tersimpan). Apple HIG: haptik untuk
+           konfirmasi dan tindakan penting, jangan berlebihan.
+        2. Cabut paketnya.
+
+      Jangan dibiarkan di keadaan sekarang. Kalau dipakai, pertimbangkan
+      penjaga sejenis `audit-font-mobile-terpakai` supaya ia tak jadi
+      terpasang-tapi-menganggur lagi.
+
+      ⚠ `reanimated` juga belum dipakai langsung — gerak kartu memakai
+      `Animated` bawaan RN (cukup, dan driver native-nya sama). Tetapi
+      `babel-preset-expo` memuat plugin-nya begitu paketnya ADA, jadi
+      biayanya sudah dibayar. Timbang sekalian.
+
   - id: MOBILE-TABULAR-IOS
     fase: F5
     judul: "fontVariant tabular-nums di 17 tempat — gagal SENYAP di iOS pada font kustom expo-font (expo/expo#20048), tak bisa diverifikasi tanpa perangkat"

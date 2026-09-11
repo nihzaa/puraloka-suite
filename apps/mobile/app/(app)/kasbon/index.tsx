@@ -20,7 +20,7 @@ import { api } from '@/lib/api';
 import { pesanGalat } from '@/lib/galat';
 import { labelKeperluan } from '@/lib/label';
 import { useTema } from '@/hooks/useTema';
-import { FONT, HURUF, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
+import { FONT, HURUF, RAPAT, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
 
 interface Kasbon {
   id: string;
@@ -75,13 +75,24 @@ const KartuKasbon = React.memo(function KartuKasbon({
   k,
   s,
   c,
+  indeks,
 }: {
   k: Kasbon;
   s: ReturnType<typeof gaya>;
   c: Palet;
+  /**
+   * Urutan baris - diteruskan ke `Card` supaya kartu MASUK bertahap
+   * (2026-09-12, kandidat C).
+   *
+   * Diambil dari `renderItem` FlatList, bukan dihitung sendiri: FlatList
+   * MELEPAS kartu di luar jendela render dan memasangnya kembali saat
+   * tergulir balik, jadi indeks yang dihitung lokal akan salah begitu
+   * daftarnya panjang.
+   */
+  indeks: number;
 }) {
   return (
-    <Card style={s.card}>
+    <Card style={s.card} indeks={indeks}>
       {/*
         Susunan kepala kartu: NOMINAL + STATUS berdampingan, keperluan di
         baris penuh di bawahnya.
@@ -105,8 +116,16 @@ const KartuKasbon = React.memo(function KartuKasbon({
         bisa membedakan.**
       */}
       <View style={s.barisLabel}>
-        <Text style={s.amount}>{fmt(k.amount)}</Text>
         <Badge label={statusLabel(k.status)} variant={statusVariant(k.status)} />
+      </View>
+      <View>
+        {/*
+          `numberOfLines={1}` WAJIB - lihat catatan di gaya `amount`.
+          Nominal yang membungkus terbaca sebagai angka lain.
+        */}
+        <Text style={s.amount} numberOfLines={1}>
+          {fmt(k.amount)}
+        </Text>
       </View>
       <Text style={s.purpose}>{labelKeperluan(k.purpose)}</Text>
       {/*
@@ -236,7 +255,9 @@ export default function KasbonListScreen() {
     handlers" dan "Avoid anonymous functions in JSX".
   */
   const renderKartu = useCallback(
-    ({ item }: { item: Kasbon }) => <KartuKasbon k={item} s={styles} c={c} />,
+    ({ item, index }: { item: Kasbon; index: number }) => (
+      <KartuKasbon k={item} s={styles} c={c} indeks={index} />
+    ),
     [styles, c]
   );
 
@@ -357,9 +378,20 @@ function gaya(c: Palet) {
       tingginya berbeda (22px vs 12px). Dipusatkan, garis optiknya sejajar;
       `flex-start` membuat lencana menempel ke atas dan terlihat melayang.
     */
+    /*
+      Lencana status sendirian di barisnya, DI ATAS nominal (2026-09-12).
+
+      Sebelumnya ia berdampingan dengan nominal lewat `space-between`.
+      Itu bekerja pada 17px dan patah pada 38px: keduanya berebut lebar,
+      dan siapa pun yang mengalah menghasilkan cacat (lencana terdorong
+      keluar, atau angka membungkus di tengah).
+
+      `flex-start` supaya lencana selebar isinya saja, bukan meregang.
+    */
     barisLabel: {
-      flexDirection: 'row', justifyContent: 'space-between',
-      alignItems: 'center', gap: SPASI.sm,
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginBottom: SPASI.xs,
     },
     /*
       Nominal memakai `FONT.judul` dan angka bertabular.
@@ -370,9 +402,54 @@ function gaya(c: Palet) {
       kehalusan: mata membandingkan besaran dari panjang angka, dan digit
       berlebar beda merusak perbandingan itu.
     */
+    /*
+      TINGKAT DISPLAY, bukan `lg` (2026-09-12, kandidat C).
+
+      Sebelumnya 17px - hanya dua piksel di atas teks isi (15px), sehingga
+      nominal tak pernah benar-benar memimpin kartunya. Diukur terhadap
+      tiga sistem yang dibaca mahal:
+
+          JANGKAUAN SKALA (terbesar / terkecil)
+            Puraloka (lama)   2,50x
+            Linear            6,00x
+            Ramp              6,40x
+
+      Pada 2,5x tak ada yang bisa memimpin, jadi hierarki jatuh ke warna
+      dan kotak. Itu sebab kerataan yang founder sebut "kaku".
+
+      `RAPAT.display` menyertainya: pada ukuran besar jarak antar-huruf
+      tampak MELEBAR sendiri, jadi tracking negatif mengembalikannya ke
+      rapat yang terbaca disengaja. Revolut memakai -2,72px pada headline
+      136px - otoritas dari ukuran dan tracking, bukan dari ketebalan.
+
+      `lineHeight` dipaku ~1,1x ukuran: bawaan RN memberi ruang berlebih,
+      dan angka besar lalu tampak melayang alih-alih memimpin blok di
+      bawahnya. Linear memakai line-height 1,00 di seluruh tingkat display.
+    */
     amount: {
-      fontSize: HURUF.lg, fontFamily: FONT.judul, color: c.navy,
+      fontSize: HURUF.display,
+      fontFamily: FONT.judul,
+      letterSpacing: RAPAT.display,
+      lineHeight: 42,
+      color: c.navy,
       fontVariant: ['tabular-nums'],
+      /*
+        DUA iterasi, dan yang pertama saya perbaiki lewat potret - ditulis
+        di sini supaya tak diulang (2026-09-12).
+
+        Percobaan 1: `flexShrink: 1` + `minWidth: 0`, supaya lencana
+        status tak terdorong keluar layar oleh nominal 38px.
+        HASILNYA LEBIH BURUK: cara teks "menyusut" di React Native adalah
+        MEMBUNGKUS, jadi "Rp 1.200.000" pecah jadi "Rp 1.200.00" + "0"
+        pada baris kedua. Nominal yang salah baca di layar keputusan uang
+        adalah cacat yang jauh lebih mahal daripada lencana yang sempit.
+
+        Yang dipakai sekarang: nominal TIDAK boleh menyusut dan TIDAK
+        boleh membungkus (`numberOfLines={1}` di JSX-nya), dan lencana
+        dipindah ke baris sendiri DI ATAS nominal. Tak ada lagi yang
+        berebut lebar, jadi tak ada yang perlu mengalah.
+      */
+      flexShrink: 0,
     },
     purpose: {
       fontSize: HURUF.sm, fontFamily: FONT.isi, color: c.textPrimary,

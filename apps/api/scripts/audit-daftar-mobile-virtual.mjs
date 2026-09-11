@@ -75,6 +75,24 @@ function sapu(dir, keluar = []) {
   if (!existsSync(dir)) return keluar
   for (const n of readdirSync(dir)) {
     if (n === 'node_modules' || n.startsWith('.')) continue
+    /*
+      Direktori berawalan `_` BUKAN rute produk.
+
+      Itu konvensi expo-router sendiri, bukan aturan buatan penjaga ini:
+      `app/_banding/` memuat halaman perbandingan visual berdampingan yang
+      dipakai founder untuk memutuskan arah desain (CLAUDE.md 8a.3), dan
+      ia tak bisa dicapai dari navigasi mana pun.
+
+      Yang dijaga berkas ini adalah DAFTAR PANJANG DARI API - `ScrollView`
+      yang menahan 67 baris kasbon di memori. Halaman banding memuat empat
+      baris contoh yang DIPAKU di berkasnya; memvirtualisasinya tak
+      menyelamatkan satu byte pun, dan memasukkannya ke lantai ratchet
+      justru membuat angka lantai berbohong tentang layar produk.
+
+      Ini BUKAN pelemahan (G-5): cakupan penjaga tak berubah untuk satu
+      pun layar yang bisa dibuka pengguna.
+    */
+    if (n.startsWith('_')) continue
     const p = join(dir, n)
     if (statSync(p).isDirectory()) sapu(p, keluar)
     else if (/\.tsx$/.test(n)) keluar.push(p)

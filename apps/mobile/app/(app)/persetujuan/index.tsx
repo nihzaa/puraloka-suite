@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Badge } from '@/components/ui/Badge';
 import { KepalaLayar } from '@/components/ui/KepalaLayar';
 import { Card } from '@/components/ui/Card';
 import { Galat } from '@/components/ui/Galat';
@@ -21,7 +20,7 @@ import { api } from '@/lib/api';
 import { pesanGalat } from '@/lib/galat';
 import { labelKeperluan } from '@/lib/label';
 import { useTema } from '@/hooks/useTema';
-import { FONT, HURUF, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
+import { FONT, HURUF, RAPAT, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
 
 /*
   PERSETUJUAN — antrean keputusan, NATIVE.
@@ -148,11 +147,22 @@ const KartuAntrean = React.memo(function KartuAntrean({
   s,
   c,
   onBuka,
+  indeks,
 }: {
   b: BarisInbox;
   s: ReturnType<typeof gaya>;
   c: Palet;
   onBuka: (b: BarisInbox) => void;
+  /**
+   * Urutan baris - diteruskan ke `Card` supaya kartu MASUK bertahap
+   * (2026-09-12, kandidat C).
+   *
+   * Diambil dari `renderItem` FlatList, bukan dihitung sendiri: FlatList
+   * MELEPAS kartu di luar jendela render dan memasangnya kembali saat
+   * tergulir balik, jadi indeks yang dihitung lokal akan salah begitu
+   * daftarnya panjang.
+   */
+  indeks: number;
 }) {
   const umur = umurHari(b.dibuat_pada);
   const tanggal = fmtTanggal(b.dibuat_pada);
@@ -165,24 +175,56 @@ const KartuAntrean = React.memo(function KartuAntrean({
         b.nominal != null ? `, ${fmtRupiah(b.nominal)}` : ''
       }. Buka detail.`}
     >
-      <Card style={s.card}>
-        <View style={s.barisAtas}>
-          <Badge label={b.label} variant="info" />
-          {/*
-            Umur ditampilkan sebagai LENCANA berwarna, bukan teks kelabu.
+      <Card style={s.card} indeks={indeks} menonjol={umur != null && umur > 7}>
+        {/*
+          BATANG TEPI menggantikan lencana umur (2026-09-12, kandidat C).
 
-            Tiga tingkat, dan ambangnya bukan selera: pengajuan yang
-            mengendap >7 hari di repo ini adalah yang memicu otomasi
-            pengingat (`ipc-mengendap-draf`, `cuti-belum-diputus`), jadi
-            layar ini memakai ambang yang sama dengan sistem otomasinya.
-            Dua sumber yang menyimpang membuat mandor melihat "biasa" pada
-            baris yang sudah ditandai sistem sebagai terlambat.
+          Sebelumnya umur tampil sebagai pil berwarna di sebelah pil jenis
+          - dan dua pil berdampingan adalah cacat yang sudah tercatat
+          (CLAUDE.md 8a.3: "dua pil merah berdampingan; keduanya benar
+          sendiri-sendiri, yang salah artinya BERSAMA"). Dengan nominal
+          yang kini memimpin pada 38px, dua pil di atasnya membuat tiga
+          hal bersaing di satu kartu.
+
+          Batang 3px membawa tingkat mendesak TANPA menambah satu objek
+          pun ke layar.
+
+          Ambangnya TIDAK berubah - tetap >7 hari, sama dengan otomasi
+          pengingat (`ipc-mengendap-draf`, `cuti-belum-diputus`). Dua
+          sumber yang menyimpang membuat mandor melihat "biasa" pada baris
+          yang sudah ditandai sistem sebagai terlambat.
+        */}
+        <View
+          style={[
+            s.tepiUmur,
+            umur != null && umur > 7
+              ? { backgroundColor: c.danger }
+              : umur != null && umur > 3
+                ? { backgroundColor: c.warning }
+                : null,
+          ]}
+        />
+        <View style={s.isiKartu}>
+        <View style={s.barisAtas}>
+          <Text style={s.jenisLabel}>{b.label.toUpperCase()}</Text>
+          {/*
+            Umur tetap TERTULIS, bukan hanya diwarnai - WCAG 1.4.1, aturan
+            yang sama dengan halaman aset & lapangan. Beranda dibuka di HP
+            di bawah sinar matahari, tempat merah dan kuning praktis sama.
           */}
           {umur != null ? (
-            <Badge
-              label={umur === 0 ? 'Hari ini' : `${umur} hari`}
-              variant={umur > 7 ? 'danger' : umur > 3 ? 'warning' : 'default'}
-            />
+            <Text
+              style={[
+                s.umurTeks,
+                umur > 7
+                  ? { color: c.danger }
+                  : umur > 3
+                    ? { color: c.warning }
+                    : null,
+              ]}
+            >
+              {umur === 0 ? 'Hari ini' : `${umur} hari`}
+            </Text>
           ) : null}
         </View>
 
@@ -212,7 +254,18 @@ const KartuAntrean = React.memo(function KartuAntrean({
           {b.judul ? labelKeperluan(b.judul) : (b.nomor ?? 'Tanpa judul')}
         </Text>
 
-        {b.nominal != null ? <Text style={s.nominal}>{fmtRupiah(b.nominal)}</Text> : null}
+        {/*
+          `numberOfLines={1}`: nominal TAK BOLEH membungkus. Diukur di
+          `kasbon/index.tsx` 2026-09-12 — angka yang pecah dua baris
+          terbaca "Rp 1.200.00" lalu "0", dan itu angka yang berbeda.
+          Di sini nominal berdiri di barisnya sendiri jadi belum pernah
+          pecah; dipasang sebagai pagar, bukan tambalan.
+        */}
+        {b.nominal != null ? (
+          <Text style={s.nominal} numberOfLines={1}>
+            {fmtRupiah(b.nominal)}
+          </Text>
+        ) : null}
 
         <View style={s.metaBaris}>
           {b.nomor ? (
@@ -262,6 +315,7 @@ const KartuAntrean = React.memo(function KartuAntrean({
             <Text style={s.sodTeks}>Pengajuan Anda — diputuskan orang lain</Text>
           </View>
         ) : null}
+      </View>
       </Card>
     </Tekan>
   );
@@ -361,8 +415,8 @@ export default function PersetujuanScreen() {
   );
 
   const renderKartu = useCallback(
-    ({ item }: { item: BarisInbox }) => (
-      <KartuAntrean b={item} s={styles} c={c} onBuka={buka} />
+    ({ item, index }: { item: BarisInbox; index: number }) => (
+      <KartuAntrean b={item} s={styles} c={c} onBuka={buka} indeks={index} />
     ),
     [styles, c, buka]
   );
@@ -540,7 +594,15 @@ function gaya(c: Palet) {
       backgroundColor: c.surfaceSubtle,
     },
     list: { padding: SPASI.lg, gap: SPASI.md, paddingBottom: 40 },
-    card: { gap: 6 },
+    /*
+      `padding: 0` + `flexDirection: row` supaya BATANG TEPI menempel penuh
+      dari tepi atas ke tepi bawah kartu. Isian pindah ke `isiKartu`;
+      tanpa itu batangnya melayang di dalam padding milik `Card`.
+
+      `overflow: hidden` memotong batang mengikuti radius sudut kartu.
+    */
+    card: { padding: 0, flexDirection: 'row', overflow: 'hidden' },
+    isiKartu: { flex: 1, padding: SPASI.lg, gap: 6 },
 
     barisAtas: {
       flexDirection: 'row',
@@ -566,9 +628,66 @@ function gaya(c: Palet) {
       react-native#27006. Dipakai karena kalau gagal, hasilnya sekadar
       kembali seperti sekarang: tak ada yang rusak, cuma tak sejajar.
     */
-    nominal: {
-      fontSize: HURUF.lg,
+    /*
+      TINGKAT DISPLAY, bukan `lg` (2026-09-12, kandidat C).
+
+      Sebelumnya 17px - hanya dua piksel di atas teks isi (15px), sehingga
+      nominal tak pernah benar-benar memimpin kartunya. Diukur terhadap
+      tiga sistem yang dibaca mahal:
+
+          JANGKAUAN SKALA (terbesar / terkecil)
+            Puraloka (lama)   2,50x
+            Linear            6,00x
+            Ramp              6,40x
+
+      Pada 2,5x tak ada yang bisa memimpin, jadi hierarki jatuh ke warna
+      dan kotak. Itu sebab kerataan yang founder sebut "kaku".
+
+      `RAPAT.display` menyertainya: pada ukuran besar jarak antar-huruf
+      tampak MELEBAR sendiri, jadi tracking negatif mengembalikannya ke
+      rapat yang terbaca disengaja. Revolut memakai -2,72px pada headline
+      136px - otoritas dari ukuran dan tracking, bukan dari ketebalan.
+
+      `lineHeight` dipaku ~1,1x ukuran: bawaan RN memberi ruang berlebih,
+      dan angka besar lalu tampak melayang alih-alih memimpin blok di
+      bawahnya. Linear memakai line-height 1,00 di seluruh tingkat display.
+    */
+    /*
+      Batang tepi kiri. Kartu memakai `overflow: hidden` + `padding: 0`
+      pada gaya `card` supaya batang menempel penuh dari atas ke bawah;
+      isian dipindahkan ke `isiKartu`.
+    */
+    tepiUmur: { width: 3, backgroundColor: 'transparent' },
+    /*
+      Jenis approval sebagai LABEL KAPITAL, bukan pil berwarna.
+
+      Tiga dari empat baris di layar ini berbunyi "Kasbon" - memberinya
+      kotak berwarna justru menonjolkan hal yang paling TIDAK membedakan
+      satu baris dari baris lain, sambil memakan perhatian yang dibutuhkan
+      nominalnya.
+
+      `RAPAT.labelKapital` meregangkannya: huruf besar tak punya
+      ascender/descender yang memberi ritme, jadi tanpa regangan ia
+      terbaca sebagai blok padat - salah satu penanda paling cepat dari
+      UI murah. Ramp memakai +0,018em pada label kapital 10px.
+    */
+    jenisLabel: {
+      fontSize: HURUF.xs,
       fontFamily: FONT.isiTebal,
+      letterSpacing: RAPAT.labelKapital,
+      color: c.textMuted,
+    },
+    umurTeks: {
+      fontSize: HURUF.xs,
+      fontFamily: FONT.isiTebal,
+      color: c.textMuted,
+      fontVariant: ['tabular-nums'],
+    },
+    nominal: {
+      fontSize: HURUF.display,
+      fontFamily: FONT.judul,
+      letterSpacing: RAPAT.display,
+      lineHeight: 42,
       color: c.textPrimary,
       fontVariant: ['tabular-nums'],
     },

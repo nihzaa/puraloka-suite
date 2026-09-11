@@ -5,6 +5,127 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-12 (lanjutan) — "fluid dan mahal": jangkauan skala huruf 2,5x
+
+Founder: *"secara ui-ux udah seperti dibuat oleh designer ternama belum?
+saya mau aplikasinya jangan kaku ui nya, harus terasa fluid dan mahal"*.
+
+Jawaban jujurnya **belum**, dan sebabnya bisa diukur — bukan selera.
+
+### Yang diukur lebih dulu
+
+```
+borderWidth di apps/mobile   : 66 pemakaian di 29 berkas
+berkas ber-`Animated`        : 1  (SplashMerek saja)
+letterSpacing                : 12 tempat, DELAPAN nilai berbeda, nol token
+fontVariant tabular-nums     : 63 tempat   <- ini sudah BENAR
+```
+
+Lalu terhadap tiga sistem yang memang dibaca mahal (token aslinya, bukan
+ingatan — sumber di bawah):
+
+```
+JANGKAUAN SKALA HURUF (terbesar / terkecil)
+  Puraloka   2,50x   (12 -> 30)
+  Linear     6,00x   (12 -> 72)
+  Ramp       6,40x   (10 -> 64)
+```
+
+**Itu angka yang menjelaskan "kaku".** Pada jangkauan 2,5x tak ada yang
+bisa tampil JAUH lebih penting daripada yang lain, jadi hierarki terpaksa
+dititipkan ke warna dan kotak — dan itulah kerataan yang terlihat di tiap
+potret. Menambah animasi tak akan memperbaikinya; sebabnya di tipografi.
+
+### Banding sebelumnya SUDAH ADA, dan keputusannya tak pernah dicatat
+
+`banding-dashboard.mjs` (2026-09-05) menjawab pertanyaan yang mirip, dan
+**kandidat B-nya menang lalu dipasang** — `dashboard.tsx:331` memakai
+`c.merekBidang`, dan potret dashboard memperlihatkan bidang navy itu. Nol
+jejak di JOURNAL/RATIFIKASI/QUEUE/STATUS.
+
+Yang basi dokumennya, bukan pekerjaannya. Tetapi akibatnya nyata: sesi ini
+nyaris membangun ulang perbandingan yang sudah diputuskan. Dicatat di sini
+supaya tak terulang.
+
+B hanya menyelesaikan KEPALA dashboard. Di bawah panel navy, dan di 18
+layar lain yang tak punya panel, bentuknya tak berubah.
+
+### Yang dikerjakan
+
+Tiga kandidat dirender **mesin React Native sungguhan** (bukan mockup
+HTML seperti pendahulunya — `hairlineWidth`, metrik Plus Jakarta Sans, dan
+driver native hanya ada di sana). Founder memilih **C**.
+
+| Perubahan | Dari |
+|---|---|
+| `HURUF.display` 38 + `displayBesar` 48 | jangkauan 2,50x -> 4,00x |
+| Token `RAPAT` — tracking TERIKAT ukuran | Linear (-0,022 x ukuran); Ramp +0,018em utk label kapital |
+| `Card`: border 1px -> `hairlineWidth` | Ramp: garis tipis di atas permukaan, HINDARI box-shadow |
+| `Card`: prop `indeks` -> masuk bertahap 45ms | Material stagger 30-50ms |
+| `Card`: prop `menonjol` | penekanan tanpa bayangan |
+
+**`Card` dipakai 22 layar**, jadi satu suntingan membawa perlakuan C ke
+semuanya tanpa satu layar pun disentuh. Itu jawaban atas pertanyaan wajib
+§10d (*"token ini mengendalikan berapa persen permukaan?"*) — dan
+kebalikan dari usul indigo yang gagal karena hanya menyentuh empat tempat.
+
+Tujuh nilai `HURUF` lama **tidak disentuh**: layar merender sama persis
+sampai ada yang memakai tingkat baru dengan sengaja.
+
+### Saya salah, dan potret yang menemukannya
+
+**`flexShrink: 1` pada nominal 38px membuat angka PECAH DUA BARIS** —
+"Rp 1.200.00" lalu "0". Saya memasangnya untuk mencegah lencana status
+terdorong keluar layar, dan itu memang berhasil; yang tak saya duga: cara
+teks "menyusut" di React Native adalah MEMBUNGKUS.
+
+Nominal yang salah baca di layar keputusan uang jauh lebih mahal daripada
+lencana yang sempit. Diperbaiki dengan `numberOfLines={1}` + lencana
+dipindah ke baris sendiri di ATAS nominal — tak ada lagi yang berebut
+lebar, jadi tak ada yang perlu mengalah.
+
+`tsc` hijau sepanjang kedua iterasi. Yang menemukannya MEMOTRET.
+
+Dua cacat lain yang sama-sama hanya terlihat dari potret: batang mendesak
+menyala di SEMUA kartu (ambang 7 hari, sementara data contoh 79-87 hari —
+penanda yang menyala di semua baris tak menandai apa pun), dan
+"MR-2026-002" tercetak 38px mengalahkan isi permintaan (nomor dokumen di
+slot yang dimaksudkan untuk uang).
+
+### Bukti
+
+```
+tsc                 exit 0 (tanpa saringan)
+penjaga CI          241 hijau · 0 MERAH · 4 dilewati · 0 tak ketemu
+expo export         BERHASIL — 3,71 MB (Reanimated ter-bundle)
+potret              58 layar x 2 mode · nol teks <12px · nol gulir mendatar
+```
+
+Dua penjaga sempat merah, keduanya milik saya:
+
+- `audit-daftar-mobile-virtual` — halaman banding masuk hitungan lantai.
+  Diperbaiki dengan melewati direktori berawalan `_` (konvensi
+  expo-router untuk BUKAN-rute). Bukan pelemahan G-5: cakupan tak berubah
+  untuk satu pun layar yang bisa dibuka pengguna.
+- `audit-akhir-baris` — 196 CRLF di `_layout.tsx` dari suntingan Python
+  saya yang pertama (sebelum `newline=''` dipakai). Dinormalkan.
+
+`KartuHalus.tsx` dibuat lalu **dibuang**: logikanya pindah ke `Card`, dan
+dua komponen yang mengerjakan hal sama akan menyimpang.
+
+### Batas yang jujur
+
+Potret menguji TATA LETAK. Gerak bertahap, haptik, dan `prefers-reduced-
+motion` di perangkat sungguhan **belum diuji di HP** — `useKurangiGerak()`
+sudah menanganinya di kode, tetapi itu keputusan di kode, bukan bukti
+render. `expo-haptics` terpasang tetapi **belum dipakai satu tempat pun**.
+
+Sumber angka rujukan: [Linear](https://open-design.ai/plugins/design-system-linear-app/)
+· [Ramp](https://styles.refero.design/style/b38702a0-75ab-474c-9106-00b624535825)
+· [Revolut](https://www.designmd.co/d/revolut)
+
+---
+
 ## 2026-09-12 — DEPLOY, dan dua penjaga deploy yang tak pernah bisa bekerja
 
 149 commit tayang ke produksi: `265afa75` (5 Sep) → `1fe48c09`.

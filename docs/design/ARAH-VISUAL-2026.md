@@ -925,3 +925,114 @@ Menyandingkannya sebagai "lahan ini → jadi pabrik ini" adalah klaim palsu di
 situs perusahaan, dan itu jenis kebohongan yang paling mudah ketahuan oleh
 calon klien yang bertanya. Yang disiapkan hanya mekanismenya; begitu ada
 pasangan foto proyek yang sama, tinggal ditandai tanpa menulis kode lagi.
+
+---
+
+## 12. Mobile — keputusan visual (2026-09-05 & 2026-09-12)
+
+> **Dokumen ini sampai §11 ditulis untuk WEB.** Mobile mewarisi merek yang
+> sama (navy `#003366`, Bricolage + Plus Jakarta Sans) tetapi mesin
+> rendernya berbeda, dan sebagian aturan web tak bisa diterapkan begitu
+> saja — `hairlineWidth` tak punya padanan di CSS, dan bayangan di React
+> Native dibayar per-frame per-baris.
+
+### 12a. Dashboard: kandidat B "Panel navy" — MENANG & TERPASANG
+
+Diputuskan **2026-09-05** dari `apps/mobile/scripts/banding-dashboard.mjs`
+(4 tangkapan: sekarang + tiga kandidat). Founder saat itu:
+*"desain frontend-nya kaya kurang pro anjirr"*.
+
+**Keputusannya tak pernah dicatat di mana pun** — nol jejak di JOURNAL,
+RATIFIKASI, QUEUE, maupun STATUS. Ditemukan 2026-09-12 dengan mengukur ke
+kode: `dashboard.tsx:331` memakai `c.merekBidang`, dan potret dashboard
+memperlihatkan bidang navy itu.
+
+Akibat kelalaian catatan ini nyata: sesi 2026-09-12 nyaris membangun ulang
+perbandingan yang sudah diputuskan. **Yang basi dokumennya, bukan
+pekerjaannya** — persis racun konteks yang diperingatkan pembuka CLAUDE.md.
+
+Kandidat A (tenang berlapis) dan C (perhatian dulu) **ditolak**; jejak
+gambarnya di `apps/mobile/.layar/banding/`.
+
+### 12b. Kartu daftar: kandidat C "Poles+" — MENANG 2026-09-12
+
+Founder: *"harus terasa fluid dan mahal"*. Dipilih dari
+`apps/mobile/scripts/banding-kartu.mjs` — tiga kandidat x dua mode,
+dirender **mesin React Native sungguhan**, bukan mockup HTML.
+
+> Kenapa mesin sungguhan: `hairlineWidth` bergantung kerapatan piksel
+> perangkat, metrik Plus Jakarta Sans dihitung mesin teks yang berbeda,
+> dan gerak driver native tak bisa dinilai dari HTML. Memutuskan
+> "hairline sudah cukup terlihat?" dari garis yang digambar Chrome adalah
+> memutuskan atas barang yang salah.
+
+**Apa yang B (dashboard) tidak selesaikan:** hanya KEPALA dashboard. Di
+bawah panel navy, dan di 18 layar lain yang tak punya panel, bentuknya tak
+berubah sama sekali.
+
+#### Angka yang mendasarinya
+
+```
+JANGKAUAN SKALA HURUF (terbesar / terkecil)
+  Puraloka (sebelum)   2,50x   (12 -> 30)
+  Linear               6,00x   (12 -> 72)
+  Ramp                 6,40x   (10 -> 64)
+```
+
+Pada jangkauan 2,5x **tak ada yang bisa memimpin**, sehingga hierarki
+terpaksa dititipkan ke warna dan kotak. Itu sebab kerataan yang founder
+sebut "kaku" — bukan kurangnya animasi.
+
+#### Yang berlaku sekarang
+
+| Aturan | Nilai | Dasar |
+|---|---|---|
+| Tingkat display | `HURUF.display` 38 · `displayBesar` 48 | jangkauan naik ke 4,00x |
+| Tracking | token `RAPAT`, TERIKAT ukuran | Linear ~-0,022 x ukuran |
+| Label kapital | `RAPAT.labelKapital` +0,8 | Ramp +0,018em pada label 10px |
+| Garis kartu | `StyleSheet.hairlineWidth` | Ramp: garis tipis, HINDARI box-shadow |
+| Penekanan kartu | `menonjol` — permukaan + border | bukan bayangan (mahal per-baris) |
+| Gerak masuk | 45ms/kartu, maks 6, 260ms | Material stagger 30-50ms |
+| Angka | `fontVariant: ['tabular-nums']` | standar fintech; sudah dipakai 63 tempat |
+
+**Aturan yang paling mudah dilanggar — SATU display per layar.** Kalau dua
+hal memakai tingkat display di satu layar, tak ada yang memimpin dan
+skalanya kembali rata, hanya dengan angka yang lebih besar. Ini kembaran
+aturan §3d untuk aksen warna.
+
+#### Yang sengaja TIDAK diambil dari rujukan
+
+- **Tipografi 64-72px.** Linear & Ramp memimpin dengan itu, tetapi keduanya
+  halaman PEMASARAN di layar lebar. Di HP 390px, 48px membuat
+  "Rp 2.000.000" pecah dua baris. Angka rujukan **ditimbang terhadap lebar
+  layar kita, tidak disalin**.
+- **Bayangan per-kartu.** Lihat `audit-bayangan-mobile-bertoken.mjs`.
+- **Blur / glassmorphism.** Mahal di Android murah, hilang di bawah
+  matahari — dan mandor bekerja di sana.
+- **Warna aksen baru.** Usul ini tak menambah satu warna pun; seluruhnya
+  token yang sudah ada. §10d tetap mengikat untuk usul warna berikutnya.
+
+#### Jangkauan perubahan — dijawab SEBELUM diterapkan (§10d)
+
+`components/ui/Card.tsx` dipakai **22 layar**, jadi satu suntingan membawa
+hairline + gerak ke semuanya tanpa satu layar pun disentuh. Bandingkan
+dengan usul indigo yang gagal justru karena `--aksen` hanya menyentuh
+empat tempat.
+
+Tujuh nilai `HURUF` lama **tidak disentuh** — layar merender sama persis
+sampai ada yang memakai tingkat baru dengan sengaja.
+
+#### Cacat yang lahir dari perubahan ini, dan cara menghindarinya
+
+**Nominal 38px yang berbagi baris flex dengan lencana akan MEMBUNGKUS di
+tengah angka** kalau diberi `flexShrink: 1` — "Rp 1.200.00" lalu "0".
+Cara teks "menyusut" di React Native adalah membungkus.
+
+Nominal salah baca di layar keputusan uang jauh lebih mahal daripada
+lencana yang sempit. Pakai `numberOfLines={1}` dan pindahkan lencana ke
+baris sendiri. **`tsc` hijau pada kedua bentuk**; yang menemukannya
+memotret.
+
+Sumber token rujukan: [Linear](https://open-design.ai/plugins/design-system-linear-app/)
+· [Ramp](https://styles.refero.design/style/b38702a0-75ab-474c-9106-00b624535825)
+· [Revolut](https://www.designmd.co/d/revolut)
