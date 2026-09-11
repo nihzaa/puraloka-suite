@@ -81,6 +81,10 @@ interface BarisAset {
 interface BarisMaterial {
   id: string;
   material_id: string;
+  /** Nama katalog. `null` bila materialnya tak ditemukan — bukan ''. */
+  nama: string | null;
+  kode: string | null;
+  satuan: string | null;
   /** String, bukan number — API mengirimnya begitu (numeric Postgres). */
   qty: string;
   asal: string | null;
@@ -191,20 +195,34 @@ const KartuMaterial = React.memo(function KartuMaterial({
     <Card style={s.card}>
       <View style={s.barisAtas}>
         {/*
-          `material_id` ditampilkan apa adanya, dan itu SEMENTARA.
+          Nama katalog, dengan jatuhan BERTINGKAT — bukan langsung ke id.
 
-          `/api/v1/gudang/ikhtisar` tak mengirim nama materialnya — hanya
-          id. Menampilkan id mentah jelek, tetapi menyembunyikan barisnya
-          lebih buruk: stok yang ada di basis lalu tak terlihat sama sekali
-          dari HP, dan tak ada gejala yang memberi tahu.
+          Versi pertama layar ini menampilkan `material_id` apa adanya,
+          sebab API memang belum mengirim namanya. Terlihat dari potret:
 
-          Ditulis di sini, bukan dibiarkan sebagai kejutan: yang benar
-          adalah API mengirim `nama`, dan itu perubahan sisi server.
+              5cb9e5c3-9523-4ba4-ac17-eb1714330178      40
+
+          UUID sebagai nama barang, di layar yang dibuka orang sambil
+          berdiri di depan raknya. API diperbaiki hari itu juga
+          (`gudang-ikhtisar.ts` kini mengirim nama/kode/satuan).
+
+          Jatuhannya tetap dipertahankan tiga tingkat — nama, lalu kode,
+          lalu id — sebab baris stok yang materialnya terhapus dari
+          katalog tetap ADA di gudang. Menyembunyikannya berarti barang
+          nyata di rak yang tak terlihat sama sekali dari HP.
         */}
         <Text style={s.judulKartu} numberOfLines={2}>
-          {m.material_id}
+          {m.nama ?? m.kode ?? m.material_id}
         </Text>
-        <Text style={s.qty}>{m.qty}</Text>
+        {/*
+          Satuan menempel pada angka, bukan baris terpisah: "40" tanpa
+          satuan tak bisa dipakai memeriksa stok — 40 sak dan 40 kg beda
+          sepuluh kali lipat.
+        */}
+        <Text style={s.qty}>
+          {m.qty}
+          {m.satuan ? <Text style={s.satuan}> {m.satuan}</Text> : null}
+        </Text>
       </View>
       {m.asal ? (
         <View style={s.metaItem}>
@@ -548,6 +566,8 @@ function gaya(c: Palet) {
       color: c.navy,
       fontVariant: ['tabular-nums'],
     },
+    /* Satuan lebih kecil & lebih tenang — angkanya yang dicari mata. */
+    satuan: { fontSize: HURUF.xs, fontFamily: FONT.isi, color: c.textSecondary },
 
     metaBaris: { flexDirection: 'row', flexWrap: 'wrap', gap: SPASI.md, marginTop: 2 },
     metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1 },

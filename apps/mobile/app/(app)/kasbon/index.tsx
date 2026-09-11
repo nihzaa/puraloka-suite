@@ -18,6 +18,7 @@ import { PenandaAntrean } from '@/components/PenandaAntrean';
 import { Galat } from '@/components/ui/Galat';
 import { api } from '@/lib/api';
 import { pesanGalat } from '@/lib/galat';
+import { labelKeperluan } from '@/lib/label';
 import { useTema } from '@/hooks/useTema';
 import { FONT, HURUF, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
 
@@ -50,13 +51,6 @@ interface Kasbon {
 */
 const ambilKunci = (k: Kasbon) => k.id;
 
-const PURPOSE_LABEL: Record<string, string> = {
-  gaji_tukang: 'Gaji Tukang',
-  uang_makan: 'Uang Makan',
-  pembelian_alat: 'Pembelian Alat',
-  operasional: 'Operasional',
-  lain_lain: 'Lain-lain',
-};
 
 function fmt(n: number) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
@@ -114,7 +108,7 @@ const KartuKasbon = React.memo(function KartuKasbon({
         <Text style={s.amount}>{fmt(k.amount)}</Text>
         <Badge label={statusLabel(k.status)} variant={statusVariant(k.status)} />
       </View>
-      <Text style={s.purpose}>{PURPOSE_LABEL[k.purpose] ?? k.purpose}</Text>
+      <Text style={s.purpose}>{labelKeperluan(k.purpose)}</Text>
       {/*
         Ikon vektor menggantikan emoji dua tempat di kartu ini.
 

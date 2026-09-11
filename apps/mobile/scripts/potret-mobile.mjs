@@ -124,6 +124,27 @@ const LAYAR = [
   ['lainnya', '/lainnya'],
 
   /*
+    ── EMPAT LAYAR MODUL, pengganti WebView ────────────────────────────
+
+    Ditambahkan 2026-09-11 bersama pencabutan WebView. Keempatnya
+    menggantikan modul yang sebelumnya dibuka di dalam bingkai web —
+    dan modul-modul itu TAK PERNAH bisa dipotret sama sekali, sebab
+    isinya halaman web, bukan layar React Native.
+
+    Artinya ini pertama kalinya isi modul kantor bisa dilihat dari alat
+    pengukur mana pun di repo ini.
+
+    Sengaja dipotret sesudah login: ketiganya memuat data nyata dari
+    API, dan keadaan KOSONG-nya (yang paling mudah salah) hanya muncul
+    kalau basisnya memang kosong — bukan keadaan yang bisa dipaksa dari
+    sini tanpa menyentuh data.
+  */
+  ['persetujuan', '/persetujuan'],
+  ['gudang', '/gudang'],
+  ['mutu', '/mutu'],
+  ['lapangan', '/lapangan'],
+
+  /*
     ── Layar TULIS ─────────────────────────────────────────────────────
 
     Ditambahkan 2026-09-05. Kelima layar ini tak pernah dipotret sama

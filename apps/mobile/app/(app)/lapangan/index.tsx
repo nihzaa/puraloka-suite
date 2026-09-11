@@ -117,21 +117,37 @@ const KartuMilestone = React.memo(function KartuMilestone({
         */}
         {m.terlambat ? <Badge label="Terlambat" variant="danger" /> : null}
       </View>
+      {/*
+        Nama proyek DIPISAH dari tanggal, tidak berbagi satu baris.
+
+        Terlihat dari potret: "Pembangunan Rumah Bu Ratna — …" terpotong
+        padahal `numberOfLines={2}`. Sebabnya bukan batas baris melainkan
+        LEBAR — nama proyek dan tanggal berbagi `metaBaris` ber-`flex: 1`
+        masing-masing, jadi keduanya hanya dapat separuh kartu.
+
+        Nama proyek di repo ini memuat LOKASI sesudah tanda pisah
+        ("— Arcamanik", "— Sukajadi"), dan justru bagian itu yang
+        membedakan dua proyek bernama mirip. Yang terpotong bukan ekor
+        yang bisa ditebak, melainkan pembedanya.
+
+        Tanggal turun ke barisnya sendiri: ia pendek, dan tanggal yang
+        berdiri sendiri lebih mudah dipindai saat mencari yang terlambat.
+      */}
+      {m.proyek ? (
+        <View style={s.metaItem}>
+          <Ionicons
+            name="business-outline"
+            size={13}
+            color={c.textSecondary}
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+          />
+          <Text style={s.meta} numberOfLines={2}>
+            {m.proyek}
+          </Text>
+        </View>
+      ) : null}
       <View style={s.metaBaris}>
-        {m.proyek ? (
-          <View style={s.metaItem}>
-            <Ionicons
-              name="business-outline"
-              size={13}
-              color={c.textSecondary}
-              accessibilityElementsHidden
-              importantForAccessibility="no"
-            />
-            <Text style={s.meta} numberOfLines={2}>
-              {m.proyek}
-            </Text>
-          </View>
-        ) : null}
         {tgl ? (
           <View style={s.metaItem}>
             <Ionicons

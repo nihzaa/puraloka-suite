@@ -19,6 +19,7 @@ import { Kosong } from '@/components/ui/Kosong';
 import { Tekan } from '@/components/ui/Tekan';
 import { api } from '@/lib/api';
 import { pesanGalat } from '@/lib/galat';
+import { labelKeperluan } from '@/lib/label';
 import { useTema } from '@/hooks/useTema';
 import { FONT, HURUF, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
 
@@ -160,7 +161,7 @@ const KartuAntrean = React.memo(function KartuAntrean({
     <Tekan
       onPress={() => onBuka(b)}
       accessibilityRole="button"
-      accessibilityLabel={`${b.label}${b.judul ? `, ${b.judul}` : ''}${
+      accessibilityLabel={`${b.label}${b.judul ? `, ${labelKeperluan(b.judul)}` : ''}${
         b.nominal != null ? `, ${fmtRupiah(b.nominal)}` : ''
       }. Buka detail.`}
     >
@@ -193,8 +194,22 @@ const KartuAntrean = React.memo(function KartuAntrean({
           informasinya HILANG — dan judul approval di repo ini memuat
           pembeda justru di belakang (nama proyek, termin ke berapa).
         */}
+        {/*
+          `judul` dilewatkan `labelKeperluan()`.
+
+          Terlihat dari potret: kartu kasbon berbunyi `gaji_tukang` —
+          kunci mentah ber-underscore, di layar tempat orang memutuskan
+          pengeluaran dua juta rupiah. API meneruskan kolom `purpose` apa
+          adanya (`approval-inbox.ts` memetakan `judul` dari kolom sumber
+          tiap jenis), jadi perapiannya memang tugas sisi tampil.
+
+          Fungsinya dari `lib/label.ts`, BUKAN peta lokal: `kasbon/index.tsx`
+          sudah punya peta yang sama, dan dua salinan yang menyimpang
+          membuat satu baris basis tampil dengan dua nama berbeda di dua
+          layar — tanpa galat, dan tak seorang pun tahu mana yang benar.
+        */}
         <Text style={s.judul} numberOfLines={2}>
-          {b.judul ?? b.nomor ?? 'Tanpa judul'}
+          {b.judul ? labelKeperluan(b.judul) : (b.nomor ?? 'Tanpa judul')}
         </Text>
 
         {b.nominal != null ? <Text style={s.nominal}>{fmtRupiah(b.nominal)}</Text> : null}
@@ -500,9 +515,17 @@ function Chip({
       accessibilityLabel={`${label}, ${n} pengajuan${aktif ? ', terpilih' : ''}`}
       style={[s.chip, aktif && s.chipAktif]}
     >
-      <Text style={[s.chipTeks, aktif && s.chipTeksAktif]}>
-        {label} {n}
+      {/*
+        Label dan angka DIPISAH jadi dua `Text`.
+
+        Satu `Text` berisi "Pengeluaran Proyek 5" akan memotong dari
+        belakang — dan yang di belakang justru angkanya. Dipisah, elipsis
+        hanya memakan label; `flexShrink: 0` menahan angka tetap utuh.
+      */}
+      <Text style={[s.chipTeks, aktif && s.chipTeksAktif]} numberOfLines={1}>
+        {label}
       </Text>
+      <Text style={[s.chipAngka, aktif && s.chipTeksAktif]}>{n}</Text>
     </Tekan>
   );
 }
@@ -578,7 +601,32 @@ function gaya(c: Palet) {
     dilewatiJudul: { fontSize: HURUF.base, fontFamily: FONT.isiTebal, color: c.warning },
     dilewatiIsi: { fontSize: HURUF.xs, fontFamily: FONT.isi, color: c.textSecondary },
 
-    chipBaris: { gap: SPASI.sm, paddingBottom: SPASI.md, paddingRight: SPASI.lg },
+    /*
+      Chip TIDAK memanjang mengikuti labelnya.
+
+      Terlihat dari potret 360dp: "Pengeluaran Proyek 5" terpotong di tepi
+      kanan, dan potongannya jatuh persis di angkanya — chip yang gunanya
+      menyebutkan JUMLAH justru kehilangan jumlahnya.
+
+      Percobaan pertama menambah `paddingRight` supaya ada ruang di ujung.
+      Alasannya benar (daftar mendatar butuh isyarat "ada lagi"), tetapi
+      tak menyelesaikan apa pun: chip ketiga memang LEBIH LEBAR daripada
+      sisa layar, jadi ia tetap terpotong — cuma bergeser sedikit.
+
+      Yang bekerja: `maxWidth` pada chip-nya. Label panjang dipotong dengan
+      elipsis di TENGAH label, dan angkanya — yang berada di elemen
+      terpisah — selalu utuh. Labelnya boleh tak terbaca penuh; angkanya
+      tidak boleh.
+
+      Pelajarannya sama dengan kartu kasbon yang tercatat di berkas lain:
+      alasan yang benar bisa menghasilkan penerapan yang salah, dan hanya
+      melihat hasilnya yang bisa membedakan.
+    */
+    chipBaris: {
+      gap: SPASI.sm,
+      paddingBottom: SPASI.md,
+      paddingRight: SPASI.lg,
+    },
     /*
       `minHeight: SENTUH_MIN` — chip adalah sasaran sentuh, bukan label.
       44px batas Apple HIG, dan yang menekannya ibu jari bersarung di
@@ -586,7 +634,15 @@ function gaya(c: Palet) {
     */
     chip: {
       minHeight: SENTUH_MIN,
-      justifyContent: 'center',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      /*
+        240 dipilih dari lebar layar terkecil yang didukung (360dp) dikurangi
+        padding daftar: satu chip tak boleh memakan seluruh baris, sebab
+        chip yang memenuhi layar tak terbaca sebagai bagian dari DERETAN.
+      */
+      maxWidth: 240,
       paddingHorizontal: 14,
       borderRadius: 999,
       borderWidth: 1,
@@ -594,7 +650,20 @@ function gaya(c: Palet) {
       backgroundColor: c.surface,
     },
     chipAktif: { backgroundColor: c.navyLight, borderColor: c.navy },
-    chipTeks: { fontSize: HURUF.xs, fontFamily: FONT.isi, color: c.textSecondary },
+    chipTeks: {
+      fontSize: HURUF.xs,
+      fontFamily: FONT.isi,
+      color: c.textSecondary,
+      flexShrink: 1,
+    },
+    /* Angka TAK BOLEH menyusut — ia alasan chip ini ada. */
+    chipAngka: {
+      fontSize: HURUF.xs,
+      fontFamily: FONT.isiTebal,
+      color: c.textSecondary,
+      flexShrink: 0,
+      fontVariant: ['tabular-nums'],
+    },
     chipTeksAktif: { color: c.navy, fontFamily: FONT.isiTebal },
   });
 }

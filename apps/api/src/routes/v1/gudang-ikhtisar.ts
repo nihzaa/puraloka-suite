@@ -115,6 +115,49 @@ export default async function gudangIkhtisarRoutes(app: FastifyInstance) {
     const namaProyek = new Map(barisProyek.map((p) => [String(p.id), String(p.name)]))
     const namaGudang = new Map(barisGudang.map((g) => [String(g.id), String(g.nama)]))
 
+    /*
+      Nama material untuk stok yang BENAR-BENAR ditampilkan.
+
+      ── Kenapa disaring ke id yang dipakai, bukan menarik seluruh tabel
+
+      `materials` adalah katalog — ribuan baris di tenant yang katalognya
+      lengkap. Balasan ini hanya menampilkan SEPULUH stok teratas, jadi
+      menarik semuanya membebani setiap pemanggilan untuk data yang
+      dibuang detik itu juga.
+
+      ── Kenapa `.in()` DI SINI aman
+
+      `materials` punya `company_id` dan lewat `db.from()` yang sadar
+      tenant, jadi saringannya berlapis: RLS + daftar id yang sendirinya
+      sudah berasal dari `barisStok` yang disaring gudang milik company
+      (lihat catatan panjang di atasnya — jangan hapus sebagai optimasi).
+
+      Kosong kalau tak ada stok: `.in()` dengan larik kosong memulangkan
+      nol baris di PostgREST, tetapi tetap satu perjalanan jaringan.
+      Karena itu query-nya dilewati sama sekali.
+    */
+    const idMaterial = [...new Set(barisStok.map((s) => String(s.material_id)))]
+    const namaMaterial = new Map<string, { nama: string; kode: string | null; satuan: string | null }>()
+    if (idMaterial.length > 0) {
+      const mat = await db.from('materials').select('id, name, code, unit').in('id', idMaterial)
+      /*
+        Galatnya DILEMPAR, tidak ditelan.
+
+        `audit-kegagalan-senyap.mjs` menjaga justru pola ini: query yang
+        errornya tak pernah dilihat. Kalau nama material gagal diambil,
+        yang benar adalah balasan gagal dengan sebabnya — bukan layar
+        yang diam-diam kembali menampilkan UUID.
+      */
+      if (mat.error) throw mat.error
+      for (const m of (mat.data ?? []) as Array<Record<string, unknown>>) {
+        namaMaterial.set(String(m.id), {
+          nama: String(m.name ?? ''),
+          kode: m.code ? String(m.code) : null,
+          satuan: m.unit ? String(m.unit) : null,
+        })
+      }
+    }
+
     const diGudang = barisAset.filter((a) => a.gudang_id !== null && a.gudang_id !== undefined)
     const diLapangan = barisAset.filter((a) => a.current_project_id !== null && a.current_project_id !== undefined)
     const perluPerhatian = barisAset.filter(
@@ -258,6 +301,32 @@ export default async function gudangIkhtisarRoutes(app: FastifyInstance) {
         .map((s) => ({
           id: String(s.id),
           material_id: String(s.material_id),
+          /*
+            NAMA, KODE, dan SATUAN ikut dikirim — ditambahkan 2026-09-11.
+
+            Sebelumnya balasan ini cuma memuat `material_id`, dan layar
+            mobile yang baru dibangun menampilkannya apa adanya:
+
+                5cb9e5c3-9523-4ba4-ac17-eb1714330178      40
+
+            UUID mentah sebagai nama barang, di layar yang dibuka orang
+            sambil berdiri di depan raknya. Halaman WEB tak pernah
+            memperlihatkannya sebab ia menarik nama materialnya sendiri
+            lewat query terpisah — jadi cacatnya tak terlihat sampai ada
+            konsumen kedua.
+
+            Dikirim dari SINI, bukan diselesaikan di klien: satu query
+            tambahan di server menggantikan satu panggilan API per baris
+            di HP, dan kalau tiap klien memetakan sendiri, dua klien bisa
+            menampilkan nama berbeda untuk material yang sama.
+
+            Jatuhan `null`, BUKAN string kosong — klien lalu bisa
+            membedakan "tak punya nama" dari "namanya kosong", dan
+            memilih menampilkan kode atau id.
+          */
+          nama: namaMaterial.get(String(s.material_id))?.nama ?? null,
+          kode: namaMaterial.get(String(s.material_id))?.kode ?? null,
+          satuan: namaMaterial.get(String(s.material_id))?.satuan ?? null,
           qty: String(Number(s.qty) || 0),
           asal: s.asal_project_id ? (namaProyek.get(String(s.asal_project_id)) ?? null) : null,
         })),

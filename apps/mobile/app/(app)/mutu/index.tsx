@@ -85,6 +85,31 @@ const ambilKunci = (i: Item, idx: number) =>
   i.tipe === 'judul' ? `judul:${i.teks}` : `${i.tipe}:${idx}`;
 
 /**
+ * Severity → label Indonesia.
+ *
+ * Terlihat dari potret: lencana berbunyi `major`, `kritis`, `minor` —
+ * huruf kecil semua, bahasa campur. Bentuk yang sama dengan lencana
+ * "submitted" yang ditemukan memotret layar mandor, dan yang melahirkan
+ * `audit-status-mobile-berlabel.mjs`.
+ *
+ * Jatuhannya menampilkan nilai APA ADANYA, bukan '—': nilai baru yang
+ * belum dipetakan harus TERLIHAT supaya bisa ditambahkan, bukan
+ * disembunyikan di balik tanda hubung yang tak bisa ditelusuri.
+ */
+const LABEL_SEVERITY: Record<string, string> = {
+  kritis: 'Kritis',
+  critical: 'Kritis',
+  major: 'Berat',
+  mayor: 'Berat',
+  minor: 'Ringan',
+  tinggi: 'Tinggi',
+  sedang: 'Sedang',
+  rendah: 'Rendah',
+};
+
+const labelSeverity = (s: string) => LABEL_SEVERITY[s?.toLowerCase()] ?? s;
+
+/**
  * Severity NCR → varian lencana.
  *
  * Polanya disalin dari `mutu-ikhtisar.ts:70`, yang memakai
@@ -94,6 +119,28 @@ const ambilKunci = (i: Item, idx: number) =>
  * benar menurut aturannya sendiri, dan tak ada yang bisa menunjuk sebabnya.
  */
 function varianSeverity(s: string): 'danger' | 'warning' | 'default' {
+  /*
+    `kritis` DIDAHULUKAN, dan itu temuan dari MEMOTRET — bukan dari test.
+
+    Versi pertama menyalin pola `/major|mayor|tinggi|high/i` dari
+    `mutu-ikhtisar.ts:70` apa adanya. Diukur ke basis sesudah potret:
+    kolom `ncr_items.severity` memuat TIGA nilai — `minor`, `major`, dan
+    `kritis`. Yang ketiga tak cocok pola mana pun, jatuh ke `default`, dan
+    terender KELABU di sebelah `major` yang merah.
+
+    Di layar itu terbaca sebagai "kritis lebih ringan daripada major" —
+    kebalikan dari artinya. Nol galat, nol test merah: kelabu adalah
+    keadaan yang sah bagi lencana.
+
+    ⚠ Yang tak ikut diperbaiki di sini, dan sengaja: `mutu-ikhtisar.ts`
+    menghitung "NCR berat" dengan pola LAMA, jadi `kritis` TIDAK masuk
+    hitungan itu. Angka "5 NCR berat" di ringkasan karenanya lebih kecil
+    dari yang sesungguhnya berat. Itu cacat SISI SERVER — memperbaikinya
+    di sini hanya membuat kartu dan ringkasan saling bertentangan, dan
+    dua angka yang keduanya "benar menurut aturannya sendiri" adalah
+    bentuk yang paling sulit ditelusuri (CLAUDE.md §8a.2).
+  */
+  if (/kritis|critical|berat/i.test(s)) return 'danger';
   if (/major|mayor|tinggi|high/i.test(s)) return 'danger';
   if (/minor|sedang|medium/i.test(s)) return 'warning';
   return 'default';
@@ -128,7 +175,7 @@ const KartuNcr = React.memo(function KartuNcr({
         <Text style={s.judulKartu} numberOfLines={2}>
           {n.judul}
         </Text>
-        <Badge label={n.severity} variant={varianSeverity(n.severity)} />
+        <Badge label={labelSeverity(n.severity)} variant={varianSeverity(n.severity)} />
       </View>
       <View style={s.metaBaris}>
         <View style={s.metaItem}>
