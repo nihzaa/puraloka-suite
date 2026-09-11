@@ -96,7 +96,51 @@ overrides:
   #
   # Rantainya: fastify > @fastify/ajv-compiler > ajv > fast-uri (9 jalur).
   # Transitif — tak satu pun package.json di repo ini memintanya.
-  fast-uri: '>=4.1.3'
+  #
+  # ⚠⚠ RENTANGNYA DIPERBAIKI 2026-09-12, dan bukan dilonggarkan.
+  #
+  # `>=4.1.3` MUSTAHIL DIPENUHI, dan kegagalannya SENYAP. `ajv@8.20.0`
+  # (versi TERBARU — diperiksa ke registry) menuntut `fast-uri: ^3.0.1`,
+  # dan v4 tak memenuhi caret v3. pnpm lalu memasang NOL:
+  #
+  #     node_modules/.pnpm/fast-uri@*   → tak ada sama sekali
+  #
+  # Akibatnya, diukur 2026-09-12 dengan menjalankan suite penuh:
+  #
+  #     Cannot find module 'fast-uri'
+  #       ← ajv/dist/runtime/uri.js
+  #       ← @fastify/ajv-compiler
+  #
+  #     Test Files  160 GAGAL | 334 lulus
+  #     Tests        13 gagal | 5.477 lulus | 1.785 DILEWATI
+  #
+  # Bentuk angkanya yang menipu: 160 BERKAS merah tetapi cuma 13 TEST
+  # merah. Berkas yang gagal MEMUAT tak pernah menjalankan test-nya, jadi
+  # 1.785 test "dilewati" — dan yang membaca ringkasan wajar menyimpulkan
+  # "cuma 13 yang rusak". Tiap `buildApp()` mati di impor.
+  #
+  # `tsc` hijau sepanjang itu: typecheck tak pernah me-require ajv.
+  # Kelas yang sama dengan @anthropic-ai/sdk hilang 2026-08-08 —
+  # **entri store yang tak ada, dan pnpm tak menganggapnya galat.**
+  #
+  # ── Kenapa `>=3.1.7`, dan kenapa ini TIDAK melemahkan keamanan
+  #
+  # Ketiga advisory host-confusion punya perbaikan di JALUR 3.x juga;
+  # 3.1.7 adalah rilis v3 terakhir dan memuat seluruhnya
+  # (GHSA-v39h-62p7-jpjc · GHSA-7p8r-x3mc-p8w7 · GHSA-4c8g-83qw-93j6).
+  # Jadi ambangnya tetap menutup advisory yang sama — bedanya ia kini
+  # BISA dipenuhi oleh satu-satunya konsumen paket ini.
+  #
+  # Alasan di paragraf atas tetap berlaku penuh: sejak migrasi 564 server
+  # ini meresolusi TENANT DARI HOSTNAME, jadi normalisasi host yang
+  # berbeda antar-lapisan adalah jalan kebocoran lintas-tenant.
+  #
+  # ⚠ Jangan menaikkannya kembali ke `>=4.x` sebelum `ajv` benar-benar
+  # menerima v4. Ukur dulu, jangan menebak dari nomor:
+  #
+  #     npm view ajv@latest dependencies.fast-uri     # (dari luar repo —
+  #                                                   #  devEngines menolak npm)
+  fast-uri: '>=3.1.7 <4'
   # `browserslist` <=4.28.6 — dua advisory HIGH: pertumbuhan memori tanpa
   # batas (cache tak terpakai) dan crash / penulisan prototype.
   #
