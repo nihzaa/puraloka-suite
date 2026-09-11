@@ -188,10 +188,42 @@ echo "== 8. Migrasi yang ikut ter-deploy tetapi belum jalan ======"
 # berhasil, dan menyuruh operator mengulang tak memperbaiki apa pun.
 # Kegagalan yang tak bisa ditindaklanjuti melatih orang mengabaikan langkah
 # verifikasi — persis yang sudah tertulis di langkah 5.
-if [ -f "$AKAR/apps/api/scripts/audit-migrasi-tertinggal-deploy.mjs" ]; then
-  node "$AKAR/apps/api/scripts/audit-migrasi-tertinggal-deploy.mjs" || true
-else
-  echo "   LEWAT: penjaga belum ada di versi ini."
+#
+# ⚠ MEMBANDINGKAN BERKAS, bukan membaca basis — dan itu batas yang
+#   disengaja.
+#
+# Dua percobaan pertama (2026-09-12, deploy cdb97f65) keduanya gagal:
+#
+#   di HOST      "Cannot find module 'pg'" — VPS tak punya node_modules
+#                sama sekali; dependensi hidup di dalam image
+#   di CONTAINER "Cannot find module 'pg'" JUGA — API memakai Supabase
+#                client, bukan driver Postgres langsung, jadi `pg` memang
+#                tak pernah ada di image-nya
+#
+# Penjaga yang SELALU gagal mengajari orang mengabaikan keluarannya, lalu
+# berhenti menjaga tanpa gejala — persis yang sudah tertulis di langkah 5
+# tentang kegagalan palsu yang berulang.
+#
+# Yang BISA diukur dari sini tanpa `pg`: berapa berkas migrasi yang ikut
+# ter-deploy, dan yang mana yang BARU dibawa pembaruan ini. Itu sudah
+# menjawab pertanyaan yang penting — *"apakah deploy ini membawa migrasi
+# yang harus dijalankan tangan?"*
+#
+# ⚠ Yang TIDAK bisa dijawab dari sini: apakah migrasi itu SUDAH pernah
+# dijalankan. Untuk itu buka `audit-migrasi-tertinggal-deploy.mjs` dari
+# mesin pengembang, yang punya `pg` dan DIRECT_URL.
+BARU=$(git diff --name-only --diff-filter=A "$SEBELUM..$SESUDAH" -- db/migrations/ 2>/dev/null | wc -l)
+TOTAL=$(ls db/migrations/*.sql 2>/dev/null | wc -l)
+echo "   berkas migrasi di repo : $TOTAL"
+echo "   BARU dibawa deploy ini : $BARU"
+if [ "$BARU" != "0" ]; then
+  echo ""
+  echo "   ⚠ Migrasi berikut ikut ter-deploy dan BELUM tentu dijalankan:"
+  git diff --name-only --diff-filter=A "$SEBELUM..$SESUDAH" -- db/migrations/ | sed 's/^/     /'
+  echo ""
+  echo "   Deploy TIDAK menjalankan migrasi (Gerbang Keras G-2). Terapkan"
+  echo "   dari mesin pengembang, lalu buktikan:"
+  echo "     node scripts/db/ledger-diff.mjs"
 fi
 
 echo ""
