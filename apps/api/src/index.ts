@@ -1,4 +1,5 @@
 import Fastify from 'fastify'
+import { nyalakanDenyutPenjadwal } from './lib/denyut-penjadwal.js'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import jwt from '@fastify/jwt'
@@ -594,6 +595,25 @@ try {
       .filter(Boolean)
   )]
   console.log(`📡 Route groups: ${groups.join(', ')}\n`)
+
+  /*
+    Denyut penjadwal DI DALAM container.
+
+    Diukur 2026-09-12: cron GitHub Actions yang seharusnya tiap 15 menit
+    nyatanya berjeda rata-rata 209 menit (terpanjang 323) — terbaca dari
+    30 jalan terakhir lewat `gh run list`. Akibatnya 125 dari 197 tugas
+    terjadwal tak pernah dicoba lagi sejak 7 September; semuanya yang
+    dijadwalkan sesudah ~09:30, tiga per slot (satu per tenant).
+
+    Status `gagal` mereka menyesatkan dua kali: galatnya BASI (akunnya
+    sudah dihidupkan migrasi 568), dan yang sebenarnya terjadi bukan
+    gagal melainkan TAK PERNAH DIJALANKAN.
+
+    Alasan lengkap — termasuk kenapa Actions TIDAK dimatikan, dan kenapa
+    ia memanggil HTTP ke dirinya sendiri — ada di kepala
+    `lib/denyut-penjadwal.ts`.
+  */
+  nyalakanDenyutPenjadwal({ port: PORT, log: app.log })
 } catch (err) {
   app.log.error(err)
   process.exit(1)
