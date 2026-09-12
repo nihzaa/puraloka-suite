@@ -53,14 +53,44 @@ async function purge() {
     await client.query(`DELETE FROM rap_labor_line WHERE rap_budget_id IN
       (SELECT id FROM rap_budget WHERE name LIKE '[TEST-RAP-EP]%')`)
     await client.query(`DELETE FROM rap_budget WHERE name LIKE '[TEST-RAP-EP]%'`)
+    /*
+      ⚠ `LIKE '[TEST-RAP-EP]%'`, BUKAN `= '[TEST-RAP-EP] Proyek'`.
+
+      Berkas ini membuat DUA proyek: "[TEST-RAP-EP] Proyek" dan
+      "[TEST-RAP-EP] Proyek Lain" (baris ~192, disalin dari yang pertama
+      termasuk `client_id`-nya). Pembersihan lama mencocokkan nama
+      PERSIS, jadi yang kedua TAK PERNAH terhapus — sementara barisnya
+      sendiri tetap dihapus tanpa syarat.
+
+      Dengan `session_replication_role = 'replica'` di atas, FK tak
+      ditegakkan, jadi kliennya hilang dan proyeknya tinggal memegang
+      `client_id` yang menunjuk baris yang tak ada.
+
+      Terukur 2026-09-13, berbulan sesudahnya: SATU proyek yatim
+      ("[TEST-RAP-EP] Proyek Lain", di company NYATA Puraloka Persada),
+      dan ia proyek KEDUA TERBARU — jadi fixture ber-`ORDER BY
+      created_at DESC` mendarat di sana. Akibatnya **14 test merah di
+      `kontrak.test.ts`**, semuanya berantai dari satu galat:
+
+          insert or update on table "kontrak" violates foreign key
+          constraint "kontrak_client_id_fkey"
+
+      Galat itu menuduh RUTE KONTRAK, dan tak menyebut sama sekali bahwa
+      penyebabnya sisa pembersihan berkas LAIN berbulan sebelumnya.
+
+      ⚠ Bahaya `session_replication_role='replica'` sudah tertulis di
+      kepala blok ini sendiri — untuk `price_book_entries`. Peringatan
+      yang BENAR, di berkas yang SAMA, tepat di bawah kode yang
+      melakukan kesalahan yang sama pada tabel lain (CLAUDE.md §8a.2).
+    */
     await client.query(`DELETE FROM estimate_items WHERE estimate_version_id IN
       (SELECT ev.id FROM estimate_versions ev JOIN scenarios s ON s.id=ev.scenario_id
-       JOIN projects p ON p.id=s.project_id WHERE p.name = '[TEST-RAP-EP] Proyek')`)
+       JOIN projects p ON p.id=s.project_id WHERE p.name LIKE '[TEST-RAP-EP]%')`)
     await client.query(`DELETE FROM estimate_versions WHERE scenario_id IN
-      (SELECT s.id FROM scenarios s JOIN projects p ON p.id=s.project_id WHERE p.name = '[TEST-RAP-EP] Proyek')`)
+      (SELECT s.id FROM scenarios s JOIN projects p ON p.id=s.project_id WHERE p.name LIKE '[TEST-RAP-EP]%')`)
     await client.query(`DELETE FROM scenarios WHERE project_id IN
-      (SELECT id FROM projects WHERE name = '[TEST-RAP-EP] Proyek')`)
-    await client.query(`DELETE FROM projects WHERE name = '[TEST-RAP-EP] Proyek'`)
+      (SELECT id FROM projects WHERE name LIKE '[TEST-RAP-EP]%')`)
+    await client.query(`DELETE FROM projects WHERE name LIKE '[TEST-RAP-EP]%'`)
     await client.query(`DELETE FROM clients WHERE contact_person = '[TEST-RAP-EP] Klien'`)
     await client.query(`DELETE FROM assembly_components WHERE assembly_id IN
       (SELECT id FROM assemblies WHERE code LIKE '[TEST-RAP-EP]%')`)

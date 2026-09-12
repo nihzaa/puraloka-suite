@@ -5,6 +5,90 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-13 (lanjutan 5) — 14 test merah dari SATU baris sisa test, berbulan lalu
+
+TEST-SISA akhirnya punya PETA, bukan cuma angka. Reporter `basic`
+memotong daftarnya (cuma 2 nama dari 31 berkas); reporter JSON memberi
+seluruhnya.
+
+```
+7.313 test · 7.165 lulus · 63 gagal · 85 dilewati
+63 kegagalan tersebar di 24 berkas — bukan 49/27 seperti tertulis
+```
+
+⚠ Dan `--outputFile` relatif dari `apps/api` mendarat di **E:/Users/…**,
+bukan C:. Berkasnya ada, di drive yang salah. Nyaris saya simpulkan
+"reporter JSON tak menulis apa-apa".
+
+### Tiga berkas memuat separuhnya
+
+```
+14  kontrak.test.ts
+ 9  retensi-subkontrak-endpoint.test.ts
+ 9  situs.test.ts
+```
+
+### Keempat belas kontrak berantai dari SATU baris
+
+Galat pertamanya:
+
+```
+insert or update on table "kontrak" violates foreign key
+constraint "kontrak_client_id_fkey"
+```
+
+Diukur ke basis: **satu** proyek memegang `client_id` yang kliennya
+tak ada — `[TEST-RAP-EP] Proyek Lain`, dan ia di company **NYATA**
+(Puraloka Persada), bukan company uji. Ia proyek kedua-terbaru, jadi
+fixture ber-`ORDER BY created_at DESC` mendarat persis di sana.
+
+Asalnya `cecep-rap-endpoint.test.ts`. Berkas itu membuat DUA proyek —
+"[TEST-RAP-EP] Proyek" dan "…Proyek Lain" (yang kedua menyalin
+`client_id` dari yang pertama) — tetapi pembersihnya mencocokkan nama
+**PERSIS**:
+
+```
+DELETE FROM projects WHERE name = '[TEST-RAP-EP] Proyek'     ← yang kedua lolos
+DELETE FROM clients  WHERE contact_person = '…Klien'         ← tanpa syarat
+```
+
+Dengan `session_replication_role = 'replica'` di atasnya, FK tak
+ditegakkan. Kliennya hilang, proyeknya tinggal memegang penunjuk mati.
+
+**Dan peringatannya SUDAH ADA di berkas yang sama**, beberapa baris di
+bawahnya, untuk tabel lain: *"menghapus `resources` meninggalkan
+`price_book_entries` sebagai yatim"*. Penjelasan yang benar, di berkas
+yang benar, tepat di bawah kode yang mengulang kesalahan yang sama pada
+tabel berbeda (§8a.2).
+
+Diperbaiki: `=` → `LIKE '[TEST-RAP-EP]%'` pada empat DELETE berantai.
+Barisnya dihapus (disaring dua kali: prefiks test DAN client_id yang
+memang yatim). Sesudahnya:
+
+```
+vitest kontrak   132 lulus / 0 gagal / 6 berkas
+client_id yatim  0
+```
+
+Satu galat yang menuduh RUTE KONTRAK, penyebabnya pembersihan berkas
+LAIN berbulan sebelumnya, dan tak ada di pesan galatnya yang menunjuk
+ke sana.
+
+### Delapan belas sisanya: 403, bukan cacat rute
+
+`retensi-subkontrak-endpoint` dan `situs` sama-sama 403 di tempat yang
+mengharap 200/404/422. Diukur: `mandor:kasbon:approve` ADA dan dipegang
+219 role — jadi yang salah PEMILIHAN akun fixture, bukan izinnya.
+Kelas yang sama dengan cacat `is_active` 2026-09-11 (68 test merah dari
+satu fixture). Belum dikerjakan; dicatat supaya tak dikira cacat rute.
+
+⚠ `situs:kelola` TIDAK ADA di tabel `permissions` (0 baris). Kalau ada
+rute yang memakainya, ia menolak SEMUA orang tanpa gejala —
+`audit-izin-benar-ada.mjs` hijau, jadi kemungkinan besar tak dipakai
+kode. Belum ditelusuri; ditulis di sini supaya tak hilang.
+
+---
+
 ## 2026-09-13 (lanjutan 4) — tujuh kebohongan di layar KLIEN, ditemukan dari item cache
 
 Mengambil F4-2 ("lapis data terpusat"). Catatannya bilang 23 halaman

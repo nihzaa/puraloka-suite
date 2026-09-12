@@ -4029,7 +4029,7 @@ items:
 
   - id: TEST-SISA-49
     fase: null
-    judul: "49 test merah dari 27 berkas — sebab BERAGAM, bukan satu akar"
+    judul: "63 test merah di 24 berkas (bukan 49/27) — 14 SUDAH ditutup, sisanya sebagian besar fixture"
     status: todo
     prioritas: sedang
     catatan: |
@@ -4070,6 +4070,54 @@ items:
       Urutan yang disarankan: mulai dari yang galatnya menyebut PRASYARAT
       (ai-isolasi-tenant), sebab itu paling mungkin fixture yang bisa
       diperbaiki tanpa menyentuh produk.
+
+      ── PETA LENGKAP 2026-09-13 (bukan 49/27; dan 14 sudah ditutup)
+
+      Reporter `basic` MEMOTONG daftar berkasnya — ia cuma menyebut 2 nama
+      dari 31 berkas, dan angka "49" di atas lahir dari keluaran seperti
+      itu. Reporter JSON memberi seluruhnya:
+
+          7.313 test · 7.165 lulus · 63 gagal · 85 dilewati
+          63 kegagalan di 24 berkas
+
+      ⚠ `--outputFile` relatif dari `apps/api` mendarat di E:/Users/…,
+      bukan C:. Berkasnya ada, di drive yang salah.
+
+      Tiga berkas memuat separuhnya:
+
+          14  kontrak.test.ts                      ← SUDAH DITUTUP
+           9  retensi-subkontrak-endpoint.test.ts
+           9  situs.test.ts
+           4  gl-api · 4 lessons-writeback · 3 cecep-adopt-analisa
+           2  ai-gerbang-biaya · 2 estimate-approval
+           1  × 16 berkas lain
+
+      ── 14 kontrak: SATU baris sisa test, berbulan lalu (SELESAI)
+
+      Galat pertamanya `kontrak_client_id_fkey`, dan sisanya berantai.
+      Penyebabnya satu proyek yatim — `[TEST-RAP-EP] Proyek Lain` di
+      company NYATA — yang `client_id`-nya menunjuk klien terhapus.
+
+      `cecep-rap-endpoint.test.ts` membuat DUA proyek tapi membersihkan
+      dengan nama PERSIS (`= '[TEST-RAP-EP] Proyek'`), jadi yang kedua
+      tak pernah terhapus; kliennya dihapus tanpa syarat, dan
+      `session_replication_role='replica'` membuat FK tak menahan.
+
+      Diperbaiki (`=` → `LIKE`), barisnya dihapus. Sesudahnya:
+      `vitest kontrak` 132 lulus / 0 gagal.
+
+      ── 18 berikutnya: 403, dan itu FIXTURE bukan rute
+
+      `retensi-subkontrak-endpoint` + `situs` sama-sama 403 di tempat
+      yang mengharap 200/404/422. Diukur: `mandor:kasbon:approve` ADA
+      dan dipegang 219 role — jadi yang salah pemilihan AKUN fixture.
+      Kelas yang sama dengan cacat `is_active` 2026-09-11 (68 test merah
+      dari satu fixture, dan galatnya menuduh RUTE).
+
+      Yang mengerjakan: mulai dari fixture, JANGAN dari rutenya.
+
+      ⚠ `situs:kelola` nol baris di tabel `permissions`. Kalau ada rute
+      memakainya, ia menolak semua orang tanpa gejala. Belum ditelusuri.
 
   - id: MERGE-SUMBU-UI
     fase: null
