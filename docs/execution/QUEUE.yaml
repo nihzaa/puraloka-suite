@@ -4119,6 +4119,49 @@ items:
       ⚠ `situs:kelola` nol baris di tabel `permissions`. Kalau ada rute
       memakainya, ia menolak semua orang tanpa gejala. Belum ditelusuri.
 
+      ── 9 retensi-subkontrak: DITELUSURI, belum ketemu — jangan ulangi jalur ini
+
+      Diselidiki 2026-09-13. Gejalanya:
+
+          {"error":"Akses ditolak. Butuh permission: mandor:kasbon:approve"}
+          expected 403 to be 200/201/422
+
+      TUJUH lapis diperiksa, dan SEMUANYA mengatakan seharusnya LULUS —
+      jadi jangan buang waktu mengulanginya:
+
+        1. izin ADA di tabel `permissions`                        ✅
+        2. dipegang 219 role (admin, direktur, manajer_keuangan)  ✅
+        3. `get_role_permissions('admin')` → 228 izin, termasuk
+           `mandor:kasbon:approve`                                ✅
+        4. harness `authIdForRole` menyaring `is_active` + wajib
+           punya keanggotaan + `ORDER BY created_at` (stabil)     ✅
+        5. admin terpilih `nizarzul16@gmail.com` — punya izinnya  ✅
+        6. company yang dipilih test (induk tertua, Puraloka
+           Persada) SAMA dengan company default admin itu         ✅
+        7. ketiga `company_members`-nya `is_active=true`,
+           `role_id` terisi, peran per-keanggotaan = admin        ✅
+
+      ⚠ Jalur yang SALAH saya duga dua kali, dicatat supaya tak diulang:
+        · "fixture memilih akun mandor" — SALAH. `mandorUserId` cuma
+          data (pemilik kasbon); yang memanggil rute `adminAuth`.
+        · "mandor tak punya izinnya" — BENAR tapi TAK RELEVAN, dan itu
+          memang DISENGAJA: `mandor:kasbon:approve` berarti "menyetujui
+          kasbon MILIK mandor", dipegang admin/direktur/keuangan.
+          Namanya yang menyesatkan, bukan datanya.
+
+      Artinya sebabnya hidup DI DALAM permintaan yang berjalan, bukan di
+      data — kemungkinan besar `resolveCompanyId()` memulangkan peran
+      yang berbeda saat `getUser` di-mock. Langkah berikutnya BUKAN
+      query lagi, melainkan menyuntik log di `authenticate()`
+      (`hasil.peran`, `request.currentUser.role`, `companyId`) lalu
+      menjalankan SATU test.
+
+      Sembilan kegagalan `situs.test` bergejala sama (403 di tempat yang
+      mengharap 200/404/422) — periksa bersamaan, kemungkinan satu akar.
+
+      ⚠ `situs:kelola` NOL baris di tabel `permissions`. Kalau ada rute
+      memakainya, ia menolak SEMUA orang tanpa gejala.
+
   - id: MERGE-SUMBU-UI
     fase: null
     judul: "73 commit tertahan di feat/sumbu-ui-roadmap — 11 migrasinya SUDAH jalan di basis"
