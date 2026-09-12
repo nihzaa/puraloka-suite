@@ -4040,6 +4040,40 @@ items:
         node apps/api/scripts/audit-migrasi-tertinggal-deploy.mjs
         git log --oneline origin/main..feat/sumbu-ui-roadmap | wc -l
 
+      ── Diukur ulang 2026-09-13 (belum dikerjakan — cakupannya BERTAMBAH)
+
+      Perintah ukur di atas dijalankan. Angka "73 commit" masih benar,
+      tetapi itu hanya SATU ARAH, dan arah sebaliknya jauh lebih besar:
+
+          origin/main..feat/sumbu-ui-roadmap :  73 commit  (yang tertahan)
+          feat/sumbu-ui-roadmap..origin/main : 763 commit  (yang TERTINGGAL)
+
+      Cabang bercabang di `6eab7303`, dan commit terakhirnya 2026-08-22 —
+      tiga minggu lalu.
+
+      Permukaan bentroknya terukur, bukan ditaksir:
+
+          berkas disentuh cabang                : 359
+          disentuh KEDUA sisi (calon bentrok)   : 222
+
+      222 dari 359 adalah 62%. Ini bukan merge yang "butuh suite penuh
+      sesudahnya" seperti tertulis di atas — ia butuh penyelesaian bentrok
+      per-berkas, dan tiap penyelesaian adalah keputusan yang bisa salah
+      tanpa bergejala.
+
+      ⚠ Dan satu hal yang membuatnya TIDAK boleh dikerjakan sambil lalu:
+      basis ini punya 49 test merah yang PRA-ADA (TEST-SISA-49). Selama
+      angka itu belum nol atau belum dipetakan per-berkas, kegagalan
+      SESUDAH merge tak bisa dibedakan dari kegagalan yang sudah ada —
+      dan "sudah merah sebelumnya" adalah cerita paling nyaman untuk
+      menutup bug yang baru saja dibuat sendiri.
+
+      Urutan yang benar: TEST-SISA-49 lebih dulu (atau minimal daftar
+      nama berkas merahnya dibekukan), baru merge ini.
+
+      Kesebelas migrasinya SUDAH jalan di basis dev, jadi tak ada yang
+      rusak hari ini. Yang berisiko basis BARU (VPS bersih, CI dari nol).
+
   - id: MOBILE-NATIVE-G2
     fase: null
     judul: "Gelombang 2 — TINGGAL SATU baris mati (bukan sebelas; diukur 2026-09-13)"
