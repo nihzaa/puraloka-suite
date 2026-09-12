@@ -736,6 +736,50 @@ npx --yes pnpm@9.15.5 install --frozen-lockfile --lockfile-only
 Keluarga yang sama sepanjang hari itu: `curl` 200 tapi browser 500 (CORS) ·
 `tsc` hijau tapi Metro gagal · `netstat` LISTENING tapi prosesnya mati.
 **Tiap lapisan menjawab benar untuk dirinya sendiri.**
+### 7b. Web — `next build` GAGAL di Windows pada tahap terakhir, dan itu BUKAN kode Anda
+
+Diukur 2026-09-13. `npx next build` di `apps/web` berakhir dengan:
+
+```
+Error: EPERM: operation not permitted, symlink
+  '..\client-only@0.0.1\node_modules\client-only' ->
+  '…\.next\standalone\node_modules\.pnpm\node_modules\client-only'
+```
+
+Exit code 1 — dan itu terbaca seperti build yang gagal karena perubahan
+terakhir Anda. Bukan. Yang gagal **tahap penyalinan `standalone`**, yang
+berjalan SESUDAH semuanya selesai:
+
+```
+✓ Compiled successfully in 9.2s
+✓ Generating static pages (278/278)
+⚠ Failed to copy traced files … EPERM      ← baru di sini
+```
+
+Sebabnya: `output: 'standalone'` membuat symlink, dan Windows menolaknya
+kecuali Developer Mode menyala atau prosesnya admin. pnpm memperparah
+sebab seluruh `node_modules`-nya memang berbasis link.
+
+**Cara membedakan "build rusak" dari "Windows menolak symlink":**
+
+```bash
+cd apps/web && npx next build 2>&1 | grep -E "Compiled|Generating static|error"
+```
+
+Kalau `✓ Compiled successfully` DAN `✓ Generating static pages` muncul,
+kode Anda sah — sisanya keterbatasan lingkungan. CI berjalan di Linux,
+tempat symlink bekerja normal.
+
+⚠ Jangan "memperbaiki" ini dengan mematikan `output: 'standalone'`.
+Deploy VPS memakainya (`infra/`), dan mematikannya di sini akan membuat
+container produksi kehilangan `node_modules`-nya — gagal jauh kemudian,
+di tempat yang tak menyebut penyebabnya.
+
+⚠ Dan jangan membaca daftar halaman di pesan EPERM sebagai daftar
+halaman bermasalah: yang disebut di sana (`keuangan/invoice`,
+`keuangan/kasbon`, `_not-found`) cuma halaman yang kebetulan menarik
+dependensi ber-symlink. Nol hubungan dengan isinya.
+
 ## 8. Kejujuran (CHARTER §7 — tidak bisa ditawar)
 
 - Dilarang mengklaim test hijau tanpa menempelkan ringkasan run sungguhan.
