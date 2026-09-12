@@ -5,6 +5,64 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-13 (lanjutan 2) — dua entri QUEUE yang ternyata sudah selesai
+
+Tak ada kode yang berubah di sini. Yang berubah: dua entri yang
+menyatakan pekerjaan tersisa, padahal pekerjaannya sudah ada — atau
+memang tak boleh dikerjakan.
+
+### `MOBILE-DISPLAY-SISA-LAYAR` — judulnya basi saat dibaca
+
+Judul: *"baru dipakai 2 layar dari 19"*. Diukur: **lima** layar
+aplikasi sudah memakainya (persetujuan, kasbon, keuangan, akuntansi,
+laporan). Tiga dari lima kandidat yang didaftarkan entri itu sendiri
+ternyata sudah dikerjakan.
+
+Dua kandidat sisanya SENGAJA tidak dikerjakan, dan itu mematuhi aturan
+entrinya sendiri: `estimasi` dan `kontrak` keduanya `FlatList` berisi
+kartu berulang. Nominalnya ada di TIAP BARIS, dan
+`ListHeaderComponent` keduanya cuma memuat saringan — tak ada nilai
+agregat.
+
+Menaikkan ukuran di sana melanggar "SATU display per layar" dengan
+cara paling buruk: bukan dua pemimpin, melainkan dua puluh. Skalanya
+kembali rata, hanya dengan angka lebih besar.
+
+Entri itu menulis *"jangan menaikkan ukuran hanya karena bisa"*.
+Diukur; tidak memimpin; tidak dinaikkan.
+
+### `MOBILE-NATIVE-G2` — baris mati terakhir memang harus mati
+
+Entri meminta pencarinya mencari sendiri baris mana yang mati, sebab
+penjaga hanya mencacah. Dipakai parser penjaganya sendiri: 23 entri,
+1 mati, pelakunya `jadwal`.
+
+Dan `jadwal` sudah dijelaskan panjang di entri yang sama:
+`/api/v1/jadwal` adalah PENJADWAL OTOMASI, bukan jadwal proyek. Kurva S
+sudah ada di `kurva-s/[id]`, dan pintunya di tab Progres detail proyek
+— diverifikasi hari ini, `router.push` di `proyek/[id].tsx:596` nyata.
+
+Baris mati adalah salah satu dari DUA keadaan yang SAH menurut
+penjaganya sendiri. Ini keputusan yang sudah diambil, bukan pekerjaan
+yang tertinggal.
+
+### Saya salah — pada alat ukur, lagi
+
+Mencari baris mati dengan regex karangan sendiri: membaca **7 dari 23**
+entri lalu melaporkan "(nol) tanpa nativeJalur". Nol dari korpus yang
+tak terbaca, dibaca sebagai ketiadaan.
+
+Dan sekali lagi saat menyunting QUEUE: backtick di dalam string
+bash yang dikutip ganda dijalankan sebagai substitusi perintah, dan
+lima baris catatan masuk dengan identifier TERHAPUS. Ketahuan karena
+membaca hasilnya, bukan karena ada galat — `node` exit 0. Dikembalikan
+dengan `git checkout` lalu diulang lewat heredoc.
+
+Tiga kesalahan alat ukur dalam satu hari, ketiganya bentuk yang sama:
+**perintah yang berhasil dijalankan bukan bukti perintah yang benar.**
+
+---
+
 ## 2026-09-13 (lanjutan) — haptik: paket yang terpasang setahun, dipakai di satu berkas
 
 `MOBILE-HAPTIK-BELUM-DIPAKAI` menawarkan dua pilihan sah: pakai, atau

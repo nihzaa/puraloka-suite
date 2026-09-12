@@ -3796,8 +3796,9 @@ items:
 
   - id: MOBILE-DISPLAY-SISA-LAYAR
     fase: F5
-    judul: "tingkat HURUF.display baru dipakai 2 layar dari 19 — sisanya masih memimpin pada 17px"
-    status: todo
+    judul: "tingkat HURUF.display — SELESAI: 5 layar, dan dua kandidat sisanya memang tak boleh"
+    status: selesai
+    selesai: 2026-09-13
     prioritas: sedang
     catatan: |
       Founder memilih kandidat C 2026-09-12 (banding tiga kandidat, dirender
@@ -3829,6 +3830,36 @@ items:
 
       Ukur yang belum memakainya:
         grep -rL "HURUF.display" apps/mobile/app/\(app\)/*/index.tsx
+
+      ── ✅ SELESAI 2026-09-13 — dan judul di atas SUDAH BASI saat dibaca
+
+      Judulnya berbunyi "2 layar dari 19". Diukur hari ini: LIMA layar
+      aplikasi sudah memakainya —
+
+          persetujuan · kasbon · keuangan · akuntansi · laporan
+
+      Tiga dari lima kandidat yang didaftarkan entri ini ternyata sudah
+      dikerjakan. Angka di judul membusuk persis seperti yang
+      diperingatkan pembuka CLAUDE.md.
+
+      ── Dua kandidat sisanya SENGAJA tidak dikerjakan
+
+      `estimasi` dan `kontrak` keduanya FlatList berisi kartu berulang —
+      nominalnya ada di TIAP BARIS, bukan satu angka yang memimpin.
+      `ListHeaderComponent` keduanya cuma memuat saringan dan keadaan
+      galat; tak ada nilai agregat di sana.
+
+      Menaikkan ukuran di sana melanggar aturan entri ini sendiri (SATU
+      display per layar) dengan cara paling buruk: bukan dua pemimpin,
+      melainkan DUA PULUH. Skalanya kembali rata, hanya dengan angka
+      yang lebih besar — persis yang diperingatkan di atas.
+
+      Ini sebabnya entri ini menulis "ukur dulu apakah angkanya memang
+      memimpin di sana (jangan menaikkan ukuran hanya karena bisa)".
+      Diukur; tidak memimpin; tidak dinaikkan.
+
+      Kelimanya diperiksa: masing-masing TEPAT SATU `HURUF.display`,
+      nol `displayBesar`, dan semuanya nilai agregat — bukan baris daftar.
 
   - id: MOBILE-HAPTIK-BELUM-DIPAKAI
     fase: F5
@@ -4012,7 +4043,8 @@ items:
   - id: MOBILE-NATIVE-G2
     fase: null
     judul: "Gelombang 2 — TINGGAL SATU baris mati (bukan sebelas; diukur 2026-09-13)"
-    status: todo
+    status: selesai
+    selesai: 2026-09-13
     prioritas: tinggi
     catatan: |
       Keputusan founder 2026-09-11: "saya gamau ada webview lagi, suka gagal
@@ -4154,6 +4186,35 @@ items:
       Tipe rute expo-router dihasilkan saat build — kalau `nativeJalur`
       memerahkan tsc, regenerasi dulu (`npx expo customize tsconfig.json`),
       jangan mengubah tipenya jadi `string`.
+
+      ── ✅ SELESAI 2026-09-13 — dan baris mati terakhir memang HARUS mati
+
+      Entri ini meminta yang mengerjakannya mencari sendiri baris mana yang
+      mati, sebab penjaga hanya mencacah. Dicari dengan parser penjaganya
+      sendiri (`audit-modul-mobile-nyata.mjs`), bukan regex baru:
+
+          23 entri terbaca · 1 baris MATI · pelakunya: `jadwal`
+
+      Dan `jadwal` sudah dijelaskan panjang di catatan atas: `/api/v1/jadwal`
+      adalah PENJADWAL OTOMASI, bukan jadwal proyek. Membangun layar di
+      atasnya menghasilkan layar yang JALAN dan memperlihatkan hal yang
+      keliru — kegagalan yang lebih mahal daripada layar yang tak ada.
+
+      Kurva S sendiri SUDAH ADA (`kurva-s/[id]`), dan pintunya di tab
+      Progres halaman detail proyek — diverifikasi hari ini di
+      `proyek/[id].tsx:596`, `router.push` ke rute itu benar-benar ada.
+      Ditaruh di sana sebab orang sudah memilih proyeknya; menaruhnya di
+      "Lainnya" berarti entri yang ditekan lalu bertanya "proyek mana?".
+
+      Jadi keadaan akhirnya BUKAN pekerjaan yang tersisa, melainkan
+      keputusan yang sudah diambil dan ditulis alasannya. Penjaga
+      `audit-modul-mobile-nyata.mjs` sendiri menyatakan baris mati sebagai
+      salah satu dari DUA keadaan yang sah — bukan kegagalan.
+
+      ⚠ Saya salah sekali sebelum sampai ke sini: mencari baris mati dengan
+      regex karangan sendiri, yang membaca 7 dari 23 entri lalu melaporkan
+      "(nol) tanpa nativeJalur". Nol dari korpus yang tak terbaca, dibaca
+      sebagai ketiadaan — kelas kesalahan yang persis diperingatkan §7a.
 
   - id: MOBILE-NCR-BERAT-KRITIS
     fase: null
