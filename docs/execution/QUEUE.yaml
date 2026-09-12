@@ -684,6 +684,57 @@ items:
         find apps/web/app -name page.tsx | wc -l
         cd apps/api && node scripts/audit-halaman-pakai-cache.mjs
 
+      ── Diukur ulang 2026-09-13: BUKAN 23, tetapi 7 — lalu 6
+
+      Angka "23" di atas pun sudah basi (pelajaran di bawahnya tepat, dan
+      berlaku untuk angkanya sendiri). Terukur hari ini: 7 halaman.
+
+      Ketujuhnya diperiksa SATU PER SATU, dan LIMA di antaranya bukan
+      pelanggaran — mereka punya kebutuhan yang `useData` memang tak bisa
+      penuhi:
+
+          procurement/permintaan  bacaDenganCache — cache LURING + penanda basi
+          lapangan/inspeksi       bacaDenganCache — sama
+          keuangan/arus-kas       debounce 300ms + AbortController + 2 paralel
+          notifications           paginasi akumulatif (prev => [...prev, ...baru])
+          laporan                 paginasi
+
+      `useData` hanya punya dua opsi: `segar` dan `paksa`. Dua halaman
+      pertama bahkan punya lapis yang LEBIH baik — `bacaDenganCache`
+      menyimpan jawaban terakhir di perangkat dengan penanda usianya,
+      dibangun persis untuk mandor di lokasi tanpa sinyal.
+
+      ⚠ Jadi penjaga ini mengukur satu TEKNIK, bukan HASILNYA. Hijau-nya
+      tak berarti "semua halaman ber-cache", dan merahnya tak selalu
+      berarti ada yang salah.
+
+      ── Dua yang DIKERJAKAN, dan cacatnya lebih besar dari cache-nya
+
+      `portal/proyek/[id]` — halaman yang dibuka PEMBERI KERJA — punya
+      TUJUH `.catch(() => {})`. Tiap tab: gagal muat → galat ditelan →
+      layar menulis "Belum ada foto progres" / "Belum ada inspeksi" /
+      "Data Kurva S belum tersedia". Kalimat yang menyatakan proyeknya
+      memang belum punya data, padahal permintaannya GAGAL.
+
+      Ketujuhnya dipindah ke `useData`; tiap tab kini membedakan TIGA
+      keadaan: memuat · galat · kosong-sungguhan.
+
+      `mandor-portal/progress` — dua cacat:
+        1. `loadLogs` tanpa `.catch` — riwayat gagal muat terbaca sebagai
+           "belum ada laporan", dan mandor melapor ULANG.
+        2. `/api/v1/projects?limit=100` diambil lalu DIBUANG
+           (`.then(([aRes]) => …)` hanya membaca elemen pertama).
+
+      Lantai diturunkan 7 → 6.
+
+      ⚠ Lima sisanya SENGAJA dibiarkan di lantai. Bentuknya salah —
+      mereka keputusan, bukan hutang — tetapi menurunkan lantai ke 0
+      menuntut daftar pengecualian di penjaga, dan pengecualian yang
+      ditulis buru-buru lebih berbahaya daripada lantai yang sedikit
+      terlalu tinggi. Kalau ada yang melanjutkan: kecualikan berdasarkan
+      BENTUK (pemakaian `bacaDenganCache`, `offset`/`hasMore`, debounce),
+      bukan daftar nama berkas.
+
   - id: F4-3
     fase: 4
     judul: "Offline-first jalur lapangan (progress, foto, kasbon)"

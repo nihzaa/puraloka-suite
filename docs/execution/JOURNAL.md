@@ -5,6 +5,98 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-13 (lanjutan 4) — tujuh kebohongan di layar KLIEN, ditemukan dari item cache
+
+Mengambil F4-2 ("lapis data terpusat"). Catatannya bilang 23 halaman
+tersisa; diukur: **7**. Lalu tujuhnya diperiksa satu per satu, dan
+hasilnya bukan yang saya duga.
+
+### Lima dari tujuh BUKAN pelanggaran
+
+`audit-halaman-pakai-cache.mjs` mencari `useData`. Yang tak memakainya
+dihitung melanggar — tetapi lima di antaranya punya kebutuhan yang
+`useData` memang TIDAK bisa penuhi:
+
+```
+procurement/permintaan  bacaDenganCache — cache OFFLINE + penanda basi
+lapangan/inspeksi       bacaDenganCache — sama
+keuangan/arus-kas       debounce 300ms + AbortController + 2 permintaan paralel
+notifications           paginasi akumulatif (prev => [...prev, ...baru])
+laporan                 paginasi
+```
+
+`useData` hanya punya dua opsi: `segar` dan `paksa`. Tak ada debounce,
+tak ada abort, tak ada paginasi, tak ada simpanan luring.
+
+Dua halaman pertama bahkan punya lapis yang LEBIH baik: `bacaDenganCache`
+menyimpan jawaban terakhir di perangkat dan menandai usianya — dibangun
+persis untuk mandor di lokasi tanpa sinyal. Memindahkannya ke `useData`
+adalah penurunan mutu.
+
+Penjaga itu mengukur satu TEKNIK, bukan HASILNYA. Kelas yang sama dengan
+"skeleton 8%" yang saya laporkan salah kemarin.
+
+### Yang ditemukan justru lebih besar dari cache-nya
+
+**`portal/proyek/[id]` — halaman yang dibuka PEMBERI KERJA — punya TUJUH
+`.catch(() => {})`.**
+
+Tiap tab: gagal muat → galat ditelan → `loading` selesai dengan data
+kosong → layar menulis **"Belum ada foto progres"**, "Belum ada
+inspeksi", "Data Kurva S belum tersedia".
+
+Kalimat-kalimat itu menyatakan proyeknya memang belum punya data.
+Padahal permintaannya GAGAL. Klien membaca laporan yang salah tentang
+pekerjaan yang ia bayar — dan tak ada satu pun galat di mana pun.
+
+Ketujuhnya dipindah ke `useData`, dan tiap tab kini membedakan TIGA
+keadaan yang sebelumnya jadi satu: memuat · galat · kosong-sungguhan.
+
+**`mandor-portal/progress` — dua cacat:**
+
+1. `loadLogs` TAK punya `.catch` sama sekali. Gagal memuat riwayat →
+   `logs` tetap kosong → "belum ada laporan". Mandor yang sudah melapor
+   kemarin membacanya sebagai laporannya HILANG, lalu melapor ulang:
+   satu pekerjaan, dua catatan progres.
+2. `Promise.all` memanggil `/api/v1/projects?limit=100` lalu MEMBUANG
+   hasilnya — `.then(([aRes]) => …)` hanya membaca elemen pertama.
+   Sampai 100 baris diambil tiap halaman dibuka, tak pernah dipakai;
+   daftar proyeknya diturunkan dari `assignments`. Tak bergejala:
+   permintaannya berhasil, layarnya benar. Yang terbayar kuota dan waktu
+   muat mandor — di tempat sinyal paling mahal.
+
+### Saya salah — dua kali, keduanya tertangkap sebelum commit
+
+**Pertama**, memindahkan tujuh tab lalu menempelkan `tsc exit 0`. Saya
+hampir berhenti di situ. Pemeriksaan berikutnya: `galat` dideklarasikan
+7×, DIRENDER hanya **3×**. Empat tab men-destructure `galat` lalu
+mengabaikannya — silent failure yang sama dalam bentuk baru, dan `tsc`
+hijau sebab variabel destructuring yang tak dipakai bukan galat.
+
+**Kedua**, `FotoTab` — `useState` lama tak ikut terhapus, dan ikonnya
+(`ImageIcon`) tak pernah diimpor; di berkas itu lucide `Image`
+di-alias jadi `IconClose`. Keduanya dimerahkan `tsc`.
+
+### Bukti
+
+```
+useData dipanggil       7
+if (galat) dirender     7      <- dari 3, sesudah diperiksa
+catch(() => {}) sisa    0      <- dari 7
+halaman tanpa cache     7 -> 6 (lantai diturunkan ke 6)
+tsc web                 exit 0
+semua penjaga           243 hijau · 0 MERAH · 4 dilewati · 0 tak ketemu
+```
+
+⚠ Lima halaman sisanya SENGAJA dibiarkan. Lantai 6 menyimpan mereka
+sebagai hutang, dan itu salah bentuk: mereka bukan hutang, mereka
+keputusan. Tapi menurunkan lantai ke 0 butuh mengecualikan mereka di
+penjaga, dan pengecualian yang ditulis buru-buru lebih berbahaya
+daripada lantai yang sedikit terlalu tinggi. Dicatat, tidak ditutup
+dengan cerita.
+
+---
+
 ## 2026-09-13 (lanjutan 3) — SAYA yang memerahkan ratchet tenancy, dan saya baru tahu 3 jam kemudian
 
 Menjalankan suite penuh untuk mengukur ulang TEST-SISA-49. Hasilnya bukan

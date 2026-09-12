@@ -24,6 +24,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import {
   MapPin, Calendar, TrendingUp, CheckCircle2, Clock,
@@ -155,17 +156,27 @@ interface KurvaSData {
 // ─── Sub-tabs ─────────────────────────────────────────────────────────────────
 
 function KurvaSTab({ projectId }: { projectId: string }) {
-  const [data, setData] = useState<KurvaSData | null>(null);
-  const [loading, setLoading] = useState(true);
+  /*
+    `useData` — BUKAN useEffect+useState, dan bukan hanya soal cache.
 
-  useEffect(() => {
-    api.get(`/api/v1/projects/${projectId}/kurva-s`)
-      .then((res) => setData(res.data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [projectId]);
+    Versi sebelumnya menutup galatnya dengan `.catch(() => {})`, lalu
+    `loading` selesai dengan data KOSONG. Yang tampil ke layar KLIEN:
+    "Belum ada …" — kalimat yang menyatakan proyeknya memang belum punya
+    data, padahal permintaannya GAGAL.
+
+    Tujuh tab di halaman ini berbunyi begitu (2026-09-13). Ini halaman
+    yang dibuka PEMBERI KERJA: memberitahunya "belum ada foto progres"
+    saat sebenarnya jaringan putus adalah kebohongan yang merusak
+    kepercayaan pada laporan yang lain juga.
+
+    `useData` memisahkan tiga keadaan yang sebelumnya jadi satu:
+    memuat · galat · kosong-yang-sungguhan.
+  */
+  const { data, memuat: loading, galat } =
+    useData<KurvaSData>(`/api/v1/projects/${projectId}/kurva-s`);
 
   if (loading) return <SkeletonCard tinggi={280} />;
+  if (galat) return <EmptyState icon={TrendingUp} judul="Kurva S tak bisa dimuat" deskripsi="Sambungan ke server terputus. Muat ulang halaman ini." />;
   if (!data) return <EmptyState icon={TrendingUp} judul="Data Kurva S belum tersedia" deskripsi="Grafik akan muncul begitu progres tercatat." />;
 
   const { meta, chartData } = data;
@@ -209,17 +220,12 @@ function KurvaSTab({ projectId }: { projectId: string }) {
 }
 
 function GanttTab({ projectId }: { projectId: string }) {
-  const [items, setItems] = useState<GanttItem[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api.get(`/api/v1/projects/${projectId}/rab/gantt`)
-      .then((res) => setItems(res.data?.tasks ?? res.data ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [projectId]);
+  const { data: balasan, memuat: loading, galat } =
+    useData<{ tasks?: GanttItem[] } | GanttItem[]>(`/api/v1/projects/${projectId}/rab/gantt`);
+  const items: GanttItem[] = Array.isArray(balasan) ? balasan : (balasan?.tasks ?? []);
 
   if (loading) return <SkeletonCard tinggi={200} />;
+  if (galat) return <EmptyState icon={Calendar} judul="Jadwal tak bisa dimuat" deskripsi="Sambungan ke server terputus. Muat ulang halaman ini." />;
   if (!items.length) return <EmptyState icon={Calendar} judul="Jadwal belum diinput" deskripsi="Jadwal pelaksanaan akan muncul di sini." />;
 
   const startDates = items.filter((t) => t.planned_start).map((t) => new Date(t.planned_start!).getTime());
@@ -293,24 +299,20 @@ function GanttTab({ projectId }: { projectId: string }) {
 }
 
 function FotoTab({ projectId }: { projectId: string }) {
-  const [photos, setPhotos] = useState<Photo[]>([]);
-  const [loading, setLoading] = useState(true);
   const [filterCat, setFilterCat] = useState<string>("all");
   const [lightbox, setLightbox] = useState<number | null>(null);
 
   useTutupEsc(lightbox !== null ? () => setLightbox(null) : null);
 
-  useEffect(() => {
-    api.get(`/api/v1/projects/${projectId}/photos`)
-      .then((res) => setPhotos(res.data?.photos ?? res.data ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [projectId]);
+  const { data: balasanFoto, memuat: loading, galat } =
+    useData<{ photos?: Photo[] } | Photo[]>(`/api/v1/projects/${projectId}/photos`);
+  const photos: Photo[] = Array.isArray(balasanFoto) ? balasanFoto : (balasanFoto?.photos ?? []);
 
   const cats = ["all", ...Array.from(new Set(photos.map((p) => p.category)))];
   const filtered = filterCat === "all" ? photos : photos.filter((p) => p.category === filterCat);
 
   if (loading) return <SkeletonCard tinggi={200} />;
+  if (galat) return <EmptyState icon={IconClose} judul="Foto tak bisa dimuat" deskripsi="Sambungan ke server terputus. Muat ulang halaman ini." />;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
@@ -397,15 +399,9 @@ function FotoTab({ projectId }: { projectId: string }) {
 }
 
 function DokumenTab({ projectId }: { projectId: string }) {
-  const [docs, setDocs] = useState<Document[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api.get(`/api/v1/projects/${projectId}/documents`)
-      .then((res) => setDocs(res.data?.documents ?? res.data ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [projectId]);
+  const { data: balasanDok, memuat: loading, galat } =
+    useData<{ documents?: Document[] } | Document[]>(`/api/v1/projects/${projectId}/documents`);
+  const docs: Document[] = Array.isArray(balasanDok) ? balasanDok : (balasanDok?.documents ?? []);
 
   function fmtSize(bytes: number | null) {
     if (!bytes) return "";
@@ -414,6 +410,7 @@ function DokumenTab({ projectId }: { projectId: string }) {
   }
 
   if (loading) return <SkeletonCard tinggi={80} />;
+  if (galat) return <EmptyState icon={FileText} judul="Dokumen tak bisa dimuat" deskripsi="Sambungan ke server terputus. Muat ulang halaman ini." />;
   if (!docs.length) return <EmptyState icon={FileText} judul="Belum ada dokumen yang dibagikan" deskripsi="Kontrak/SPK/gambar kerja akan muncul di sini." />;
 
   return (
@@ -446,17 +443,12 @@ function DokumenTab({ projectId }: { projectId: string }) {
 }
 
 function PunchListTab({ projectId }: { projectId: string }) {
-  const [items, setItems] = useState<PunchItemKlien[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api.get(`/api/v1/projects/${projectId}/punch-items`)
-      .then((res) => setItems(res.data?.data ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [projectId]);
+  const { data: balasanPunch, memuat: loading, galat } =
+    useData<{ data?: PunchItemKlien[] }>(`/api/v1/projects/${projectId}/punch-items`);
+  const items: PunchItemKlien[] = balasanPunch?.data ?? [];
 
   if (loading) return <SkeletonCard tinggi={80} />;
+  if (galat) return <EmptyState icon={ClipboardCheck} judul="Temuan tak bisa dimuat" deskripsi="Sambungan ke server terputus. Muat ulang halaman ini." />;
   if (!items.length) return <EmptyState icon={ClipboardCheck} judul="Belum ada temuan" deskripsi="Temuan cacat/kekurangan pekerjaan akan muncul di sini." />;
 
   return (
@@ -476,17 +468,12 @@ function PunchListTab({ projectId }: { projectId: string }) {
 }
 
 function InspeksiTab({ projectId }: { projectId: string }) {
-  const [items, setItems] = useState<InspeksiKlien[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api.get(`/api/v1/projects/${projectId}/inspections`)
-      .then((res) => setItems(res.data?.data ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [projectId]);
+  const { data: balasanInsp, memuat: loading, galat } =
+    useData<{ data?: InspeksiKlien[] }>(`/api/v1/projects/${projectId}/inspections`);
+  const items: InspeksiKlien[] = balasanInsp?.data ?? [];
 
   if (loading) return <SkeletonCard tinggi={80} />;
+  if (galat) return <EmptyState icon={FileQuestion} judul="Inspeksi tak bisa dimuat" deskripsi="Sambungan ke server terputus. Muat ulang halaman ini." />;
   if (!items.length) return <EmptyState icon={FileQuestion} judul="Belum ada inspeksi" deskripsi="Izin cor/tutup pekerjaan akan muncul di sini." />;
 
   return (
@@ -506,17 +493,12 @@ function InspeksiTab({ projectId }: { projectId: string }) {
 }
 
 function SubmittalTab({ projectId }: { projectId: string }) {
-  const [items, setItems] = useState<SubmittalKlien[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api.get(`/api/v1/projects/${projectId}/submittals`)
-      .then((res) => setItems(res.data?.data ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [projectId]);
+  const { data: balasanSub, memuat: loading, galat } =
+    useData<{ data?: SubmittalKlien[] }>(`/api/v1/projects/${projectId}/submittals`);
+  const items: SubmittalKlien[] = balasanSub?.data ?? [];
 
   if (loading) return <SkeletonCard tinggi={80} />;
+  if (galat) return <EmptyState icon={FileStack} judul="Submittal tak bisa dimuat" deskripsi="Sambungan ke server terputus. Muat ulang halaman ini." />;
   if (!items.length) return <EmptyState icon={FileStack} judul="Belum ada submittal" deskripsi="Material/shop drawing yang diajukan akan muncul di sini." />;
 
   return (

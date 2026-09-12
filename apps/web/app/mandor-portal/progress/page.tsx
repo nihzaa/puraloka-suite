@@ -95,20 +95,48 @@ export default function MandorProgressPage() {
 
   function loadData() {
     setGalatMuat(null);
-    return Promise.all([
-      api.get("/api/v1/mandor/assignments"),
-      api.get("/api/v1/projects?limit=100"),
-    ]).then(([aRes]) => {
-      setAssignments(aRes.data?.assignments ?? []);
-    }).catch((e) => {
-      setGalatMuat(pesanGalat(e, "Coba muat ulang halaman ini."));
-    }).finally(() => setLoading(false));
+    /*
+      ⚠ Sampai 2026-09-13 fungsi ini juga memanggil
+      `/api/v1/projects?limit=100` — lalu MEMBUANG hasilnya:
+
+          .then(([aRes]) => { … })     <- hanya elemen PERTAMA dibaca
+
+      Sampai 100 baris proyek diambil tiap kali halaman dibuka, diurai,
+      lalu dilempar. Daftar proyek di layar ini tidak berasal dari sana
+      sama sekali — ia diturunkan dari `assignments` (lihat `projects`
+      di bawah), yang memang sudah membawa proyeknya.
+
+      Tak bergejala: permintaannya BERHASIL, tak ada galat, dan layarnya
+      benar sebab sumber datanya memang yang satunya. Yang terbayar cuma
+      kuota dan waktu muat mandor di lapangan — tempat sinyalnya paling
+      mahal.
+    */
+    return api.get("/api/v1/mandor/assignments")
+      .then((aRes) => {
+        setAssignments(aRes.data?.assignments ?? []);
+      }).catch((e) => {
+        setGalatMuat(pesanGalat(e, "Coba muat ulang halaman ini."));
+      }).finally(() => setLoading(false));
   }
 
   function loadLogs(pid: string) {
     if (!pid) return;
     api.get(`/api/v1/projects/${pid}/progress-logs`).then((res) => {
       setLogs(res.data?.logs ?? []);
+    }).catch((e) => {
+      /*
+        ⚠ Versi sebelumnya TAK punya `.catch` sama sekali.
+
+        Gagal memuat riwayat lalu meninggalkan `logs` pada nilai
+        sebelumnya — kosong saat pertama kali — dan layar menampilkan
+        "belum ada laporan". Mandor yang sudah melapor kemarin membacanya
+        sebagai laporannya HILANG, lalu melapor ulang: satu pekerjaan,
+        dua catatan progres.
+
+        Galat MUAT dipisah dari galat AKSI (`uji-galat-muat-terpisah.mjs`),
+        jadi ia memakai `setGalatMuat`, bukan state aksi.
+      */
+      setGalatMuat(pesanGalat(e, "Riwayat progres tak bisa dimuat. Coba pilih ulang proyeknya."));
     });
   }
 
