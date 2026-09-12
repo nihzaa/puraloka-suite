@@ -5,6 +5,91 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-12 (lanjutan 3) — cost control ternyata LUNAS, dan log yang berisik
+
+Diminta melanjutkan ke "fitur ERP yang belum lengkap". Yang ditemukan
+justru sebaliknya.
+
+### Cost control: 7 dari 7 SUDAH ADA
+
+Triase founder 2026-08-01 menyebut kelompok ini "yang membedakan ERP
+kontraktor dari aplikasi pencatat biasa". Diukur ke KODE, bukan ke daftar:
+
+| Item | Lib/Rute | Layar |
+|---|---|---|
+| WIP/PSAK | `lib/wip-psak.ts` | `/laporan?tab=wip` |
+| Commitment | `cost-control.ts:788` | `/estimasi/varians` |
+| **Cost-to-complete (ETC/EAC/VAC/TCPI)** | `kurva-s.ts:483` | `/proyek/[id]` |
+| Analisa varians | `lib/varians-cost-code.ts` | `/estimasi/varians` |
+| CVR | `lib/cvr.ts` | `/keuangan/cvr` |
+| Contingency | `lib/contingency.ts` | `/keuangan/contingency` |
+| Revisi anggaran | `rap_change_log` di `rap.ts` | lewat RAP |
+
+**Cost-to-complete yang saya rencanakan bangun berikutnya sudah ada.**
+Itu kali KETIGA hari ini saya hampir/terlanjur membangun ulang sesuatu.
+
+### Saya salah TIGA kali dengan sebab yang sama
+
+1. Komitmen — dibangun, ternyata sudah ada di `cost-control.ts`
+2. Cost-to-complete — direncanakan, ternyata sudah ada di `kurva-s.ts`
+3. Revisi anggaran — dikira kosong, ternyata `rap_change_log` lengkap
+   dengan alasan + nilai lama/baru + siapa
+
+Sebabnya selalu sama: **percaya daftar (taksonomi/QUEUE), bukan mengukur
+ke kode.** CLAUDE.md §8a.4 sudah mewajibkannya, dan pembuka dokumen ini
+sudah memperingatkan dokumen membusuk. Saya tetap melewatkannya.
+
+Aturan yang saya pegang sekarang: `grep` ke `apps/api/src` + `apps/web/app`
+SEBELUM memutuskan sesuatu belum ada. Tiap kali.
+
+Yang benar-benar ditambahkan: pandangan komitmen LINTAS PROYEK —
+`/cost-analytics/portfolio` tak memuatnya sama sekali, jadi "berapa total
+uang perusahaan yang sedang terikat" hanya bisa dijawab dengan membuka
+proyek satu per satu.
+
+### 48 peringatan/hari yang tak berarti apa-apa
+
+Mensurvei pemantauan galat, diukur ke log produksi:
+
+```
+galat (level 50) 24 jam : 0
+peringatan (level 40)   : 48   <- SEMUANYA satu pesan yang sama
+   "host situs tak terdaftar di situs_domain"   host: 127.0.0.1
+```
+
+Penolakannya BENAR: situs publik meresolusi tenant dari hostname (migrasi
+564), dan loopback memang bukan domain tenant. Yang salah SIAPA YANG
+MENGETUK — healthcheck `web-publik` menembak `/` tiap 30 detik.
+
+Log produksi di sini JSON ke stdout, tanpa agregator, rotasi 30 MB. Jadi
+satu-satunya peringatan harian adalah yang tak berarti apa-apa — persis
+cara melatih orang mengabaikan level 40. Kelas yang sama dengan yang
+melahirkan `audit-jadwal-company-hidup`.
+
+Diperbaiki: `/api/health` ringan untuk `web-publik`. Terukur sesudah
+deploy — **18 info, NOL peringatan, container tetap healthy.**
+
+### Galat 5xx kini membawa konteks
+
+`app.log.error(err)` membuang correlationId, rute, user, dan tenant.
+Ditulis SEKARANG justru karena galatnya nol: yang pertama muncul nanti
+hanya bisa didiagnosis dari apa yang tercatat saat ia terjadi.
+
+Rute berparameter dicatat sebagai POLA (`/proyek/:id/...`), bukan nilai
+id-nya — tanpa itu seribu galat dari satu cacat terlihat seperti seribu
+cacat berbeda.
+
+6 test + penjaga penyimpangan yang MEMBACA `index.ts`. Uji mutasi:
+mengembalikan `request` jadi `_req` di berkas asli → MERAH dan menyebut
+medan yang hilang.
+
+**Error tracking (Sentry dsb) sengaja BELUM dipasang.** Memasang alat di
+atas log berisik cuma memindahkan kebisingan. Sekarang baselinenya
+bersih (0 warn, 0 error) dan galatnya berkonteks — kalau nanti dipasang,
+tiap notifikasi berarti sesuatu.
+
+---
+
 ## 2026-09-12 (lanjutan 2) — 125 tugas terjadwal tak pernah jalan; cron Actions berjeda 209 menit
 
 Ditemukan saat menjawab "apa lagi yang bisa disempurnakan". Bukan dari
