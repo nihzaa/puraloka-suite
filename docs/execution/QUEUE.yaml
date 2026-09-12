@@ -3757,6 +3757,43 @@ items:
 
       Diuji di dalam transaksi yang di-ROLLBACK — nol jejak di basis.
 
+  - id: MOBILE-APK-FOTO-GEOTAG
+    fase: F5
+    judul: "APK belum dibangun — perbaikan foto progres & geotag belum sampai ke HP mandor"
+    status: todo
+    prioritas: tinggi
+    catatan: |
+      Diperbaiki 2026-09-12: jalur foto progres yang patah sejak Juni
+      (multipart ke rute JSON) + geotag per foto. Terukur sebelum
+      perbaikan:
+
+          progress_logs daily : 101 · terakhir 1 Sep
+          project_photos      :  36 · terakhir 16 Jun
+          foto TERTAUT ke log :   0
+
+      ⚠ Deploy VPS TIDAK menyentuh aplikasi HP. Perbaikan ini baru
+      berlaku sesudah APK dibangun ulang lewat EAS dan dipasang di HP
+      mandor. Sampai saat itu, foto progres TETAP tak sampai — dan
+      basis akan tetap menunjukkan 0 foto tertaut.
+
+      Jangan menyimpulkan perbaikannya gagal dari angka basis sebelum
+      APK-nya diganti.
+
+      Prosedurnya: `apps/mobile/CATATAN-BUILD.md`.
+
+      ⚠ Sebelas build pernah gagal berturut-turut (CLAUDE.md §7a); yang
+      paling sering: menguji dengan pnpm 11 sementara server EAS memakai
+      9.15.5. Reproduksi dulu tanpa menunggu antrean 20 menit:
+
+          npx --yes pnpm@9.15.5 install --frozen-lockfile --lockfile-only
+
+      Cara membuktikan perbaikannya BEKERJA sesudah APK dipasang —
+      ukur ke basis, jangan percaya layar:
+
+          SELECT count(*) FILTER (WHERE progress_log_id IS NOT NULL) tertaut,
+                 count(*) FILTER (WHERE lintang IS NOT NULL) berlokasi
+            FROM project_photos;
+
   - id: MOBILE-DISPLAY-SISA-LAYAR
     fase: F5
     judul: "tingkat HURUF.display baru dipakai 2 layar dari 19 — sisanya masih memimpin pada 17px"

@@ -5,6 +5,80 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-12 (lanjutan 4) — foto progres TAK PERNAH sampai sejak Juni
+
+Diminta menambah geotag. Yang ditemukan lebih besar: jalur fotonya
+sendiri patah, dan geotag mustahil selama itu.
+
+### Bukti dari basis produksi
+
+```
+progress_logs mode=daily : 101 · terakhir 1 Sep 2026
+project_photos           :  36 · terakhir 16 Jun 2026
+foto TERTAUT ke log      :   0   <- nol, dari 101 laporan
+```
+
+Layar mengirim `FormData` ke `/progress-logs`. Rute itu membaca
+`request.body` sebagai JSON — TAK ADA penanganan multipart di dalamnya.
+Fotonya tak pernah diurai, kiriman tetap membalas 201, layar berkata
+"Berhasil".
+
+Mandor memotret sejak Juni, dan tak satu pun fotonya sampai.
+
+⚠ **Cacat ini SUDAH TERCATAT** di CLAUDE.md §6 sebagai asal-usul
+`audit-antrean-punya-rute.mjs` — "foto progres yang TAK PERNAH sampai
+(multipart vs JSON)". Penjaga itu menjaga JALUR-nya, dan kepalanya
+menyatakan sendiri ia tak menjaga BENTUK MUATAN. Jadi ia hijau, dan
+benar hijau. Cacatnya hidup di celah yang penjaganya sendiri sebutkan.
+
+### Yang diperbaiki
+
+`POST /photos/upload` (base64 JSON) — rute yang sudah ada sejak lama,
+sudah menangani geotag lengkap (`progress.ts:163`), dan **tak satu pun
+klien memanggilnya**.
+
+Urutan: log dibuat DULU supaya `progress_log_id` ada, baru foto
+menyusul. Terbalik berarti foto yatim di Storage kalau log gagal.
+
+Kegagalan foto TIDAK membatalkan laporan yang sudah tersimpan, tetapi
+DIBERITAHUKAN ("3 dari 5 foto gagal"). Mandor yang mengira fotonya
+terkirim tak akan memotret ulang — persis keadaan yang baru ditutup.
+
+### Geotag: rantai yang tinggal satu mata
+
+```
+basis   project_photos.lintang/bujur/akurasi_m/sumber_lokasi   ADA
+lib     lib/geotag.ts — jarakMeter, nilaiLokasi (+ test)       ADA
+API     progress.ts menerima & MEMVALIDASI rentang             ADA
+UI      komponen PenandaLokasi                                 ADA
+mobile  expo-location di NOL berkas                            <- ini
+```
+
+Koordinat menempel PER FOTO, bukan per log. Nol koordinat tak pernah
+menggagalkan kiriman (izin ditolak / GPS mati / fix >8 detik -> `null`).
+Akurasi `Balanced` (~100 m), bukan `Highest`: pertanyaannya "di lokasi
+proyek atau dari rumah", bukan "di titik mana dalam tapak".
+
+### Saya salah DUA kali, keduanya lolos tsc
+
+1. **Koordinat ditaruh di tingkat atas muatan.** Rute menaruhnya per
+   foto (`photos[].lintang`, `progress.ts:271`). Bidang tak dikenal di
+   tingkat atas TIDAK menggagalkan apa pun — ia diabaikan diam-diam.
+
+2. **Klaim "0 kolom koordinat di basis"** yang saya laporkan sebelumnya
+   SALAH. Kolomnya ada sejak migrasi 190; grep saya memakai nama Inggris
+   (`latitude`/`longitude`) sementara repo ini memakai `lintang`/`bujur`.
+
+Yang kedua itu pola yang sama dengan empat kesalahan ukur hari ini.
+
+### ⚠ Perbaikan mobile BELUM sampai ke HP mandor
+
+Deploy VPS tak menyentuh aplikasi HP. Perubahan ini baru berlaku sesudah
+**APK dibangun ulang lewat EAS** (`apps/mobile/CATATAN-BUILD.md`) dan
+dipasang. Sampai saat itu, foto progres tetap tak sampai.
+
+---
+
 ## 2026-09-12 (lanjutan 3) — cost control ternyata LUNAS, dan log yang berisik
 
 Diminta melanjutkan ke "fitur ERP yang belum lengkap". Yang ditemukan
