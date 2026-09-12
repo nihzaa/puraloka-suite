@@ -152,7 +152,22 @@ services:
       HOSTNAME: 0.0.0.0
     ports: ["127.0.0.1:3103:3000"]
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      # `/api/health`, BUKAN `/` — dan itu bukan sekadar kerapian.
+      #
+      # Menembak halaman depan tiap 30 detik membuatnya di-render penuh
+      # (profil, seksi, foto dari Supabase), dan yang lebih mahal: ia
+      # MENGOTORI log API. Diukur 2026-09-12 di produksi — 48 dari 48
+      # peringatan dalam 24 jam berbunyi "host situs tak terdaftar di
+      # situs_domain" dengan host 127.0.0.1.
+      #
+      # Penolakannya BENAR (situs publik meresolusi tenant dari hostname
+      # sejak migrasi 564; loopback memang bukan domain tenant). Yang salah
+      # siapa yang mengetuk.
+      #
+      # Akibatnya satu-satunya peringatan harian adalah peringatan yang tak
+      # berarti apa-apa — dan itu melatih orang mengabaikan level 40.
+      # Alasan lengkapnya di `apps/web-publik/app/api/health/route.ts`.
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       start_period: 40s
