@@ -140,6 +140,7 @@ import glRoutes from './routes/v1/gl.js'
 import assetRoutes from './routes/v1/assets.js'
 import rantaiKontrakRoutes from './routes/v1/rantai-kontrak.js'
 import wipRoutes from './routes/v1/wip.js'
+import komitmenRoutes from './routes/v1/komitmen.js'
 import { supabase } from './utils/supabase.js'
 import { registerObservability } from './utils/observability.js'
 import langgananSayaRoutes from './routes/v1/langganan-saya.js'
@@ -574,6 +575,7 @@ await app.register(glRoutes)
 await app.register(assetRoutes)
 await app.register(rantaiKontrakRoutes)
 await app.register(wipRoutes)
+await app.register(komitmenRoutes)
 
 const PORT = Number(process.env.PORT) || 3001
 
