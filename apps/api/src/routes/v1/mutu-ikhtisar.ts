@@ -29,6 +29,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { authenticate } from '../../plugins/auth.js'
 import { requireModul } from '../../utils/gerbang-modul.js'
+import { ncrBerat, ncrTerbuka, punchTerbuka } from '../../lib/keparahan.js'
 
 interface BarisNcr {
   nomor: string | null
@@ -130,7 +131,16 @@ export async function ringkasMutu(request: FastifyRequest) {
   const barisEvaluasi = evaluasi.data as unknown as BarisEvaluasi[]
   const barisPunch = punch.data as unknown as Array<{ status: string | null }>
 
-  const ncrTerbuka = barisNcr.filter((n) => n.status !== 'ditutup' && n.status !== 'closed')
+  /*
+    ⚠ Sampai 2026-09-13 baris ini berbunyi
+    `n.status !== 'ditutup' && n.status !== 'closed'`.
+
+    `'closed'` TIDAK ADA di enum `ncr_status` — perbandingannya mati dan
+    tak pernah menyaring apa pun, jadi `dibatalkan` ikut terhitung sebagai
+    temuan terbuka. Nol galat: membandingkan dengan nilai yang tak ada
+    adalah operasi yang sah, hasilnya cuma selalu `true`.
+  */
+  const ncrTerbukaList = barisNcr.filter((n) => ncrTerbuka(n.status))
 
   // Dokumen yang HABIS atau hampir habis. 30 hari dipilih karena perpanjangan
   // sertifikat/asuransi di Indonesia lazimnya butuh 2-4 minggu — peringatan
@@ -144,11 +154,20 @@ export async function ringkasMutu(request: FastifyRequest) {
   return {
     ncr: {
       total: barisNcr.length,
-      terbuka: ncrTerbuka.length,
+      terbuka: ncrTerbukaList.length,
       // Yang berat DIPISAH: satu NCR "major" menuntut tindakan berbeda dari
       // sepuluh yang "minor", dan jumlah total menyamarkan bedanya.
-      berat: ncrTerbuka.filter((n) => /major|mayor|tinggi|high/i.test(n.severity ?? '')).length,
-      daftar: ncrTerbuka.slice(0, 8).map((n) => ({
+      //
+      // ⚠ Sampai 2026-09-13 baris ini berbunyi
+      // `/major|mayor|tinggi|high/i` — pola yang MELEWATKAN `kritis`,
+      // nilai enum paling parah. Terukur di basis hari itu atas NCR
+      // TERBUKA: 6 kritis + 5 major, dan angka ini melaporkan 5 dari
+      // 11. Enam temuan paling mendesak tak terhitung.
+      //
+      // Sekarang lewat `lib/keparahan.ts`, yang daftarnya diturunkan
+      // dari `pg_enum` dan dijaga `audit-keparahan-sepakat.mjs`.
+      berat: ncrTerbukaList.filter((n) => ncrBerat(n.severity)).length,
+      daftar: ncrTerbukaList.slice(0, 8).map((n) => ({
         nomor: n.nomor ?? '(tanpa nomor)',
         judul: n.judul ?? '—',
         severity: n.severity ?? '—',
@@ -162,7 +181,14 @@ export async function ringkasMutu(request: FastifyRequest) {
     },
     punch: {
       total: barisPunch.length,
-      terbuka: barisPunch.filter((p) => p.status !== 'closed' && p.status !== 'selesai').length,
+      /*
+        ⚠ Sampai 2026-09-13: `status !== 'closed' && status !== 'selesai'`.
+        KEDUA nilai itu tak ada di enum `punch_status` (terbuka ·
+        dikerjakan · menunggu_cek · ditutup · ditolak), jadi penyaringnya
+        tak pernah membuang satu baris pun — SELURUH punch terhitung
+        terbuka, termasuk 4 yang `ditutup`.
+      */
+      terbuka: barisPunch.filter((p) => punchTerbuka(p.status)).length,
     },
     dokumen: {
       total: barisDokumen.length,

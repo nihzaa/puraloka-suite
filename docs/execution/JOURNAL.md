@@ -5,6 +5,113 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-13 — `kritis` tak terhitung berat, dan penyaring "terbuka" yang tak menyaring apa pun
+
+Mengambil `MOBILE-NCR-BERAT-KRITIS` dari QUEUE. Perbaikannya kecil;
+yang ditemukan saat MENGUKUR dampaknya lebih besar daripada itemnya.
+
+### Cacat 1 — yang memang dicari
+
+Tiga tempat menghitung "NCR berat" dengan pola teks yang disalin:
+
+```
+/major|mayor|tinggi|high/i
+```
+
+`kritis` tak cocok. Terukur ke basis, NCR TERBUKA:
+
+```
+kritis  6   pola lama: TAK terhitung berat
+major   5   pola lama: terhitung
+minor   6   bukan berat
+
+"berat" dilaporkan : 5
+"berat" sesungguhnya: 11
+```
+
+Enam temuan paling mendesak tak terhitung. Nol gejala: `kritis` anggota
+sah enum, query berhasil, `tsc` hijau. Yang salah cuma ANGKANYA — dan
+angka yang terlalu kecil terbaca persis seperti kabar baik.
+
+Pola itu menjaga `high` dan `tinggi`, dua ejaan yang **tak pernah ada di
+basis ini**, sambil melewatkan `kritis` yang ada di KEDUA enum severity.
+Ia menjaga kosakata yang DIBAYANGKAN, bukan yang dipakai.
+
+### Cacat 2 — ditemukan karena mengukur, bukan karena dicari
+
+Skrip pengukur dampak gagal dengan `invalid input value for enum
+ncr_status: "closed"`. Galat itu bukan gangguan — ia temuannya.
+
+```
+ncr_status   : terbuka disposisi perbaikan verifikasi ditutup dibatalkan
+punch_status : terbuka dikerjakan menunggu_cek ditutup ditolak
+```
+
+Kode menyaring dengan `status !== 'closed'` (NCR) dan
+`status !== 'closed' && status !== 'selesai'` (punch). **Tak satu pun
+dari nilai itu ada di enumnya.** Perbandingannya mati — selalu `true`.
+
+Punch karenanya melaporkan **40 terbuka dari 40 total**. Dua angka yang
+SELALU sama, di layar yang sama, dan tak seorang pun melihatnya sebab
+masing-masing masuk akal sendiri-sendiri. Kini 36.
+
+Membandingkan dengan nilai yang tak ada di enum adalah operasi yang SAH.
+Tak ada lapisan yang bisa mengeluh.
+
+### Yang dikerjakan
+
+- `apps/api/src/lib/keparahan.ts` — satu sumber: `NCR_BERAT`,
+  `PUNCH_BERAT`, `NCR_SELESAI`, `PUNCH_SELESAI`, label. DAFTAR yang
+  diturunkan dari `pg_enum`, bukan pola kata.
+- `mutu-ikhtisar.ts` — kedua cacat diperbaiki.
+- `admin-portal/mutu/page.tsx` — daftar disamakan; lencana kini pakai
+  peta label, sebelumnya mencetak nilai enum mentah.
+- `audit-keparahan-sepakat.mjs` — ambang NOL, terdaftar di `ci.yml`.
+- 19 test di `src/lib/__tests__/keparahan.test.ts`.
+
+### Saya salah dua kali, keduanya pada ALAT UKUR
+
+**Pertama**, mencari baris mati di `lainnya.tsx` dengan regex karangan
+sendiri: ia membaca **7 dari 23 entri** lalu melaporkan "(nol) tanpa
+nativeJalur". Nol dari korpus yang tak terbaca, dibaca sebagai
+ketiadaan. Yang benar: memakai parser penjaganya sendiri
+(`audit-modul-mobile-nyata.mjs`), yang memulangkan 23 entri · 1 mati
+(`jadwal`) — dan baris mati itu ternyata KEPUTUSAN yang sudah
+terdokumentasi, bukan kelalaian. `MOBILE-NATIVE-G2` sudah selesai.
+
+**Kedua**, penjaga baru saya sendiri merah atas dua hal yang BENAR:
+komentar yang menerangkan pola lama terhitung sebagai pemakaiannya
+(penyaring per-baris tak melihat baris tengah blok `/* */` yang tak
+berawalan `*`), dan `minor` dituduh terlewat padahal ia kunci objek
+tanpa kutip. Penjaga yang merah atas hal benar akan diabaikan seluruh
+keluarannya. Diperbaiki: komentar dibuang secara STRUKTURAL, nomor
+baris dipertahankan.
+
+### Bukti
+
+```
+vitest keparahan          19 lulus
+mutasi penjaga            3 mutasi -> MERAH, tiap kali MENYEBUT pelakunya
+                          exit 1 saat menyimpang, exit 0 saat pulih
+tsc api/web/mobile        exit 0 (tanpa saringan)
+jalankan-semua-penjaga    242 hijau · 0 MERAH · 4 dilewati · 0 tak ketemu
+```
+
+⚠ Satu test merah di `otomasi-k3-stok-mutu.test.ts` ("ambang hari
+benar-benar menyaring") — **BUKAN dari perubahan ini**. Dibuktikan
+dengan mengembalikan `mutu-ikhtisar.ts` ke HEAD: gagal identik.
+
+⚠ `QUEUE.yaml` tak bisa di-parse js-yaml — `duplicated mapping key` di
+baris 218. Juga **sudah ada di HEAD**, bukan dari suntingan ini. Entri
+yang saya sunting diparse terpisah dan sah. Dibiarkan terbuka, bukan
+ditutup dengan cerita.
+
+⚠ `git stash` mengubah akhir baris jadi CRLF — dua kali hari ini, pada
+`mutu-ikhtisar.ts` dan `QUEUE.yaml`. Persis yang tercatat di §8a.1.
+Keduanya dinormalkan ulang; `audit-akhir-baris.mjs` hijau.
+
+---
+
 ## 2026-09-12 (lanjutan 4) — foto progres TAK PERNAH sampai sejak Juni
 
 Diminta menambah geotag. Yang ditemukan lebih besar: jalur fotonya

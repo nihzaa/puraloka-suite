@@ -4124,7 +4124,8 @@ items:
   - id: MOBILE-NCR-BERAT-KRITIS
     fase: null
     judul: "`kritis` tak terhitung sebagai NCR berat — angka ringkasan lebih kecil dari kenyataan"
-    status: todo
+    status: selesai
+    selesai: 2026-09-13
     prioritas: sedang
     catatan: |
       Ditemukan 2026-09-11 saat membangun layar Mutu & K3 native, dari
@@ -4161,3 +4162,41 @@ items:
       melewatkannya lagi dengan cara yang sama. Pertimbangkan membaca dari
       tipe ENUM/CHECK-nya alih-alih mencocokkan kata — pola yang sama
       dipakai `audit-status-mobile-berlabel.mjs`.
+
+      ── ✅ SELESAI 2026-09-13
+
+      Diperbaiki di server, satu tempat, seperti yang diminta catatan di
+      atas. Daftarnya diturunkan dari `pg_enum`, bukan pola kata:
+      `apps/api/src/lib/keparahan.ts`.
+
+      Terukur ke basis SESUDAH perbaikan — NCR TERBUKA (status <> ditutup):
+
+          kritis  6   pola lama: TAK terhitung berat
+          major   5   pola lama: terhitung
+          minor   6   bukan berat
+
+          "berat" dilaporkan sebelum : 5
+          "berat" sesungguhnya       : 11
+
+      Enam temuan paling mendesak tak terhitung — bukan lima seperti
+      tertulis di atas (angka itu dari potret 2026-09-11; datanya bertambah).
+
+      ── Cacat KEDUA, ditemukan saat mengukur yang pertama
+
+      Penyaring "terbuka" membandingkan dengan nilai yang TIDAK ADA di
+      enum, jadi ia tak pernah menyaring apa pun:
+
+          ncr_status   : terbuka disposisi perbaikan verifikasi ditutup dibatalkan
+          punch_status : terbuka dikerjakan menunggu_cek ditutup ditolak
+
+      Kode membandingkan dengan `closed` (NCR) dan `closed`+`selesai`
+      (punch). Punch karenanya melaporkan 40 terbuka dari 40 total —
+      angka "total" dan "terbuka" SELALU sama, dan tak seorang pun
+      melihatnya sebab keduanya masuk akal sendiri-sendiri. Kini 36.
+
+      Nol galat di kedua cacat: membandingkan dengan nilai yang tak ada
+      di enum adalah operasi yang SAH — hasilnya cuma selalu true.
+
+      Dijaga `audit-keparahan-sepakat.mjs` (ambang NOL, di ci.yml),
+      19 test di `src/lib/__tests__/keparahan.test.ts`, keduanya
+      terbukti bisa merah lewat mutasi sambil MENYEBUT pelakunya.

@@ -62,7 +62,29 @@ function labelSisa(n: number | null): string {
   return `sisa ${n} hari`;
 }
 
-const BERAT = /major|mayor|tinggi|high/i;
+/*
+  Nilai `ncr_severity` yang tergolong BERAT — DAFTAR, bukan pola teks.
+
+  ⚠ Sampai 2026-09-13 ini berbunyi `/major|mayor|tinggi|high/i`, dan
+  pola itu melewatkan `kritis` — tingkat PALING parah di enum. Dua
+  ejaan yang dijaganya (`high`, `tinggi`) tak pernah ada di basis ini.
+  Ia menjaga kosakata yang dibayangkan, bukan yang dipakai.
+
+  Daftar ini WAJIB sama dengan `NCR_BERAT` di
+  `apps/api/src/lib/keparahan.ts`; dijaga `audit-keparahan-sepakat.mjs`.
+  `packages/shared` kosong dan web tak pernah mengimpor dari apps/api,
+  jadi kesepakatannya ditegakkan penjaga, bukan oleh impor bersama.
+*/
+const NCR_BERAT = ["major", "kritis"];
+const beratNcr = (s: string | null | undefined) =>
+  !!s && NCR_BERAT.includes(s.trim().toLowerCase());
+
+/* Label Indonesia — tanpa ini `kritis` muncul mentah di lencana. */
+const LABEL_KEPARAHAN: Record<string, string> = {
+  minor: "Minor",
+  major: "Mayor",
+  kritis: "Kritis",
+};
 
 export default function AdminMutuPage() {
   const { data, memuat, galat } =
@@ -130,14 +152,17 @@ export default function AdminMutuPage() {
                   </div>
                 </div>
                 {/*
-                  Penanda BERAT per baris memakai pola yang sama dengan server
-                  (`/major|mayor|tinggi|high/i`) — hanya untuk MENANDAI baris
-                  ini. Jumlah totalnya tetap dari `ncr.berat`, tak dihitung
-                  ulang: `daftar` cuma 8 teratas.
+                  Penanda BERAT per baris memakai daftar yang sama dengan
+                  server — hanya untuk MENANDAI baris ini. Jumlah totalnya
+                  tetap dari `ncr.berat`, tak dihitung ulang: `daftar` cuma
+                  8 teratas.
+
+                  Labelnya lewat peta, bukan `n.severity` mentah: sebelum
+                  2026-09-13 lencana ini mencetak nilai enum apa adanya.
                 */}
-                {BERAT.test(n.severity) && (
+                {beratNcr(n.severity) && (
                   <span style={{ ...pil, background: "var(--danger-bg)", color: "var(--on-danger-bg)" }}>
-                    {n.severity}
+                    {LABEL_KEPARAHAN[n.severity?.trim().toLowerCase()] ?? n.severity}
                   </span>
                 )}
               </div>

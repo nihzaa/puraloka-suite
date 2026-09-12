@@ -2261,6 +2261,23 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # Daftar "NCR berat" wajib sepakat di api + web, dan wajib meliputi
+      # seluruh enum ncr_severity.
+      #
+      # Diukur 2026-09-13: ketiga tempat memakai pola teks
+      # /major|mayor|tinggi|high/i, yang melewatkan `kritis` — tingkat
+      # PALING parah. Basis memuat 6 kritis + 6 major terbuka, dan
+      # ringkasan mutu melaporkan 6 dari 12. Separuh hilang, dan yang
+      # hilang justru yang paling mendesak.
+      #
+      # Tak bergejala: `kritis` nilai enum yang sah, query berhasil, tsc
+      # hijau. Yang salah cuma ANGKANYA — dan angka yang terlalu kecil
+      # terbaca persis seperti kabar baik.
+      #
+      # Tak butuh DB: enum dibaca dari db/migrations/189_ncr.sql.
+      - name: Keparahan sepakat
+        run: node scripts/audit-keparahan-sepakat.mjs
+
       # Tiap pasangan token mobile wajib >= 7:1 (WCAG AAA), bukan 4.5:1.
       # Aplikasi ini dibaca di LOKASI PROYEK - layar berdebu, matahari
       # langsung. Riset praktik lapangan (Corvus Intell, ABLEMKR)

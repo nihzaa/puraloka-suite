@@ -132,13 +132,19 @@ function varianSeverity(s: string): 'danger' | 'warning' | 'default' {
     kebalikan dari artinya. Nol galat, nol test merah: kelabu adalah
     keadaan yang sah bagi lencana.
 
-    ⚠ Yang tak ikut diperbaiki di sini, dan sengaja: `mutu-ikhtisar.ts`
-    menghitung "NCR berat" dengan pola LAMA, jadi `kritis` TIDAK masuk
-    hitungan itu. Angka "5 NCR berat" di ringkasan karenanya lebih kecil
-    dari yang sesungguhnya berat. Itu cacat SISI SERVER — memperbaikinya
-    di sini hanya membuat kartu dan ringkasan saling bertentangan, dan
-    dua angka yang keduanya "benar menurut aturannya sendiri" adalah
-    bentuk yang paling sulit ditelusuri (CLAUDE.md §8a.2).
+    ✅ SUDAH SELESAI 2026-09-13 — sisi server ikut diperbaiki.
+
+    Catatan ini dulu berbunyi: "`mutu-ikhtisar.ts` menghitung NCR berat
+    dengan pola LAMA, jadi `kritis` TIDAK masuk hitungan; angka di
+    ringkasan lebih kecil dari yang sesungguhnya berat."
+
+    Itu BENAR saat ditulis, dan sekarang tidak lagi. Terukur ke basis
+    2026-09-13: 6 `kritis` + 6 `major` terbuka, dan ringkasan melaporkan
+    6 dari 12. Sekarang keduanya lewat daftar yang sama
+    (`apps/api/src/lib/keparahan.ts`), jadi kartu dan ringkasan sepakat.
+
+    Peringatan yang bertahan sesudah sebabnya diperbaiki menyesatkan sesi
+    berikutnya — persis yang terjadi pada larangan GL di CLAUDE.md §5.5.
   */
   if (/kritis|critical|berat/i.test(s)) return 'danger';
   if (/major|mayor|tinggi|high/i.test(s)) return 'danger';
