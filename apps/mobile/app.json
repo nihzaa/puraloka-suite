@@ -79,6 +79,12 @@
         }
       ],
       [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Izinkan Puraloka Suite membaca lokasi agar foto progres tercatat titik pengambilannya. Laporan tetap bisa dikirim tanpa izin ini."
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Izinkan Puraloka Suite mengakses galeri untuk upload foto progress."

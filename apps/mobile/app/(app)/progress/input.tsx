@@ -18,6 +18,8 @@ import { KepalaLayar } from '@/components/ui/KepalaLayar';
 import { Card } from '@/components/ui/Card';
 import { api } from '@/lib/api';
 import { antrekan } from '@/lib/antrean';
+import { ambilKoordinat } from '@/lib/lokasi';
+import * as FileSystem from 'expo-file-system';
 import { useTema } from '@/hooks/useTema';
 import { FONT, HURUF, RADIUS, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
 
@@ -141,27 +143,123 @@ export default function InputProgressScreen() {
     if (!selectedProject) { Alert.alert('Pilih proyek terlebih dahulu'); return; }
 
     setLoading(true);
+
+    /*
+      ── KOORDINAT diambil SEKALI, di awal, sebelum percabangan ──────────
+
+      Bukan di dalam tiap cabang. Kalau diambil dua kali, jalur online dan
+      jalur antrean bisa membawa titik yang BERBEDA untuk satu kejadian
+      yang sama — dan selisih itu tak akan pernah terlihat sebagai galat.
+
+      ⚠ TIDAK PERNAH menggagalkan kiriman. `ambilKoordinat()` memulangkan
+      `null` saat izin ditolak, GPS mati, atau fix tak datang dalam 8
+      detik. Laporan progres jauh lebih berharga daripada titiknya, dan
+      API sudah siap menerima kiriman tanpa koordinat (`progress.ts:156`
+      menolak koordinat SETENGAH terisi, bukan yang kosong).
+
+      Alasan lengkapnya di kepala `lib/lokasi.ts`.
+    */
+    const koordinat = await ambilKoordinat();
+
     try {
       if (mode === 'daily') {
         const pct = parseFloat(progress);
         if (isNaN(pct) || pct < 0 || pct > 100) { Alert.alert('Progress harus antara 0–100'); setLoading(false); return; }
-        const formData = new FormData();
-        formData.append('mode', 'daily');
-        formData.append('log_date', new Date().toISOString().split('T')[0]);
-        formData.append('pct_overall', String(pct));
-        if (notes.trim()) formData.append('notes', notes.trim());
-        photos.forEach((uri, i) => {
-          const ext = uri.split('.').pop() ?? 'jpg';
-          formData.append('photos', {
-            uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
-            name: `photo_${i}.${ext}`,
-            type: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
-          } as any);
-        });
-        await api.post(`/api/v1/projects/${selectedProject}/progress-logs`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        Alert.alert('Berhasil', 'Progress harian berhasil disimpan!');
+        /*
+          ══════════════════════════════════════════════════════════════
+          FOTO DIUNGGAH TERPISAH — dan sebelum 2026-09-12 ia TAK PERNAH
+          SAMPAI sama sekali.
+          ══════════════════════════════════════════════════════════════
+
+          Layar ini dulu mengirim `FormData` ke `/progress-logs`. Rute itu
+          membaca `request.body` sebagai JSON biasa — TAK ADA penanganan
+          multipart di dalamnya. Jadi fotonya tak pernah diurai, dan
+          kiriman tetap membalas sukses.
+
+          Terukur di basis produksi 2026-09-12:
+
+              progress_logs mode=daily : 101 · terakhir 1 Sep 2026
+              project_photos           :  36 · terakhir 16 Jun 2026
+              foto TERTAUT ke log      :   0   <- nol, dari 101 laporan
+
+          Layar berkata "Berhasil", mandor mengira fotonya tersimpan, dan
+          tak satu pun galat muncul di mana pun.
+
+          ⚠ Cacat ini SUDAH TERCATAT di CLAUDE.md §6 sebagai asal-usul
+          `audit-antrean-punya-rute.mjs` — "foto progres yang TAK PERNAH
+          sampai (multipart vs JSON)". Penjaga itu menjaga JALUR-nya, dan
+          kepala berkasnya menyatakan sendiri bahwa ia TIDAK menjaga
+          bentuk muatannya. Jadi ia hijau, dan benar hijau.
+
+          ── Yang dipakai sekarang
+
+          `POST /photos/upload` — base64 JSON, sudah ada sejak lama, sudah
+          menangani geotag lengkap (`progress.ts:163`), dan TAK SATU PUN
+          klien memanggilnya.
+
+          Urutannya: log dibuat DULU supaya `progress_log_id` ada, baru
+          fotonya menyusul. Terbalik berarti foto yatim di Storage kalau
+          pembuatan log gagal.
+        */
+        /*
+          Bentuk balasan DIBACA dari `progress.ts:475`, bukan ditebak:
+          `reply.send({ data: fullLog, new_overall_pct })`. Dengan axios
+          membungkusnya sekali lagi, id-nya ada di `res.data.data.id`.
+
+          ⚠ Ini kelas cacat yang dijaga `audit-bentuk-balasan-mobile.mjs`:
+          `res.data` bertipe `any`, jadi salah sarang TIDAK memerahkan
+          tsc — ia cuma menghasilkan `undefined` yang diterima diam-diam
+          sebagai "foto tanpa log", lalu foto jadi yatim.
+        */
+        const balasan = await api.post<{ data?: { id?: string } }>(
+          `/api/v1/projects/${selectedProject}/progress-logs`,
+          {
+            mode: 'daily',
+            log_date: new Date().toISOString().split('T')[0],
+            pct_overall: pct,
+            ...(notes.trim() ? { notes: notes.trim() } : {}),
+          },
+        );
+
+        /*
+          Kegagalan unggah foto TIDAK membatalkan laporan yang sudah
+          tersimpan. Angka progresnya yang paling berharga; foto adalah
+          bukti pendukung.
+
+          Tapi kegagalannya WAJIB diberitahukan — mandor yang mengira
+          fotonya terkirim tak akan memotret ulang, dan itu persis
+          keadaan yang baru saja diperbaiki.
+        */
+        const idLog = balasan.data?.data?.id;
+
+        let fotoGagal = 0;
+        for (const uri of photos) {
+          try {
+            const base64 = await FileSystem.readAsStringAsync(uri, {
+              encoding: 'base64',
+            });
+            const ext = (uri.split('.').pop() ?? 'jpg').toLowerCase();
+            await api.post(`/api/v1/projects/${selectedProject}/photos/upload`, {
+              file_base64: base64,
+              file_name: `progres_${Date.now()}.${ext}`,
+              progress_log_id: idLog,
+              /*
+                Koordinat menempel PER FOTO — itu bentuk yang dipakai
+                basis (`project_photos.lintang`), bukan per log.
+              */
+              ...(koordinat ?? {}),
+            });
+          } catch {
+            fotoGagal += 1;
+          }
+        }
+
+        Alert.alert(
+          'Berhasil',
+          fotoGagal === 0
+            ? 'Progress harian berhasil disimpan!'
+            : `Progres tersimpan, tetapi ${fotoGagal} dari ${photos.length} foto gagal diunggah. Coba unggah ulang dari layar proyek.`,
+        );
         setProgress(''); setNotes(''); setPhotos([]);
       } else {
         // detail mode
@@ -173,6 +271,18 @@ export default function InputProgressScreen() {
           log_date: new Date().toISOString().split('T')[0],
           rab_item_id: selectedRabItem,
           pct_completion: pct,
+          /*
+            ⚠ Koordinat TIDAK dikirim di sini, dan itu bukan kelalaian.
+
+            Dibaca dari `progress.ts:271` — geotag hidup PER FOTO
+            (`photos[].lintang`), bukan per log. Mode `detail` tak
+            mengirim foto sama sekali, jadi tak ada tempat yang sah
+            untuk menaruhnya.
+
+            Versi pertama saya menaruhnya di tingkat atas muatan. Rute
+            akan mengabaikannya diam-diam — bidang yang tak dikenal tidak
+            menggagalkan apa pun, jadi cacatnya tak akan pernah berbunyi.
+          */
         });
         const newPct = res.data?.new_overall_pct;
         Alert.alert('Berhasil', newPct != null
@@ -228,6 +338,7 @@ export default function InputProgressScreen() {
               log_date: tanggal,
               rab_item_id: selectedRabItem,
               pct_completion: parseFloat(pctCompletion),
+              /* Tanpa foto -> tanpa geotag. Lihat catatan di jalur online. */
             },
             ringkas: `Item pekerjaan ${pctCompletion}%`,
           });
