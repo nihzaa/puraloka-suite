@@ -8,6 +8,7 @@ import { logAuditEvent } from '../../utils/audit.js'
 import { naikkanTerpisah } from '../../lib/penagihan-co.js'
 import { computeAndPersistPenalty, estimatePenalty } from '../../utils/penalty.js'
 import { computeAging, retentionOutstanding, validateDpDeduction } from '../../lib/ar-register.js'
+import { susunEkspor, formatSah, FORMAT_EKSPOR } from '../../lib/ekspor-tabel.js'
 import {
   evaluasiGerbangProgres,
   type HasilGerbangProgres,
@@ -225,6 +226,128 @@ export default async function financeRoutes(app: FastifyInstance) {
     if (error) return reply.status(500).send({ error: error.message })
 
     return reply.send({ invoices: data ?? [], total: count ?? (data?.length ?? 0) })
+  })
+
+  // ── GET /api/v1/finance/invoices/ekspor?format=csv|xlsx|pdf|json ──────────
+  //
+  // Ekspor daftar invoice. Mesinnya `lib/ekspor-tabel.ts` — SATU susunan
+  // data, empat format keluaran; bukan perakit CSV kelima di repo ini.
+  //
+  // ── Kenapa rute terpisah, bukan `?format=` pada daftar biasa
+  //
+  // Daftar biasa BERHALAMAN (`limit`/`offset`, maksimum 200). Menempelkan
+  // `?format=` padanya membuat ekspor ikut terpotong di halaman pertama —
+  // dan berkas 200 baris dari 1.000 invoice tak terlihat berbeda dari
+  // berkas yang memang berisi 200. Kelas kegagalan yang sudah dijaga
+  // `audit-baca-tak-terpotong.mjs`.
+  //
+  // Rute ini sengaja TIDAK berhalaman, dan batas atasnya dinyatakan.
+  app.get('/api/v1/finance/invoices/ekspor', {
+    preHandler: [authenticate, requirePermission('finance:view:all')]
+  }, async (request, reply) => {
+    const { format, status, project_id, type } = request.query as Record<string, string>
+
+    const fmt = formatSah(format)
+    if (!fmt) {
+      return reply.status(400).send({
+        error: `Format '${format ?? '(kosong)'}' tak dikenal. Yang tersedia: ${FORMAT_EKSPOR.join(', ')}.`,
+      })
+    }
+
+    /*
+      Gerbang tenant yang SAMA dengan rute daftarnya (`proyekBolehDibaca`).
+      Ekspor yang gerbangnya berbeda dari layarnya adalah cara paling
+      mudah membocorkan data lintas perusahaan: yang boleh melihat satu
+      baris di layar tidak otomatis boleh mengunduh seluruhnya.
+    */
+    const idProyek = await proyekBolehDibaca(request, project_id)
+    if (idProyek === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+
+    /*
+      BATAS ATAS DINYATAKAN, bukan diserahkan ke bawaan PostgREST.
+
+      Bawaannya memotong senyap di 1.000 baris — berkas yang terunduh
+      lalu terlihat lengkap padahal tidak. Dengan batas eksplisit,
+      kelebihannya TERDETEKSI dan dilaporkan lewat header + keterangan
+      di dalam berkasnya sendiri.
+    */
+    const BATAS = 5000
+
+    let q = supabase
+      .from('invoices')
+      .select(`
+        invoice_number, invoice_type, status,
+        base_amount, tax_amount, total_amount, amount_paid, amount_due,
+        issued_date, due_date, paid_date,
+        projects ( name )
+      `)
+      .in('project_id', idProyek)
+      .order('issued_date', { ascending: false })
+      .limit(BATAS + 1)
+
+    if (status) q = q.eq('status', status)
+    if (type) q = q.eq('invoice_type', type)
+
+    const { data, error } = await q
+    if (error) {
+      request.log.error({ err: error }, 'gagal memuat invoice untuk ekspor')
+      return reply.status(500).send({ error: 'Gagal memuat data invoice' })
+    }
+
+    const semua = (data ?? []) as unknown as Array<Record<string, unknown> & {
+      projects?: { name?: string } | null
+    }>
+    const terpotong = semua.length > BATAS
+    const baris = (terpotong ? semua.slice(0, BATAS) : semua).map((b) => ({
+      invoice_number: b.invoice_number ?? '',
+      proyek: b.projects?.name ?? '',
+      invoice_type: b.invoice_type ?? '',
+      status: b.status ?? '',
+      issued_date: b.issued_date ?? '',
+      due_date: b.due_date ?? '',
+      paid_date: b.paid_date ?? '',
+      base_amount: Number(b.base_amount) || 0,
+      tax_amount: Number(b.tax_amount) || 0,
+      total_amount: Number(b.total_amount) || 0,
+      amount_paid: Number(b.amount_paid) || 0,
+      amount_due: Number(b.amount_due) || 0,
+    }))
+
+    const totalTagih = baris.reduce((n, b) => n + b.total_amount, 0)
+    const totalBelum = baris.reduce((n, b) => n + b.amount_due, 0)
+
+    const hasil = await susunEkspor(fmt, {
+      judul: 'Daftar Invoice',
+      keterangan:
+        `${baris.length} invoice · total ${Math.round(totalTagih)} · belum terbayar ${Math.round(totalBelum)}`
+        + (terpotong ? ` — ⚠ DIPOTONG di ${BATAS} baris; persempit dengan filter` : ''),
+      kolom: [
+        { kunci: 'invoice_number', judul: 'No. Invoice', lebar: 18 },
+        { kunci: 'proyek', judul: 'Proyek', lebar: 28 },
+        { kunci: 'invoice_type', judul: 'Jenis', lebar: 12 },
+        { kunci: 'status', judul: 'Status', lebar: 12 },
+        { kunci: 'issued_date', judul: 'Terbit', lebar: 12 },
+        { kunci: 'due_date', judul: 'Jatuh Tempo', lebar: 12 },
+        { kunci: 'paid_date', judul: 'Dibayar', lebar: 12 },
+        { kunci: 'base_amount', judul: 'Dasar', angka: true, lebar: 16 },
+        { kunci: 'tax_amount', judul: 'Pajak', angka: true, lebar: 14 },
+        { kunci: 'total_amount', judul: 'Total', angka: true, lebar: 16 },
+        { kunci: 'amount_paid', judul: 'Terbayar', angka: true, lebar: 16 },
+        { kunci: 'amount_due', judul: 'Sisa', angka: true, lebar: 16 },
+      ],
+      baris,
+    })
+
+    /*
+      Header jumlah DIBACA `TombolUnduh` dan ditampilkan ke pengguna.
+      Berkas 0 baris yang terunduh diam-diam membuat orang mengira
+      datanya memang kosong.
+    */
+    return reply
+      .header('content-type', hasil.tipeKonten)
+      .header('x-ekspor-jumlah', String(baris.length))
+      .header('x-ekspor-terpotong', terpotong ? '1' : '0')
+      .send(hasil.isi)
   })
 
   // ═══════════════════════════════════════════════════════════════════════════

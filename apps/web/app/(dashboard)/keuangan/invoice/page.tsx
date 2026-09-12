@@ -28,6 +28,7 @@ import { Kosong } from "@/components/ui-dasar";
 import type { Invoice } from "../_bersama/tipe";
 import { ModalTagihanCo } from "@/components/tagihan-co";
 import { Pilihan } from "@/components/pilihan";
+import { TombolUnduh } from "@/components/tombol-unduh";
 
 const STATUS = [
   { v: "all", l: "Semua Status" },
@@ -210,6 +211,21 @@ function InvoicePageInner() {
         }}>
           <RefreshCw size={13} aria-hidden="true" /> Muat ulang
         </button>
+        {/*
+          Ekspor MENGIKUTI saringan yang sedang terlihat.
+
+          Kalau ia mengabaikannya, orang yang menyaring "jatuh tempo" lalu
+          menekan Unduh mendapat SELURUH invoice — dan berkas yang isinya
+          bukan yang di layar tak akan dicurigai, cuma dipakai.
+
+          Jalurnya TANPA `?format=`; `TombolUnduh` yang menambahkannya.
+        */}
+        <TombolUnduh
+          label="Unduh"
+          jalur={`/api/v1/finance/invoices/ekspor${status !== "all" ? `?status=${status}` : ""}`}
+          namaBerkas={`invoice${status !== "all" ? `-${status}` : ""}-${new Date().toISOString().slice(0, 10)}`}
+          format={["csv", "xlsx", "pdf"]}
+        />
         {bolehUbah && (
           <button onClick={() => setBuatBaru(true)} style={{
             display: "flex", alignItems: "center", gap: 4, padding: "8px 12px",
