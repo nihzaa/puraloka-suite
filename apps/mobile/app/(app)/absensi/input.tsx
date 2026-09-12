@@ -7,6 +7,7 @@ import { KepalaLayar } from '@/components/ui/KepalaLayar';
 import { router } from 'expo-router';
 import { api } from '@/lib/api';
 import { antrekan } from '@/lib/antrean';
+import { getar } from '@/lib/haptik';
 import { useAuth } from '@/hooks/useAuth';
 import { useTema } from '@/hooks/useTema';
 import { FONT, HURUF, RADIUS, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
@@ -192,12 +193,16 @@ export default function InputAbsensi() {
         },
         ringkas: `Absensi ${tanggal} — ${dipilih.length} tukang`,
       });
+      /* Getar SESUDAH antrean menerima — yang ditegaskan "tersimpan",
+         bukan "tertekan". */
+      getar('berhasil');
       Alert.alert(
         'Tersimpan',
         'Absensi masuk antrean kirim. Kalau sinyal ada, ia terkirim sekarang; kalau tidak, otomatis dicoba lagi.',
         [{ text: 'Selesai', onPress: () => router.back() }],
       );
     } catch {
+      getar('gagal');
       Alert.alert('Gagal menyimpan', 'Absensi belum masuk antrean. Coba lagi.');
     } finally {
       setMenyimpan(false);

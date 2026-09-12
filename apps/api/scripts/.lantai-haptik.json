@@ -1,0 +1,12 @@
+{
+  "jumlah": 7,
+  "nama": [
+    "apps/mobile/app/(app)/absensi/input.tsx",
+    "apps/mobile/app/(app)/izin-kerja/ajukan.tsx",
+    "apps/mobile/app/(app)/kasbon/ajukan.tsx",
+    "apps/mobile/app/(app)/ncr/lapor.tsx",
+    "apps/mobile/app/(app)/notifications/index.tsx",
+    "apps/mobile/app/(app)/progress/input.tsx",
+    "apps/mobile/app/(app)/punch/lapor.tsx"
+  ]
+}

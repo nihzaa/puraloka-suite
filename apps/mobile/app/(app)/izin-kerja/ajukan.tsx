@@ -7,6 +7,7 @@ import { KepalaLayar } from '@/components/ui/KepalaLayar';
 import { router } from 'expo-router';
 import { api } from '@/lib/api';
 import { antrekan } from '@/lib/antrean';
+import { getar } from '@/lib/haptik';
 import { useAuth } from '@/hooks/useAuth';
 import { useTema } from '@/hooks/useTema';
 import { FONT, HURUF, RADIUS, SPASI, type Palet } from '@/lib/tema';
@@ -195,12 +196,19 @@ export default function AjukanIzinKerja() {
         },
         ringkas: `Izin kerja ${nomor.trim()}`,
       });
+      /*
+        RINGAN, bukan 'berhasil'. Izin yang terkirim BELUM izin yang
+        disetujui, dan pekerjaan belum boleh dimulai — getaran kemenangan
+        di sini menegaskan hal yang justru salah.
+      */
+      getar('ringan');
       Alert.alert(
         'Terkirim untuk persetujuan',
         'Izin masuk antrean. Pekerjaan BELUM boleh dimulai sampai ada persetujuan — periksa statusnya sebelum mulai.',
         [{ text: 'Mengerti', onPress: () => router.back() }],
       );
     } catch {
+      getar('gagal');
       Alert.alert('Gagal menyimpan', 'Izin belum masuk antrean. Coba lagi.');
     } finally {
       setMenyimpan(false);

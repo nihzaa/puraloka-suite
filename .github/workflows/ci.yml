@@ -2195,6 +2195,22 @@ jobs:
       - name: Font merek mobile terpakai
         run: node scripts/audit-font-mobile-terpakai.mjs
 
+      # Haptik yang DIPASANG wajib DIPAKAI, di layar TULIS.
+      #
+      # `expo-haptics` dipasang 2026-09-12 lalu dipakai di SATU berkas.
+      # Bentuk cacat yang sama dengan font di atas: biaya penuh (paket ikut
+      # bundle), nol hasil, semua alat hijau karena tak ada yang SALAH —
+      # cuma tak ada yang memanggilnya.
+      #
+      # Yang dijaga TEMPATNYA, bukan jumlahnya: ini aplikasi lapangan, HP di
+      # bawah matahari dan sering bersarung tangan. Konfirmasi VISUAL paling
+      # mudah terlewat di sana, dan tekanan yang tak terasa terjadi akan
+      # DIULANG — "dua NCR dari satu temuan" (audit-tekan-berumpan).
+      #
+      # Ratchet; lantainya menyimpan DAFTAR NAMA, bukan cuma angka.
+      - name: Haptik terpakai di layar tulis
+        run: node scripts/audit-haptik-terpakai.mjs
+
       # Layar mobile wajib membaca bentuk balasan yang BENAR-BENAR dikirim
       # rute. Diukur 2026-09-04, potret pertama dashboard yang berhasil
       # login: "Proyek Aktif 0 - Total Kontrak Rp 0 - Kas Bersih Rp 0",

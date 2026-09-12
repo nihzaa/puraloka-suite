@@ -19,6 +19,7 @@ import { Card } from '@/components/ui/Card';
 import { api } from '@/lib/api';
 import { antrekan } from '@/lib/antrean';
 import { ambilKoordinat } from '@/lib/lokasi';
+import { getar } from '@/lib/haptik';
 import * as FileSystem from 'expo-file-system';
 import { useTema } from '@/hooks/useTema';
 import { FONT, HURUF, RADIUS, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
@@ -254,6 +255,12 @@ export default function InputProgressScreen() {
           }
         }
 
+        /*
+          Foto yang gagal BUKAN keberhasilan penuh. Getaran yang sama untuk
+          keduanya menghapus satu-satunya perbedaan yang bisa dirasakan
+          tanpa membaca — dan yang tak terasa gagal tak akan diulang.
+        */
+        getar(fotoGagal === 0 ? 'berhasil' : 'ringan');
         Alert.alert(
           'Berhasil',
           fotoGagal === 0
@@ -285,6 +292,7 @@ export default function InputProgressScreen() {
           */
         });
         const newPct = res.data?.new_overall_pct;
+        getar('berhasil');
         Alert.alert('Berhasil', newPct != null
           ? `Progress item diperbarui ke ${pct}%.\nProgress proyek sekarang: ${Number(newPct).toFixed(1)}%`
           : 'Progress item berhasil disimpan!',
@@ -344,11 +352,13 @@ export default function InputProgressScreen() {
           });
           setPctCompletion('');
         }
+        getar('ringan');
         Alert.alert(
           'Disimpan — menunggu sinyal',
           'Tidak ada koneksi saat ini. Catatan Anda sudah disimpan di HP (termasuk fotonya) dan akan dikirim otomatis begitu sinyal kembali.',
         );
       } else {
+        getar('gagal');
         Alert.alert('Gagal', err?.response?.data?.error ?? 'Terjadi kesalahan');
       }
     } finally {

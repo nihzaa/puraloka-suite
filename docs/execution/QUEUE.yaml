@@ -3833,7 +3833,8 @@ items:
   - id: MOBILE-HAPTIK-BELUM-DIPAKAI
     fase: F5
     judul: "expo-haptics: SUDAH dipakai di BilahTab (2026-09-12); sisanya layar TULIS yang belum"
-    status: todo
+    status: selesai
+    selesai: 2026-09-13
     prioritas: rendah
     catatan: |
       Dipasang bersama reanimated + linear-gradient saat menggarap kandidat
@@ -3851,6 +3852,39 @@ items:
       Jangan dibiarkan di keadaan sekarang. Kalau dipakai, pertimbangkan
       penjaga sejenis `audit-font-mobile-terpakai` supaya ia tak jadi
       terpasang-tapi-menganggur lagi.
+
+      ── ✅ SELESAI 2026-09-13 — pilihan (1), dengan penjaganya
+
+      `apps/mobile/lib/haptik.ts` — `getar('berhasil'|'gagal'|'ringan')`.
+      Dibungkus, bukan dipanggil langsung: tiap pemanggilan menuntut tiga
+      hal diingat serentak (penjagaan web, import() dinamis, catch), dan
+      yang lupa satu pun TIDAK mendapat galat.
+
+      TUJUH layar tulis, 13 titik. Tiga jenis dipakai bermakna, bukan
+      seragam:
+
+        berhasil  terkirim/tersimpan sungguhan
+        ringan    tersimpan di HP menunggu sinyal · izin kerja yang
+                  BELUM disetujui · foto yang sebagian gagal
+        gagal     ditolak server
+
+      Getaran yang sama untuk "terkirim" dan "tersimpan di HP" menghapus
+      satu-satunya beda yang bisa dirasakan tanpa membaca layar — dan itu
+      seluruh alasan memakainya di lapangan.
+
+      ── Penjaganya menemukan dua layar yang saya lewatkan
+
+      `audit-haptik-terpakai.mjs` (ratchet, di ci.yml) melaporkan 7 layar
+      tulis saat saya baru menggarap 4. `izin-kerja/ajukan` dan `ncr/lapor`
+      tak muncul di grep saya sebab keduanya memakai `antrekan(`, bukan
+      `api.post`. Penjaga membaca BENTUK kode; grep saya membaca satu pola.
+
+      Lantainya menyimpan DAFTAR NAMA, bukan cuma angka — merah tanpa
+      menyebut pelakunya memaksa orang berikutnya menyisir sendiri.
+      Terbukti merah lewat mutasi sambil MENYEBUT berkasnya.
+
+      Bukti: tsc exit 0 · `expo export --platform android` BERHASIL
+      (4,71 MB) · 243 penjaga hijau · 0 MERAH.
 
       ⚠ `reanimated` juga belum dipakai langsung — gerak kartu memakai
       `Animated` bawaan RN (cukup, dan driver native-nya sama). Tetapi

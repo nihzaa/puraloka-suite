@@ -5,6 +5,67 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-13 (lanjutan) — haptik: paket yang terpasang setahun, dipakai di satu berkas
+
+`MOBILE-HAPTIK-BELUM-DIPAKAI` menawarkan dua pilihan sah: pakai, atau
+cabut paketnya. Dipilih yang pertama, beserta penjaga yang entri itu
+sendiri minta.
+
+### Yang dikerjakan
+
+`lib/haptik.ts` — `getar('berhasil'|'gagal'|'ringan')`. Dibungkus, bukan
+dipanggil langsung: tiap pemanggilan menuntut tiga hal diingat serentak
+(penjagaan `Platform.OS !== 'web'`, `import()` dinamis, `.catch()`), dan
+yang lupa satu pun TIDAK mendapat galat — ia mendapat layar rusak di
+web, atau kiriman yang gagal karena haptiknya gagal.
+
+Tujuh layar tulis, 13 titik. Tiga jenis dipakai BERMAKNA:
+
+    berhasil  terkirim/tersimpan sungguhan
+    ringan    tersimpan di HP menunggu sinyal · izin kerja yang BELUM
+              disetujui · foto yang sebagian gagal
+    gagal     ditolak server
+
+Getaran yang sama untuk "terkirim" dan "tersimpan di HP" menghapus
+satu-satunya beda yang bisa dirasakan tanpa membaca layar — dan itu
+seluruh alasan memakainya di lapangan.
+
+`izin-kerja` paling jelas: izin yang terkirim BELUM izin yang disetujui,
+pekerjaan belum boleh dimulai, dan getaran kemenangan di sana menegaskan
+hal yang justru salah. `notifications` punya alasan lain: setuju/tolak
+berhasil TANPA Alert sama sekali — satu-satunya konfirmasi adalah kartu
+yang berubah, bisa di luar pandangan saat jari masih menutupinya.
+
+### Penjaganya menemukan dua layar yang SAYA lewatkan
+
+Saya menggarap 4 layar dari grep `api.post`. `audit-haptik-terpakai.mjs`
+melaporkan **7** layar tulis: `izin-kerja/ajukan` dan `ncr/lapor` tak
+muncul sebab keduanya memakai `antrekan(`, bukan `api.post`.
+
+Penjaga membaca BENTUK kode; grep saya membaca satu pola. Ini kesalahan
+alat ukur yang sama bentuknya dengan regex `lainnya.tsx` pagi ini —
+kedua kalinya hari ini saya percaya pada pola karangan sendiri.
+
+Bedanya kali ini ketahuan segera, sebab penjaganya ditulis lebih dulu.
+
+### Bukti
+
+```
+audit-haptik-terpakai   7 layar tulis · 7 berhaptik · 0 telanjang
+mutasi                  cabut haptik ncr/lapor -> MERAH, MENYEBUT berkasnya
+                        exit 1 saat mundur, exit 0 saat pulih
+tsc mobile              exit 0
+expo export android     BERHASIL — 4,71 MB  (tsc hijau BUKAN bukti, §7a)
+semua penjaga           243 hijau · 0 MERAH · 4 dilewati · 0 tak ketemu
+```
+
+⚠ `git stash` dan penyuntingan lewat skrip mengubah akhir baris jadi
+CRLF **enam kali** hari ini. Tiap kali ditangkap `audit-akhir-baris.mjs`
+dan dinormalkan ulang. Penjaga itu bekerja persis sebagaimana kepalanya
+menjanjikan.
+
+---
+
 ## 2026-09-13 — `kritis` tak terhitung berat, dan penyaring "terbuka" yang tak menyaring apa pun
 
 Mengambil `MOBILE-NCR-BERAT-KRITIS` dari QUEUE. Perbaikannya kecil;

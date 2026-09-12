@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { api } from '@/lib/api';
 import { antrekan } from '@/lib/antrean';
+import { getar } from '@/lib/haptik';
 import { pesanGalat } from '@/lib/galat';
 import { useTema } from '@/hooks/useTema';
 import { FONT, HURUF, RADIUS, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
@@ -161,6 +162,7 @@ export default function AjukanKasbonScreen() {
 
     try {
       await api.post('/api/v1/kasbons', body);
+      getar('berhasil');
       Alert.alert('Berhasil', 'Pengajuan kasbon telah dikirim, menunggu persetujuan.', [
         { text: 'OK', onPress: () => router.back() },
       ]);
@@ -184,12 +186,19 @@ export default function AjukanKasbonScreen() {
           muatan: body,
           ringkas: `Kasbon ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amt)}`,
         });
+        /*
+          Getaran RINGAN, bukan 'berhasil'. Tersimpan di HP tidak sama
+          dengan terkirim, dan getaran yang sama untuk keduanya menghapus
+          satu-satunya bedanya yang bisa dirasakan tanpa membaca.
+        */
+        getar('ringan');
         Alert.alert(
           'Disimpan — menunggu sinyal',
           'Tidak ada koneksi saat ini. Pengajuan Anda sudah disimpan di HP dan akan dikirim otomatis begitu sinyal kembali.',
           [{ text: 'OK', onPress: () => router.back() }],
         );
       } else {
+        getar('gagal');
         Alert.alert('Gagal', err?.response?.data?.error ?? 'Terjadi kesalahan');
       }
     } finally {

@@ -16,6 +16,7 @@ import { Galat } from '@/components/ui/Galat';
 import { Kosong } from '@/components/ui/Kosong';
 import { Tekan } from '@/components/ui/Tekan';
 import { api } from '@/lib/api';
+import { getar } from '@/lib/haptik';
 import { pesanGalat } from '@/lib/galat';
 import { useTema } from '@/hooks/useTema';
 import { FONT, HURUF, RADIUS, SENTUH_MIN, SPASI, type Palet } from '@/lib/tema';
@@ -395,10 +396,19 @@ export default function NotificationsScreen() {
     setActionLoading(id);
     try {
       await api.post(`/api/v1/notifications/${id}/action`, { action });
+      /*
+        Satu-satunya konfirmasi di layar ini adalah kartunya BERUBAH —
+        tak ada Alert sama sekali. Pada daftar panjang, perubahan itu
+        bisa terjadi di luar pandangan mata saat jari masih menutupi
+        kartunya, dan keputusan setuju/tolak terlalu mahal untuk
+        diulang karena tak terasa terjadi.
+      */
+      getar(action === 'approve' ? 'berhasil' : 'ringan');
       setNotifications((prev) =>
         prev.map((n) => n.id === id ? { ...n, is_actioned: true, is_read: true } : n)
       );
     } catch (err: any) {
+      getar('gagal');
       Alert.alert('Gagal', err?.response?.data?.error ?? 'Terjadi kesalahan');
     } finally {
       setActionLoading(null);
