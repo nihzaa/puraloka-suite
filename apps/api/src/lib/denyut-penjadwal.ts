@@ -146,6 +146,29 @@ export function nyalakanDenyutPenjadwal(opsi: {
           'x-scheduler-secret': rahasia,
         },
         /*
+          BADAN `{}` WAJIB, walau rutenya tak butuh isi apa pun.
+
+          Rutenya dideklarasikan `app.post<{ Body: { paksa?: string } }>`, dan
+          Fastify mengurai badan begitu `content-type: application/json`
+          dikirim. Tanpa `body`, yang diurai adalah string kosong — JSON tak
+          sah — dan jawabannya **400**, bukan 401.
+
+          Diukur di PRODUKSI 2026-09-12, beberapa menit sesudah deploy:
+
+              denyut penjadwal internal dinyalakan
+              denyut penjadwal ditolak   status: 400
+
+          Uji lokal saya sebelumnya memakai rahasia yang sengaja disalahkan
+          dan berhenti di 401 — gerbang rahasia diperiksa SEBELUM badan, jadi
+          cacat ini tak pernah sempat terlihat. Uji yang "berhasil gagal"
+          pada tahap yang salah tak membuktikan tahap sesudahnya.
+
+          `scripts/penjadwal-lokal.mjs:142` sudah mengirim `{}` sejak lama.
+          Jawabannya ada di repo; saya menulis pemanggil kedua tanpa
+          membacanya lebih dulu.
+        */
+        body: JSON.stringify({}),
+        /*
           Batas waktu WAJIB. Tanpanya sebuah putaran yang menggantung
           menahan pewaktu berikutnya selamanya, dan penjadwal berhenti
           tanpa satu pun galat — persis bentuk cacat yang berkas ini
