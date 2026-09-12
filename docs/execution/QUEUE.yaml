@@ -3832,7 +3832,7 @@ items:
 
   - id: MOBILE-HAPTIK-BELUM-DIPAKAI
     fase: F5
-    judul: "expo-haptics terpasang 2026-09-12 tetapi NOL tempat memakainya"
+    judul: "expo-haptics: SUDAH dipakai di BilahTab (2026-09-12); sisanya layar TULIS yang belum"
     status: todo
     prioritas: rendah
     catatan: |
@@ -3977,7 +3977,7 @@ items:
 
   - id: MOBILE-NATIVE-G2
     fase: null
-    judul: "Gelombang 2 — sebelas modul kantor masih baris MATI di aplikasi HP"
+    judul: "Gelombang 2 — TINGGAL SATU baris mati (bukan sebelas; diukur 2026-09-13)"
     status: todo
     prioritas: tinggi
     catatan: |
