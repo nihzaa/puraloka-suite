@@ -171,7 +171,19 @@ const { rows: dilindungi } = await c.query(`
 
 console.log('══ Company sisa test yang menumpuk ════════════════════════')
 console.log(`  companies TOTAL sekarang : ${totalAwal}`)
-console.log(`  akan DIHAPUS             : ${sasaran.length}`)
+/*
+  ⚠ Label ini pernah berbunyi "akan DIHAPUS", dan itu menyesatkan —
+  baris `companies`-nya DINONAKTIFKAN (`UPDATE is_active = false`,
+  lihat bawah), bukan dihapus. Yang benar-benar DELETE cuma baris
+  TURUNAN yang jadi tak berpemilik.
+
+  Bedanya bukan kehalusan bahasa: 2026-09-13 label ini membuat
+  pembacanya menyimpulkan perintahnya destruktif dan tak bisa dibalik,
+  lalu meminta konfirmasi ulang atas sesuatu yang sebenarnya reversibel.
+  Laporan akhir skrip ini sudah menyatakan kebenarannya
+  ("tetap — dinonaktifkan, bukan dihapus"); label di ATAS-nya tidak.
+*/
+console.log(`  akan DINONAKTIFKAN       : ${sasaran.length}  (baris companies TIDAK dihapus)`)
 console.log(`  berpola uji tapi DILINDUNGI (punya anggota aktif): ${dilindungi.length}`)
 for (const d of dilindungi) console.log(`     • ${d.name}  [${d.code}]`)
 console.log('')
@@ -179,7 +191,7 @@ console.log('')
 /* Ringkas per nama — 1.149 baris mentah tak terbaca siapa pun. */
 const perNama = new Map()
 for (const s of sasaran) perNama.set(s.name, (perNama.get(s.name) ?? 0) + 1)
-console.log('  yang dihapus, per nama:')
+console.log('  yang dinonaktifkan, per nama:')
 for (const [nama, n] of [...perNama].sort((a, b) => b[1] - a[1])) {
   console.log(`    ${String(n).padStart(4)}  ${nama}`)
 }

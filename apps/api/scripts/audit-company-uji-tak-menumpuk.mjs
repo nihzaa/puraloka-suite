@@ -139,14 +139,27 @@ try {
     console.error('     · fixture `LIMIT 1` makin sering mendarat di company salah,')
     console.error('       dan test lalu merah karena DATA, bukan kode.')
     /*
-      ⚠ Kalimat ini pernah berbunyi "menonaktifkan, BUKAN menghapus" —
-      dan itu SALAH. Skripnya benar-benar `DELETE`. Petunjuk yang salah di
-      dalam penjaga lebih berbahaya daripada tak ada petunjuk sama sekali:
-      yang membacanya menjalankan perintah destruktif sambil mengira itu
-      bisa dibalik.
+      ⚠ Skrip pembersihnya melakukan DUA hal berbeda, dan kalimat ini
+      sudah salah DUA KALI sebelum akhirnya diukur:
+
+          baris `companies`   UPDATE is_active = false   (baris 397)
+          tabel TURUNAN       DELETE …                   (baris ~371)
+
+      Jadi "menonaktifkan" benar untuk companies, "menghapus" benar untuk
+      turunannya — dan menyebut salah satunya saja menyesatkan ke arah
+      yang berlawanan.
+
+      Yang menipu: laporannya sendiri mencetak "akan DIHAPUS: N" untuk
+      baris yang sebenarnya cuma dinonaktifkan. Jalan nyata 2026-09-13:
+      20 company dinonaktifkan, 0 baris turunan dihapus, total baris
+      2.247 → 2.247 (tetap).
+
+      Aturannya: BACA laporan uji-keringnya, jangan percaya ringkasan
+      siapa pun — termasuk kalimat ini.
     */
-    console.error('\n   Bersihkan — ⚠ skrip ini MENGHAPUS baris, bukan menonaktifkan.')
-    console.error('   Uji-kering dulu (bawaan), baca daftarnya, baru --terapkan:')
+    console.error('\n   Bersihkan — companies DINONAKTIFKAN (is_active=false),')
+    console.error('   tetapi baris TURUNAN yang tak berpemilik benar-benar DIHAPUS.')
+    console.error('   Uji-kering dulu (bawaan), BACA daftarnya, baru --terapkan:')
     console.error('     node apps/api/scripts/bersihkan-company-uji-menumpuk.mjs')
     console.error('     node apps/api/scripts/bersihkan-company-uji-menumpuk.mjs --terapkan')
     process.exit(1)

@@ -69,3 +69,9 @@ evolution-api/
 
 # Rahasia deploy VPS — lihat .env.deploy.example
 .env.deploy
+
+# Cadangan basis — berisi data tenant NYATA (nama perusahaan, id, kontak).
+# Dibuat oleh scripts/db/cadangkan.mjs dan snapshot sekali-pakai sebelum
+# pembersihan. Tak boleh masuk git: repo ini privat, tetapi riwayat git
+# dibagi ke tiap klon dan tiap runner CI — sekali masuk, ia ada selamanya.
+cadangan/
