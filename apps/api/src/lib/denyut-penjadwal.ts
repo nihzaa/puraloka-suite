@@ -203,7 +203,28 @@ export function nyalakanDenyutPenjadwal(opsi: {
         dan kejadian nyata tenggelam di antaranya.
       */
       if ((hasil.sukses ?? 0) > 0 || (hasil.gagal ?? 0) > 0) {
-        opsi.log.info(hasil, 'denyut penjadwal')
+        /*
+          HANYA pencacahnya, bukan seluruh badan balasan.
+
+          Diukur di produksi 2026-09-12: balasannya memuat larik `hasil`
+          berisi SATU ENTRI PER TUGAS — 197 baris, tiap denyut. Pada jeda
+          5 menit itu 12 kali per jam, dan log produksi (JSON ke stdout,
+          tanpa agregator) tenggelam oleh "dilewati: sudah-jalan-periode-ini"
+          yang tak memberi tahu apa pun.
+
+          Rutenya sendiri sudah mencatat rincian lengkapnya lewat
+          `request.log.info(ringkas, 'pemicu jadwal selesai')`. Mencatatnya
+          kedua kali dari sisi pemanggil cuma menggandakan volume.
+        */
+        opsi.log.info(
+          {
+            diperiksa: hasil.diperiksa,
+            sukses: hasil.sukses,
+            gagal: hasil.gagal,
+            dilewati: hasil.dilewati,
+          },
+          'denyut penjadwal',
+        )
       }
     } catch (e) {
       opsi.log.warn({ err: (e as Error).message }, 'denyut penjadwal gagal')
