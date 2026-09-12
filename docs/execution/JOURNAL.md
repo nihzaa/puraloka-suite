@@ -5,6 +5,85 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-12 (lanjutan 2) — 125 tugas terjadwal tak pernah jalan; cron Actions berjeda 209 menit
+
+Ditemukan saat menjawab "apa lagi yang bisa disempurnakan". Bukan dari
+daftar QUEUE — dari mengukur basis.
+
+### Yang terlihat, dan yang sebenarnya
+
+```
+jadwal_tugas aktif   197
+  terakhir SUKSES     72   jalan 11-12 Sep
+  terakhir GAGAL     125   jalan 1-7 Sep, lalu DIAM
+```
+
+Galat pada yang 125 BASI: "Akun Anda dinonaktifkan" — sudah ditutup
+migrasi 568 pada 11 Sep. Yang sebenarnya terjadi lebih buruk daripada
+gagal: **mereka tak pernah dicoba lagi**.
+
+Sebabnya di luar aplikasi. `jadwal-tugas.yml` memasang cron tiap 15
+menit; diukur dari 30 jalan terakhir (`gh run list`):
+
+```
+seharusnya       15 menit
+NYATA rata-rata 209 menit
+TERPANJANG      323 menit
+```
+
+Cron GitHub Actions best-effort dan di-throttle berat pada repo privat.
+Sebarannya membenarkan persis: SEMUA yang dijadwalkan sesudah ~09:30
+gagal, tiga per slot (satu per tenant).
+
+### Yang dikerjakan
+
+Denyut DI DALAM container API (`lib/denyut-penjadwal.ts`), tiap 5 menit.
+Actions TIDAK dimatikan — jaring kedua saat container di-deploy ulang.
+
+Terbukti di produksi:
+
+```
+diperiksa 197 · sukses 1 · gagal 0 · dilewati 196
+```
+
+### Saya salah TIGA kali, dan ketiganya lolos tsc
+
+1. **Kunci balasan `dijalankan` yang tak pernah ada** (yang benar
+   `sukses`/`gagal`/`dilewati`, `jadwal.ts:967`). `r.json()` bertipe any
+   -> syaratnya selalu false: denyut jalan tapi tak pernah mencatat.
+
+2. **`fetch()` tanpa pagar `NODE_ENV==='test'`** — rute ini menjalankan
+   otomasi seluruh tenant, sebagian mengirim WhatsApp sungguhan, dan
+   suite test memakai Postgres NYATA. `audit-saluran-keluar-berpagar`
+   merah, dan benar.
+
+3. **Tanpa `body`** -> Fastify menolak 400, bukan 401. Uji lokal saya
+   memakai rahasia yang sengaja disalahkan dan berhenti di 401 — gerbang
+   rahasia diperiksa SEBELUM badan. **Uji yang "berhasil gagal" pada
+   tahap yang salah tak membuktikan tahap sesudahnya.**
+
+   Jawabannya sudah ada di repo: `scripts/penjadwal-lokal.mjs:142`
+   mengirim `JSON.stringify({})` sejak lama. Saya menulis pemanggil KEDUA
+   tanpa membaca yang pertama — kelas cacat yang justru disebut di kepala
+   berkas saya sendiri sebagai alasan memanggil lewat HTTP.
+
+Ditambah satu cacat operasional yang hanya terlihat dari log produksi:
+denyut mencatat SELURUH badan balasan (197 baris) tiap 5 menit.
+
+### ⚠ `curl` memberi 000 pada hal yang BENAR
+
+`curl -d '{}'` memulangkan 000 untuk badan sah maupun tak sah, dan
+sempat terbaca seperti cacat aplikasi. Yang benar diukur lewat `fetch`:
+
+```
+badan kosong  HTTP 400  Body cannot be empty…
+badan {}      HTTP 200  {"ok":true,"diperiksa":197,…}
+```
+
+000 bukan hasil — ia berarti pengukurannya sendiri gagal (CLAUDE.md §6).
+
+---
+
 ## 2026-09-12 (lanjutan) — "fluid dan mahal": jangkauan skala huruf 2,5x
 
 Founder: *"secara ui-ux udah seperti dibuat oleh designer ternama belum?
