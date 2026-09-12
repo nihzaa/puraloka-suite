@@ -303,7 +303,7 @@ type ErrorMasuk = Partial<Error> & {
   error?: string
 }
 
-app.setErrorHandler((err: ErrorMasuk, _req, reply) => {
+app.setErrorHandler((err: ErrorMasuk, request, reply) => {
   // ⚠️ JANGAN tambahkan `?? reply.statusCode` di sini. Untuk `throw new Error(...)`
   // biasa, `err.statusCode` undefined DAN `reply.statusCode` masih 200 (belum
   // pernah di-set) — rantai itu menghasilkan 200, sehingga kesalahan server
@@ -329,7 +329,48 @@ app.setErrorHandler((err: ErrorMasuk, _req, reply) => {
     return reply.status(429).send({ error: err.error })
   }
   if (status >= 500) {
-    app.log.error(err)
+    /*
+      ── KONTEKS, bukan cuma tumpukan panggilan ──────────────────────────
+
+      Sebelum 2026-09-12 baris ini berbunyi `app.log.error(err)` saja. Itu
+      mencatat pesan + stack, dan MEMBUANG tiga hal yang justru dibutuhkan
+      untuk menindaklanjutinya:
+
+        correlationId  satu-satunya jembatan ke `audit_logs.correlation_id`
+                       — tanpa itu, galat tak bisa dihubungkan dengan
+                       tindakan pengguna yang memicunya
+        rute + metode  "Internal server error" tanpa menyebut rutenya
+                       menuntut orang menebak di antara 601 rute
+        siapa & tenant tenant mana yang terdampak; tanpa ini sebuah galat
+                       yang menimpa SATU perusahaan tak bisa dibedakan
+                       dari yang menimpa semuanya
+
+      Diukur di produksi hari ini: 0 galat 5xx dalam 24 jam. Jadi ini
+      ditulis SEBELUM dibutuhkan — dan itu disengaja. Galat pertama yang
+      nanti muncul hanya bisa didiagnosis dari yang tercatat SAAT ia
+      terjadi; menambahkan konteks sesudahnya berarti menunggu ia terulang.
+
+      ⚠ `err` ditaruh di properti `err` supaya pino membentuknya sebagai
+      objek galat (stack ikut terserialisasi). Menaruhnya di akar bersama
+      field lain membuat stack-nya hilang — pino hanya memformat khusus
+      properti bernama `err`.
+    */
+    app.log.error(
+      {
+        err,
+        correlationId: request.id,
+        rute: request.routeOptions?.url ?? request.url,
+        metode: request.method,
+        /*
+          Keduanya boleh `undefined` — galat bisa terjadi SEBELUM
+          `authenticate` sempat berjalan, dan itu justru keterangan yang
+          berguna (galat pra-auth vs pasca-auth adalah dua kelas berbeda).
+        */
+        userId: request.currentUser?.id,
+        companyId: request.companyId,
+      },
+      'galat 5xx',
+    )
     return reply.status(500).send({ error: 'Internal server error' })
   }
   return reply.status(status).send({ error: err.message })
