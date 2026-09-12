@@ -880,8 +880,27 @@ export default async function procurementRoutes(app: FastifyInstance) {
        kelebihannya dilaporkan. */
     const BATAS = 5000
 
-    let q = supabase
-      .from('purchase_orders')
+    /*
+      ⚠ Lewat `db.unsafe()`, BUKAN `supabase` mentah.
+
+      Versi pertama memakai `supabase` langsung dan ikut MENAIKKAN
+      ratchet tenancy 313 → 315 (ambang 314), bersama ekspor kasbon.
+
+      Gerbangnya sendiri sudah benar — `proyekBolehDibaca()` di atas
+      memulangkan HANYA proyek milik tenant, dan `.in('project_id', …)`
+      memakai daftar itu. Yang dilanggar bukan tenancy-nya melainkan
+      aturan bahwa akses mentah tak boleh BERTAMBAH tanpa alasan
+      tertulis. Alasannya kini tertulis.
+    */
+    let q = request.db!
+      .unsafe(
+        'purchase_orders',
+        'ekspor PO lintas proyek: purchase_orders mewarisi tenant lewat project_id ' +
+          'dan TIDAK punya company_id sendiri. Disaring .in(project_id, …) dengan ' +
+          'daftar dari proyekBolehDibaca(request, project_id) — gerbang yang SAMA ' +
+          'dengan rute daftarnya, supaya yang boleh dilihat di layar sama persis ' +
+          'dengan yang boleh diunduh.',
+      )
       .select(`
         po_number, status, order_date, expected_delivery_date, total_amount, payment_terms,
         project:projects(name),

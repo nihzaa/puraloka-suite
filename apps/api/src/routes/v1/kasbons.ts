@@ -70,8 +70,28 @@ export default async function kasbonRoutes(app: FastifyInstance) {
         perubahan ekspor tak bercampur dengan perbaikan rute lain —
         tetapi dicatat sebagai utang, bukan dibiarkan tak terlihat.
       */
-      const { data: tugas, error: galatTugas } = await supabase
-        .from('mandor_assignments')
+      /*
+        ⚠ Lewat `db.unsafe()`, BUKAN `supabase` mentah.
+
+        Versi pertama baris ini memakai `supabase` langsung dan
+        MENAIKKAN ratchet tenancy 313 → 315 (ambang 314). Test T4f
+        merah, dan benar merah.
+
+        Keamanannya memang utuh — query utamanya `request.db!`, dan ini
+        disaring `mandor_id = user.id` — tetapi ratchet itu ambang NOL
+        PERTUMBUHAN, bukan ambang kebocoran. Tiap akses mentah baru wajib
+        MENYATAKAN alasannya, supaya yang menyalin bentuknya berikutnya
+        membaca alasan itu lebih dulu.
+      */
+      const { data: tugas, error: galatTugas } = await request.db!
+        .unsafe(
+          'mandor_assignments',
+          'penyempitan mandor untuk ekspor kasbon: tabel ini memetakan mandor ' +
+            'ke proyek dan TIDAK punya company_id. Disaring mandor_id = user.id — ' +
+            'identitas pemanggil sendiri, jadi tak ada jalan membaca penugasan ' +
+            'orang lain. Hasilnya hanya MEMPERSEMPIT query utama yang sudah ' +
+            'lewat request.db.',
+        )
         .select('project_id')
         .eq('mandor_id', user.id)
 

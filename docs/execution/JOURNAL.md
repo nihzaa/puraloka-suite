@@ -5,6 +5,85 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-13 (lanjutan 3) — SAYA yang memerahkan ratchet tenancy, dan saya baru tahu 3 jam kemudian
+
+Menjalankan suite penuh untuk mengukur ulang TEST-SISA-49. Hasilnya bukan
+49 melainkan **67 gagal / 31 berkas** (7.170 lulus, 76 dilewati, 1.996
+detik) — dan salah satu kegagalannya menunjuk pekerjaan saya sendiri.
+
+```
+T4f — ratchet: akses supabase mentah di routes tidak boleh naik
+Akses supabase mentah NAIK: 315 (ambang 314)
+```
+
+### Bisect: pelakunya commit saya sendiri
+
+Refleks pertama saya salah — saya periksa `mutu-ikhtisar.ts` (kerja hari
+ini) dan ia bersih, lalu saya bandingkan total terhadap `8e2ea90a`:
+315 vs 315, dan sempat menyimpulkan "bukan sesi ini".
+
+Itu kesimpulan yang NYAMAN dan SALAH: `8e2ea90a` adalah commit terakhir
+sesi SEBELUM compaction, bukan sebelum pekerjaan saya. Ekspor sudah
+ter-commit sebelum titik itu.
+
+Bisect dua belas commit sejak ambang disetel:
+
+```
+889b7c5e  312
+2289aeea  313
+0ecbb88a  315   ← LEWAT AMBANG
+```
+
+`0ecbb88a` — "feat(ekspor): PO & kasbon bisa diunduh" — punya saya.
+Dua berkas: `kasbons.ts` 9→10, `procurement.ts` 37→38.
+
+### Yang dilanggar BUKAN tenancy-nya
+
+Keduanya sebenarnya aman: query utama ekspor PO lewat `proyekBolehDibaca()`
+(gerbang yang sama dengan rute daftarnya), dan lookup kasbon disaring
+`mandor_id = user.id` — identitas pemanggil sendiri.
+
+Yang dilanggar aturan bahwa akses mentah tak boleh **BERTAMBAH**. Ratchet
+itu ambang nol PERTUMBUHAN, bukan ambang kebocoran. Alasannya masuk akal:
+tiap akses mentah baru adalah bentuk yang akan disalin orang berikutnya,
+dan yang menyalin tak selalu menyalin gerbangnya juga.
+
+Diperbaiki lewat `db.unsafe(tabel, alasan)` — dan alasannya benar-benar
+ditulis, bukan diisi seadanya. Hasilnya **313**, satu LEBIH RENDAH
+daripada sebelum ekspor ditambahkan: `2289aeea` (ekspor invoice) ternyata
+juga memakai `supabase`, dan ikut terbawa turun.
+
+### Saya salah — dan ini bentuk yang paling berbahaya hari ini
+
+Sesi ini saya menempelkan "243 penjaga hijau · 0 MERAH" tiga kali, dan
+itu BENAR — `jalankan-semua-penjaga.mjs` memang hijau. Tapi ratchet
+tenancy hidup di **test**, bukan di penjaga skrip.
+
+Jadi saya melaporkan hijau dari satu alat sambil pelanggaran nyata
+menunggu di alat lain yang tak saya jalankan. Kalimatnya tak berbohong;
+CAKUPANNYA yang hilang — persis §8a.2 "angka tanpa cakupan adalah
+setengah angka".
+
+Aturan untuk saya berikutnya: **menyentuh `routes/` berarti menjalankan
+`vitest run tenancy-ratchet`**, bukan cuma penjaga skrip. 264 ms.
+
+### Bukti
+
+```
+hitung akses mentah   315 -> 313  (ambang 314)
+vitest tenancy-ratchet  5 lulus
+vitest kasbon+procurement  42 lulus / 6 berkas
+tsc api                 exit 0
+akhir baris             LF -> CRLF: 0
+```
+
+⚠ Angka 67 gagal itu BELUM dipetakan per-berkas: reporter `basic`
+memotong daftarnya, dan keluarannya cuma menyebut dua nama. Suite
+dijalankan ulang dengan reporter JSON untuk mendapat daftar lengkapnya.
+Sampai itu ada, "67" adalah angka tanpa rincian — bukan peta kerja.
+
+---
+
 ## 2026-09-13 (lanjutan 2) — dua entri QUEUE yang ternyata sudah selesai
 
 Tak ada kode yang berubah di sini. Yang berubah: dua entri yang
