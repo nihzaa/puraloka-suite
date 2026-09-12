@@ -26,6 +26,7 @@ import { Badge, Btn, Card, Input, Memuat, Modal, STATUS_BADGE, fmt, fmtDate } fr
 import { CreatePoModal, KirimPoModal } from "../_bersama/modal-po";
 import type { PoRingkas, PurchaseOrder } from "../_bersama/tipe";
 import { Pilihan } from "@/components/pilihan";
+import { TombolUnduh } from "@/components/tombol-unduh";
 
 /** Item PO pada modal detail — `/purchase-orders/:id` mengirim lebih lengkap. */
 interface ItemPo {
@@ -128,6 +129,17 @@ export default function PesananPage() {
           <option value="">Semua Status</option>
           {STATUS_PO.map(s => <option key={s} value={s}>{STATUS_BADGE[s]?.label ?? s}</option>)}
         </Pilihan>
+        {/*
+          Unduhan memakai saringan status yang SAMA dengan daftarnya —
+          `statusFilter` yang sama dipakai kedua-duanya, jadi tak ada
+          jalan keduanya menyimpang.
+        */}
+        <TombolUnduh
+          label="Unduh"
+          jalur={`/api/v1/procurement/purchase-orders/ekspor${statusFilter ? `?status=${statusFilter}` : ""}`}
+          namaBerkas={`purchase-order${statusFilter ? `-${statusFilter}` : ""}-${new Date().toISOString().slice(0, 10)}`}
+          format={["csv", "xlsx", "pdf"]}
+        />
         {canManage && <Btn onClick={() => setShowCreate(true)}><Plus size={14} aria-hidden="true" /> Buat Purchase Order</Btn>}
       </div>
 
@@ -232,7 +244,8 @@ export default function PesananPage() {
             <div>
               <div style={{ fontWeight: 600, marginBottom: 10 }}>Daftar Item</div>
               <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
-                <Tabel              berpermukaan
+                <Tabel
+              berpermukaan
                   kolom={kolomItem}
                   data={detailPo.items ?? []}
                   kunciBaris={i => i.id}

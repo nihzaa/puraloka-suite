@@ -28,6 +28,7 @@ import { Paginasi } from "@/components/paginasi";
 import { C } from "@/lib/warna-ui";
 import { Skeleton, StatusBadge, AddKasbonModal } from "../_bersama/komponen";
 import { Pilihan } from "@/components/pilihan";
+import { TombolUnduh } from "@/components/tombol-unduh";
 import {
   fmt, fmtCompact, fmtDate, KASBON_STATUS, PURPOSE_LABEL, FUND_SOURCE_LABEL,
   type Kasbon, type WorkerKasbon, type KasbonSummaryData, type CashAccount,
@@ -252,6 +253,20 @@ export default function KasbonPage() {
               <button onClick={() => void loadKasbons()} style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", border: `1px solid ${C.border}`, borderRadius: 6, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>
                 <RefreshCw size={13} /> Refresh
               </button>
+              {/*
+                Unduhan MENGIKUTI saringan status yang sedang terlihat.
+
+                ⚠ Sisi server menyempitkan lagi untuk peran mandor: ia
+                hanya menerima kasbon yang DIAJUKANNYA SENDIRI. Terukur
+                2026-09-13 — tanpa penyempitan itu, satu mandor akan
+                mengunduh 67 baris padahal haknya 28.
+              */}
+              <TombolUnduh
+                label="Unduh"
+                jalur={`/api/v1/kasbons/ekspor${kasbonStatusFilter !== "all" ? `?status=${kasbonStatusFilter}` : ""}`}
+                namaBerkas={`kasbon${kasbonStatusFilter !== "all" ? `-${kasbonStatusFilter}` : ""}-${new Date().toISOString().slice(0, 10)}`}
+                format={["csv", "xlsx", "pdf"]}
+              />
               {kasbons.length > 0 && (
                 <span style={{ fontSize: 12, color: C.mid }}>
                   {kasbons.length} kasbon · Total <strong style={{ color: C.text }}>{fmt(kasbons.reduce((s, k) => s + Number(k.amount), 0))}</strong>

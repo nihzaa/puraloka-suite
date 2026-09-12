@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission, hasPermission } from '../../plugins/auth.js'
+import { susunEkspor, formatSah, FORMAT_EKSPOR } from '../../lib/ekspor-tabel.js'
 import { requireModul } from '../../utils/gerbang-modul.js'
 import { createNotification, createNotifications } from '../../utils/notifications.js'
 import { resolveRecipients } from '../../utils/notification-routing.js'
@@ -850,6 +851,96 @@ export default async function procurementRoutes(app: FastifyInstance) {
   // ═══════════════════════════════════════════════════════════════════════════
   // PURCHASE ORDERS (PO)
   // ═══════════════════════════════════════════════════════════════════════════
+
+  // ── GET /api/v1/procurement/purchase-orders/ekspor?format=… ──────────────
+  //
+  // Pola yang sama dengan `/finance/invoices/ekspor` (2026-09-12): rute
+  // TERPISAH, tak berhalaman, batas atas dinyatakan.
+  //
+  // Gerbang tenant DISALIN dari rute daftarnya — `proyekBolehDibaca`.
+  // PO mewarisi tenant lewat `project_id` (tak punya `company_id`), jadi
+  // penyaringnya WAJIB daftar proyek, bukan `request.db!.from()`.
+  app.get('/api/v1/procurement/purchase-orders/ekspor', {
+    preHandler: [authenticate]
+  }, async (request, reply) => {
+    const { format, project_id, supplier_id, status } = request.query as Record<string, string>
+
+    const fmt = formatSah(format)
+    if (!fmt) {
+      return reply.status(400).send({
+        error: `Format '${format ?? '(kosong)'}' tak dikenal. Yang tersedia: ${FORMAT_EKSPOR.join(', ')}.`,
+      })
+    }
+
+    const idProyek = await proyekBolehDibaca(request, project_id)
+    if (idProyek === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+
+    /* Lihat catatan di `/finance/invoices/ekspor`: bawaan PostgREST
+       memotong SENYAP di 1.000, jadi batasnya dinyatakan dan
+       kelebihannya dilaporkan. */
+    const BATAS = 5000
+
+    let q = supabase
+      .from('purchase_orders')
+      .select(`
+        po_number, status, order_date, expected_delivery_date, total_amount, payment_terms,
+        project:projects(name),
+        supplier:suppliers(name)
+      `)
+      .in('project_id', idProyek)
+      .order('order_date', { ascending: false })
+      .limit(BATAS + 1)
+
+    if (supplier_id) q = q.eq('supplier_id', supplier_id)
+    if (status) q = q.eq('status', status)
+
+    const { data, error } = await q
+    if (error) {
+      request.log.error({ err: error }, 'gagal memuat PO untuk ekspor')
+      return reply.status(500).send({ error: 'Gagal memuat data pesanan' })
+    }
+
+    const semua = (data ?? []) as unknown as Array<Record<string, unknown> & {
+      project?: { name?: string } | null
+      supplier?: { name?: string } | null
+    }>
+    const terpotong = semua.length > BATAS
+    const baris = (terpotong ? semua.slice(0, BATAS) : semua).map((b) => ({
+      po_number: b.po_number ?? '',
+      proyek: b.project?.name ?? '',
+      pemasok: b.supplier?.name ?? '',
+      status: b.status ?? '',
+      order_date: b.order_date ?? '',
+      expected_delivery_date: b.expected_delivery_date ?? '',
+      payment_terms: b.payment_terms ?? '',
+      total_amount: Number(b.total_amount) || 0,
+    }))
+
+    const total = baris.reduce((n, b) => n + b.total_amount, 0)
+
+    const hasil = await susunEkspor(fmt, {
+      judul: 'Daftar Pesanan Pembelian',
+      keterangan: `${baris.length} PO · total ${Math.round(total)}`
+        + (terpotong ? ` — ⚠ DIPOTONG di ${BATAS} baris; persempit dengan filter` : ''),
+      kolom: [
+        { kunci: 'po_number', judul: 'No. PO', lebar: 18 },
+        { kunci: 'proyek', judul: 'Proyek', lebar: 26 },
+        { kunci: 'pemasok', judul: 'Pemasok', lebar: 24 },
+        { kunci: 'status', judul: 'Status', lebar: 16 },
+        { kunci: 'order_date', judul: 'Tgl Pesan', lebar: 12 },
+        { kunci: 'expected_delivery_date', judul: 'Janji Kirim', lebar: 12 },
+        { kunci: 'payment_terms', judul: 'Termin', lebar: 16 },
+        { kunci: 'total_amount', judul: 'Total', angka: true, lebar: 16 },
+      ],
+      baris,
+    })
+
+    return reply
+      .header('content-type', hasil.tipeKonten)
+      .header('x-ekspor-jumlah', String(baris.length))
+      .header('x-ekspor-terpotong', terpotong ? '1' : '0')
+      .send(hasil.isi)
+  })
 
   // GET /api/v1/procurement/purchase-orders
   app.get('/api/v1/procurement/purchase-orders', {

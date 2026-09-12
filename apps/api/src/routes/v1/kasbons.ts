@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate } from '../../plugins/auth.js'
+import { susunEkspor, formatSah, FORMAT_EKSPOR } from '../../lib/ekspor-tabel.js'
 import { gerbangIdempotensi, catatIdempotensi, sudahDibalas } from '../../utils/idempotency.js'
 import { createNotifications } from '../../utils/notifications.js'
 import { resolveRecipients } from '../../utils/notification-routing.js'
@@ -12,6 +13,142 @@ export default async function kasbonRoutes(app: FastifyInstance) {
 
   // GET /api/v1/kasbons — list kasbon mandor
   // mandor: hanya scope milik mandor tersebut | admin/pm: semua
+  // ── GET /api/v1/kasbons/ekspor?format=… ──────────────────────────────────
+  //
+  // ⚠ PENYEMPITAN MANDOR IKUT DISALIN, dan itu bagian terpenting rute ini.
+  //
+  // Rute daftar (`/api/v1/kasbons`) menyaring dua lapis: `request.db!`
+  // membatasi ke company, LALU mandor dipersempit lagi ke kasbon yang ia
+  // ajukan sendiri (`requested_by = user.id`).
+  //
+  // Ekspor yang melewatkan lapis kedua akan memberi seorang mandor
+  // SELURUH kasbon rekan-rekannya dalam satu berkas — nominal, keperluan,
+  // dan siapa yang mengajukan. Layarnya benar, unduhannya bocor, dan tak
+  // ada galat di mana pun.
+  //
+  // Pola ekspornya sendiri sama dengan `/finance/invoices/ekspor`.
+  app.get('/api/v1/kasbons/ekspor', {
+    preHandler: [authenticate]
+  }, async (request, reply) => {
+    const user = request.currentUser!
+    const { format, status, work_scope_id } = request.query as Record<string, string>
+
+    const fmt = formatSah(format)
+    if (!fmt) {
+      return reply.status(400).send({
+        error: `Format '${format ?? '(kosong)'}' tak dikenal. Yang tersedia: ${FORMAT_EKSPOR.join(', ')}.`,
+      })
+    }
+
+    const BATAS = 5000
+
+    let q = request.db!
+      .from('kasbons')
+      .select(`
+        amount, fund_source, purpose, kasbon_date, status, notes,
+        project:projects!kasbons_project_id_fkey ( name ),
+        requester:users!kasbons_requested_by_fkey ( name )
+      `)
+      .order('kasbon_date', { ascending: false })
+      .limit(BATAS + 1)
+
+    if (status) q = q.eq('status', status)
+    if (work_scope_id) q = q.eq('work_scope_id', work_scope_id)
+
+    /* Lapis KEDUA — disalin dari rute daftarnya. Lihat catatan di atas. */
+    if (user.role === 'mandor') {
+      /*
+        Galatnya DIPERIKSA, tidak ditelan.
+
+        `audit-kegagalan-senyap.mjs` memerahkan versi pertama baris ini,
+        dan benar: kalau query ini gagal, `tugas` bernilai null -> nol
+        proyek -> mandor menerima berkas KOSONG dan menyimpulkan ia tak
+        punya kasbon. Kegagalan yang menyamar jadi "nol baris".
+
+        Rute daftarnya sendiri masih memakai bentuk lama (2 pelanggaran
+        tercatat di berkas ini). Tidak ikut diperbaiki di sini supaya
+        perubahan ekspor tak bercampur dengan perbaikan rute lain —
+        tetapi dicatat sebagai utang, bukan dibiarkan tak terlihat.
+      */
+      const { data: tugas, error: galatTugas } = await supabase
+        .from('mandor_assignments')
+        .select('project_id')
+        .eq('mandor_id', user.id)
+
+      if (galatTugas) {
+        request.log.error({ err: galatTugas, userId: user.id }, 'gagal membaca penugasan mandor untuk ekspor kasbon')
+        return reply.status(500).send({ error: 'Gagal memeriksa penugasan proyek Anda' })
+      }
+
+      const idProyek = (tugas ?? []).map((a: { project_id: string }) => a.project_id)
+      /*
+        Nol penugasan -> nol baris, BUKAN seluruh isi tabel.
+        `.in('project_id', [])` pada larik kosong adalah cara paling mudah
+        membocorkan data; keluar lebih awal menutupnya.
+      */
+      if (idProyek.length === 0) {
+        const kosong = await susunEkspor(fmt, {
+          judul: 'Daftar Kasbon',
+          keterangan: '0 kasbon — Anda belum ditugaskan di proyek mana pun',
+          kolom: [{ kunci: 'kasbon_date', judul: 'Tanggal', lebar: 12 }],
+          baris: [],
+        })
+        return reply
+          .header('content-type', kosong.tipeKonten)
+          .header('x-ekspor-jumlah', '0')
+          .send(kosong.isi)
+      }
+      q = q.in('project_id', idProyek).eq('requested_by', user.id)
+    }
+
+    const { data, error } = await q
+    if (error) {
+      request.log.error({ err: error }, 'gagal memuat kasbon untuk ekspor')
+      return reply.status(500).send({ error: 'Gagal memuat data kasbon' })
+    }
+
+    const semua = (data ?? []) as unknown as Array<Record<string, unknown> & {
+      project?: { name?: string } | null
+      requester?: { name?: string } | null
+    }>
+    const terpotong = semua.length > BATAS
+    const baris = (terpotong ? semua.slice(0, BATAS) : semua).map((b) => ({
+      kasbon_date: b.kasbon_date ?? '',
+      proyek: b.project?.name ?? '',
+      pengaju: b.requester?.name ?? '',
+      purpose: b.purpose ?? '',
+      fund_source: b.fund_source ?? '',
+      status: b.status ?? '',
+      notes: b.notes ?? '',
+      amount: Number(b.amount) || 0,
+    }))
+
+    const total = baris.reduce((n, b) => n + b.amount, 0)
+
+    const hasil = await susunEkspor(fmt, {
+      judul: 'Daftar Kasbon',
+      keterangan: `${baris.length} kasbon · total ${Math.round(total)}`
+        + (terpotong ? ` — ⚠ DIPOTONG di ${BATAS} baris; persempit dengan filter` : ''),
+      kolom: [
+        { kunci: 'kasbon_date', judul: 'Tanggal', lebar: 12 },
+        { kunci: 'proyek', judul: 'Proyek', lebar: 26 },
+        { kunci: 'pengaju', judul: 'Pengaju', lebar: 20 },
+        { kunci: 'purpose', judul: 'Keperluan', lebar: 26 },
+        { kunci: 'fund_source', judul: 'Sumber Dana', lebar: 16 },
+        { kunci: 'status', judul: 'Status', lebar: 12 },
+        { kunci: 'notes', judul: 'Catatan', lebar: 30 },
+        { kunci: 'amount', judul: 'Nominal', angka: true, lebar: 16 },
+      ],
+      baris,
+    })
+
+    return reply
+      .header('content-type', hasil.tipeKonten)
+      .header('x-ekspor-jumlah', String(baris.length))
+      .header('x-ekspor-terpotong', terpotong ? '1' : '0')
+      .send(hasil.isi)
+  })
+
   app.get('/api/v1/kasbons', {
     preHandler: [authenticate]
   }, async (request, reply) => {
