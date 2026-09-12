@@ -1,5 +1,6 @@
 import Fastify from 'fastify'
 import { nyalakanDenyutPenjadwal } from './lib/denyut-penjadwal.js'
+import { nyalakanPemantauGalat, laporGalat } from './lib/pemantau-galat.js'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import jwt from '@fastify/jwt'
@@ -371,6 +372,24 @@ app.setErrorHandler((err: ErrorMasuk, request, reply) => {
       },
       'galat 5xx',
     )
+
+    /*
+      Pemantau BERDAMPINGAN dengan log, bukan menggantikannya.
+
+      Log lokal tetap sumber kebenaran yang tak bergantung layanan luar —
+      kalau Sentry mati atau kuotanya habis, galatnya TETAP tercatat di
+      stdout. Pemantau adalah lapis kedua yang memberi tahu tanpa diminta.
+
+      Default MATI (tanpa `SENTRY_DSN`, `laporGalat` langsung kembali).
+    */
+    laporGalat(err, {
+      correlationId: request.id,
+      rute: request.routeOptions?.url ?? request.url,
+      metode: request.method,
+      userId: request.currentUser?.id,
+      companyId: request.companyId,
+    })
+
     return reply.status(500).send({ error: 'Internal server error' })
   }
   return reply.status(status).send({ error: err.message })
@@ -657,6 +676,13 @@ try {
     `lib/denyut-penjadwal.ts`.
   */
   nyalakanDenyutPenjadwal({ port: PORT, log: app.log })
+
+  /*
+    Pemantau galat produksi. Default MATI — lihat kepala
+    `lib/pemantau-galat.ts` untuk kenapa SaaS dulu dan bukan self-host,
+    dan kenapa baru dipasang SESUDAH log dibersihkan.
+  */
+  nyalakanPemantauGalat(app.log)
 } catch (err) {
   app.log.error(err)
   process.exit(1)
