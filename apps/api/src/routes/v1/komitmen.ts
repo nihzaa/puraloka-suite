@@ -18,10 +18,50 @@ import {
  * **cost control** — kelompok yang disebutnya sendiri "yang membedakan ERP
  * kontraktor dari aplikasi pencatat biasa".
  *
- * Sebelum ini, pertanyaan "pos ini masih aman?" hanya bisa dijawab dari
- * anggaran vs realisasi. Itu selalu terlalu optimistis: PO yang sudah
- * disetujui tetapi barangnya belum datang tak terlihat di mana pun, dan
- * pembengkakan baru ketahuan saat barangnya tiba.
+ * ⚠⚠ KOMITMEN SUDAH ADA SEBELUM BERKAS INI. BACA DULU SEBELUM MENAMBAH.
+ *
+ * Ditemukan 2026-09-12 SESUDAH rute ini ditulis — saya membangunnya tanpa
+ * memeriksa lebih dulu, dan itu kesalahan yang persis diperingatkan
+ * CLAUDE.md §8a.4 ("sebelum menyatakan sesuatu belum dikerjakan, UKUR dulu
+ * ke kode").
+ *
+ * Yang sudah ada:
+ *
+ *     routes/v1/cost-control.ts:788   PO_MENGIKAT -> commitmentTotal
+ *     lib/varians-cost-code.ts        exposure = commitment + actual
+ *     app/(dashboard)/estimasi/varians  kolom "Komitmen" di layar
+ *
+ * Dan rancangannya LEBIH BAIK daripada dugaan pertama saya: ia melaporkan
+ * komitmen sebagai TOTAL PROYEK, bukan per cost code, karena pemetaan
+ * material↔cost-code belum ada. Komentarnya menyebut alasannya dengan
+ * tepat: *"menaruhnya di baris cost code mana pun = menebak, dan tebakan
+ * di angka uang adalah kegagalan yang tak berbunyi"*.
+ *
+ * ── Lalu kenapa berkas ini TETAP ADA
+ *
+ * Yang sudah ada itu **per-proyek**, di dalam rute varians. Diukur: satu-
+ * satunya endpoint lintas-proyek (`/cost-analytics/portfolio`) TIDAK
+ * memuat komitmen sama sekali.
+ *
+ * Jadi pertanyaan "berapa total uang perusahaan yang sedang terikat PO?"
+ * — dan "proyek MANA yang posisinya paling ketat?" — belum bisa dijawab
+ * tanpa membuka proyek satu per satu.
+ *
+ * Itu lubang yang ditutup di sini, dan HANYA itu.
+ *
+ * ⚠ Perbedaan definisi yang HARUS diketahui sebelum membandingkan angkanya:
+ *
+ *     cost-control.ts   sent · confirmed · partially_received · fully_received
+ *     berkas ini        sent · confirmed  (fully_received dipisah)
+ *
+ * Keduanya disengaja dan keduanya sah. Yang pertama menjawab "berapa yang
+ * sudah tak bisa dipakai untuk hal lain" (termasuk barang yang sudah
+ * datang tetapi belum tertagih). Yang kedua menjawab "berapa yang masih
+ * DI JALAN" — dan karena itu `nilaiTerpenuhi` dipisah, bukan dibuang.
+ *
+ * **Jangan menyatukan keduanya tanpa memutuskan definisi mana yang menang.**
+ * Dua angka "komitmen" yang berbeda di dua layar, tanpa penjelasan, adalah
+ * cacat yang lebih mahal daripada tak punya salah satunya.
  *
  * Aturan hitungnya ada di `lib/komitmen.ts` (13 test, terbukti bisa merah
  * lewat mutasi). Rute ini hanya mengambil data dan memanggilnya.
