@@ -1274,7 +1274,19 @@ items:
       Lapang LPKIA: nol kecocokan pHash. Bisa diekstrak dari PDF bila founder
       setuju; resolusinya masih memadai untuk web.
     bobot: S
-    status: todo
+    status: selesai
+    selesai: 2026-09-13
+    catatan_penyelesaian: >-
+      ✅ SELESAI — diukur 2026-09-13 dengan query `cara_verifikasi` di atas.
+      KEDUA kategori yang disebut judul ternyata SUDAH berisi:
+      renovasi-rumah 4 foto, beton-pracetak 2. Nol kategori kosong;
+      terendah 2, tertinggi 14 (pabrik). Keempat-empatnya tampil=true,
+      path_storage terisi, alt terisi — jadi bukan sekadar baris ada,
+      melainkan gambar yang benar-benar bisa dirender dan punya teks
+      alternatif (a11y). Pathnya deskriptif dan cocok isi compro
+      ("renovasi-rumah-1-sebelum", "beton-pracetak-1-panel-pagar"),
+      jadi ini foto yang dimaksud entri ini, bukan pengisi acak.
+      Keputusan "ekstrak dari PDF" tak lagi perlu diminta ke founder.
 
   # ══════════════════════════════════════════════════════════════════════════
   # TJS-* — LAPISAN AI & PLATFORM, diambil dari TJS Command Center
