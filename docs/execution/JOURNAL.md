@@ -66,6 +66,30 @@ melanjutkan yang ada); fixture-nya yang salah. Kini berkas itu membuat
 proyeknya sendiri — dan menghapusnya di akhir, supaya tak jadi sampah yang
 merusak fixture berkas lain.
 
+### Diverifikasi DUA KALI di commit yang SAMA
+
+Pelajaran di atas dijalankan pada dirinya sendiri: bukan satu run, melainkan
+dua berturut-turut tanpa perubahan di antaranya.
+
+```
+run 1  497/497 berkas · 7.307 hijau · 6 skip · 0 MERAH
+run 2  497/497 berkas · 7.307 hijau · 6 skip · 0 MERAH
+```
+
+Dan yang lebih penting daripada angka test — penjaga TETAP hijau SESUDAH
+suite penuh:
+
+```
+248 penjaga · 0 MERAH · 0 tak ketemu
+akar grup yatim            : 0
+badan fungsi menyimpang    : 0   <- dua kali sebelumnya suite MEMBATALKAN ini
+counter dokumen tertinggal : 0
+```
+
+Baris kedua itu yang paling berarti: dua kali sebelumnya suite membatalkan
+perbaikan migrasi 572/576, dan perbaikan `test-db.ts` yang menutup sumbernya
+kini terbukti bertahan — bukan disimpulkan, diukur sesudahnya.
+
 penjaga **248** hijau · 0 MERAH
 commit `aef96df2` `0e71d49e`
 
