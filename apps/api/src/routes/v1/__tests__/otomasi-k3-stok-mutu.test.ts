@@ -351,21 +351,44 @@ describe('3.14 — audit mutu lewat jadwal', () => {
   }, 120_000)
 
   it('ambang hari benar-benar menyaring', async () => {
+    /*
+      ⚠ Dibandingkan SELISIHNYA, bukan angka mutlak — diperbaiki 2026-09-14.
+
+      Versi sebelumnya menyisipkan satu audit telat 2 hari lalu menuntut
+      `hitung('?hari=30') < hitung('')`. Merah dengan `expected 1 to be less
+      than 1`, dan itu terbaca seperti `hari` yang tak dipakai rutenya.
+
+      Diukur ke basis: rutenya BENAR (`if (telat < ambangHari) continue`, dan
+      `ambilAmbang` memenangkan query). Yang tak terlihat: seed berisi
+      `AM-2608-02` yang telat **35 hari** — ia lolos KEDUA ambang, jadi
+      keduanya menjawab 1 dan baris fixture yang telat 2 hari tak pernah
+      terlihat di selisihnya.
+
+      Membersihkan baris seed itu BUKAN jawabannya: `bersihkan()` sengaja
+      hanya menghapus baris ber-[TANDA], sebab test tak boleh membuang data
+      yang bukan miliknya.
+
+      Sekarang dua ambang dipilih supaya baris FIXTURE-lah yang berpindah
+      sisi: telat 10 hari, diuji pada ambang 5 (masuk) vs 20 (keluar). Baris
+      seed apa pun yang lolos keduanya ikut terhitung di KEDUA angka, jadi
+      ia hilang dari selisihnya — berapa pun jumlahnya.
+    */
     await bersihkan()
     await db.query(
       `INSERT INTO audit_mutu (project_id, nomor, judul, status, tanggal_rencana)
        VALUES ($1,$2,$3,'berjalan',$4)`,
-      [proyek, `${TANDA}-TIPIS`, `${TANDA} audit`, tanggal(-2)])
+      [proyek, `${TANDA}-TIPIS`, `${TANDA} audit`, tanggal(-10)])
 
     const hitung = async (q: string) => {
       const r = await panggil('audit-mutu-lewat-jadwal', q)
       return (r.json() as { checked: { lewat_jadwal: number } }).checked.lewat_jadwal
     }
 
-    const bawaan = await hitung('')
-    const longgar = await hitung('?hari=30')
-    expect(longgar,
-      'menaikkan ambang tak mengurangi yang lewat jadwal — nilainya tak dipakai')
-      .toBeLessThan(bawaan)
+    const ketat  = await hitung('?hari=5')   // fixture (10 hari) MASUK
+    const longgar = await hitung('?hari=20') // fixture KELUAR
+    expect(ketat - longgar,
+      'menaikkan ambang tak mengeluarkan audit yang telatnya di bawah ambang baru — '
+      + '`hari` tak dipakai rutenya')
+      .toBe(1)
   }, 120_000)
 })

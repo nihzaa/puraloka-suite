@@ -172,10 +172,29 @@ describe('tool ingatan lintas percakapan', () => {
     */
     if (!userB) return // tenant berpenghuni satu orang
 
+    /*
+      ⚠ Hitungannya DISARING per company — diperbaiki 2026-09-14.
+
+      Versi sebelumnya menghitung SELURUH percakapan milik A lintas tenant,
+      lalu membandingkannya dengan jawaban tool. Merah dengan `expected 21 to
+      be 78`, dan angkanya terbaca seperti tool yang kehilangan data.
+
+      Diukur: A punya 78 percakapan, terbagi DUA tenant — 57 + 21. Tool
+      memakai `createTenantDb(companyId)`, jadi ia menjawab 21 dengan BENAR.
+      Yang salah pembandingnya, yang tak menyaring tenant sama sekali.
+
+      Ini justru arah yang aman (tool melaporkan LEBIH SEDIKIT), tetapi tetap
+      wajib diperbaiki: test yang merah atas perilaku benar akan diabaikan,
+      dan yang diuji berkas ini — kebocoran percakapan ANTAR PENGGUNA — jadi
+      tak terjaga sama sekali.
+    */
+
     const { rows: milikA } = await db.query(
-      `SELECT count(*)::int n FROM ai_percakapan WHERE user_id=$1`, [userA])
+      `SELECT count(*)::int n FROM ai_percakapan WHERE user_id=$1 AND company_id=$2`,
+      [userA, companyId])
     const { rows: milikB } = await db.query(
-      `SELECT count(*)::int n FROM ai_percakapan WHERE user_id=$1`, [userB])
+      `SELECT count(*)::int n FROM ai_percakapan WHERE user_id=$1 AND company_id=$2`,
+      [userB, companyId])
 
     const hA = await toolIngatPercakapan.jalan(ctxIngat(userA), {})
     const angkaA = Number(hA.isi.match(/(\d+) percakapan tersimpan/)?.[1] ?? -1)
