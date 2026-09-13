@@ -176,9 +176,24 @@ export default function AuditPage() {
 
   const fetchLogs = useCallback((p = page) => { setPage(p); void muatUlangLogs(); }, [page, muatUlangLogs]);
 
-  // Halaman kembali ke 1 begitu salah satu saringan berganti — daftar hasil
-  // saringan baru tak pernah bermakna dimulai dari halaman lama.
-  useEffect(() => { setPage(1); }, [filterTable, filterAction, filterFrom, filterTo]);
+  /*
+    Halaman kembali ke 1 begitu salah satu saringan berganti — daftar hasil
+    saringan baru tak pernah bermakna dimulai dari halaman lama.
+
+    ⚠ Dulu ini `useEffect(() => setPage(1), [4 saringan])`, dan itu
+    `react-hooks/set-state-in-effect`: setState SINKRON di dalam efek
+    memicu render berantai — React merender sekali dengan saringan baru
+    + halaman LAMA, baru merender ulang dengan halaman 1. Permintaan
+    pertama karenanya terkirim untuk kombinasi yang tak pernah diminta
+    siapa pun.
+
+    Diganti jadi satu penyetel: saringan dan halaman berubah dalam SATU
+    pembaruan, jadi tak ada keadaan antara.
+  */
+  const gantiSaringan = useCallback((set: (v: string) => void, v: string) => {
+    set(v);
+    setPage(1);
+  }, []);
 
   // Galat muat ditampilkan via toast, seperti perilaku sebelumnya — bukan
   // state galat terpisah, supaya perilaku tak berubah dari versi lama.
@@ -263,7 +278,7 @@ export default function AuditPage() {
         {/* Table filter */}
         <Pilihan aria-label="Tabel"
           value={filterTable}
-          onChange={e => setFilterTable(e.target.value)}
+          onChange={e => gantiSaringan(setFilterTable, e.target.value)}
           style={{ height: 36, borderRadius: 6, border: "1px solid var(--border)", fontSize: 12, padding: "0 10px", flex: "0 0 auto", minWidth: 150 }}
         >
           <option value="">Semua Tabel</option>
@@ -275,7 +290,7 @@ export default function AuditPage() {
         {/* Action filter */}
         <Pilihan aria-label="Aksi"
           value={filterAction}
-          onChange={e => setFilterAction(e.target.value)}
+          onChange={e => gantiSaringan(setFilterAction, e.target.value)}
           style={{ height: 36, borderRadius: 6, border: "1px solid var(--border)", fontSize: 12, padding: "0 10px", flex: "0 0 auto", minWidth: 160 }}
         >
           <option value="">Semua Action</option>
@@ -287,12 +302,12 @@ export default function AuditPage() {
         {/* Date range */}
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           <input aria-label="Tanggal mulai"
-            type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)}
+            type="date" value={filterFrom} onChange={e => gantiSaringan(setFilterFrom, e.target.value)}
             style={{ height: 36, borderRadius: 6, border: "1px solid var(--border)", fontSize: 12, padding: "0 8px" }}
           />
           <span style={{ fontSize: "var(--t-kecil)", color: "var(--text-muted)" }}>—</span>
           <input aria-label="Tanggal akhir"
-            type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)}
+            type="date" value={filterTo} onChange={e => gantiSaringan(setFilterTo, e.target.value)}
             style={{ height: 36, borderRadius: 6, border: "1px solid var(--border)", fontSize: 12, padding: "0 8px" }}
           />
         </div>

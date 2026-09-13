@@ -75,7 +75,25 @@ function IsiProyeksiKas() {
 
   useEffect(() => {
     let batal = false;
-    if (!proyekId) { setSkenario([]); setVersiId(""); setJawab(null); return; }
+    /*
+      ⚠ Pengosongan DITUNDA satu tick, bukan dipanggil sinkron.
+
+      `react-hooks/set-state-in-effect`: setState sinkron di dalam efek
+      memicu render berantai — React merender sekali dengan proyek KOSONG
+      lalu segera merender ulang. Pada halaman ini akibatnya terlihat:
+      daftar skenario berkedip kosong tiap kali proyek dilepas.
+
+      `queueMicrotask` menaruhnya di luar fase render, jadi pembaruannya
+      satu kali. `batal` tetap dihormati supaya efek yang sudah
+      dibersihkan tak menulis ke komponen yang sudah lepas.
+    */
+    if (!proyekId) {
+      queueMicrotask(() => {
+        if (batal) return;
+        setSkenario([]); setVersiId(""); setJawab(null);
+      });
+      return () => { batal = true; };
+    }
     api.get<{ data: SkenarioLengkap[] }>(`/api/v1/projects/${proyekId}/scenarios`)
       .then((r) => { if (!batal) setSkenario(r.data.data ?? []); })
       .catch(() => { if (!batal) setSkenario([]); });
