@@ -2764,6 +2764,27 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # Akar grup AKTIF wajib punya pemilik — dan teardown test tak boleh
+      # memakai `companies.delete()`, yang TAK PERNAH berhasil.
+      #
+      # 2026-09-14: `t9-kelola-badan-usaha` merah atas tiga tenant yang TIDAK
+      # pernah ia buat. Pembuatnya tiga berkas lain yang membongkar tenant
+      # ujinya lewat `.delete()` — ditolak trigger `fn_company_no_casual_delete`
+      # (migrasi 126 §8), galatnya DITELAN `supabase-js` (memulangkan { error },
+      # tidak melempar), jadi teardown "berhasil" dengan tenang sambil
+      # menambah satu tenant AKTIF tanpa pemilik tiap jalan suite.
+      #
+      # Kelas yang dijaga `audit-catch-senyap.mjs` di kode produksi — hanya
+      # saja ini di TEST, tempat penjaga itu tak melihat.
+      #
+      # Dua arah: KEADAAN (nol akar aktif yatim) dan BENTUK KODE (nol
+      # `.delete()` di test). Menjaga keadaannya saja tak cukup — polanya akan
+      # kembali, dan residunya baru terlihat sesudah menumpuk.
+      - name: Akar grup wajib punya pemilik
+        run: node scripts/audit-akar-grup-punya-pemilik.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       # Tabel yang lahir DI LUAR jalur migrasi hidup nyaman di dev dan HILANG
       # di tiap basis baru — VPS termasuk. Tiga kali terjadi 2026-08-31, dan
       # tiap kali gejalanya menunjuk ke tempat lain:
