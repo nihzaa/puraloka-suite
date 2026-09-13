@@ -4995,12 +4995,13 @@ secara bawaan, satu transaksi, dan memverifikasi sendiri sebelum commit.
 
 ---
 
-## R-015 · Migrasi 111 tercatat JALAN, tetapi relaksasinya tak ada di basis
+## R-015 · ✅ SELESAI — Migrasi 111 tercatat JALAN, tetapi relaksasinya tak ada di basis
 
-> ### ⏳ SUDAH DIKERJAKAN — sisa SATU hal yang butuh Anda (2026-09-13)
+> ### ✅ SELESAI 2026-09-13 — termasuk pencatatan bukunya (G-2, disetujui founder)
 >
-> Anda memutuskan jalur (1). Sudah dijalankan, dan **cakupan yang dulu
-> saya tulis "BELUM diukur" kini terukur — dan ia menemukan DUA lagi.**
+> Anda memutuskan jalur (1), lalu menyetujui pencatatan bukunya
+> (*"okee kerjakan ajaa"*). Dan **cakupan yang dulu saya tulis "BELUM
+> diukur" kini terukur — ia menemukan DUA lagi.**
 >
 > | | |
 > |---|---|
@@ -5008,20 +5009,23 @@ secara bawaan, satu transaksi, dan memverifikasi sendiri sebelum commit.
 > | migrasi **571** | `has_permission` sadar tenant — migrasi 372 **separuhnya** tak berlaku |
 > | migrasi **572** | empat badan tertinggal; `fn_riwayat_periode_append_only` **terukur rusak** |
 > | penjaga | `audit-badan-fungsi-mutakhir.mjs` — membandingkan **BADAN**, bukan nama |
-> | commit | `6016b9e3` |
-> | test | 63/63 hijau (7 berkas) |
+> | buku migrasi | 570, 571, 572 tercatat lengkap dengan `statements` |
+> | test | 63/63 hijau (7 berkas) · penjaga 245 hijau · 0 MERAH |
 >
-> **🔴 YANG MENUNGGU ANDA — dan HANYA ini:** ketiga migrasi sudah berlaku
-> di basis, tetapi **belum dicatat di `supabase_migrations.schema_migrations`**.
-> Menulis ke buku itu Gerbang Keras G-2, jadi saya berhenti di sini.
+> **Pencatatannya lewat `apply-migrasi.mjs`, bukan INSERT tangan.** Skrip
+> itu ADA justru untuk cacat ini (20 migrasi jalan tanpa tercatat,
+> 2026-07-31): ia menjalankan migrasinya lebih dulu, menuntut NOTICE
+> verifikasinya muncul, dan baru menulis buku **sesudah** berhasil —
+> jadi entri yang lahir darinya tak pernah bisa jadi entri palsu.
+> Ketiganya aman diulang sebab `CREATE OR REPLACE` + blok verifikasi.
 >
-> Tanpa entri itu, CI yang memutar rantai dari nol akan menjalankan
-> 570-572 lagi. Ketiganya `CREATE OR REPLACE` + blok verifikasi —
-> **idempoten**, jadi mengulangnya aman. Yang rusak bukan basisnya,
-> melainkan artinya: buku yang tak memuat migrasi yang sudah berlaku
-> adalah buku yang berhenti bisa dipercaya.
+> Verdict `ledger-diff.mjs` sesudahnya: bagian **"Yang TIDAK di buku"
+> KOSONG**, dan ketiganya tak muncul di daftar artefak-hilang.
 >
-> Jawab **"catat 570-572"** dan saya tuliskan entrinya.
+> ⚠ Yang TIDAK ikut dikerjakan, supaya batasnya jelas: skema `test`
+> tetap memakai salinan triggernya sendiri (`test.estimate_versions` →
+> `test.fn_…`). Menyamakan kedua skema itu keputusan tersendiri yang
+> belum diukur dampaknya ke test yang memakai sandbox itu.
 
 **Ditemukan 2026-09-13** saat menelusuri 2 test merah `estimate-approval`.
 Ini Gerbang Keras G-2 (buku migrasi), jadi saya berhenti dan melapor.

@@ -98,13 +98,34 @@ keenam fungsi — keluaran yang terbaca seperti temuan, padahal perintahnya
 yang rusak. Sama bentuknya dengan CR di §7a: **nol hasil bukan bukti
 ketiadaan.**
 
-### Yang menunggu founder
+### Buku migrasi — G-2, disetujui lalu dikerjakan
 
-Ketiga migrasi **berlaku di basis, belum tercatat di buku** (G-2).
-Ketiganya `CREATE OR REPLACE` + verifikasi, jadi idempoten — mengulangnya
-aman. Yang rusak bukan basisnya, melainkan arti bukunya.
+Founder menyetujui pencatatannya (*"okee kerjakan ajaa"*). Ketiganya
+dicatat **lewat `apps/api/scripts/apply-migrasi.mjs`, bukan INSERT
+tangan** — dan itu bukan soal gaya:
 
-commit `6016b9e3` · test 63/63 hijau (7 berkas)
+Skrip itu lahir dari cacat yang persis sama (2026-07-31: 20 migrasi
+sudah jalan tanpa tercatat, seluruh seri multi-tenant 126-137). Ia
+menjalankan migrasinya lebih dulu, mencetak NOTICE verifikasinya, dan
+menulis buku **hanya sesudah berhasil**. Entri palsu — bentuk yang
+diperingatkan §5.5 — tak bisa lahir dari jalur itu.
+
+```
+570 → [db] 570 OK … → 📖 tercatat
+571 → [db] 571 OK … → 📖 tercatat
+572 → [db] 572 OK … → 📖 tercatat
+```
+
+Verdict sesudahnya: bagian **"Yang TIDAK di buku" KOSONG**, dan
+ketiganya tak masuk daftar artefak-hilang. Diperiksa ulang sesudah
+re-apply (skrip itu menjalankan SQL-nya lagi): 206 badan fungsi cocok,
+0 selisih, dan uji perilaku hapus-periode tetap lolos.
+
+⚠ Skema `test` sengaja TIDAK ikut — ia punya salinan triggernya sendiri.
+Menyamakan kedua skema itu keputusan tersendiri yang belum diukur.
+
+commit `6016b9e3` + `f912290d` · test 63/63 hijau (7 berkas) ·
+penjaga 245 hijau · 0 MERAH · 0 tak ketemu
 
 ---
 
