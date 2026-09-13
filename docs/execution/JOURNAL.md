@@ -5,6 +5,72 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-14 (lanjutan 2) — tiga run suite penuh, tiga hasil berbeda, dan cacat UANG di dalamnya
+
+### Saya menyatakan "0 MERAH" sebelum benar-benar diverifikasi
+
+Laporan saya menyebut suite penuh **497/497 hijau**. Run verifikasi
+berikutnya: **2 merah**. Lalu **3 merah** di run sesudahnya.
+
+Angka yang saya kutip benar untuk run-nya, tetapi saya menyampaikannya
+sebagai KEADAAN AKHIR padahal belum diulang. Dan ketiga run itu tak
+mengukur commit yang sama — ada perbaikan yang mendarat di antaranya.
+
+Aturannya sendiri sudah tertulis di CLAUDE.md §7 untuk kasus lain
+("angka dari run yang tumpang tindih TIDAK SAH"); yang saya langgar
+sepupunya: **angka dari run yang sudah tertinggal commit juga tidak sah.**
+
+### Dan justru run ulang itu menemukan cacat UANG
+
+`tulis-absensi` merah dengan `expected true to be false` — terbaca seperti
+test rewel. Bukan:
+
+```
+work_scope di proyek itu  : 6
+absensi tersimpan di scope: ab01…0001
+query tanpa ORDER BY beri : ab01…0004
+```
+
+Pemeriksaan absensi ganda mencari di scope yang BERBEDA dari tempat barisnya
+tersimpan, lalu menyimpulkan "belum ada". **Absensi kedua untuk orang dan
+tanggal yang sama lolos, dan `weekly_wage_reports` menghitung orang itu dua
+kali.**
+
+Dibuktikan bukan dari membaca kode: tabelnya **diintip berulang selama test
+berjalan** (puncak 1 baris saat test kedua jalan). Tanpa itu yang terlihat
+cuma keadaan sesudah `afterAll` membersihkannya — dan saya sempat
+menyimpulkan "barisnya tak pernah ada", yang keliru.
+
+Yang tak boleh dobel ternyata (tukang, tanggal) **di proyek itu**, bukan
+per-scope.
+
+### Satu hal yang GAGAL saya buktikan, dan ditulis apa adanya
+
+`rls-initplan` merah di ambang waktu (1.138 ms vs 1.000). Diukur senggang
+lima kali: **658·657·657·656·658 ms** — jarak cuma 1,5x sementara regresi
+sasarannya ~5x (~3.500 ms). Dilonggarkan ke 2.200.
+
+⚠ Tetapi **saya gagal membuktikan angka itu bisa merah**. Dua kali mutasi
+sengaja — melepas bungkus `(SELECT ...)`, lalu helper VOLATILE — dan Postgres
+tetap membungkusnya sendiri (InitPlan tetap ada, 909 ms & 1.417 ms).
+Mutasinya TAK MENDARAT, jadi hijaunya tak membuktikan apa pun.
+
+Itu ditulis di berkasnya, bukan diklaim lulus. Yang benar-benar menjaga di
+situ assertion `InitPlan` yang struktural.
+
+### Fixture yang meminjam data seed
+
+`ncr-penomoran` menuntut "proyek tanpa NCR mulai dari NCR-001" sambil memakai
+proyek tertua yang SUDAH punya 15 NCR. Rutenya benar (`NCR-2608-016`
+melanjutkan yang ada); fixture-nya yang salah. Kini berkas itu membuat
+proyeknya sendiri — dan menghapusnya di akhir, supaya tak jadi sampah yang
+merusak fixture berkas lain.
+
+penjaga **248** hijau · 0 MERAH
+commit `aef96df2` `0e71d49e`
+
+---
+
 ## 2026-09-14 (lanjutan) — "lanjutkan aja sampe beres" · keputusan diserahkan ke saya
 
 Founder: *"yg butuh keputusan saya, ikut sama rekomendasimu aja"*. Kedua
