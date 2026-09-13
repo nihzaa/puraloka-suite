@@ -5,6 +5,78 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-13 (lanjutan 7) — penjaga DULU, dan ia langsung menolak dugaan saya
+
+Sesi sebelumnya saya berjanji: penjaga "satu kartu pahlawan per layar"
+BELUM dibuat. Ditepati di sini, dan sengaja dikerjakan **sebelum** layar
+sisanya dipindahkan.
+
+Alasannya bukan formalitas: penjaga yang lahir SESUDAH pekerjaannya
+selesai hanya MENGESAHKAN apa pun yang sempat ditulis. Yang ini sempat
+menolak pekerjaan saya sendiri.
+
+### "Sembilan layar" ternyata DUA — dan saya salah dua kali
+
+Sesi lalu saya tulis "sembilan layar lain punya angka pahlawan". Diukur:
+LIMA berkas memakai `HURUF.display`. Lalu diukur lebih dalam, dan
+angkanya turun lagi:
+
+```
+akuntansi    baris-daftar=YA   sudah pahlawan  ✅
+keuangan     baris-daftar=YA   dipindah hari ini ✅
+kasbon       display dipakai di BARIS DAFTAR  → jangan dipindah
+laporan      display dipakai di BARIS DAFTAR  → jangan dipindah
+persetujuan  display dipakai di BARIS DAFTAR  → jangan dipindah
+```
+
+Tiga sisanya memakai `display` di dalam kartu BERULANG — kasbon di baris
+ke-126, laporan di kartu indeks EVM, persetujuan di kartu antrean.
+Memindahkannya ke kartu pahlawan justru MELANGGAR aturan yang baru saja
+saya tegakkan: banyak pahlawan berarti tak ada pahlawan.
+
+Jadi jumlah yang benar **dua, dan keduanya sudah selesai**. Angka
+"sembilan" lahir dari menghitung berkas, bukan dari melihat perannya.
+
+### Potret menemukan lagi apa yang tsc tak bisa
+
+`keuangan` saya pindahkan, tsc hijau, semua penjaga hijau. Potret
+memperlihatkan **kartu di dalam kartu** — kartu pahlawan navy dibungkus
+kartu putih `kpiKotak`, lengkap dengan bingkai putihnya. Ia permukaannya
+sendiri; membungkusnya dengan kartu lain membatalkan seluruh maksudnya.
+
+Ini kedua kalinya dalam dua sesi potret menangkap hal yang tak satu pun
+alat lain bisa lihat (sebelumnya: panah NAIK di sebelah kerugian).
+
+### Penjaganya: tiga pemeriksaan, ketiganya terbukti merah
+
+```
+mutasi dua <KartuPahlawan>     → MERAH, menyebut berkasnya
+mutasi displayBesar di layar   → MERAH, menyebut berkasnya
+mutasi komponennya DIHAPUS     → MERAH "TAK ADA"
+pulih                          → HIJAU
+```
+
+Yang ketiga sengaja: tanpa itu, menghapus `KartuPahlawan.tsx` membuat
+penjaga HIJAU — nol pemakaian, nol pelanggaran — sambil menghapus
+seluruh hal yang dijaganya.
+
+Dan `HURUF.display` (38) sengaja TIDAK dilarang. Ia tingkat di bawah
+pahlawan dan sah dipakai di baris daftar; melarangnya akan memerahkan
+tiga layar yang sudah benar, dan penjaga yang merah atas hal benar akan
+diabaikan seluruh keluarannya.
+
+### Bukti
+
+```
+tsc mobile             exit 0
+potret terang + gelap  58 layar × 2, nol gulir mendatar, nol teks <12px
+semua penjaga          244 hijau · 0 MERAH · 0 tak ketemu   (dari 243)
+penjaga tertabel       78, semuanya benar-benar jalan di CI
+server lokal           port 8081 dimatikan
+```
+
+---
+
 ## 2026-09-13 (lanjutan 6) — kartu pahlawan: referensi founder, diterapkan dengan kontras yang DIHITUNG
 
 Founder mengirim sepuluh referensi UI (Iconly/ux_snacks — wallet coklat,

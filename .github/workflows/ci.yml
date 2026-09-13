@@ -2211,6 +2211,22 @@ jobs:
       - name: Haptik terpakai di layar tulis
         run: node scripts/audit-haptik-terpakai.mjs
 
+      # SATU kartu pahlawan per layar, dan angka 48px hanya lahir di
+      # dalam komponennya.
+      #
+      # ARAH-VISUAL-2026 §3d menulis aturannya dan menyebutnya sendiri
+      # sebagai yang PALING MUDAH DILANGGAR: "kalau tiga hal berwarna, tak
+      # ada yang menonjol — dan halaman kembali monoton dengan warna yang
+      # berbeda". Aturan yang cuma tertulis di dokumen akan dilanggar oleh
+      # orang yang tak pernah membaca dokumen itu.
+      #
+      # Angka displayBesar yang digambar layar sendiri melewati
+      # numberOfLines, adjustsFontSizeToFit, pemilihan warna nada, dan
+      # pengukuran kontras di permukaan gelap — semuanya sudah dibayar
+      # mahal ("Rp 1.200.00" lalu "0", JOURNAL 2026-09-12).
+      - name: Kartu pahlawan tunggal
+        run: node scripts/audit-kartu-pahlawan-tunggal.mjs
+
       # Layar mobile wajib membaca bentuk balasan yang BENAR-BENAR dikirim
       # rute. Diukur 2026-09-04, potret pertama dashboard yang berhasil
       # login: "Proyek Aktif 0 - Total Kontrak Rp 0 - Kas Bersih Rp 0",

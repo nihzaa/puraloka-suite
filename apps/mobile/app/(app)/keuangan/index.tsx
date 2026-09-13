@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Badge } from '@/components/ui/Badge';
 import { KepalaLayar } from '@/components/ui/KepalaLayar';
 import { Card } from '@/components/ui/Card';
+import { KartuPahlawan } from '@/components/ui/KartuPahlawan';
 import { Galat } from '@/components/ui/Galat';
 import { Kosong } from '@/components/ui/Kosong';
 import { api } from '@/lib/api';
@@ -352,36 +353,46 @@ export default function KeuanganScreen() {
           <>
             {galat ? <Galat judul="Ikhtisar tidak bisa dimuat" pesan={galat} /> : null}
 
-            {kpi ? (
-              <View style={styles.kpiKotak}>
-                {/*
-                  PIUTANG diberi baris sendiri dan ukuran terbesar.
+            {/*
+              PIUTANG diberi baris sendiri dan ukuran terbesar.
 
                   Ia satu-satunya angka di layar ini yang menuntut tindakan
                   — sisanya (nilai kontrak, tertagih, terbayar) adalah
                   konteks. `ui-ux-pro-max` §4: satu angka utama per blok;
                   enam angka sederajat berarti tak ada yang menonjol.
                 */}
-                <View style={styles.utamaKotak}>
-                  <Text style={styles.utamaLabel}>Piutang belum tertagih</Text>
-                  <Text style={styles.utamaNilai}>{rpPenuh(kpi.piutang)}</Text>
-                  {kpi.invoice_lewat_tempo > 0 ? (
-                    <View style={styles.utamaCatatan}>
-                      <Ionicons
-                        name="alert-circle-outline"
-                        size={14}
-                        color={c.danger}
-                        accessibilityElementsHidden
-                        importantForAccessibility="no"
-                      />
-                      <Text style={styles.utamaCatatanTeks}>
-                        {kpi.invoice_lewat_tempo} invoice lewat tempo
-                      </Text>
-                    </View>
-                  ) : null}
-                </View>
+                {/*
+                  Kartu pahlawan (2026-09-13) — angka ini sudah "satu angka
+                  utama per blok" sejak awal; yang berubah PERMUKAANNYA.
 
-                <View style={styles.kpiPisah} />
+                  ⚠ Nadanya `netral`, bukan `buruk`. Piutang besar bukan
+                  kabar buruk dengan sendirinya — ia uang yang memang belum
+                  waktunya masuk. Yang buruk itu invoice LEWAT TEMPO, dan
+                  itulah yang diberi pil merah di bawah angka.
+
+                  Mewarnai seluruh angka merah membuat piutang sehat terbaca
+                  sebagai masalah, lalu pil lewat-tempo kehilangan artinya
+                  sebab semuanya sudah merah.
+            */}
+            {kpi ? (
+              <KartuPahlawan
+                  label="Piutang belum tertagih"
+                  ikon="wallet-outline"
+                  nilai={rpPenuh(kpi.piutang)}
+                  style={styles.pahlawan}
+                  tren={
+                    kpi.invoice_lewat_tempo > 0
+                      ? {
+                          teks: `${kpi.invoice_lewat_tempo} invoice lewat tempo`,
+                          arah: 'buruk',
+                        }
+                      : undefined
+                  }
+                />
+            ) : null}
+
+            {kpi ? (
+              <View style={styles.kpiKotak}>
 
                 <View style={styles.kpiBaris}>
                   <KpiSel label="Nilai kontrak" nilai={rpRingkas(kpi.nilai_kontrak)} s={styles} />
@@ -469,6 +480,8 @@ function gaya(c: Palet) {
       ⚠ SATU display per layar. Kalau angka kedua ikut memakainya, tak ada
       yang memimpin dan skalanya rata lagi — hanya dengan angka lebih besar.
     */
+    /* Kartu pahlawan berdiri sendiri di atas grid KPI. */
+    pahlawan: { marginBottom: SPASI.md },
     utamaNilai: {
       fontSize: HURUF.display,
       fontFamily: FONT.judul,
