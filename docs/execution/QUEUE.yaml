@@ -4071,6 +4071,60 @@ items:
       (ai-isolasi-tenant), sebab itu paling mungkin fixture yang bisa
       diperbaiki tanpa menyentuh produk.
 
+      ── Diukur ulang 2026-09-13 (lanjutan 2): 27 → 24, dan DUA di antaranya
+         ternyata GERBANG KERAS
+
+      `cecep-adopt-analisa` (3) SELESAI — akarnya katalog AHSP kosong,
+      dipulihkan lewat supersede (JOURNAL lanjutan 13). 7/7 lulus.
+
+      ⚠ `estimate-approval` (2) — BUKAN cacat test. Naik jadi **R-015**.
+
+      Test menuntut `under_review → draft` (jalur REJECT). Basis menolak:
+      "Alur sah: draft→under_review→approved→frozen→superseded (maju
+      saja)."
+
+      Dan yang membuatnya bukan sekadar test salah:
+
+        estimate-versions.ts:35   diagramnya: under_review --reject--> draft
+        estimate-versions.ts:1628 rute /reject ADA
+        migrasi 111 baris 45-59   "relaksasi: izinkan under_review→draft"
+        schema_migrations         111 TERCATAT SUDAH JALAN
+        pg_proc (public & test)   baris reject TIDAK ADA
+
+      Empat sumber menyatakan reject seharusnya ada; hanya basisnya yang
+      tidak. Memperbaikinya menyentuh buku migrasi = Gerbang Keras G-2.
+
+      ⚠ Dan `ledger-diff.mjs` menyatakan 111 TERCATAT-KONSISTEN. Sebabnya
+      baris 106: `adaFungsi` memeriksa NAMA fungsi ada, bukan ISI-nya.
+      `CREATE OR REPLACE` yang tak berlaku tetap meninggalkan fungsi
+      bernama sama dari migrasi sebelumnya. Verdict "terbukti fisik"
+      diberikan atas artefak berisi versi LAMA.
+
+      Cakupan cacat pemeriksa itu BELUM diukur — berapa dari 545 migrasi
+      lain yang mengganti isi fungsi tanpa mengubah namanya, tak dihitung.
+
+      ── `ai-gerbang-biaya` — DUA merah, bukan satu (koreksi hitungan)
+
+        'blokir + batas terlampaui' → dapat `kuota_habis`, harap `batas_terlampaui`
+        'asisten dinonaktifkan'     → dapat `kuota_habis`, harap `nonaktif`
+
+      Keduanya berarti gerbangnya DILEWATI: bahkan asisten nonaktif pun
+      sampai ke penyedia. `kuota_habis` adalah galat PENYEDIA (HTTP 429),
+      bukan kosakata gerbang — jadi panggilan AI sungguhan terjadi.
+
+      Komentar test di baris 144 sudah menamai bentuk kegagalan ini, tapi
+      menebak gejalanya `kunci_belum_dipasang`. Yang muncul 429 nyata.
+
+      Rute MEMANGGIL gerbangnya (`ai.ts:185`), dan gerbangnya membaca
+      kedua tabel dengan benar (`ai-config.ts:227+`). Jadi sebabnya ada di
+      antara keduanya — belum ketemu, dan saya berhenti menebak.
+
+      Langkah berikutnya: suntik log di `periksaGerbangAi` (nilai
+      `konfigurasi.aktif`, `batas`, `mode`, `terpakaiIdr`) lalu jalankan
+      SATU test. Bukan query lagi — keadaan basis di luar run sudah
+      dibersihkan `afterEach`, jadi ia tak mengatakan apa pun tentang
+      keadaan SAAT run.
+
       ── Diukur ulang 2026-09-13 (lanjutan): 63 → 27
 
       Tiga kluster terbesar SUDAH ditutup (14 kontrak + 9 retensi +

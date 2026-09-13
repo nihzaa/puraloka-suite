@@ -4992,3 +4992,75 @@ Kalau kelak ada data produksi, jawabannya berubah jadi (1).
 **Saya tidak menjalankan apa pun dari ketiganya** sampai ada keputusan.
 Skrip pemulihannya (`pulihkan-komponen-ahsp.mjs`) sudah ada, uji-kering
 secara bawaan, satu transaksi, dan memverifikasi sendiri sebelum commit.
+
+---
+
+## R-015 · Migrasi 111 tercatat JALAN, tetapi relaksasinya tak ada di basis
+
+**Ditemukan 2026-09-13** saat menelusuri 2 test merah `estimate-approval`.
+Ini Gerbang Keras G-2 (buku migrasi), jadi saya berhenti dan melapor.
+
+### Keadaannya
+
+`estimate-approval.test.ts` menuntut `under_review → draft` (jalur
+REJECT). Basis menolak:
+
+> Transisi status Estimate Version tidak sah: under_review → draft.
+> Alur sah: draft→under_review→approved→frozen→superseded (maju saja).
+
+Dan yang membuatnya BUKAN sekadar test salah:
+
+| Sumber | Menyatakan |
+|---|---|
+| `estimate-versions.ts:35` (kepala berkas) | `under_review --reject--> draft` |
+| `estimate-versions.ts:1628` | rute `/reject` ADA dan terdaftar |
+| migrasi 111 baris 45-59 | *"relaksasi transisi: izinkan under_review→draft (jalur REJECT)"* |
+| `schema_migrations` | **111 tercatat SUDAH JALAN** |
+| `pg_proc` (public DAN test) | baris reject **TIDAK ADA** |
+
+Migrasi 111 memakai `CREATE OR REPLACE FUNCTION` polos — tanpa syarat,
+tanpa penjaga. Ia seharusnya berlaku. Ia tidak.
+
+### Kenapa tak ada yang tahu — dan ini bagian terpentingnya
+
+`ledger-diff.mjs` menyatakan 111 **TERCATAT-KONSISTEN**. Sebabnya
+terbaca di baris 106:
+
+```js
+const adaFungsi = async (f) => … SELECT 1 FROM pg_proc WHERE proname=$1 …
+```
+
+Ia memeriksa **NAMA fungsi ADA**, bukan ISI-nya. `CREATE OR REPLACE`
+yang tak pernah berlaku tetap meninggalkan fungsi bernama sama dari
+migrasi sebelumnya — jadi verdict "TERBUKTI-FISIK" diberikan atas
+artefak yang isinya versi LAMA.
+
+Ini persis bentuk yang diperingatkan CLAUDE.md §5.5: *"entri palsu =
+migrasi dilewati senyap selamanya"* — hanya lebih halus, sebab
+entrinya tidak palsu dan artefaknya memang ada.
+
+⚠ Cakupan temuan ini BELUM diukur. Yang terbukti: satu migrasi (111).
+Berapa dari 545 migrasi lain yang mengganti isi fungsi tanpa mengubah
+namanya, dan karenanya tak terperiksa, TIDAK saya hitung — itu
+pengukuran tersendiri.
+
+### Yang saya minta diputuskan
+
+1. **Jalankan ulang bagian 3 migrasi 111** (relaksasi transisinya saja)
+   lewat migrasi MAJU bernomor baru — bukan mengedit 111, sebab itu
+   melanggar §5.5. Rute `/reject` lalu hidup, 2 test hijau.
+2. **Atau cabut jalur reject**: hapus rutenya, perbaiki diagram di kepala
+   `estimate-versions.ts`, ubah testnya jadi menegaskan penolakan.
+   Alur maju-saja memang punya argumennya sendiri.
+
+**Saran saya: (1).** Rute, dokumentasi, migrasi, dan test SEMUANYA
+menyatakan reject seharusnya ada — hanya basisnya yang tidak. Yang
+menyimpang satu, bukan empat.
+
+### Dan satu perbaikan yang tak butuh keputusan
+
+`ledger-diff.mjs` sebaiknya memeriksa ISI fungsi, bukan cuma namanya —
+mis. membandingkan potongan khas dari migrasi dengan `prosrc`. Tanpa itu
+ia akan terus memberi verdict "terbukti fisik" atas fungsi versi lama.
+Saya tidak mengubahnya sekarang: memperketat alat verifikasi ledger
+menyentuh G-2 juga.
