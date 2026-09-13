@@ -45,7 +45,6 @@ let adminAuth: string
   403-nya menuduh RUTE, padahal yang salah pasangan perannya.
 */
 let pemutusAuth: string
-let pmAuth: string
 let adminUserId: string
 let mandorUserId: string
 let companyId: string
@@ -220,7 +219,6 @@ async function bacaPembayaran(id: string) {
 beforeAll(async () => {
   client = await createRlsClient()
   adminAuth = (await authIdForRole(client, 'admin')) as string
-  pmAuth = (await authIdForRole(client, 'pm')) as string
   await purge()
 
   const { rows: u } = await client.query(

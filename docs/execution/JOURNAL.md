@@ -5,6 +5,96 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-13 (lanjutan 6) — kartu pahlawan: referensi founder, diterapkan dengan kontras yang DIHITUNG
+
+Founder mengirim sepuluh referensi UI (Iconly/ux_snacks — wallet coklat,
+sleep tracker ungu, boarding pass gelap) dan memilih "terapkan langsung".
+
+### Yang saya sampaikan sebelum mengerjakan
+
+Referensi itu semuanya CONSUMER app. Puraloka alat kerja data-dense yang
+dibuka mandor di bawah matahari, dan `ARAH-VISUAL-2026` §8a.3 mengikat
+mode **Operate** — scanability di atas ekspresi. Saya nyatakan itu, lalu
+mengerjakan pilihan founder.
+
+Yang menarik: §1b dokumen itu sudah mendiagnosis sendiri masalah yang
+referensinya pecahkan — *"Klik Keuangan → langsung tabel. Tiap menu terasa
+sama karena MEMANG sama bentuknya."* Jadi ini bukan menabrak arah visual,
+melainkan menjawab keluhan yang dokumen itu tulis sendiri.
+
+### Yang disalin, dan yang TIDAK
+
+Disalin: permukaan gelap untuk SATU kartu pahlawan per layar, ikon bulat
+di dalam kartu, pil tren.
+
+Tidak disalin — **gradien**. Alasannya terukur, bukan selera: gradien
+membuat kontras teks BERUBAH sepanjang permukaan, dan
+`audit-kontras-mobile.mjs` hanya bisa mengukur warna DATAR. Penjaga yang
+tak bisa melihat pelanggarannya sama saja dengan tak ada penjaga.
+
+Dan §3d dipatuhi: SATU aksen per layar. Referensinya pun disiplin begitu —
+di Wallet coklat hanya saldo yang besar; di Sleep ungu hanya `7hr 16`.
+
+### Tiga kali angka saya salah, ketiganya ketahuan karena DIUKUR
+
+1. **`heroPermukaan` gelap = lubang.** Nilai pertama `#041F3B` saya pilih
+   karena "mode gelap berarti lebih gelap". Diukur: **1,01:1** terhadap
+   latar `#1A1D27` — praktis tak terlihat. Kartunya akan terbaca sebagai
+   LUBANG, bukan objek yang naik. Kontras terhadap TEKS tinggi (16,61:1)
+   dan tetap menipu: angka yang benar untuk satu hubungan tak mengatakan
+   apa pun tentang hubungan lain. Dipakai `#123F6B` (1,56:1 vs latar,
+   10,77:1 vs putih).
+
+2. **Semantik mode terang GAGAL di permukaan gelap.** `danger #A31919`
+   cuma **1,90:1** di atas `#00294F`. Angka KERUGIAN yang tak terbaca di
+   layar akuntansi adalah kegagalan paling mahal yang bisa dibuat
+   rancangan ini. Ditambahkan `heroDanger`/`heroSuccess` (7,52 / 7,33).
+
+3. **Dua angka yang saya TULIS di berkas ternyata salah** — 16,3 (nyatanya
+   16,61) dan 6,4 (nyatanya 5,33). Keduanya saya verifikasi ulang satu per
+   satu sesudah menulisnya, dan dikoreksi.
+
+### Dua cacat yang hanya POTRET bisa temukan
+
+Sesudah tsc hijau dan semua penjaga hijau, memotret menemukan:
+
+  · **panah NAIK di sebelah kerugian Rp 97 juta** — layar memberi ikon
+    `trending-up-outline`, dan komponen memakainya apa adanya. Nol galat,
+    nol test merah; yang salah cuma ARTINYA, dan ia mengatakan kebalikan
+    dari keadaan sebenarnya. Ikon kini mengikuti `nada`.
+  · pil margin menempel ke kaki angka 48px — `SPASI.xs` jadi `SPASI.sm`.
+
+Mode gelap diverifikasi terpisah: kartunya benar-benar NAIK dari latar,
+bukan tenggelam.
+
+### Saya salah: `pmAuth` tertinggal
+
+Sesudah mengganti pemutus SoD, deklarasi `pmAuth` tertinggal dan
+`lint:ratchet` MERAH (4 > ambang 3). tsc hijau — variabel tak terpakai
+bukan galat tipe. Dibuang seluruhnya, bukan diberi awalan `_`: yang cuma
+"menenangkan linter" tetap memanggil `authIdForRole` dan memperlambat
+`beforeAll` tanpa hasil.
+
+### Bukti
+
+```
+tsc mobile               exit 0
+potret terang + gelap    58 layar × 2, nol gulir mendatar, nol teks <12px
+audit-kontras-mobile     0 di bawah 4.5:1
+lint:ratchet             0 error, 226 warning (di bawah ambang)
+vitest retensi           13 lulus
+semua penjaga            243 hijau · 0 MERAH · 0 tak ketemu
+server lokal             port 8081 DIMATIKAN (founder minta nol)
+```
+
+⚠ Baru SATU layar (akuntansi) yang memakainya. Sembilan layar lain punya
+angka pahlawan dan masih kartu putih — belum dikerjakan, dan penjaga
+"satu kartu pahlawan per layar" yang saya sebut di komentar komponen
+BELUM DIBUAT. Itu janji yang belum ditepati, ditulis di sini supaya tak
+hilang.
+
+---
+
 ## 2026-09-13 (lanjutan 5) — 14 test merah dari SATU baris sisa test, berbulan lalu
 
 TEST-SISA akhirnya punya PETA, bukan cuma angka. Reporter `basic`

@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KepalaLayar } from '@/components/ui/KepalaLayar';
 import { Card } from '@/components/ui/Card';
+import { KartuPahlawan } from '@/components/ui/KartuPahlawan';
 import { Galat } from '@/components/ui/Galat';
 import { Kosong } from '@/components/ui/Kosong';
 import { api } from '@/lib/api';
@@ -254,34 +255,49 @@ export default function AkuntansiScreen() {
           <>
             {galat ? <Galat judul="Laporan tidak bisa dimuat" pesan={galat} /> : null}
 
-            {lr ? (
-              <Card style={styles.utamaKartu}>
-                <Text style={styles.utamaLabel}>Laba bersih</Text>
-                <Text
-                  style={[
-                    styles.utamaNilai,
-                    { color: lr.labaBersih < 0 ? c.danger : c.success },
-                  ]}
-                >
-                  {rp(lr.labaBersih)}
-                </Text>
-                <View style={styles.utamaKaki}>
-                  <Text style={styles.utamaKakiTeks}>
-                    Pendapatan {rpRingkas(lr.pendapatan?.total ?? 0)} · Beban{' '}
-                    {rpRingkas(lr.beban?.total ?? 0)}
-                  </Text>
-                  {/*
-                    Margin `null` DIBEDAKAN dari 0%.
+            {/*
+              KARTU PAHLAWAN — permukaan gelap, bukan kartu putih.
 
-                    `null` berarti belum ada pendapatan sama sekali; 0%
-                    berarti ada pendapatan dan labanya nol. Menyamakannya
-                    membuat "belum mulai" terbaca sebagai "impas".
-                  */}
-                  {lr.marginPct != null ? (
-                    <Text style={styles.utamaKakiTeks}>Margin {lr.marginPct}%</Text>
-                  ) : null}
-                </View>
-              </Card>
+              Diterapkan 2026-09-13 atas arahan founder dari referensi UI
+              yang ia kirim. Yang berubah bukan cuma warna: angka naik ke
+              `displayBesar` (48) dan jadi satu-satunya benda menonjol di
+              layar, persis seperti saldo di kartu Wallet referensi.
+
+              ⚠ Warna laba/rugi memakai `heroDanger`/`heroSuccess`, BUKAN
+              `danger`/`success`. Yang terakhir dirancang untuk latar
+              putih dan diukur cuma 1,90:1 di atas permukaan ini — angka
+              KERUGIAN yang tak terbaca di layar akuntansi adalah
+              kegagalan paling mahal yang bisa dibuat rancangan ini.
+            */}
+            {lr ? (
+              <KartuPahlawan
+                label="Laba bersih"
+                ikon="trending-up-outline"
+                nilai={rp(lr.labaBersih)}
+                style={styles.utamaKartu}
+                nada={lr.labaBersih < 0 ? 'buruk' : 'baik'}
+                tren={
+                  /*
+                    Margin `null` DIBEDAKAN dari 0%: `null` berarti belum ada
+                    pendapatan sama sekali, 0% berarti ada pendapatan dan
+                    labanya nol. Menyamakannya membuat "belum mulai" terbaca
+                    sebagai "impas".
+
+                    Arahnya dari TANDA laba, bukan dari besar margin — margin
+                    -47% tetap "buruk" meski angkanya besar.
+                  */
+                  lr.marginPct != null
+                    ? {
+                        teks: `Margin ${lr.marginPct}%`,
+                        arah: lr.labaBersih < 0 ? 'buruk' : 'baik',
+                      }
+                    : undefined
+                }
+                keterangan={
+                  `Pendapatan ${rpRingkas(lr.pendapatan?.total ?? 0)} · ` +
+                  `Beban ${rpRingkas(lr.beban?.total ?? 0)}`
+                }
+              />
             ) : null}
 
             {/*

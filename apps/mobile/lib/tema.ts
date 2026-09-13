@@ -100,6 +100,62 @@ export interface Palet {
   info: string
   infoBg: string
   infoBorder: string
+
+  /*
+    ── PERMUKAAN PAHLAWAN — kartu sebagai OBJEK, bukan latar ───────────────
+
+    Ditambahkan 2026-09-13 atas arahan founder, dari referensi UI yang ia
+    kirim (Iconly/ux_snacks — wallet, sleep tracker, boarding pass).
+
+    ARAH-VISUAL-2026 §1b sudah mendiagnosis persis masalah yang dipecahkan
+    lapis ini: *"monoton karena tak ada lapisan"* — tiap menu terasa sama
+    sebab memang sama bentuknya, kartu putih di atas abu, berulang.
+
+    ⚠ Yang DISALIN dari referensi cuma satu hal: permukaan berwarna gelap
+    untuk SATU kartu pahlawan per layar. Yang TIDAK disalin: gradien penuh
+    layar, kartu berwarna di mana-mana, dan ikon bulat dekoratif. Alasannya
+    §3d — "satu aksen per layar; kalau tiga hal berwarna, tak ada yang
+    menonjol, dan halaman kembali monoton dengan warna yang berbeda."
+
+    Perhatikan referensinya pun disiplin begitu: di kartu Wallet coklat,
+    HANYA satu angka besar. Di Sleep ungu, hanya `7hr 16`.
+
+    ── Kontras DIHITUNG, bukan ditaksir
+
+    Ini alat kerja yang dibuka di bawah matahari, jadi "berwarna" tak boleh
+    berarti "tak terbaca". Diukur terhadap teks putih:
+
+        heroPermukaan #00294F   14,68:1   AAA
+        heroTeksLembut #B8C4D0   8,28:1   AAA (di atas permukaan itu)
+
+    Keduanya jauh melewati ambang AA 4,5:1 — dan justru LEBIH terbaca
+    daripada teks sekunder abu di atas putih. Dijaga
+    `audit-kontras-mobile.mjs` (ambang NOL).
+  */
+  heroPermukaan: string
+  heroTeks: string
+  heroTeksLembut: string
+  /** Permukaan lapis-kedua DI DALAM kartu pahlawan (mis. pil, chip). */
+  heroLapis: string
+  /*
+    Semantik DI ATAS permukaan pahlawan — dan ini bukan duplikasi malas.
+
+    Diukur 2026-09-13, warna semantik mode TERANG di atas #00294F:
+
+        danger  #A31919  1,90:1   ❌ GAGAL
+        success #10612E  1,94:1   ❌ GAGAL
+
+    Keduanya dirancang untuk dibaca di atas putih, dan di atas permukaan
+    gelap mereka praktis lenyap. Angka KERUGIAN yang tak terbaca pada layar
+    akuntansi adalah kegagalan yang paling mahal di aplikasi ini.
+
+    Yang dipakai varian terang (nilai mode GELAP), diukur di atas #00294F:
+
+        heroDanger  #FCA1A1  7,52:1  AAA
+        heroSuccess #24D264  7,33:1  AAA
+  */
+  heroDanger: string
+  heroSuccess: string
 }
 
 export const TERANG: Palet = {
@@ -134,6 +190,15 @@ export const TERANG: Palet = {
   info: '#1A47C4',
   infoBg: '#EFF6FF',
   infoBorder: '#BFDBFE',
+
+  /* Turunan LANGSUNG dari navy merek #003366 — digelapkan, bukan diganti.
+     Identitasnya tetap Puraloka; yang berubah kedalamannya. */
+  heroPermukaan: '#00294F',
+  heroTeks: '#FFFFFF',
+  heroTeksLembut: '#B8C4D0',
+  heroLapis: 'rgba(255,255,255,0.10)',
+  heroDanger: '#FCA1A1',
+  heroSuccess: '#24D264',
 }
 
 export const GELAP: Palet = {
@@ -178,6 +243,38 @@ export const GELAP: Palet = {
   info: '#8BBDFB',
   infoBg: 'rgba(139,189,251,0.10)',
   infoBorder: 'rgba(139,189,251,0.25)',
+
+  /*
+    ⚠ TETAP PEKAT di mode gelap — dan ini pelajaran yang sudah dibayar
+    sekali di berkas ini (lihat catatan `merekBidang`).
+
+    Godaannya menerangkan nilai ini seperti `navy` → `#73B4FF`. Itu salah:
+    `heroPermukaan` adalah LATAR bagi teks putih, bukan aksen yang dibaca
+    di atas latar. Menerangkannya membuat kartu pahlawan jadi benda paling
+    MENYALA di layar gelap, dengan teks putih di atasnya — persis cacat
+    panel dashboard 2026-09-05.
+
+    ⚠ Dan arahnya ternyata BERLAWANAN dengan dugaan pertama saya. Nilai
+    yang mula-mula saya tulis (#041F3B) lebih GELAP dari mode terang, dan
+    diukur ia cuma **1,01:1** terhadap latar `#1A1D27` — praktis tak
+    terlihat. Kartu pahlawannya akan terbaca sebagai LUBANG, bukan objek
+    yang naik. Kontras terhadap teks tinggi (16,61:1) dan tetap menipu:
+    angka yang benar untuk satu hubungan tak mengatakan apa pun tentang
+    hubungan yang lain.
+
+    Yang dipakai justru sedikit lebih TERANG dari mode terang. Diukur:
+
+        vs latar #1A1D27 : 1,56:1   ← terpisah, terbaca sebagai objek
+        teks putih       : 10,77:1  AAA
+        teks lembut      :  5,33:1  AA (>=4,5)
+  */
+  heroPermukaan: '#123F6B',
+  heroTeks: '#FFFFFF',
+  heroTeksLembut: '#A9B8C9',
+  heroLapis: 'rgba(255,255,255,0.08)',
+  /* Diukur di atas #123F6B: danger 5,52:1 · success 5,38:1 — keduanya AA. */
+  heroDanger: '#FCA1A1',
+  heroSuccess: '#24D264',
 }
 
 /**
