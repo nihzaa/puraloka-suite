@@ -73,7 +73,7 @@ interface Spec {
   itu keputusan produk yang ditulis di RATIFIKASI lalu diberikan lewat
   migrasi — bukan efek samping perbaikan test.
 
-  ⚠ KENAPA `direktur_uji`, BUKAN `direktur` (R-016, migrasi 575)
+  ⚠ KENAPA `direktur_uji`, BUKAN `direktur` (R-022, migrasi 575)
 
   Ketiga spek itu semula memakai `direktur`, dan berkas ini karenanya MATI
   selama berbulan-bulan — bukan karena gerbangnya rusak, melainkan karena

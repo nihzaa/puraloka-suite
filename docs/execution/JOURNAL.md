@@ -123,7 +123,7 @@ menggesernya lagi.** Ditutup migrasi 574 (`GREATEST`, hanya NAIK).
 ### Sisa merah: 11, dan 6 di antaranya BENAR
 
 Enam menegakkan R-013 (propagasi lessons) — kodenya benar, keputusannya yang
-belum turun. Satu dibuka sebagai **R-016**: `authz-endpoints` dan
+belum turun. Satu dibuka sebagai **R-022**: `authz-endpoints` dan
 `anti-lockout-wiring` menuntut satu akun yang sama dalam keadaan BERLAWANAN.
 
 Sisanya belum ditelusuri satu per satu, dan itu ditulis apa adanya —

@@ -4845,7 +4845,29 @@ milik kita sendiri, bukan pelanggan membayar.
 
 ---
 
-## R-013 · Propagasi *lessons learned* ke knowledge base — aktifkan atau tutup?
+## R-013 · ⏸ DITUNDA DENGAN JUJUR 2026-09-14 — propagasi *lessons learned*
+
+> Founder menyerahkan keputusannya ke rekomendasi saya
+> (*"yg butuh keputusan saya, ikut sama rekomendasimu aja"*), dan saran saya
+> adalah **pilihan (3): tunda dengan jujur**. Dikerjakan.
+>
+> | | |
+> |---|---|
+> | `lessons-writeback.test.ts` | 4 × `it.skip` + alasan tertulis merujuk R-013 |
+> | test NEGATIF di berkas sama | TETAP jalan — pm tanpa izin ditolak, berlaku apa pun keputusannya |
+> | `lessons-crud.test.ts` | pola pesan dilonggarkan (perilaku TIDAK berubah) |
+> | commit | `c7313db5` |
+>
+> **Keputusannya TETAP TERBUKA.** Yang berubah cuma ini: empat merah tak lagi
+> terhitung sebagai "test rusak", dan `it.skip` TERLIHAT tiap suite jalan —
+> tak seperti menghapusnya, yang ikut menghapus pertanyaannya.
+>
+> Begitu Anda menjawab **"aktifkan"**, cabut `it.skip`-nya — testnya sudah
+> siap dan tak perlu ditulis ulang.
+
+---
+
+## R-013 (asli) · Propagasi *lessons learned* ke knowledge base — aktifkan atau tutup?
 
 **Ditemukan 2026-09-13** saat menghabiskan sisa test merah. Bukan cacat,
 melainkan keputusan yang belum turun — dan sudah menahan 4 test.
@@ -5146,7 +5168,28 @@ dijalankan `ci.yml`.
 
 ---
 
-## R-016 · Dua test menuntut data yang SALING MENIADAKAN — satu akun, dua kebenaran
+## R-022 · ✅ SELESAI 2026-09-14 — dua test yang saling meniadakan kini hijau bersama
+
+> Founder menyerahkan keputusannya ke rekomendasi saya, dan saran saya
+> **pilihan (1): pisahkan perannya**. Dikerjakan lewat migrasi **575**.
+>
+> | | |
+> |---|---|
+> | `direktur_uji` | salinan `direktur` (227 izin) MINUS `users:roles:manage` |
+> | cakupan | hanya tenant utama — peran uji tak ditaburkan ke data pelanggan |
+> | `authz-endpoints` + `anti-lockout-wiring` | **38/38 hijau BERSAMA** |
+> | commit | `c658de19` |
+>
+> Tak ada kewenangan nyata yang berubah: `direktur` tetap memegang
+> `users:roles:manage`, `pm` tetap tak memegang izin uang, dan peran uji tak
+> pernah diberikan ke pengguna sungguhan.
+>
+> Verifikasi migrasinya menjaga maksudnya dari DUA arah — kunci peran TIDAK
+> ada, dan ketiga izin uang ADA.
+
+---
+
+## R-022 (asli) · Dua test menuntut data yang SALING MENIADAKAN — satu akun, dua kebenaran
 
 **Ditemukan 2026-09-14** saat menghabiskan sisa test merah. Bukan cacat
 kode: dua berkas test sama-sama benar, dan keduanya tak bisa hijau

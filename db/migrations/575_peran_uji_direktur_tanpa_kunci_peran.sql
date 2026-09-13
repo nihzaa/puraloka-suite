@@ -1,5 +1,5 @@
 -- ============================================================================
--- 575 — R-016: peran uji `direktur_uji` — punya izin uang, TANPA kunci peran
+-- 575 — R-022: peran uji `direktur_uji` — punya izin uang, TANPA kunci peran
 -- ============================================================================
 --
 -- ── Cacat yang ditutup
@@ -93,7 +93,7 @@ BEGIN
   */
   INSERT INTO public.roles (company_id, name, label, description, portal, color, sort_order, is_builtin)
   SELECT v_company, 'direktur_uji', r.label || ' (uji)',
-         '[UJI] Salinan direktur TANPA users:roles:manage — R-016. '
+         '[UJI] Salinan direktur TANPA users:roles:manage — R-022. '
          'Dipakai authz-endpoints.test.ts supaya anti-lockout-wiring tetap '
          'punya pemegang TERAKHIR. Jangan diberikan ke pengguna nyata.',
          r.portal, r.color, r.sort_order, false
