@@ -70,6 +70,24 @@ async function purge() {
   await client.query(`DELETE FROM ncr_items WHERE judul LIKE '[TEST-NOMOR]%'`)
 }
 
+/*
+  Proyek milik berkas ini DIHAPUS di akhir — bukan sekadar NCR-nya.
+
+  Tanpa ini tiap jalan suite meninggalkan satu proyek AKTIF, dan itu kelas
+  cacat yang sudah mahal di repo ini: fixture berkas LAIN memilih proyek
+  lewat `LIMIT 1` dan mendarat di sampah (CLAUDE.md 7).
+
+  `ncr_items`-nya dihapus lebih dulu — FK-nya menunjuk projects.
+*/
+async function purgeProyek() {
+  const { rows } = await client.query(
+    `SELECT id FROM projects WHERE name LIKE '[TEST-NOMOR]%'`)
+  if (rows.length === 0) return
+  const ids = rows.map((r) => r.id)
+  await client.query(`DELETE FROM ncr_items WHERE project_id = ANY($1)`, [ids])
+  await client.query(`DELETE FROM projects WHERE id = ANY($1)`, [ids])
+}
+
 /** Sisipkan NCR bernomor tertentu langsung ke basis — menyiapkan keadaan awal. */
 async function siapkanNomor(nomor: string) {
   await client.query(
@@ -83,8 +101,38 @@ beforeAll(async () => {
   client = await createRlsClient()
   adminAuth = await authIdForRole(client, 'admin')
 
+  const { rows: u0 } = await client.query(`SELECT id FROM users LIMIT 1`)
+
+  /*
+    WARN Proyek SENDIRI, bukan meminjam yang sudah ada — diperbaiki 2026-09-14.
+
+    Versi sebelumnya memakai `SELECT id FROM projects ... ORDER BY created_at
+    LIMIT 1`, lalu `purge()` menghapus baris ber-[TEST-NOMOR] saja — dengan
+    benar, sebab test tak boleh membuang data seed.
+
+    Yang tak terlihat: proyek tertua itu 'Renovasi Dapur & KM Pak Hendra'
+    dan ia SUDAH punya 15 NCR nyata (tertinggi NCR-2608-015). Jadi
+    `purge()` tak pernah bisa mengosongkannya, dan:
+
+        diharapkan  NCR-001
+        didapat     NCR-2608-016   <- rute BENAR, melanjutkan yang ada
+
+    Test yang menuntut 'proyek tanpa NCR mulai dari NCR-001' memakai proyek
+    yang jelas PUNYA NCR. Yang salah fixture-nya, bukan penomorannya.
+
+    Proyek milik sendiri membuat ketiga kasus (kosong, NCR-NNN,
+    NCR-YYMM-NNN) benar-benar berangkat dari keadaan yang dinyatakannya.
+  */
+  const { rows: co } = await client.query(
+    `SELECT id FROM companies WHERE code = 'puraloka-persada' LIMIT 1`)
+  const { rows: cl } = await client.query(
+    `SELECT id FROM clients WHERE company_id = $1 LIMIT 1`, [co[0].id])
   const { rows: p } = await client.query(
-    `SELECT id FROM projects WHERE company_id IS NOT NULL ORDER BY created_at LIMIT 1`)
+    `INSERT INTO projects (company_id, client_id, pm_id, name, location, start_date, end_date, created_by)
+     VALUES ($1, $2, $3, '[TEST-NOMOR] Proyek Penomoran NCR', 'Bandung',
+             CURRENT_DATE, CURRENT_DATE + 30, $3)
+     RETURNING id`,
+    [co[0].id, cl[0].id, u0[0].id])
   projectId = p[0].id
   const { rows: u } = await client.query(`SELECT id FROM users LIMIT 1`)
   userId = u[0].id
@@ -98,6 +146,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await purge()
+  await purgeProyek()
   await app?.close()
   await client?.end()
 })
