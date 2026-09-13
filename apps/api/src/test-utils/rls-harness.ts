@@ -256,6 +256,84 @@ export async function assignedMandor(
   return { authId: rows[0].auth_id, userId: rows[0].user_id, assignedProjectCount: rows[0].n }
 }
 
+
+/**
+ * Akun KEDUA yang benar-benar memegang `izin`, berbeda dari `bukanAuthId`,
+ * di company yang sama. Untuk test Segregation of Duties (SoD).
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA HELPER INI ADA
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Diukur 2026-09-13: sembilan test `retensi-subkontrak-endpoint` merah,
+ * semuanya dengan
+ *
+ *     403 {"error":"Akses ditolak. Butuh permission: mandor:kasbon:approve"}
+ *
+ * Testnya BENAR secara maksud — komentarnya sendiri menyatakan
+ * *"Pemutus BERBEDA dari pengaju (SoD, TJS-A3a)"*, dan itu memang aturan
+ * yang harus ditegakkan: yang mengajukan pembayaran tak boleh menyetujui
+ * pembayarannya sendiri.
+ *
+ * Yang salah PILIHAN PERANNYA. Test memakai `pm` sebagai pemutus, dan
+ * diukur ke basis:
+ *
+ *     get_role_permissions('admin') → 228 izin · punya izin itu
+ *     get_role_permissions('pm')    →  57 izin · TIDAK punya
+ *
+ * Jadi SoD versi test itu mustahil dipenuhi: pemutusnya memang tak
+ * berwenang memutuskan. Bukan cacat rute, bukan cacat data, bukan fixture
+ * yang mendarat di akun mati — melainkan pasangan peran yang tak pernah
+ * bisa lulus.
+ *
+ * ── Kenapa tak cukup memakai `penggunaLain()`
+ *
+ * Helper itu memulangkan pengguna aktif mana pun yang BUKAN id tertentu.
+ * Ia tak tahu apa-apa soal izin, jadi ia bisa memulangkan mandor — dan
+ * test akan merah lagi dengan 403 yang sama, kali ini karena alasan yang
+ * berbeda. Yang dibutuhkan SoD bukan "orang lain", melainkan **orang lain
+ * yang sama-sama berwenang**.
+ *
+ * ── Kenapa memakai `get_role_permissions`, bukan join tabel
+ *
+ * RPC itulah yang dipakai `requirePermission()` di produksi
+ * (`plugins/auth.ts`). Menjoin `role_permissions` sendiri berarti menguji
+ * TIRUAN dari resolusi izin — dan tiruan yang menyimpang membuat test
+ * hijau atas kewenangan yang sebenarnya ditolak rute. Berkas ini sudah
+ * mencatat pelajaran yang sama untuk `resolveCompanyId`.
+ *
+ * ⚠ Memulangkan `null` bila tak ada — pemanggil WAJIB membungkusnya dengan
+ * `wajibAda()`. Prasyarat SoD yang hilang harus MERAH dengan penjelasan,
+ * bukan membuat test berhenti diam-diam dan terhitung lulus.
+ */
+export async function pemutusLain(
+  client: Client,
+  bukanAuthId: string,
+  izin: string,
+  companyId: string,
+): Promise<{ userId: string; authId: string } | null> {
+  const { rows } = await client.query(
+    `SELECT u.id, u.auth_id
+       FROM public.users u
+       JOIN public.roles r ON r.id = u.role_id
+      WHERE u.auth_id IS NOT NULL
+        AND u.auth_id <> $1
+        AND u.is_active = true
+        AND EXISTS (
+              SELECT 1 FROM public.company_members m
+               WHERE m.user_id = u.id
+                 AND m.company_id = $3
+                 AND m.is_active = true)
+        AND EXISTS (
+              SELECT 1 FROM get_role_permissions(r.name) g
+               WHERE g.permission_key = $2)
+      ORDER BY u.created_at
+      LIMIT 1`,
+    [bukanAuthId, izin, companyId],
+  )
+  if (!rows.length) return null
+  return { userId: rows[0].id, authId: rows[0].auth_id }
+}
 /**
  * Pastikan prasyarat test ADA — kalau tidak, GAGALKAN dengan penjelasan.
  *

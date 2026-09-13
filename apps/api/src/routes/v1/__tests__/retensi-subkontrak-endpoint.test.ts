@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { Client } from 'pg'
-import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, authIdForRole, pemutusLain, wajibAda } from '../../../test-utils/rls-harness.js'
 import { supabaseAuth } from '../../../utils/supabase.js'
 import mandorRoutes from '../mandor.js'
 
@@ -32,6 +32,19 @@ let adminAuth: string
 // mengonfirmasi memodelkan alur yang kini ditolak 403, dan penolakan itu benar:
 // satu orang yang bisa mengajukan sekaligus menyetujui berarti tak ada
 // pengendalian pada jalur yang mengurangi saldo kas.
+/*
+  PEMUTUS — identitas yang MENYETUJUI, sengaja berbeda dari pengaju (SoD).
+
+  ⚠ Dulu ini `pmAuth`, dan SEMBILAN test merah karenanya:
+
+      get_role_permissions('admin') → 228 izin · punya mandor:kasbon:approve
+      get_role_permissions('pm')    →  57 izin · TIDAK punya
+
+  Maksud testnya benar — pemutus wajib beda dari pengaju — tetapi peran
+  yang dipilih tak pernah berwenang memutuskan, jadi ia mustahil lulus.
+  403-nya menuduh RUTE, padahal yang salah pasangan perannya.
+*/
+let pemutusAuth: string
 let pmAuth: string
 let adminUserId: string
 let mandorUserId: string
@@ -221,6 +234,16 @@ beforeAll(async () => {
     `SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1`)
   companyId = co[0].id
 
+  /*
+    `wajibAda`, bukan `if (!x) return`: prasyarat SoD yang hilang harus
+    MERAH dengan penjelasan. Test yang berhenti diam-diam terhitung LULUS,
+    dan seluruh berkas ini lalu hijau tanpa menguji satu pun aturannya.
+  */
+  pemutusAuth = wajibAda(
+    await pemutusLain(client, adminAuth, 'mandor:kasbon:approve', companyId),
+    'akun KEDUA ber-izin mandor:kasbon:approve di company yang sama (untuk SoD)',
+  ).authId
+
   // Klien & proyek dibuat PER SCOPE di `buatScope`, bukan sekali di sini —
   // alasannya (UNIQUE project_id+mandor_id) ada di komentar fungsi itu.
 
@@ -304,7 +327,7 @@ describe('konfirmasi — retensi + kasbon, urutannya menentukan', () => {
 
     // Pemutus BERBEDA dari pengaju (SoD, TJS-A3a).
 
-    actAs(pmAuth)
+    actAs(pemutusAuth)
 
     const res = await patch(`/api/v1/mandor/progress-payments/${payId}/confirm`, {
       status: 'approved', cash_account_id: acc[0].id, deducted_kasbon: 2_000_000,
@@ -335,7 +358,7 @@ describe('konfirmasi — retensi + kasbon, urutannya menentukan', () => {
 
     // Pemutus BERBEDA dari pengaju (SoD, TJS-A3a).
 
-    actAs(pmAuth)
+    actAs(pemutusAuth)
 
     const res = await patch(`/api/v1/mandor/progress-payments/${payId}/confirm`, {
       status: 'approved', cash_account_id: acc[0].id, deducted_kasbon: 2_000_000,
@@ -364,7 +387,7 @@ describe('register + pencairan retensi', () => {
       `INSERT INTO cash_accounts (company_id, name, type, balance, is_active, created_by)
        VALUES ($1, $2, 'main', 90000000, true, $3) RETURNING id`,
       [companyId, `${PREFIX} Kas3`, adminUserId])
-    actAs(pmAuth)
+    actAs(pemutusAuth)
     await patch(`/api/v1/mandor/progress-payments/${payId}/confirm`, {
       status: 'approved', cash_account_id: acc[0].id,
     })
@@ -391,7 +414,7 @@ describe('register + pencairan retensi', () => {
       `INSERT INTO cash_accounts (company_id, name, type, balance, is_active, created_by)
        VALUES ($1, $2, 'main', 90000000, true, $3) RETURNING id`,
       [companyId, `${PREFIX} Kas4`, adminUserId])
-    actAs(pmAuth)
+    actAs(pemutusAuth)
     await patch(`/api/v1/mandor/progress-payments/${buat.json().payment.id}/confirm`, {
       status: 'approved', cash_account_id: acc[0].id,
     })
@@ -422,7 +445,7 @@ describe('register + pencairan retensi', () => {
       `INSERT INTO cash_accounts (company_id, name, type, balance, is_active, created_by)
        VALUES ($1, $2, 'main', 90000000, true, $3) RETURNING id`,
       [companyId, `${PREFIX} Kas5`, adminUserId])
-    actAs(pmAuth)
+    actAs(pemutusAuth)
     await patch(`/api/v1/mandor/progress-payments/${buat.json().payment.id}/confirm`, {
       status: 'approved', cash_account_id: acc[0].id,
     })
@@ -471,7 +494,7 @@ describe('register + pencairan retensi', () => {
       `INSERT INTO cash_accounts (company_id, name, type, balance, is_active, created_by)
        VALUES ($1, $2, 'main', 90000000, true, $3) RETURNING id`,
       [companyId, `${PREFIX} KasE2a`, adminUserId])
-    actAs(pmAuth)
+    actAs(pemutusAuth)
     await patch(`/api/v1/mandor/progress-payments/${buat.json().payment.id}/confirm`, {
       status: 'approved', cash_account_id: acc[0].id,
     })
@@ -498,7 +521,7 @@ describe('register + pencairan retensi', () => {
       `INSERT INTO cash_accounts (company_id, name, type, balance, is_active, created_by)
        VALUES ($1, $2, 'main', 90000000, true, $3) RETURNING id`,
       [companyId, `${PREFIX} KasE2b`, adminUserId])
-    actAs(pmAuth)
+    actAs(pemutusAuth)
     await patch(`/api/v1/mandor/progress-payments/${buat.json().payment.id}/confirm`, {
       status: 'approved', cash_account_id: acc[0].id,
     })
@@ -533,7 +556,7 @@ describe('register + pencairan retensi', () => {
       `INSERT INTO cash_accounts (company_id, name, type, balance, is_active, created_by)
        VALUES ($1, $2, 'main', 90000000, true, $3) RETURNING id`,
       [companyId, `${PREFIX} KasE2d`, adminUserId])
-    actAs(pmAuth)
+    actAs(pemutusAuth)
     await patch(`/api/v1/mandor/progress-payments/${buat.json().payment.id}/confirm`, {
       status: 'approved', cash_account_id: acc[0].id,
     })
@@ -571,7 +594,7 @@ describe('register + pencairan retensi', () => {
       `INSERT INTO cash_accounts (company_id, name, type, balance, is_active, created_by)
        VALUES ($1, $2, 'main', 90000000, true, $3) RETURNING id`,
       [companyId, `${PREFIX} KasE2c`, adminUserId])
-    actAs(pmAuth)
+    actAs(pemutusAuth)
     await patch(`/api/v1/mandor/progress-payments/${buat.json().payment.id}/confirm`, {
       status: 'approved', cash_account_id: acc[0].id,
     })

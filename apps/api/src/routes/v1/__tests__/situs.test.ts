@@ -66,6 +66,24 @@ beforeAll(async () => {
 
   // User yang benar-benar punya situs:manage — dicari, bukan dibuat. User
   // buatan bisa kebetulan lolos lewat jalur seed yang tak terduga.
+  //
+  // ⚠ TIGA syarat, dan dua di antaranya PERNAH HILANG di sini.
+  //
+  // Versi sebelumnya cuma menuntut `is_active` + punya izinnya, tanpa
+  // `ORDER BY` dan tanpa memeriksa KEANGGOTAAN. Diukur 2026-09-13, ia
+  // mendarat di `isolasi-…@ujicoba.test` — sisa test isolasi yang punya
+  // peran ber-izin tetapi NOL `company_members` aktif.
+  //
+  // Akibatnya 403, tetapi BUKAN dari `requirePermission`:
+  // `resolveCompanyId()` membalas lebih dulu, sebelum izin dibaca sama
+  // sekali. Jadi galatnya berbunyi seperti kekurangan izin pada user yang
+  // izinnya justru lengkap — dan sembilan test merah karenanya.
+  //
+  // Ini persis cacat yang sudah tercatat di kepala `rls-harness.ts`
+  // (2026-08-16, 16 test `tender-subkon` dilewati diam-diam). Harness
+  // sudah menutupnya; berkas ini menulis query-nya SENDIRI, jadi ia tak
+  // ikut terlindungi. `ORDER BY u.created_at` membuat pilihannya stabil:
+  // user seed lama menang atas user uji yang baru lahir.
   const { rows } = await c.query(
     `SELECT u.auth_id
        FROM users u
@@ -73,12 +91,17 @@ beforeAll(async () => {
        JOIN permissions p ON p.id = rp.permission_id
       WHERE u.is_active AND u.auth_id IS NOT NULL
         AND p.key = 'situs:manage'
+        AND EXISTS (SELECT 1 FROM company_members m
+                     WHERE m.user_id = u.id AND m.is_active)
+      ORDER BY u.created_at
       LIMIT 1`,
   )
   if (!rows[0]) {
     throw new Error(
-      'prasyarat gagal: tak ada user aktif dengan permission situs:manage. ' +
-        'Migrasi 205 membuat permission-nya; ia masih harus di-assign ke role.',
+      'prasyarat gagal: tak ada user aktif BER-KEANGGOTAAN AKTIF dengan ' +
+        'permission situs:manage. Migrasi 205 membuat permission-nya; ia masih ' +
+        'harus di-assign ke role, DAN pemegangnya harus anggota aktif sebuah ' +
+        'company — tanpa itu resolveCompanyId() membalas 403 sebelum izin dibaca.',
     )
   }
   authAdmin = rows[0].auth_id
