@@ -193,11 +193,22 @@ const KartuKasbon = React.memo(function KartuKasbon({
   );
 });
 
+/*
+  Ukuran halaman. 30 mengikuti `notifications` — satu bentuk paginasi di
+  seluruh aplikasi, bukan angka per layar.
+*/
+const UKURAN_HALAMAN = 30;
+
 export default function KasbonListScreen() {
   const { c } = useTema();
   const styles = useMemo(() => gaya(c), [c]);
   const router = useRouter();
   const [kasbons, setKasbons] = useState<Kasbon[]>([]);
+  const [offset, setOffset] = useState(0);
+  const [habis, setHabis] = useState(false);
+  const [memuatLagi, setMemuatLagi] = useState(false);
+  /** Dari `meta.total` rute — `null` bila rutenya belum mengirimkannya. */
+  const [totalKasbon, setTotalKasbon] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -231,22 +242,81 @@ export default function KasbonListScreen() {
     DAN `requested_by = user.id`. Menyaring ulang di klien hanya akan
     menduplikasi aturan yang bisa menyimpang diam-diam.
   */
-  const fetchKasbons = useCallback(async () => {
+  /*
+    ── PAGINASI, dan kenapa baru sekarang ────────────────────────────────
+
+    Rutenya BERHALAMAN sejak lama (`.range(off, off+lim-1)`), tetapi
+    sampai 2026-09-13 balasannya cuma `{ kasbons: [...] }` — tak ada
+    jumlah total, tak ada penanda sisa. Layar ini karenanya TAK BISA tahu
+    masih ada halaman berikutnya, dan berhenti diam-diam di halaman
+    pertama.
+
+    Terukur: 67 kasbon di basis. Yang terlihat: satu halaman.
+
+    Daftar yang berhenti tanpa tanda tak bisa dibedakan dari daftar yang
+    memang segitu — dan di layar KASBON itu keputusan uang: mandor yang
+    melihat "tak ada lagi" menyimpulkan pekerjaannya selesai.
+
+    Rutenya kini mengirim `meta.total`, jadi layar bisa menyatakan
+    sisanya dengan ANGKA, bukan cuma memuat diam-diam.
+  */
+  const fetchKasbons = useCallback(async (lanjutDari = 0) => {
     try {
-      const res = await api.get('/api/v1/kasbons');
-      setKasbons(res.data?.kasbons ?? []);
+      const res = await api.get('/api/v1/kasbons', {
+        params: { limit: UKURAN_HALAMAN, offset: lanjutDari },
+      });
+      const datang: Kasbon[] = res.data?.kasbons ?? [];
+
+      setKasbons((prev) => (lanjutDari === 0 ? datang : [...prev, ...datang]));
+      setOffset(lanjutDari + datang.length);
+      /*
+        `habis` dari DUA sumber, dan keduanya perlu.
+
+        `meta.total` yang berwenang; halaman pendek jadi jaring kedua
+        untuk rute yang belum mengirim meta. Mengandalkan satu saja
+        membuat daftar berhenti terlalu cepat atau meminta halaman kosong
+        selamanya.
+      */
+      const total: number | undefined = res.data?.meta?.total;
+      setTotalKasbon(typeof total === 'number' ? total : null);
+      setHabis(
+        typeof total === 'number'
+          ? lanjutDari + datang.length >= total
+          : datang.length < UKURAN_HALAMAN,
+      );
       setGalat('');
     } catch (err: unknown) {
-      setGalat(pesanGalat(err, 'kasbon'));
+      /*
+        Galat pada halaman LANJUTAN tak menghapus yang sudah tampil —
+        spanduk galat di atas daftar berisi lebih membingungkan daripada
+        membantu. Yang gagal cuma penambahannya.
+      */
+      if (lanjutDari === 0) setGalat(pesanGalat(err, 'kasbon'));
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setMemuatLagi(false);
     }
   }, []);
 
-  useEffect(() => { fetchKasbons(); }, [fetchKasbons]);
+  useEffect(() => { fetchKasbons(0); }, [fetchKasbons]);
 
-  const onRefresh = () => { setRefreshing(true); fetchKasbons(); };
+  const onRefresh = () => {
+    setRefreshing(true);
+    setHabis(false);
+    fetchKasbons(0);
+  };
+
+  /*
+    ⚠ `memuatLagi` menjaga dari pemanggilan ganda: `onEndReached` bisa
+    terpicu BERKALI-KALI dalam satu gulir, dan tanpa penjagaan itu layar
+    meminta halaman yang sama tiga kali lalu menampilkan baris kembar.
+  */
+  const muatLagi = useCallback(() => {
+    if (habis || memuatLagi || loading || refreshing) return;
+    setMemuatLagi(true);
+    fetchKasbons(offset);
+  }, [habis, memuatLagi, loading, refreshing, offset, fetchKasbons]);
 
   /*
     `useCallback`: `FlatList` membandingkan prop-nya secara dangkal, jadi
@@ -308,6 +378,33 @@ export default function KasbonListScreen() {
         keyExtractor={ambilKunci}
         renderItem={renderKartu}
         contentContainerStyle={styles.list}
+        onEndReached={muatLagi}
+        /*
+          0.5, bukan 0.1: mandor di lapangan menggulir cepat, dan ambang
+          yang terlalu rapat membuat halaman berikutnya baru diminta saat
+          daftar SUDAH mentok — jeda kosongnya terasa seperti aplikasi
+          menggantung.
+        */
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          /*
+            Kaki daftar MENYATAKAN keadaannya, tak dibiarkan kosong.
+
+            Tiga keadaan yang sebelumnya tak bisa dibedakan pengguna:
+            sedang memuat · masih ada sisa · sudah habis. Daftar yang
+            berhenti tanpa kalimat apa pun terbaca "itulah semuanya", dan
+            di layar kasbon itu keputusan uang.
+          */
+          memuatLagi ? (
+            <Text style={styles.kakiTeks}>Memuat lagi…</Text>
+          ) : !habis && kasbons.length > 0 ? (
+            <Text style={styles.kakiTeks}>Gulir untuk memuat lagi</Text>
+          ) : kasbons.length > 0 && totalKasbon != null ? (
+            <Text style={styles.kakiTeks}>
+              {totalKasbon} kasbon — semuanya sudah tampil
+            </Text>
+          ) : null
+        }
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.navy} />
         }
@@ -460,6 +557,12 @@ function gaya(c: Palet) {
     notes: {
       fontSize: HURUF.sm, fontFamily: FONT.isi,
       color: c.textSecondary, fontStyle: 'italic',
+    },
+    kakiTeks: {
+      textAlign: 'center',
+      color: c.textSecondary,
+      fontSize: HURUF.xs,
+      paddingVertical: SPASI.md,
     },
     empty: { alignItems: 'center', paddingTop: 60, gap: 6 },
     emptyText: {

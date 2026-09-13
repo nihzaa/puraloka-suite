@@ -5,6 +5,73 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-13 (lanjutan 9) — `meta` disambungkan ke layar, dan uji paginasi ternyata patah sejak lama
+
+Sesi lalu server mulai mengirim `meta.total`. Itu setengah pekerjaan:
+tak ada satu pun layar yang memakainya. Disambungkan di sini, mulai dari
+kasbon — 67 baris, daftar terpanjang yang digulir mandor.
+
+### Yang dikerjakan
+
+`kasbon/index.tsx` kini berhalaman: `onEndReached` + kaki daftar yang
+MENYATAKAN keadaannya. Tiga keadaan yang sebelumnya tak bisa dibedakan
+pengguna — sedang memuat · masih ada sisa · sudah habis — kini punya
+kalimatnya masing-masing.
+
+`habis` dibaca dari DUA sumber: `meta.total` yang berwenang, halaman
+pendek sebagai jaring kedua untuk rute yang belum mengirim meta.
+
+### Uji paginasinya sendiri patah, dan diam-diam
+
+`uji-paginasi-hidup.mjs` ada sejak 2026-09-04. Dijalankan hari ini: GAGAL
+dengan `waiting for locator('input').nth(1)` — pesan yang menuduh isian
+login hilang.
+
+Layar login tak pernah dibuka. Konteks peramban baru mendarat di layar
+PERKENALAN, dan skrip ini tak punya blok "Lewati".
+
+⚠ `potret-mobile.mjs` sudah menutup cacat ini sejak 2026-09-05, lengkap
+dengan komentar panjang yang menjelaskannya — termasuk kalimat "gejalanya
+menuduh LAYAR LOGIN, padahal layar login tak pernah dibuka". Berkas itu
+belajar; berkas ini tidak. Dua skrip, satu pelajaran, satu yang ikut.
+
+Jadi sejak layar perkenalan lahir 2026-09-05, uji paginasi ini **tak
+pernah bisa jalan** — dan tak ada yang tahu, sebab ia manual dan tak
+dijalankan CI.
+
+### Dua cacat lagi di uji itu, ditemukan saat menambah layar kedua
+
+1. **Penyaring permintaan DIPAKU `/notifications`.** Menambahkan kasbon
+   tanpa memperbaikinya akan melapor "permintaan tetap 1" — vonis yang
+   terbaca persis seperti paginasi rusak, padahal penyaringnya yang tak
+   pernah cocok. Saya nyaris mengejar arah itu.
+2. **`jalurApi` di luar jangkauan** — dipakai di pendengar request
+   (baris 98), baru di-destructure di loop (baris 145). `node --check`
+   HIJAU: ia memeriksa sintaks, bukan jangkauan. Cacatnya baru muncul
+   saat dijalankan.
+
+### Bukti — DIJALANKAN, bukan disimpulkan
+
+```
+notifikasi: 1 → 2 → 4 permintaan · offset terkirim 4×
+kasbon    : 1 → 2 → 3 permintaan · offset terkirim 3×
+✅ Paginasi hidup: gulir menambah kartu, permintaan ber-offset terkirim.
+
+tsc mobile     exit 0
+potret         58 layar, nol gulir mendatar, nol teks <12px
+semua penjaga  245 hijau · 0 MERAH · 0 tak ketemu
+server lokal   port 8081 dimatikan
+```
+
+⚠ Kaki daftar ada DI BAWAH LIPATAN, jadi potret tak memperlihatkannya —
+dan itu justru alasan uji paginasi hidup ada. Potret memotret keadaan
+AWAL; paginasi hidup di keadaan KEDUA.
+
+⚠ Sisa: 19 layar mobile lain belum berpaginasi. Yang mendesak cuma yang
+datanya tumbuh; hari ini kasbon (67) yang terbesar sesudah notifikasi.
+
+---
+
 ## 2026-09-13 (lanjutan 8) — daftar berhalaman yang tak mengaku berhalaman
 
 Founder bertanya "ada yang bisa ditambahkan lagi?". Saya ukur, dan

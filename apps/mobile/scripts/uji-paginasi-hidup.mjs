@@ -59,7 +59,18 @@ if (!EMAIL || !SANDI) {
  * mengikuti `UKURAN_HALAMAN` di layarnya; kalau berbeda, salah satunya
  * berubah tanpa yang lain ikut.
  */
-const LAYAR = [{ nama: 'notifikasi', jalur: '/notifications' }]
+const LAYAR = [
+  { nama: 'notifikasi', jalur: '/notifications', jalurApi: '/notifications' },
+  /*
+    Ditambahkan 2026-09-13 bersama paginasi kasbon.
+
+    67 kasbon di basis dengan UKURAN_HALAMAN 30 — jadi halaman kedua
+    MEMANG ada, dan uji ini bermakna. Kalau kelak datanya menyusut di
+    bawah 30, uji ini akan melapor "permintaan tetap 1" dan itu BENAR;
+    periksa jumlah barisnya sebelum menuduh paginasinya rusak.
+  */
+  { nama: 'kasbon', jalur: '/kasbon', jalurApi: '/kasbons' },
+]
 
 const peramban = await chromium.launch()
 const masalah = []
@@ -74,14 +85,50 @@ try {
 
   /* Permintaan paginasi dicatat — bukti bahwa rantainya sampai ke jaringan. */
   const permintaan = []
+  /*
+    Jalur API layar yang SEDANG diuji. Variabel, bukan konstanta: satu
+    pendengar melayani semua layar, dan memasang pendengar baru tiap
+    layar menumpuk pencatat ganda.
+  */
+  let jalurApi = '/notifications'
   hal.on('request', (r) => {
     const u = r.url()
-    if (u.includes('/notifications') && u.includes('offset=')) {
+    /*
+      ⚠ Dulu dipaku `/notifications`. Begitu layar kedua ditambahkan
+      (kasbon, 2026-09-13), permintaannya TAK PERNAH tercatat dan uji
+      melapor "permintaan tetap 1" — vonis yang terbaca seperti paginasi
+      rusak, padahal penyaringnya yang tak pernah cocok.
+
+      Sekarang mengikuti jalur layar yang sedang diuji.
+    */
+    if (u.includes(jalurApi) && u.includes('offset=')) {
       permintaan.push(u.slice(u.indexOf('/api')))
     }
   })
 
   await hal.goto(`${BASIS}/login`, { waitUntil: 'networkidle', timeout: 120_000 }).catch(() => {})
+
+  /*
+    ⚠ LEWATI PERKENALAN DULU — dan ketiadaan blok ini sudah memakan waktu.
+
+    Konteks peramban BARU punya penyimpanan bersih, jadi ia mendarat di
+    layar PERKENALAN, bukan login. Uji lalu gagal dengan
+    "waiting for locator('input').nth(1)" — pesan yang menuduh isian
+    login hilang, padahal layar login tak pernah dibuka.
+
+    `potret-mobile.mjs` sudah menutup ini sejak 2026-09-05 dan menulis
+    alasannya panjang; berkas INI tak ikut, jadi ia patah diam-diam
+    begitu perkenalan lahir. Dua skrip, satu pelajaran, satu yang belajar.
+
+    Dilewati lewat TOMBOLNYA, bukan menulis penanda ke penyimpanan —
+    jalur yang sesungguhnya dipakai orang.
+  */
+  const lewatiKenalan = hal.getByText('Lewati', { exact: true })
+  if (await lewatiKenalan.count().catch(() => 0)) {
+    await lewatiKenalan.click().catch(() => {})
+    await hal.waitForTimeout(3000)
+  }
+
   await hal.locator('input').nth(1).waitFor({ state: 'visible', timeout: 60_000 })
   await hal.locator('input').nth(0).fill(EMAIL)
   await hal.locator('input').nth(1).fill(SANDI)
@@ -95,7 +142,9 @@ try {
     process.exit(2)
   }
 
-  for (const { nama, jalur } of LAYAR) {
+  for (const { nama, jalur, jalurApi: api } of LAYAR) {
+    jalurApi = api
+    permintaan.length = 0   // pencatat dikosongkan per layar
     await hal.goto(`${BASIS}${jalur}`, { waitUntil: 'networkidle', timeout: 60_000 })
     await hal.waitForTimeout(3000)
 
