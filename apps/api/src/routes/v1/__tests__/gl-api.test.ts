@@ -32,6 +32,25 @@ let akunBeban: string
 
 const TAG = 'ZZGLAPI'
 
+/**
+ * Tanggal di periode akuntansi yang TERBUKA.
+ *
+ * ⚠ Dulu `new Date()` — hari ini. Itu bekerja hanya selama BULAN BERJALAN
+ * kebetulan belum ditutup, dan berhenti bekerja begitu seseorang menutup
+ * buku. Diukur 2026-09-13: "September 2026" berstatus `tertutup`, dan
+ * KEEMPAT test berkas ini merah dengan
+ *
+ *     "Periode September 2026 sudah ditutup — jurnal bertanggal
+ *      2026-09-12 tak bisa diposting"
+ *
+ * Galatnya menuduh RUTE GL, dan test gagal karena KALENDER bergerak —
+ * bukan karena kode berubah. `git bisect` akan menunjuk commit tak
+ * bersalah, persis cacat fixture `is_active` 2026-09-11.
+ *
+ * Diisi di `beforeAll` dari periode yang benar-benar terbuka.
+ */
+let tanggalTerbuka: string
+
 const actAs = (a: string) =>
   vi.spyOn(supabaseAuth.auth, 'getUser').mockResolvedValue(
     { data: { user: { id: a } }, error: null } as never,
@@ -49,6 +68,9 @@ async function bersihkan() {
        (SELECT id FROM journal_entries WHERE description LIKE '${TAG}%')`)
   await c.query(`DELETE FROM journal_entries WHERE description LIKE '${TAG}%'`)
   await c.query(`DELETE FROM accounts WHERE name LIKE '${TAG}%'`)
+  /* Periode buatan test ikut dibuang — kalau tidak, ia menumpuk tiap jalan
+     dan pelan-pelan mengotori daftar periode yang dilihat orang. */
+  await c.query(`DELETE FROM periode_akuntansi WHERE nama LIKE '${TAG}%'`)
 }
 
 beforeAll(async () => {
@@ -71,6 +93,30 @@ beforeAll(async () => {
   akunKas = ak.find(a => a.code === '1111').id
   akunBeban = ak.find(a => a.code === '5110').id
 
+  /*
+    ── Periode terbuka DIBUAT SENDIRI, tidak dicari ──────────────────────
+
+    Versi pertama perbaikan ini MENCARI periode terbuka. Diukur: NOL —
+    keempat periode nyata (Mei, Juni, Juli, September 2026) berstatus
+    `tertutup`, dan enam periode `[TEST-TB]` juga.
+
+    Mencari berarti test ini bergantung pada keadaan basis yang diubah
+    ORANG LAIN: siapa pun yang menutup buku bulan ini memerahkan seluruh
+    berkas GL, dengan galat yang menuduh rute. Itu persis cacat yang
+    sedang diperbaiki, cuma bergeser satu lapis.
+
+    Berkas ini sudah membuat & membersihkan akun dan jurnalnya sendiri;
+    periode ikut jadi fixture-nya. Tahun 2035 dipilih supaya tak mungkin
+    bertabrakan dengan periode nyata mana pun.
+  */
+  await c.query(
+    `INSERT INTO periode_akuntansi (company_id, nama, tanggal_mulai, tanggal_akhir, status, created_by)
+     VALUES ($1, $2, '2035-01-01', '2035-01-31', 'terbuka',
+             (SELECT id FROM users WHERE auth_id = $3))
+     ON CONFLICT DO NOTHING`,
+    [companyId, `${TAG} Periode Uji`, auth])
+  tanggalTerbuka = '2035-01-15'
+
   app = Fastify()
   await app.register(glRoutes)
   await app.ready()
@@ -86,7 +132,7 @@ afterAll(async () => {
 /** Buat jurnal seimbang lewat API, kembalikan id-nya. */
 async function buatJurnal(ket: string, jumlah = 1_000_000): Promise<string> {
   const r = await req('POST', '/api/v1/gl/journal-entries', {
-    entry_date: new Date().toISOString().slice(0, 10),
+    entry_date: tanggalTerbuka,
     description: `${TAG} ${ket}`,
     lines: [
       { account_id: akunBeban, debit: jumlah, credit: 0 },
@@ -154,7 +200,7 @@ describe('GL API · penomoran jurnal', () => {
     await c.query('DELETE FROM journal_entries WHERE id=$1', [j])
 
     const r = await req('POST', '/api/v1/gl/journal-entries', {
-      entry_date: new Date().toISOString().slice(0, 10),
+      entry_date: tanggalTerbuka,
       description: `${TAG} sesudah hapus`,
       lines: [
         { account_id: akunBeban, debit: 500, credit: 0 },
@@ -174,7 +220,7 @@ describe('GL API · rollback jurnal kosong', () => {
       `SELECT count(*)::int n FROM journal_entries WHERE description LIKE '${TAG}%'`)
 
     const r = await req('POST', '/api/v1/gl/journal-entries', {
-      entry_date: new Date().toISOString().slice(0, 10),
+      entry_date: tanggalTerbuka,
       description: `${TAG} baris rusak`,
       lines: [{ account_id: akunKas, debit: 100, credit: 100 }],
     })
@@ -199,7 +245,7 @@ describe('GL API · posting & pembatalan', () => {
 
   it('posting jurnal TAK seimbang ditolak dengan pesan berbahasa manusia', async () => {
     const r0 = await req('POST', '/api/v1/gl/journal-entries', {
-      entry_date: new Date().toISOString().slice(0, 10),
+      entry_date: tanggalTerbuka,
       description: `${TAG} timpang`,
       lines: [
         { account_id: akunBeban, debit: 1000, credit: 0 },
@@ -314,7 +360,7 @@ describe('GL API · trial balance', () => {
     const { rows: au } = await c.query(
       `SELECT id FROM accounts WHERE company_id=$1 AND code='2110'`, [companyId])
     const r2 = await req('POST', '/api/v1/gl/journal-entries', {
-      entry_date: new Date().toISOString().slice(0, 10),
+      entry_date: tanggalTerbuka,
       description: `${TAG} utang supplier`,
       lines: [
         { account_id: akunBeban, debit: 150_000, credit: 0 },

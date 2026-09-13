@@ -4071,6 +4071,47 @@ items:
       (ai-isolasi-tenant), sebab itu paling mungkin fixture yang bisa
       diperbaiki tanpa menyentuh produk.
 
+      ── Diukur ulang 2026-09-13 (lanjutan): 63 → 27
+
+      Tiga kluster terbesar SUDAH ditutup (14 kontrak + 9 retensi +
+      9 situs + 4 gl-api = 36).
+
+      `gl-api` (4) — akarnya KALENDER, bukan kode. Test memakai
+      `new Date()` sebagai tanggal jurnal, dan itu bekerja hanya selama
+      bulan berjalan kebetulan belum ditutup. Diukur: "September 2026"
+      berstatus `tertutup`, jadi keempat test merah dengan galat yang
+      menuduh RUTE GL.
+
+      Perbaikan PERTAMA saya salah arah: MENCARI periode terbuka.
+      Diukur, nol dari sepuluh periode terbuka — dan mencari berarti test
+      bergantung pada keadaan yang diubah orang lain. Siapa pun yang
+      menutup buku bulan ini akan memerahkannya lagi, dengan galat yang
+      sama menyesatkannya. Cacatnya cuma bergeser satu lapis.
+
+      Yang dipakai: test MEMBUAT periodenya sendiri (2035, tak mungkin
+      bertabrakan) dan membersihkannya di `bersihkan()`. Berkas itu sudah
+      membuat akun & jurnalnya sendiri; periode ikut jadi fixture.
+      Terukur sesudahnya: 16/16 lulus, nol baris sisa.
+
+      ── ⚠ `lessons-writeback` (4) BUKAN cacat — ia menunggu FOUNDER
+
+      Galatnya menyatakan sendiri: "Transisi ke propagated (write-back ke
+      knowledge base) BELUM diaktifkan — mekanisme propagasi via approval
+      belum di-wire (BUTUH KEPUTUSAN FOUNDER)."
+
+      Dan `lessons-learned.test.ts:108` punya test "🛑 TITIK STOP" yang
+      menuntut transisi itu DITOLAK — test itu LULUS (11/11).
+
+      Jadi dua berkas test menuntut hal yang BERLAWANAN: satu memastikan
+      fiturnya tertutup, satu memastikan fiturnya jalan. Yang kedua
+      ditulis untuk fitur yang sengaja belum dibangun.
+
+      JANGAN "memperbaiki" keempatnya dengan mengaktifkan propagasi —
+      itu menembus titik stop yang sengaja dipasang, dan keputusannya
+      bukan milik yang mengerjakan test. Yang benar: naikkan ke
+      RATIFIKASI.md, atau tandai keempatnya `it.skip` dengan alasan
+      tertulis sampai keputusannya turun.
+
       ── PETA LENGKAP 2026-09-13 (bukan 49/27; dan 14 sudah ditutup)
 
       Reporter `basic` MEMOTONG daftar berkasnya — ia cuma menyebut 2 nama

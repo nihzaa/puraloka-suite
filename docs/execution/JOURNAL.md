@@ -5,6 +5,78 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-13 (lanjutan 10) — gl-api merah karena KALENDER, dan 4 merah yang bukan cacat
+
+Melanjutkan sisa test merah. Dua kluster berikutnya, dua sebab yang sama
+sekali berbeda.
+
+### `gl-api` (4) — akarnya kalender, bukan kode
+
+Test memakai `new Date()` sebagai tanggal jurnal. Itu bekerja hanya
+selama bulan berjalan kebetulan belum ditutup.
+
+Diukur: **"September 2026" berstatus `tertutup`**. Keempat test merah
+dengan galat yang menuduh RUTE GL:
+
+```
+"Periode September 2026 sudah ditutup — jurnal bertanggal
+ 2026-09-12 tak bisa diposting"
+```
+
+Test merah karena WAKTU BERGERAK, bukan karena kode berubah. `git
+bisect` akan menunjuk commit tak bersalah — kelas yang sama dengan
+cacat fixture `is_active` 2026-09-11.
+
+**Perbaikan pertama saya salah arah.** Saya buat test MENCARI periode
+terbuka. Lalu diukur: nol dari sepuluh periode terbuka. Dan lebih
+penting — mencari berarti test bergantung pada keadaan yang diubah ORANG
+LAIN. Siapa pun yang menutup buku bulan ini memerahkannya lagi, dengan
+galat yang sama menyesatkannya. Cacatnya cuma bergeser satu lapis.
+
+Yang dipakai: test MEMBUAT periodenya sendiri (2035, tak mungkin
+bertabrakan) dan membersihkannya di `bersihkan()`. Berkas itu sudah
+membuat akun & jurnalnya sendiri; periode ikut jadi fixture.
+
+**16/16 lulus, nol baris sisa** (diperiksa ke basis sesudahnya).
+
+### `lessons-writeback` (4) — BUKAN cacat, ia menunggu founder
+
+Galatnya menyatakan sendiri: *"write-back ke knowledge base BELUM
+diaktifkan — butuh keputusan founder"*.
+
+Dan yang membuatnya jelas: `lessons-learned.test.ts:108` punya test
+**"🛑 TITIK STOP"** yang menuntut transisi itu DITOLAK — dan test itu
+**LULUS** (11/11).
+
+Jadi dua berkas test menuntut hal BERLAWANAN. Satu memastikan fiturnya
+tertutup, satu memastikan fiturnya jalan. Yang kedua ditulis untuk fitur
+yang sengaja belum dibangun.
+
+**Saya tidak memperbaikinya.** Mengaktifkan propagasi akan menembus titik
+stop yang sengaja dipasang, dan keputusannya bukan milik yang mengerjakan
+test — keduanya mengubah angka yang dipakai MENGHITUNG RAB proyek
+berikutnya.
+
+Dinaikkan jadi **R-013** di RATIFIKASI.md dengan tiga pilihan dan saran
+saya (tandai `it.skip` + alasan, sampai keputusan turun — sebab `it.skip`
+TERLIHAT di keluaran, tak seperti menghapusnya).
+
+### Bukti
+
+```
+vitest gl-api          16 lulus / 0 gagal   (dari 4 merah)
+vitest lessons-learned 11 lulus — titik stopnya SAH
+periode sisa ZZGLAPI   0
+tsc api                exit 0
+semua penjaga          245 hijau · 0 MERAH · 0 tak ketemu
+indeks docs            mutakhir
+```
+
+Sisa merah: 63 → **27** (36 ditutup hari ini; 4 di antaranya menunggu
+R-013, bukan perbaikan).
+
+---
+
 ## 2026-09-13 (lanjutan 9) — `meta` disambungkan ke layar, dan uji paginasi ternyata patah sejak lama
 
 Sesi lalu server mulai mengirim `meta.total`. Itu setengah pekerjaan:

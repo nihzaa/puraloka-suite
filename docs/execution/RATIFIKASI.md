@@ -4842,3 +4842,67 @@ Yang belum pernah terjadi: tenant kedua nyata dengan data nyata.
 
 Saran saya kalau gerbang dicabut: tenant kedua PERTAMA adalah tenant uji
 milik kita sendiri, bukan pelanggan membayar.
+
+---
+
+## R-013 · Propagasi *lessons learned* ke knowledge base — aktifkan atau tutup?
+
+**Ditemukan 2026-09-13** saat menghabiskan sisa test merah. Bukan cacat,
+melainkan keputusan yang belum turun — dan sudah menahan 4 test.
+
+### Keadaannya sekarang
+
+Transisi `approved → propagated` **sengaja DITOLAK** oleh kode, dengan
+pesan yang menyatakan sendiri alasannya:
+
+> "Transisi ke propagated (write-back ke knowledge base) BELUM
+> diaktifkan — mekanisme propagasi via approval belum di-wire
+> (**butuh keputusan founder**)."
+
+### Yang membuatnya perlu diputuskan sekarang
+
+DUA berkas test menuntut hal yang **berlawanan**, dan keduanya ada di
+repo hari ini:
+
+| Berkas | Menuntut | Hasil |
+|---|---|---|
+| `lessons-learned.test.ts:108` 🛑 TITIK STOP | transisi DITOLAK | **LULUS** (11/11) |
+| `lessons-writeback.test.ts` | transisi BERHASIL | **4 MERAH** |
+
+Selama ini dibiarkan, keempat merah itu akan terus terhitung sebagai
+"test rusak" oleh siapa pun yang melihat angkanya — padahal kodenya
+benar dan justru sedang menegakkan keputusan.
+
+### Apa yang sebenarnya diputuskan
+
+Kalau *lesson learned* disetujui, bolehkah ia **mengubah knowledge base
+secara otomatis**?
+
+- **produktivitas**: versi baru di `productivity_norms` dari varians
+  aktual lapangan
+- **harga**: `price_book_entry` baru berstatus `verified` — approval
+  lesson dianggap verifikasi harga
+
+⚠ Yang membuat ini bukan keputusan teknis: keduanya mengubah angka yang
+dipakai **menghitung RAB proyek berikutnya**. Satu pelajaran yang salah
+disetujui akan menggeser estimasi seluruh proyek sesudahnya, dan
+jejaknya sulit ditelusuri karena perubahannya terjadi lewat approval
+yang sah.
+
+### Tiga pilihan
+
+1. **Aktifkan** — propagasi jalan, titik stop dicabut, 4 test hijau.
+   Perlu memutuskan siapa yang boleh approve (izin `cecep:lessons:approve`
+   sudah ada).
+2. **Tutup permanen** — propagasi tak akan dibangun; hapus
+   `lessons-writeback.test.ts` atau ubah jadi menegaskan penolakannya.
+   4 merah hilang karena testnya memang salah arah.
+3. **Tunda dengan jujur** — tandai keempat test `it.skip` + alasan
+   tertulis merujuk R-013 ini. Merah hilang dari hitungan, keputusannya
+   tetap terbuka dan terlihat.
+
+**Saran saya: (3) untuk sekarang.** Ia menghilangkan merah tanpa
+mengklaim keputusan yang belum Anda ambil — dan `it.skip` TERLIHAT di
+keluaran test, tak seperti menghapusnya.
+
+**Saya tidak mengerjakan apa pun dari ketiganya** sampai ada keputusan.
