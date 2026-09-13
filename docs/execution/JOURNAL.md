@@ -5,6 +5,84 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-14 (lanjutan) — "lanjutkan aja sampe beres" · keputusan diserahkan ke saya
+
+Founder: *"yg butuh keputusan saya, ikut sama rekomendasimu aja"*. Kedua
+ratifikasi dikerjakan menurut saran saya sendiri, lalu sisa merah dihabiskan.
+
+### R-013 & R-022 — ditutup sesuai rekomendasi
+
+| | |
+|---|---|
+| **R-013** ⏸ | 4 × `it.skip` + alasan tertulis. Keputusannya TETAP terbuka — yang hilang cuma merahnya, dan `it.skip` TERLIHAT tiap suite jalan |
+| **R-022** ✅ | migrasi 575 `direktur_uji` — salinan direktur (227 izin) MINUS `users:roles:manage`. `authz-endpoints` + `anti-lockout` **38/38 hijau BERSAMA** |
+
+⚠ Entri itu semula saya beri nomor **R-016 — yang SUDAH DIPAKAI** sejak
+2026-08, judulnya *"Delapan nomor migrasi dipakai DUA KALI"*. Saya mengulangi
+persis cacat yang entri itu dokumentasikan. Diganti jadi R-022, dan
+rujukannya dirapikan di berkas, di `roles.description`, DAN di `statements`
+buku migrasi.
+
+### Empat test merah yang ternyata SATU sebab
+
+`ai-isolasi-tenant.test.ts`: ketiga belas test LULUS, hanya `afterAll` yang
+gagal di FK `companies_owner_user_id_fkey`. Akibatnya `[UJI-ISOLASI] Admin B`
+tertinggal AKTIF memegang peran `admin`.
+
+Yang merah kemudian berkas yang **tak pernah menyentuhnya**:
+
+```
+anti-lockout-wiring    'users:roles:manage' dipegang 2 role, bukan 1
+recipient-resolution   expected 2 to be 3 (jumlah admin aktif)
+t9-kelola-badan-usaha  bukan-pemilik lolos gerbang
+submittal-aturan       3 company tanpa rantai submittal
+ncr-penomoran, rag-cari ikut merah di suite penuh
+```
+
+Enam berkas dari satu teardown yang gagal, dan tak satu pun galatnya menyebut
+sumbernya.
+
+⚠ Dan membersihkan datanya TIDAK cukup — saya sudah melakukannya beberapa jam
+sebelumnya, lalu suite berikutnya membuat akun BARU. Sumbernya bukan data
+lama melainkan teardown yang gagal tiap jalan. Diperbaiki di sumbernya.
+
+### Cacat yang ditemukan PENJAGA, bukan gejala
+
+`audit-badan-fungsi-mutakhir.mjs` merah sesudah suite — padahal hijau
+beberapa jam sebelumnya, tanpa migrasi baru di antaranya. Ditelusuri dengan
+**event trigger** yang mencatat tiap penulisan fungsi, bukan ditebak:
+
+```
+skema    n
+test     2
+public   2   ← ini
+```
+
+`alur-uang-mandor.test.ts` me-replay rantai migrasi ke schema `test`, dan
+**migrasi 100 memaku `public.`**. Jadi test yang berjalan di schema TEST
+menulis ke `public`, membatalkan perbaikan 572.
+
+**Test yang LULUS sambil diam-diam membatalkan perbaikan produksi** — kelas
+yang lebih halus daripada test merah: yang merah diperbaiki, yang hijau
+sambil merusak tak seorang pun lihat. Ditutup migrasi 576.
+
+### Tiga kali pola yang sama: izin ditebak dari nama jabatan
+
+`rls-reference-group`, `rls-fixed-endpoints`, `approval-inbox` — ketiganya
+menuntut `pm` memegang izin yang ia tak punya. Diukur ke `role_permissions`
+tiap kali; gerbangnya BENAR di ketiganya.
+
+⚠ "pm" terdengar seperti "project manager", dan yang memegang
+`progress:manage` adalah `project_manager_senior` — peran yang LAIN.
+
+Yang TIDAK ditempuh di semuanya: menaikkan izin `pm`. Kasbon memindahkan
+uang.
+
+migrasi 575, 576 · penjaga **248** hijau · 0 MERAH
+commit `c658de19` `c7313db5` `fce9c1bf` `dfb7194b` `f54f9447` `8691584d`
+
+---
+
 ## 2026-09-14 — "pastikan tidak ada yg terhalang lagi": 19 merah, dan hampir semuanya menuduh KODE
 
 Founder: *"okee lanjutkan, pstikan tidak ada yg terhalang lagi"*. Suite penuh
