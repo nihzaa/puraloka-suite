@@ -2735,6 +2735,35 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # Katalog bersama (`company_id IS NULL`) boleh DIBACA semua tenant,
+      # tak boleh DITULIS tenant mana pun.
+      #
+      # 2026-09-14: migrasi 374 memperketat `cbs_templates`/`cbs_nodes` —
+      # RESTRICTIVE-nya MENDARAT, `WITH CHECK`-nya TIDAK. Satu berkas, dua
+      # pekerjaan, satu berlaku. Ditemukan TEST, bukan penjaga.
+      #
+      # Dua penjaga yang ada tak bisa melihatnya, dan keduanya jujur:
+      #   · `audit-tabel-force-berpagar.mjs` menjaga policy ADA & RESTRICTIVE,
+      #     bukan ISI `with_check`-nya;
+      #   · `audit-badan-fungsi-mutakhir.mjs` membandingkan BADAN FUNGSI, dan
+      #     374 memasang policy lewat `EXECUTE format(...)` — dinamis, sengaja
+      #     dilewati. Batas itu tertulis di kepalanya, dan nyata: 28 dari 169
+      #     migrasi ber-policy memasangnya dinamis.
+      #
+      # RESTRICTIVE digabung AND, jadi WITH CHECK adalah gerbang TULIS yang
+      # sesungguhnya. Cabang `IS NULL` di sana = tenant boleh menyuntikkan
+      # atau menyunting cetakan yang dipakai SELURUH tenant lain. Kebocoran
+      # arah TULIS — yang lebih jarang diperiksa orang.
+      #
+      # RATCHET, bukan ambang nol: 12 tabel AB memang DIRANCANG longgar sejak
+      # migrasi 131 §AB (katalog nasional). Mengubah itu keputusan founder,
+      # bukan efek samping penjaga. Yang dijaga: tak boleh BERTAMBAH, dan yang
+      # sudah diperketat tak boleh kambuh.
+      - name: Katalog bersama tak boleh ditulis tenant
+        run: node scripts/audit-tulis-katalog-bersama.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       # Tabel yang lahir DI LUAR jalur migrasi hidup nyaman di dev dan HILANG
       # di tiap basis baru — VPS termasuk. Tiga kali terjadi 2026-08-31, dan
       # tiap kali gejalanya menunjuk ke tempat lain:
