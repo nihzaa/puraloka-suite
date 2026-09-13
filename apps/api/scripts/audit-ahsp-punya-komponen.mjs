@@ -77,16 +77,31 @@ try {
     Tanpa kualifikasi, hitungannya bisa jatuh ke tabel yang salah dan
     menjawab BENAR secara kebetulan.
   */
+  /*
+    ⚠ Hanya analisa `active` yang dihitung, dan itu KOREKSI.
+
+    Versi pertama menghitung SELURUH baris `assemblies`. Sesudah 2.620
+    analisa rusak di-supersede (2026-09-13), angkanya justru TURUN ke 45%
+    — sebab tiap perbaikan menambah satu baris `superseded` yang, MENURUT
+    RANCANGAN, tak akan pernah punya komponen hidup.
+
+    Jadi penjaga itu menghukum perbaikan: makin banyak dipulihkan, makin
+    merah. Yang diukur seharusnya katalog yang BISA DIPAKAI, bukan seluruh
+    riwayatnya.
+
+    Terukur sesudah koreksi: 2.620 dari 2.747 analisa nasional aktif (95%).
+  */
   const { rows } = await c.query(`
     SELECT
-      (SELECT count(*) FROM public.assemblies)::int                    AS analisa,
+      (SELECT count(*) FROM public.assemblies WHERE status = 'active')::int AS analisa,
       (SELECT count(*) FROM public.assembly_components)::int           AS komponen,
       (SELECT count(*) FROM public.resources)::int                     AS sumberdaya,
       (SELECT count(*) FROM public.assembly_components ac
          WHERE EXISTS (SELECT 1 FROM public.resources r
                         WHERE r.id = ac.resource_id))::int             AS komponen_hidup,
       (SELECT count(*) FROM public.assemblies a
-         WHERE EXISTS (SELECT 1 FROM public.assembly_components ac
+         WHERE a.status = 'active'
+           AND EXISTS (SELECT 1 FROM public.assembly_components ac
                          JOIN public.resources r ON r.id = ac.resource_id
                         WHERE ac.assembly_id = a.id))::int             AS analisa_hidup`)
 
@@ -94,7 +109,7 @@ try {
   const persen = r.analisa === 0 ? 0 : Math.round((r.analisa_hidup / r.analisa) * 100)
 
   console.log('── AHSP punya komponen ──')
-  console.log(`  analisa (assemblies)     : ${r.analisa}`)
+  console.log(`  analisa AKTIF            : ${r.analisa}`)
   console.log(`     punya komponen hidup  : ${r.analisa_hidup}  (${persen}%)`)
   console.log(`  baris komponen           : ${r.komponen}`)
   console.log(`     resource-nya ADA      : ${r.komponen_hidup}`)

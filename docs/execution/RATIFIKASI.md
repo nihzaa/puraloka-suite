@@ -4909,7 +4909,27 @@ keluaran test, tak seperti menghapusnya.
 
 ---
 
-## R-014 · Katalog AHSP kosong, dan trigger `draft` menahan pemulihannya
+## R-014 · ✅ SELESAI 2026-09-13 — dipulihkan lewat SUPERSEDE, bukan jalan yang saya sarankan
+
+> **Tak perlu diputuskan lagi.** Saran saya di bawah (jalur 2: turunkan
+> status ke draft) ternyata MUSTAHIL — `fn_assembly_status_transition`
+> menolak: *"Alur sah: draft→active→superseded (MAJU SAJA)"*. Saya hampir
+> menyarankan founder menembus empat pengaman sekaligus.
+>
+> Ditempuh jalur (1), yang ditunjuk ketiga trigger itu sendiri: 2.620
+> versi baru dibuat berisi komponen benar, v1 di-supersede (TIDAK
+> dihapus — jejak "SE bilang apa" utuh), 50 RAB draft dialihkan.
+>
+> Hasil: analisa aktif berkomponen **0% → 83%** (nasional 95%), RAB draft
+> nasional **0/50 → 50/50**. Rinciannya di JOURNAL 2026-09-13 (lanjutan 13).
+>
+> Sisa yang TIDAK dipulihkan & alasannya: 127 analisa di luar dataset
+> SE-47 (tak ada sumbernya), 420 analisa  (dataset
+> berbeda), 1 RAB `under_review` (beku, dan benar beku).
+
+### Catatan aslinya (disimpan — argumennya masih berguna)
+
+## ~~R-014~~ · Katalog AHSP kosong, dan trigger `draft` menahan pemulihannya
 
 **Ditemukan & diukur 2026-09-13.** Bukan cacat kode — dua aturan yang
 masing-masing BENAR, dan pemulihannya jatuh di antara keduanya.

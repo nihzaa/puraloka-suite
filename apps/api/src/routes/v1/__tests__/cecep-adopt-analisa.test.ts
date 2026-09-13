@@ -41,10 +41,31 @@ afterAll(async () => {
 /** Analisa nasional ber-komponen, untuk dijadikan sumber adopsi. */
 async function analisaNasional() {
   return (await c.query(
+    /*
+      ⚠ TIGA syarat, dan dua di antaranya PERNAH HILANG.
+
+      Versi lama cuma menuntut `source='national'` + 2..6 komponen. Itu
+      menghitung BARIS komponen tanpa memeriksa apakah `resource`-nya
+      masih ada — dan diukur 2026-09-13, seluruh 18.533 komponen katalog
+      menunjuk sumber daya yang sudah dihapus.
+
+      Test lalu mendapat analisa yang "punya 5 komponen" lalu gagal di
+      baris berikutnya dengan `Cannot read properties of undefined` —
+      galat JavaScript yang menuduh TEST, bukan katalog yang kosong.
+
+      Ditambahkan pula `status='active'`: sesudah pemulihan lewat
+      supersede, versi LAMA yang komponennya rusak masih ada sebagai
+      `superseded` — sengaja, sebab jejak "SE bilang apa" tak boleh
+      hilang. Tanpa saringan ini test bisa mendarat di sana lagi.
+    */
     `SELECT a.id, a.code, a.name, a.cost_code_id, a.output_unit_code, a.edition_id
        FROM assemblies a
       WHERE a.source = 'national'
-        AND (SELECT count(*) FROM assembly_components x WHERE x.assembly_id = a.id) BETWEEN 2 AND 6
+        AND a.status = 'active'
+        AND (SELECT count(*) FROM assembly_components x
+               JOIN resources r ON r.id = x.resource_id
+              WHERE x.assembly_id = a.id) BETWEEN 2 AND 6
+      ORDER BY a.code
       LIMIT 1`)).rows[0]
 }
 

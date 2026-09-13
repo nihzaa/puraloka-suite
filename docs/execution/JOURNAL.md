@@ -5,6 +5,94 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-13 (lanjutan 13) — katalog AHSP PULIH lewat jalan yang ditunjuk rancangannya sendiri
+
+Founder: "kerjakan aja yg penting hasil yg terbaik". Dikerjakan, dan
+hasilnya bukan jalan yang saya sarankan semalam.
+
+### Saran saya sendiri ternyata MUSTAHIL
+
+R-014 saya tulis dengan saran jalur (2): turunkan status ke `draft`,
+pulihkan, naikkan lagi. Sebelum menjalankannya saya baca trigger-nya —
+dan `fn_assembly_status_transition` menolak mentah:
+
+> "Alur sah: draft→active→superseded (**MAJU SAJA**)."
+
+Jadi saran saya tak bisa dijalankan tanpa mematikan trigger. Saya hampir
+merekomendasikan founder menembus empat pengaman sekaligus.
+
+Tiga jalan dicoba, tiga ditolak, dan **ketiganya menunjuk arah yang
+sama**:
+
+```
+UPDATE komponen  → fn_assembly_component_parent_draft : "hanya saat draft"
+status ke draft  → fn_assembly_status_transition      : "maju saja"
+hapus & seed     → fn_assembly_no_delete              : "supersede, jangan hapus"
+```
+
+Rancangannya tidak menghalangi — ia menjawab.
+
+### Yang dikerjakan: supersede
+
+```
+v2 dibuat                   : 2.620  (draft → isi komponen → active)
+komponen ditulis            : 15.149
+v1 di-SUPERSEDE, tak dihapus: 2.620  (jejak "SE bilang apa" utuh)
+RAB dialihkan               :     50
+```
+
+Hasil, diverifikasi penjaga TERPISAH bukan laporan skripnya sendiri:
+
+```
+analisa aktif berkomponen : 0% → 83%   (nasional 2.620/2.747 = 95%)
+RAB draft nasional        : 0/50 → 50/50 hidup
+```
+
+### Empat kali saya salah, dan tiap kali alatnya yang menangkap
+
+1. **`sequence` jsonb** — `[]` lewat driver jadi array Postgres, bukan
+   jsonb. CHECK menolak dengan galat yang menuduh BARIS BARU.
+2. **Pengalihan RAB** menabrak `fn_estimate_item_parent_draft`. Diukur:
+   50 dari 51 di versi draft, **satu** di `under_review`. Yang satu itu
+   dilewati dan dilaporkan — memaksanya berarti menembus pembekuan yang
+   melindungi angka yang sedang direview.
+3. **Cakupan verifikasi ≠ cakupan perbaikan.** Versi pertama memeriksa
+   SELURUH estimate_items dan menemukan 21 baris `source='company'` —
+   di luar jangkauan skrip. Transaksi dibatalkan atas kegagalan yang
+   bukan miliknya, dan 2.620 v2 yang sudah benar ikut hilang. Penjaga
+   yang merah atas hal di LUAR cakupannya membuang pekerjaan yang sah.
+4. **Penjaga saya MENGHUKUM perbaikan.** Sesudah supersede, angkanya
+   TURUN ke 45% — tiap perbaikan menambah satu baris `superseded` yang
+   menurut rancangan tak akan pernah punya komponen hidup. Dikoreksi:
+   yang dihitung katalog yang BISA DIPAKAI, bukan seluruh riwayatnya.
+
+### Test-nya ikut diperbaiki
+
+`analisaNasional()` menghitung BARIS komponen tanpa memeriksa
+`resource`-nya masih ada, dan tak menyaring `status`. Sesudah supersede
+ia bisa mendarat di versi lama yang sengaja dibiarkan rusak. Ditambah
+dua syarat; **7/7 lulus** (dari 3 merah).
+
+### Yang TIDAK dikerjakan, dan dilaporkan
+
+  · 127 analisa nasional di luar dataset SE-47 — tak ada sumber datanya;
+  · 420 analisa `source='company'` (Cibuluh) berkomponen yatim — katalog
+    perusahaan punya asal-usul sendiri, memulihkannya menuntut dataset
+    yang berbeda;
+  · 1 RAB di versi `under_review` — beku, dan benar beku.
+
+### Bukti
+
+```
+vitest cecep-adopt-analisa  7 lulus / 0 gagal   (dari 3 merah)
+audit-ahsp-punya-komponen   83% — HIJAU (dari 0%)
+tsc api                     exit 0
+semua penjaga               245 hijau · 0 MERAH · 0 tak ketemu
+snapshot pra-pemulihan      18.533 baris tersimpan & terbaca kembali
+```
+
+---
+
 ## 2026-09-13 (lanjutan 12) — pemulihan AHSP ditahan trigger, dan trigger itu BENAR
 
 Melanjutkan temuan katalog AHSP kosong. Founder memilih "pulihkan".
