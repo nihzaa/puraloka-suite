@@ -2785,6 +2785,28 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # Counter penomoran tak boleh tertinggal di belakang nomor yang SUDAH
+      # BEREDAR — kalau tertinggal, dokumen berikutnya bernomor KEMBAR.
+      #
+      # 2026-09-14: invoice tertinggi 27 (INV/2026/09/027), sementara 9 dari 12
+      # counter bulan masih 26 → sembilan bulan akan menerbitkan 027 lagi.
+      #
+      # ⚠ Basis TIDAK menahannya: invoice unik hanya `(project_id,
+      # invoice_number)` — per PROYEK, bukan per company. Dua invoice di proyek
+      # berbeda milik company yang sama boleh bernomor sama tanpa satu pun
+      # galat, lalu keluar ke klien sebagai dokumen tagihan bernomor kembar.
+      # Migrasi 135: "untuk dokumen yang keluar ke pihak ketiga, nomor kembar
+      # bukan ketidakrapian — itu cacat audit."
+      #
+      # Migrasi 135 SUDAH menyinkronkan dengan benar, dan tetap tak cukup: ia
+      # sekali jalan, sementara invoice baru lahir sesudahnya dan hanya
+      # menaikkan counter bulannya sendiri. Yang dijaga di sini KEADAANNYA,
+      # bukan sinkronisasinya.
+      - name: Counter dokumen tak tertinggal dari nomor beredar
+        run: node scripts/audit-counter-dokumen-tak-tertinggal.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       # Tabel yang lahir DI LUAR jalur migrasi hidup nyaman di dev dan HILANG
       # di tiap basis baru — VPS termasuk. Tiga kali terjadi 2026-08-31, dan
       # tiap kali gejalanya menunjuk ke tempat lain:
