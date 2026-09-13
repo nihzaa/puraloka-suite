@@ -106,13 +106,45 @@ describe('RLS — helper konstan selalu dibungkus (SELECT ...)', () => {
       expect(teks, 'rencana query tidak memakai InitPlan → helper dievaluasi per baris')
         .toContain('InitPlan')
 
-      // Ambang longgar dengan sengaja: yang ditangkap adalah regresi kelas
-      // ratusan-kali (3.500 ms), bukan fluktuasi wajar mesin CI.
+      /*
+        Ambang longgar dengan sengaja: yang ditangkap regresi kelas
+        RATUSAN-KALI (~3.500 ms), bukan fluktuasi wajar mesin CI.
+
+        WARN 1000 -> 2200 pada 2026-09-14, dan ini BUKAN pelemahan penjaga.
+
+        Test ini merah di suite penuh (1.138 ms) lalu HIJAU 3/3 saat
+        dijalankan sendiri. Diukur langsung ke basis dalam keadaan senggang,
+        lima kali berturut-turut:
+
+            658 - 657 - 657 - 656 - 658 ms
+
+        Jadi biaya normalnya ~657 ms dan ambang lama cuma memberi jarak
+        1,5x — sementara regresi yang hendak ditangkap ~5x di atas normal.
+        Di bawah beban suite penuh (satu basis, ratusan berkas), 657 ms
+        wajar melewati 1.000 ms tanpa ada yang rusak.
+
+        Penjaga yang merah atas hal yang BENAR akan diabaikan seluruh
+        keluarannya, lalu berhenti menjaga tanpa gejala (CLAUDE.md 8a.2).
+
+        2.200 ms dipilih supaya tetap JAUH di bawah ~3.500 ms: regresi
+        InitPlan tetap tertangkap, fluktuasi beban tidak.
+
+        WARN DAN SATU HAL YANG JUJUR HARUS DITULIS: angka ini TIDAK
+        terbukti bisa merah. Saya mencoba dua kali membuat regresinya
+        dengan sengaja — melepas bungkus `(SELECT ...)` dari policy, lalu
+        memakai helper VOLATILE — dan Postgres tetap membungkusnya sendiri
+        (InitPlan tetap ada, 909 ms dan 1.417 ms). Jadi mutasinya TIDAK
+        MENDARAT, dan hijaunya tak membuktikan apa pun.
+
+        Yang TERBUKTI menjaga: assertion `InitPlan` di atas — struktural,
+        tak terpengaruh beban, dan itulah jaring yang sesungguhnya. Angka di
+        bawah jaring kedua yang batasnya diakui di sini, bukan diklaim.
+      */
       expect(
         plan['Execution Time'],
         `assembly_components ${adaTabel[0].n} baris terlalu lambat — ` +
           'gejala helper RLS kembali dievaluasi per baris'
-      ).toBeLessThan(1000)
+      ).toBeLessThan(2200)
     } finally {
       await c.query('ROLLBACK')
     }

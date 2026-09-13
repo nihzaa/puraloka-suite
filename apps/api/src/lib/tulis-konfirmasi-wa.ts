@@ -590,6 +590,18 @@ async function terbitkanAbsensi(
     return { ok: false, pesan: `Belum ada mandor yang ditugaskan di proyek '${namaProyek}'.` }
   }
 
+  /*
+    WARN SELURUH scope proyek dikumpulkan, dan `break` DIHAPUS — 2026-09-14.
+
+    Versi sebelumnya berhenti pada penugasan PERTAMA yang punya scope
+    (`if (cocokScope.length > 0) break`). Itu cukup untuk MENULIS absensi —
+    satu scope memang sudah sah — tetapi membuat pemeriksaan duplikat di
+    bawah hanya melihat sebagian proyek.
+
+    Diukur: proyek seed 'Renovasi Rumah Pak Andi' punya SATU penugasan
+    dengan ENAM work_scope. Baris absensi yang sudah ada bisa tersimpan di
+    scope mana pun dari keenamnya.
+  */
   const cocokScope: Array<{ id: string }> = []
   for (const t of daftarTugas) {
     const { data: s, error: errScope } = await db
@@ -602,7 +614,6 @@ async function terbitkanAbsensi(
       return { ok: false, pesan: 'Gagal memeriksa lingkup kerja. Coba lagi sebentar lagi.' }
     }
     cocokScope.push(...((s ?? []) as unknown as Array<{ id: string }>))
-    if (cocokScope.length > 0) break
   }
 
   if (cocokScope.length === 0) {
@@ -643,9 +654,41 @@ async function terbitkanAbsensi(
    * Absensi memberi makan `weekly_wage_reports`. Dua baris untuk orang yang
    * sama di hari yang sama = upah dibayar dua kali, tanpa satu pun galat.
    */
+  /*
+    WARN Duplikat diperiksa LINTAS SCOPE di proyek yang sama, bukan hanya
+    pada `scopeId` yang kebetulan terpilih — diperbaiki 2026-09-14.
+
+    Versi sebelumnya menyaring `.viaProject('absensi_harian', scopeId)`, dan
+    itu tampak benar: absensi memang mewarisi tenancy lewat `scope_id`.
+    Yang tak terlihat: `scopeId` datang dari `cocokScope[0]` — hasil query
+    TANPA `ORDER BY`.
+
+    Diukur 2026-09-14 pada proyek seed 'Renovasi Rumah Pak Andi':
+
+        work_scope di proyek itu : 6
+        fixture menulis absensi ke: ab01...0001
+        query tanpa ORDER BY beri : ab01...0004
+
+    Jadi pemeriksaan duplikat mencari di scope yang BERBEDA dari tempat
+    barisnya tersimpan, lalu menyimpulkan 'belum ada'. Absensi kedua untuk
+    orang & tanggal yang sama LOLOS — dan `weekly_wage_reports` menghitung
+    orang itu dua kali.
+
+    Bukan cacat test: satu tukang memang bisa muncul di beberapa work_scope
+    dalam satu proyek, dan mana yang 'pertama' tak dijamin Postgres.
+
+    Yang benar: yang tak boleh dobel adalah (tukang, tanggal) DI PROYEK ITU,
+    bukan (tukang, tanggal, scope). Karena itu seluruh scope proyek ini
+    diperiksa sekaligus.
+  */
+  const idScopeProyek = cocokScope.map((s) => s.id)
   const { data: sudah, error: errSudah } = await db
-    .viaProject('absensi_harian', scopeId)
+    .unsafe(
+      'absensi_harian',
+      'duplikat absensi wajib dicek LINTAS scope satu proyek; id scope-nya sudah disaring viaProject di atas, jadi tetap dalam tenant penanya',
+    )
     .select('id')
+    .in('scope_id', idScopeProyek)
     .eq('worker_id', w.id)
     .eq('tanggal', tanggal)
     .limit(1)
