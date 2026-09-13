@@ -193,7 +193,7 @@ export default async function kasbonRoutes(app: FastifyInstance) {
         requester:users!kasbons_requested_by_fkey ( id, name ),
         approver:users!kasbons_approved_by_fkey ( id, name ),
         cash_account:cash_accounts!kasbons_cash_account_id_fkey ( id, name, type )
-      `)
+      `, { count: 'exact' })
       .order('kasbon_date', { ascending: false })
       .range(off, off + lim - 1)
 
@@ -213,9 +213,30 @@ export default async function kasbonRoutes(app: FastifyInstance) {
       q = q.in('project_id', projectIds).eq('requested_by', user.id)
     }
 
-    const { data, error } = await q
+    const { data, error, count } = await q
     if (error) return reply.status(500).send({ error: error.message })
-    return reply.send({ kasbons: data ?? [] })
+
+    /*
+      `meta` WAJIB — rute ini berhalaman (`.range`) sejak lama, tetapi
+      sampai 2026-09-13 membalas hanya barisnya. Klien karenanya tak punya
+      cara tahu masih ada sisa, dan daftar yang berhenti di baris ke-N tak
+      bisa dibedakan dari daftar yang memang cuma punya N.
+
+      Di layar KASBON itu keputusan uang: mandor yang melihat "tak ada
+      kasbon menunggu" padahal halaman kedua penuh akan menyimpulkan
+      pekerjaannya selesai.
+
+      Bentuknya MENGIKUTI `audit.ts`, bukan dikarang baru.
+    */
+    return reply.send({
+      kasbons: data ?? [],
+      meta: {
+        total: count ?? 0,
+        page: Math.floor(off / lim) + 1,
+        limit: lim,
+        pages: Math.ceil((count ?? 0) / lim),
+      },
+    })
   })
 
   // POST /api/v1/kasbons — ajukan kasbon baru

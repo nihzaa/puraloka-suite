@@ -2227,6 +2227,27 @@ jobs:
       - name: Kartu pahlawan tunggal
         run: node scripts/audit-kartu-pahlawan-tunggal.mjs
 
+      # Daftar BERHALAMAN wajib mengaku berhalaman.
+      #
+      # Diukur 2026-09-13: rute memakai .range(off, off+lim-1) lalu
+      # membalas hanya barisnya. Klien tak punya cara tahu masih ada
+      # sisa, dan daftar yang berhenti di baris ke-30 TAK BISA dibedakan
+      # dari daftar yang memang cuma punya 30.
+      #
+      # Yang terbesar /api/v1/notifications: 10.767 baris di basis.
+      # Kelas cacat ini sudah dibayar sekali (CLAUDE.md §8a.3: "8.947
+      # baris di basis, 30 yang bisa dilihat dari HP, nol tanda").
+      #
+      # ⚠ BUKAN duplikat audit-baca-tak-terpotong: yang itu menjaga
+      # pembacaan PENUH tak terpotong senyap di 1.000 baris PostgREST.
+      # Yang ini kebalikannya — pembacaan yang memang SENGAJA
+      # berhalaman tetapi tak mengaku. Cacatnya hidup di celah antara
+      # kedua penjaga itu.
+      #
+      # Ratchet; lantainya menyimpan DAFTAR NAMA, bukan cuma angka.
+      - name: Daftar berhalaman jujur
+        run: node scripts/audit-daftar-berhalaman-jujur.mjs
+
       # Layar mobile wajib membaca bentuk balasan yang BENAR-BENAR dikirim
       # rute. Diukur 2026-09-04, potret pertama dashboard yang berhasil
       # login: "Proyek Aktif 0 - Total Kontrak Rp 0 - Kas Bersih Rp 0",

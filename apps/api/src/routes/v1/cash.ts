@@ -198,7 +198,7 @@ export default async function cashRoutes(app: FastifyInstance) {
         to_account:cash_accounts!cash_transfers_to_account_id_fkey ( id, name, type ),
         creator:users!cash_transfers_created_by_fkey ( id, name ),
         confirmer:users!cash_transfers_confirmed_by_fkey ( id, name )
-      `)
+      `, { count: 'exact' })
       .order('transfer_date', { ascending: false })
       .order('created_at', { ascending: false })
       .range(off, off + lim - 1)
@@ -207,9 +207,24 @@ export default async function cashRoutes(app: FastifyInstance) {
     if (from_id) q = q.eq('from_account_id', from_id)
     if (to_id) q = q.eq('to_account_id', to_id)
 
-    const { data, error } = await q
+    const { data, error, count } = await q
     if (error) return reply.status(500).send({ error: error.message })
-    return reply.send({ transfers: data ?? [] })
+        /*
+      `meta` — rute ini berhalaman (`.range`) sejak lama tanpa mengaku
+      berhalaman. Riwayat TRANSFER KAS yang berhenti diam-diam di halaman pertama
+      membuat pembacanya menyimpulkan itulah seluruhnya, lalu mengambil
+      keputusan uang dari sebagian data tanpa tahu ia sebagian.
+      Bentuknya mengikuti `audit.ts`, bukan dikarang baru.
+    */
+    return reply.send({
+      transfers: data ?? [],
+      meta: {
+        total: count ?? 0,
+        page: Math.floor(off / lim) + 1,
+        limit: lim,
+        pages: Math.ceil((count ?? 0) / lim),
+      },
+    })
   })
 
   // POST /api/v1/cash/transfers — catat transfer baru
@@ -418,7 +433,7 @@ export default async function cashRoutes(app: FastifyInstance) {
         main_cash:cash_accounts!project_expenses_main_cash_id_fkey ( id, name, type ),
         submitter:users!project_expenses_submitted_by_fkey ( id, name ),
         reviewer:users!project_expenses_reviewed_by_fkey ( id, name )
-      `)
+      `, { count: 'exact' })
       .order('expense_date', { ascending: false })
       .order('created_at', { ascending: false })
       .range(off2, off2 + lim2 - 1)
@@ -433,9 +448,24 @@ export default async function cashRoutes(app: FastifyInstance) {
     if (date_from)     q = q.gte('expense_date', date_from)
     if (date_to)       q = q.lte('expense_date', date_to)
 
-    const { data, error } = await q
+    const { data, error, count } = await q
     if (error) return reply.status(500).send({ error: error.message })
-    return reply.send({ expenses: data ?? [] })
+        /*
+      `meta` — rute ini berhalaman (`.range`) sejak lama tanpa mengaku
+      berhalaman. Daftar PENGELUARAN yang berhenti diam-diam di halaman pertama
+      membuat pembacanya menyimpulkan itulah seluruhnya, lalu mengambil
+      keputusan uang dari sebagian data tanpa tahu ia sebagian.
+      Bentuknya mengikuti `audit.ts`, bukan dikarang baru.
+    */
+    return reply.send({
+      expenses: data ?? [],
+      meta: {
+        total: count ?? 0,
+        page: Math.floor(off2 / lim2) + 1,
+        limit: lim2,
+        pages: Math.ceil((count ?? 0) / lim2),
+      },
+    })
   })
 
   // POST /api/v1/cash/expenses — input pengeluaran baru (multipart: bisa upload nota)

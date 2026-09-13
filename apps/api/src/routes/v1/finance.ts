@@ -1106,7 +1106,7 @@ export default async function financeRoutes(app: FastifyInstance) {
         ),
         recorder:users!payments_recorded_by_fkey ( id, name ),
         cash_account:cash_accounts!payments_cash_account_id_fkey ( id, name, type )
-      `)
+      `, { count: 'exact' })
       // T4g: payments kategori C (mewarisi lewat invoice). Tanpa ini, seluruh
       // riwayat pembayaran semua perusahaan terbaca — termasuk nominal,
       // metode, bank, dan bukti transfernya.
@@ -1123,9 +1123,23 @@ export default async function financeRoutes(app: FastifyInstance) {
       q = q.gte('paid_at', start).lte('paid_at', end)
     }
 
-    const { data, error } = await q
+    const { data, error, count } = await q
     if (error) return reply.status(500).send({ error: error.message })
-    return reply.send({ payments: data ?? [] })
+    /*
+      `meta` — rute ini berhalaman sejak lama tanpa mengaku berhalaman.
+      Riwayat PEMBAYARAN yang berhenti diam-diam di halaman pertama
+      membuat orang menyimpulkan uang belum masuk padahal sudah, atau
+      sebaliknya. Bentuknya mengikuti `audit.ts`.
+    */
+    return reply.send({
+      payments: data ?? [],
+      meta: {
+        total: count ?? 0,
+        page: Math.floor(off / lim) + 1,
+        limit: lim,
+        pages: Math.ceil((count ?? 0) / lim),
+      },
+    })
   })
 
   // ── GET /api/v1/finance/cashflow ─────────────────────────────────────────────

@@ -1,0 +1,9 @@
+{
+  "jumlah": 4,
+  "nama": [
+    "/api/v1/approval-chains",
+    "/api/v1/notification-rules",
+    "/api/v1/roles",
+    "/api/v1/settings/finance"
+  ]
+}

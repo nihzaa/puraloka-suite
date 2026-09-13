@@ -5,6 +5,93 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-13 (lanjutan 8) — daftar berhalaman yang tak mengaku berhalaman
+
+Founder bertanya "ada yang bisa ditambahkan lagi?". Saya ukur, dan
+jawabannya ada: rute memakai `.range(off, off+lim-1)` lalu membalas hanya
+barisnya. Klien tak punya cara tahu masih ada sisa.
+
+Yang terbesar `/api/v1/notifications` — **10.767 baris**, yang terlihat
+dari HP tiga puluh.
+
+### Kenapa berbahaya justru karena tak bergejala
+
+Rutenya benar, query-nya benar, layarnya benar. Yang hilang cuma satu
+kalimat di balasan — dan tanpa itu, daftar yang berhenti di baris ke-30
+TIDAK BISA dibedakan dari daftar yang memang cuma punya 30.
+
+Orang lalu mengambil keputusan uang dari sebagian data tanpa tahu ia
+sebagian.
+
+⚠ `audit-baca-tak-terpotong.mjs` TIDAK menutup ini. Ia menjaga pembacaan
+PENUH tak terpotong senyap di 1.000 baris PostgREST. Yang di sini
+kebalikannya: pembacaan yang memang SENGAJA berhalaman, tetapi tak
+mengaku. Dua penjaga jujur, dan cacatnya hidup di CELAH di antara mereka.
+
+### TIGA pengukuran, tiga jawaban berbeda — dua salah
+
+```
+per-BERKAS                 7 bisu   ← satu rute ekspor menyebut `total`,
+                                      seluruh berkas dianggap jujur
+per-handler, tanpa saringan 43 bisu ← menyapu 26 rute OTOMASI yang bukan
+                                      daftar dibaca manusia
+per-handler + saringan     17 bisu  ← yang saya laporkan ke founder
+pendeteksi diperbaiki       8 bisu  ← 7 rute SUDAH jujur lewat `total:`
+                                      telanjang, saya menuduhnya salah
+```
+
+Angka yang saya sampaikan ke founder (17) **terlalu tinggi**. Yang benar
+8 — tujuh di antaranya sudah mengirim `total` dan penjaga saya tak bisa
+melihatnya karena hanya mencari `meta:`.
+
+Penjaga yang merah atas hal BENAR akan diabaikan seluruh keluarannya;
+memperbaiki pendeteksinya lebih penting daripada angkanya terlihat besar.
+
+### Yang dikerjakan
+
+Empat rute jalur uang diberi `meta`, bentuknya MENGIKUTI `audit.ts`
+(bukan dikarang baru — dua bentuk paginasi di satu API berarti tiap klien
+harus tahu rute mana memakai yang mana):
+
+```
+/api/v1/notifications   10.767 baris
+/api/v1/kasbons         keputusan uang mandor
+/api/v1/finance/payments riwayat pembayaran
+/api/v1/cash/transfers + /cash/expenses
+```
+
+`count` diambil dari query yang SAMA (`{ count: 'exact' }`) — nol
+perjalanan tambahan ke basis.
+
+Sisa 4 adalah daftar KONFIGURASI (roles, settings, notification-rules,
+approval-chains) — kecil dan tak berisiko; dikunci di lantai.
+
+### Saya salah TIGA kali pada uji mutasi, dan ketiganya sama bentuknya
+
+1. Regex mutasinya tak cocok indentasi → `meta:` tetap 1, mutasi TAK
+   MENGENAI, penjaga hijau. Terbaca seperti "penjaganya bocor".
+2. Mengganti `meta:` saja → `total:` di dalamnya MASIH cocok pendeteksi,
+   jadi hijau. Penjaganya benar; mutasinya yang terlalu sempit.
+3. Baru mutasi ketiga (buang SELURUH blok `meta`) yang sah: BISU 4→5,
+   MERAH, menyebut `/api/v1/kasbons`, exit 1 → 0 saat pulih.
+
+Pelajarannya persis §8a.2: **pastikan mutasinya MENGENAI hal yang
+dijaga**. Hijau dari mutasi yang tak mendarat terlihat sama persis dengan
+hijau yang sah.
+
+### Bukti
+
+```
+rute berhalaman        19 · mengaku 15 · BISU 4  (dari 8)
+mutasi (yang sah)      MERAH, menyebut rutenya; pulih HIJAU
+vitest kasbon+notif+cash  63 lulus
+tsc api                exit 0
+semua penjaga          245 hijau · 0 MERAH · 0 tak ketemu  (dari 244)
+penjaga tertabel       79
+```
+
+---
+
 ## 2026-09-13 (lanjutan 7) — penjaga DULU, dan ia langsung menolak dugaan saya
 
 Sesi sebelumnya saya berjanji: penjaga "satu kartu pahlawan per layar"

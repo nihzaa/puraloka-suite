@@ -46,13 +46,17 @@ export default async function notificationRoutes(app: FastifyInstance) {
     const lim = Math.min(Math.max(1, Number(limit) || 30), 100)
     const off = Math.max(0, Number(offset) || 0)
 
+    /*
+      `{ count: 'exact' }` — lihat catatan `meta` di bawah. Dihitung pada
+      query yang SAMA, jadi tak ada perjalanan tambahan ke basis.
+    */
     let q = request.db!
       .from('notifications')
       .select(`
         id, user_id, project_id, title, message, channel,
         is_read, read_at, action_url, sent_at, created_at,
         type, action_type, action_data, is_actioned, actioned_at, priority
-      `)
+      `, { count: 'exact' })
       .eq('user_id', user.id)
       .order('sent_at', { ascending: false })
       .range(off, off + lim - 1)
@@ -61,10 +65,39 @@ export default async function notificationRoutes(app: FastifyInstance) {
     if (is_read === 'false') q = q.eq('is_read', false)
     if (priority)            q = q.eq('priority', priority)
 
-    const { data, error } = await q
+    const { data, error, count } = await q
     if (error) return reply.status(500).send({ error: error.message })
 
-    return reply.send({ notifications: data ?? [] })
+    /*
+      ── `meta` WAJIB, dan alasannya bukan kerapian API ──────────────────
+
+      Rute ini berhalaman (`.range`) sejak lama, tetapi sampai 2026-09-13
+      balasannya cuma `{ notifications: [...] }`. Klien karenanya TIDAK
+      PUNYA CARA tahu masih ada sisa.
+
+      Terukur hari ini: **10.767 baris** di tabel ini. Yang terlihat dari
+      HP: tiga puluh.
+
+      Daftar yang berhenti di baris ke-30 tak bisa dibedakan dari daftar
+      yang memang cuma punya 30 — tak ada galat, tak ada tanda, dan
+      pembacanya menyimpulkan itulah semuanya.
+
+      Kelas cacat ini sudah dibayar sekali (CLAUDE.md §8a.3: "8.947 baris
+      di basis, 30 yang bisa dilihat dari HP, nol tanda").
+
+      Bentuk `meta` MENGIKUTI `audit.ts`, bukan dikarang baru — dua
+      bentuk paginasi di satu API berarti tiap klien harus tahu rute mana
+      memakai yang mana.
+    */
+    return reply.send({
+      notifications: data ?? [],
+      meta: {
+        total: count ?? 0,
+        page: Math.floor(off / lim) + 1,
+        limit: lim,
+        pages: Math.ceil((count ?? 0) / lim),
+      },
+    })
   })
 
   // ── GET /api/v1/notifications/count ──────────────────────────────────────
