@@ -60,10 +60,43 @@ describe('RLS: materials write policies (has_permission-based, expand)', () => {
     expect(r.rows[0].id).toBeTruthy()
   })
 
-  it('allows pm to insert (has procurement:material:manage)', async () => {
+  /*
+    ⚠ JUDUL & ARAHNYA DIBALIK 2026-09-14 — dan yang salah TESTNYA, bukan RLS.
+
+    Versi sebelumnya berbunyi "allows pm to insert" dan merah dengan:
+
+        new row violates row-level security policy for table "materials"
+
+    Galat itu terbaca seperti policy yang terlalu ketat. Diukur ke
+    `role_permissions` sebelum menyentuh apa pun:
+
+        pemegang procurement:material:manage :
+          admin · direktur · estimator · procurement_officer
+
+    `pm` TIDAK memegangnya — tidak di template, tidak di salinan tenant. Jadi
+    RLS menolak dengan BENAR, dan testnya yang menuntut kebalikannya.
+
+    Kelas yang sama persis dengan yang tercatat di kepala
+    `authz-endpoints.test.ts`: "`allow` dan `deny` WAJIB dicocokkan ke tabel
+    `role_permissions`, bukan ditebak dari nama jabatan."
+
+    ⚠ Yang TIDAK ditempuh: memberi izin itu kepada `pm` supaya testnya hijau.
+    Itu memperluas kewenangan nyata di seluruh tenant demi kehijauan test —
+    keputusan produk lewat RATIFIKASI, bukan efek samping perbaikan test.
+
+    Diganti jadi pemeriksaan yang BENAR-BENAR bermakna: `pm` peran senior yang
+    tetap ditolak karena tak memegang izinnya. Itu bukti terkuat bahwa
+    policy-nya berbasis IZIN, bukan jabatan — `mandor` di bawah bisa ditolak
+    sekadar karena ia junior; `pm` tidak bisa.
+
+    (estimator / procurement_officer belum punya akun uji ber-auth_id.
+    Menambahkannya keputusan data uji tersendiri — siapkan-akun-uji-peran.mjs)
+  */
+  it('denies pm insert (pm TIDAK memegang procurement:material:manage)', async () => {
     wajibAda(pmId, "user berperan pm")
-    const r = await asUser(client, pmId, insertMaterial)
-    expect(r.rows[0].id).toBeTruthy()
+    await expect(asUser(client, pmId, insertMaterial)).rejects.toThrow(
+      /row-level security|policy/i
+    )
   })
 
   it('denies mandor insert (lacks procurement:material:manage)', async () => {
