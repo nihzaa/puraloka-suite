@@ -5,6 +5,95 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-13 (lanjutan 11) — katalog AHSP berdiri utuh dan KOSONG, dan tak satu alat pun melihatnya
+
+Menelusuri 3 test merah `cecep-adopt-analisa`. Galatnya
+`Cannot read properties of undefined (reading 'code')` — terbaca seperti
+cacat TEST. Bukan.
+
+### Yang sebenarnya terjadi
+
+```
+assemblies (analisa AHSP)      : 3.171
+assembly_components            : 18.533
+public.resources               :      8   ← seluruhnya CI-RES-* sisa uji CI
+komponen yang resource-nya ADA :      0
+```
+
+Katalog AHSP — jantung estimasi biaya — berdiri UTUH secara struktur dan
+KOSONG secara isi. Tiap analisa punya baris komponennya; tiap komponen
+menunjuk sumber daya yang tak ada.
+
+### Kenapa tak ada yang tahu, dan tiap alat BENAR sendiri
+
+  · `audit-harga-satuan-waras.mjs` HIJAU — nol harga tak masuk akal,
+    sebab tak ada harga untuk dibandingkan sama sekali;
+  · `lapor-cakupan-struktur.mjs` 34/34 — ia menghitung JENIS elemen
+    struktur, bukan isi katalog;
+  · FK `assembly_components_resource_id_fkey` tercatat **convalidated =
+    true** — basis pun menyatakan dirinya konsisten.
+
+Yang terakhir paling menipu. FK yang divalidasi TETAP bisa punya baris
+pelanggar kalau penghapusannya lewat `session_replication_role='replica'`
+— dan beberapa berkas test di repo ini memakainya untuk membersihkan
+fixture.
+
+**Nol temuan terbaca seperti "semuanya benar".** Penjaga baru
+`audit-ahsp-punya-komponen.mjs` membalik arahnya: yang diperiksa bukan
+adanya PELANGGARAN melainkan adanya ISI.
+
+### Saya salah mengukur — dua kali, keduanya skema bayangan
+
+1. "18.533 yatim" saya ukur tanpa kualifikasi skema. `resources` DAN
+   `assembly_components` sama-sama dibayangi skema `test` (§1).
+2. "public.resources kosong" — nyatanya 8 baris. Angka nol datang dari
+   tabel yang salah.
+
+Sesudah dikualifikasi `public.`: public 18.533 komponen / 8 resources /
+18.533 yatim; test 0/0/0. Kesimpulannya sama, tapi jalannya sempat salah.
+
+### Seed dicoba, dan ia menemukan DUA cacat lagi
+
+`seed-ahsp-full.mjs` gagal:
+
+```
+there is no unique or exclusion constraint matching
+the ON CONFLICT specification
+```
+
+Sebabnya: migrasi 471 SENGAJA mengganti unik global `cost_codes_code_key`
+dengan indeks parsial `(company_id, code) WHERE code IS NOT NULL` —
+alasannya tertulis panjang (kode cost code itu kode INTERNAL tiap
+perusahaan; unik global menolak tenant B DAN membocorkan keberadaan data
+tenant A lewat pesan penolakannya).
+
+Skripnya tak ikut berubah. Diperbaiki sasaran konfliknya.
+
+Jalan kedua: **1.354 resources baru dibuat** (8 → 2.437), cost code
+beres, lalu spot-check skripnya sendiri MERAH: `spot 1.2.1.1.1: BEDA!
+(0 komponen)`.
+
+⚠ Sebabnya ketemu di baris 135: `if (exist.rows.length) { skipped++;
+continue }` — skrip melewati assembly yang SUDAH ADA, dan komponen
+di-insert SESUDAH cabang itu. Jadi 2.620 analisa lama tetap memegang
+komponen yatimnya. Idempoten untuk assembly, BUTA untuk komponen rusak.
+
+**Saya berhenti di sini, tidak menambal.** Menulis ulang 15.806 komponen
+untuk 2.620 analisa adalah pemulihan data, bukan perbaikan test — dan
+menambalnya sambil lalu di tengah penelusuran test adalah cara paling
+mudah merusak katalog yang sudah rusak.
+
+### Bukti
+
+```
+penjaga baru   MERAH atas kondisi NYATA (0% < ambang 50%), menyebut angkanya
+resources      8 → 2.437  (seed berhasil untuk bagian ini)
+komponen hidup 0          (belum pulih — butuh pass pemulihan tersendiri)
+akhir baris    LF → CRLF: 0
+```
+
+---
+
 ## 2026-09-13 (lanjutan 10) — gl-api merah karena KALENDER, dan 4 merah yang bukan cacat
 
 Melanjutkan sisa test merah. Dua kluster berikutnya, dua sebab yang sama

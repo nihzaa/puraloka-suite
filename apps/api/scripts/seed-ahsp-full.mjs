@@ -67,8 +67,34 @@ async function main() {
     for (const sh of sheets) {
       const code = `CC-SE47-${slug(sh)}`
       await c.query(
+        /*
+          ⚠ Sasaran konflik `(company_id, code)`, BUKAN `(code)`.
+
+          Migrasi 471 sengaja MENGGANTI unik global `cost_codes_code_key`
+          dengan indeks parsial `(company_id, code) WHERE code IS NOT NULL`.
+          Alasannya tertulis panjang di migrasi itu: kode cost code adalah
+          kode INTERNAL tiap perusahaan, dan unik global menolak tenant B
+          memakai kode yang dipakai tenant A — sekaligus MEMBOCORKAN
+          keberadaan data tenant lain lewat pesan penolakannya.
+
+          Skrip ini tak ikut berubah, jadi ia gagal dengan
+
+              there is no unique or exclusion constraint matching
+              the ON CONFLICT specification
+
+          — galat yang menuduh SPESIFIKASI, bukan menyebut bahwa
+          constraint-nya memang sudah dipensiunkan setahun lalu.
+
+          Katalog nasional tak bertenant, jadi `company_id` di sini NULL
+          dan indeks parsial memperlakukan seluruh baris NULL sebagai satu
+          ruang — persis yang dimaksud migrasi 471.
+
+          `WHERE code IS NOT NULL` WAJIB diulang: indeks parsial hanya bisa
+          jadi sasaran ON CONFLICT bila predikatnya disebutkan.
+        */
         `INSERT INTO cost_codes (code, name, description, created_by)
-         VALUES ($1, $2, $3, $4) ON CONFLICT (code) DO NOTHING`,
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (company_id, code) WHERE code IS NOT NULL DO NOTHING`,
         [code, sh.trim(), `Kategori pekerjaan SE 47/2026 — sheet "${sh.trim()}"`, adminId])
       const r = await c.query(`SELECT id FROM cost_codes WHERE code=$1`, [code])
       ccBySheet[sh] = r.rows[0].id
