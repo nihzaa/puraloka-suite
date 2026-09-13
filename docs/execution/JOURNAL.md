@@ -77,15 +77,60 @@ migrasi ber-policy memasangnya dinamis. Ditutup penjaga baru
 
 Keduanya ketahuan karena diperiksa sebelum ditulis, bukan sesudah dilaporkan.
 
-### Sisa merah: 13, dan 6 di antaranya BENAR
+### Gelombang kedua — tiga cacat lagi, dan satu penjaga yang MENYURUH hal mustahil
+
+**`companies.delete()` tak pernah berhasil.** `t9-kelola-badan-usaha` merah
+atas TIGA tenant yang tak pernah ia buat. Pembuatnya tiga berkas lain yang
+membongkar tenant ujinya lewat `.delete()` — ditolak trigger
+`fn_company_no_casual_delete`, galatnya ditelan `supabase-js` (memulangkan
+`{ error }`, tidak melempar). Teardown "berhasil" dengan tenang, tiap jalan
+suite menambah satu tenant AKTIF tanpa pemilik.
+
+Dibuktikan ke basis hidup dalam transaksi yang langsung di-rollback, bukan
+dibaca dari kode:
+
+```
+INSERT companies → DELETE companies
+→ ❌ 'Company "…" tidak boleh dihapus. Nonaktifkan (is_active=false)…'
+```
+
+⚠ Dan `audit-test-bersihkan-company.mjs` mengenali "sudah membersihkan"
+HANYA dari kehadiran `DELETE FROM companies` — pesan perbaikannya
+menyarankan persis statement yang selalu ditolak. **Penjaga yang menuntut
+bentuk mustahil akan dipenuhi secara formal dan dilanggar secara nyata.**
+
+Diperbaiki, dan hasilnya ratchet MENGENCANG: `25 > 23 (MERAH)` → `14/14`.
+Sembilan berkas yang selama ini menonaktifkan dengan BENAR ternyata terhitung
+kotor; tiga yang terhitung bersih justru yang bocor. Angkanya turun karena
+pengukurannya diperbaiki, bukan karena ambangnya dilonggarkan.
+
+**Sembilan counter invoice akan menerbitkan nomor yang SUDAH beredar.**
+
+```
+invoice tertinggi : 27   (INV/2026/09/027)
+9 dari 12 bulan   : 26   → berikutnya 027  ❌ KEMBAR
+```
+
+Basis TIDAK menahannya: invoice unik `(project_id, invoice_number)` — per
+PROYEK, bukan per company. Dua proyek satu company boleh bernomor sama tanpa
+galat, lalu keluar ke klien sebagai dokumen tagihan.
+
+Migrasi 135 sudah mengantisipasi ini dan TIDAK salah — ia sekali jalan,
+sementara `INV/2026/09/027` lahir 2026-09-04 dan hanya menaikkan counter
+bulannya sendiri. **Sinkronisasi sekali-jalan yang benar, lalu data baru
+menggesernya lagi.** Ditutup migrasi 574 (`GREATEST`, hanya NAIK).
+
+### Sisa merah: 11, dan 6 di antaranya BENAR
 
 Enam menegakkan R-013 (propagasi lessons) — kodenya benar, keputusannya yang
-belum turun. Satu lagi dibuka sebagai **R-016**: `authz-endpoints` dan
-`anti-lockout-wiring` menuntut satu akun yang sama dalam keadaan BERLAWANAN,
-dan memilih salah satunya bukan keputusan teknis.
+belum turun. Satu dibuka sebagai **R-016**: `authz-endpoints` dan
+`anti-lockout-wiring` menuntut satu akun yang sama dalam keadaan BERLAWANAN.
 
-migrasi 573 · penjaga 245 → 246 hijau · 0 MERAH
-commit `974efea9` `4d4f7679` `0acd9cf4` `062fa216`
+Sisanya belum ditelusuri satu per satu, dan itu ditulis apa adanya —
+bukan diklaim beres.
+
+migrasi 573, 574 · penjaga 245 → **248** hijau · 0 MERAH
+commit `974efea9` `4d4f7679` `0acd9cf4` `062fa216` `e787bb9c` `1bf2c85e` `ae31caa8`
 
 ---
 
