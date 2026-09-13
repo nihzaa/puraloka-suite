@@ -184,10 +184,59 @@ const MIGRATIONS_DIR = join(import.meta.dirname, '../../../../db/migrations')
  * dinamespace test (mis. test.kasbon_status), bukan konflik dengan
  * public.kasbon_status (diverifikasi langsung, bukan asumsi).
  */
+/*
+  Melucuti kualifikasi `public.` dari DDL yang direplay ke schema test.
+
+  ── Kenapa ini ada, dan kenapa bukan sekadar kerapian
+
+  Ditemukan 2026-09-14 lewat `audit-badan-fungsi-mutakhir.mjs` yang MERAH
+  sesudah suite penuh — padahal hijau sebelumnya, tanpa migrasi baru di
+  antaranya. Ditelusuri dengan event trigger yang mencatat tiap penulisan
+  fungsi, bukan ditebak:
+
+      skema    n
+      test     2
+      public   2   <- ini
+
+  `alur-uang-mandor.test.ts` me-replay sebagian rantai migrasi ke schema
+  `test`, dan migrasi 100 baris 24 MEMAKU skemanya:
+
+      CREATE OR REPLACE FUNCTION public.fn_kasbon_approved_create_expense()
+
+  Jadi test yang berjalan di schema TEST menulis ke `public`, mendaratkan
+  badan versi 100 — tanpa jatuhan `NEW.project_id` yang ditambahkan migrasi
+  165 dan dipulihkan 572/576.
+
+  Akibatnya di produksi: kasbon yang terikat proyek LANGSUNG tanpa
+  `work_scope` (jalur migrasi 056) berhenti mencatat beban proyek. Nol
+  galat; yang hilang cuma barisnya.
+
+  **Test yang LULUS sambil diam-diam membatalkan perbaikan produksi** — dan
+  memulihkan badannya lewat migrasi saja TAK CUKUP, sebab jalan suite
+  berikutnya membatalkannya lagi. Terbukti: sesudah 576 diterapkan,
+  penjaganya merah lagi pada suite penuh berikutnya. Yang ditutup di sini
+  SUMBERNYA.
+
+  WARN Yang dilucuti HANYA `public.` pada sasaran DDL, dan hanya di jalur
+  REPLAY-KE-TEST. Berkas migrasinya tak disentuh (CLAUDE.md 5.5), dan
+  produksi tetap menjalankannya apa adanya — di sana `public` memang sasaran
+  yang benar.
+
+  WARN Sengaja TIDAK memakai regex global atas teks `public.`: kata itu juga
+  muncul di komentar dan pesan RAISE, dan mengubahnya akan menulis ulang
+  pesan galat migrasi. Yang dicocokkan BENTUK DDL-nya.
+*/
+function lucutiSkemaDipaku(sql: string): string {
+  return sql.replace(
+    /\b(CREATE\s+(?:OR\s+REPLACE\s+)?(?:FUNCTION|VIEW|TRIGGER)|DROP\s+(?:FUNCTION|VIEW|TRIGGER)(?:\s+IF\s+EXISTS)?)\s+public\./gi,
+    '$1 ',
+  )
+}
+
 export async function runMigrations(client: Client, migrationFiles: string[]): Promise<void> {
   for (const file of migrationFiles) {
-    const sql = readFileSync(join(MIGRATIONS_DIR, file), 'utf-8')
-    await jalankanDenganRetryKatalog(client, sql, file)
+    const mentah = readFileSync(join(MIGRATIONS_DIR, file), 'utf-8')
+    await jalankanDenganRetryKatalog(client, lucutiSkemaDipaku(mentah), file)
   }
 }
 
