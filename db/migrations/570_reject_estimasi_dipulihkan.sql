@@ -89,7 +89,7 @@ BEGIN
   SELECT count(*) INTO n_reject
     FROM pg_proc p
     JOIN pg_namespace n ON n.oid = p.pronamespace
-   WHERE n.nspname = 'public'
+   WHERE n.nspname = current_schema()
      AND p.proname = 'fn_estimate_version_status_transition'
      AND p.prosrc LIKE '%OLD.status = ''under_review'' AND NEW.status = ''draft''%';
 

@@ -250,22 +250,22 @@ DECLARE
   kurang TEXT := '';
 BEGIN
   SELECT count(*) INTO n FROM pg_proc p JOIN pg_namespace ns ON ns.oid = p.pronamespace
-   WHERE ns.nspname = 'public' AND p.proname = 'fn_riwayat_periode_append_only'
+   WHERE ns.nspname = current_schema() AND p.proname = 'fn_riwayat_periode_append_only'
      AND p.prosrc LIKE '%pg_trigger_depth()%';
   IF n < 1 THEN kurang := kurang || ' fn_riwayat_periode_append_only(pg_trigger_depth)'; END IF;
 
   SELECT count(*) INTO n FROM pg_proc p JOIN pg_namespace ns ON ns.oid = p.pronamespace
-   WHERE ns.nspname = 'public' AND p.proname = 'fn_assembly_component_parent_draft'
+   WHERE ns.nspname = current_schema() AND p.proname = 'fn_assembly_component_parent_draft'
      AND p.prosrc LIKE '%TG_OP = ''UPDATE''%';
   IF n < 1 THEN kurang := kurang || ' fn_assembly_component_parent_draft(TG_OP)'; END IF;
 
   SELECT count(*) INTO n FROM pg_proc p JOIN pg_namespace ns ON ns.oid = p.pronamespace
-   WHERE ns.nspname = 'public' AND p.proname = 'fn_edition_provenance_immutable'
+   WHERE ns.nspname = current_schema() AND p.proname = 'fn_edition_provenance_immutable'
      AND p.prosrc LIKE '%OLD.se_number     IS NOT NULL%';
   IF n < 1 THEN kurang := kurang || ' fn_edition_provenance_immutable(write-once)'; END IF;
 
   SELECT count(*) INTO n FROM pg_proc p JOIN pg_namespace ns ON ns.oid = p.pronamespace
-   WHERE ns.nspname = 'public' AND p.proname = 'fn_kasbon_approved_create_expense'
+   WHERE ns.nspname = current_schema() AND p.proname = 'fn_kasbon_approved_create_expense'
      AND p.prosrc LIKE '%v_project_id := NEW.project_id%'
      AND p.prosrc LIKE '%ON CONFLICT (ref_id) WHERE ref_id IS NOT NULL%';
   IF n < 1 THEN kurang := kurang || ' fn_kasbon_approved_create_expense(project_id/ON CONFLICT)'; END IF;

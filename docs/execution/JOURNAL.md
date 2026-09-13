@@ -5,6 +5,109 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-13 (lanjutan 14) — tiga migrasi tercatat JALAN yang badannya tak pernah berlaku
+
+Founder: "yaa mulai dan lanjutkann" (R-015). Dikerjakan, dan cakupannya
+ternyata tiga kali lebih besar dari yang saya laporkan semalam.
+
+### Yang saya tulis semalam, dan kenapa itu belum cukup
+
+R-015 saya tutup dengan kalimat: *"Cakupan temuan ini BELUM diukur.
+Berapa dari 545 migrasi lain yang mengganti isi fungsi tanpa mengubah
+namanya … TIDAK saya hitung."*
+
+Kalimat itu jujur, tetapi ia meninggalkan pekerjaan yang terlihat
+selesai. Diukur hari ini:
+
+```
+berkas migrasi               : 546
+fungsi didefinisikan >1 kali :  21
+migrasi yang MENGGANTI ISI   :  26   ← tak terperiksa ledger-diff
+```
+
+Termasuk `has_permission`, `auth_role`, `get_role_permissions` — inti
+otorisasi.
+
+### Tiga yang basi, dan satu yang HARUS tetap basi
+
+| | |
+|---|---|
+| **570** | jalur reject estimasi (111) — `estimate-approval` 11/11 |
+| **571** | `has_permission` (372 — separuh migrasi tak berlaku) |
+| **572** | empat badan: 296, 127, 118, 165 |
+
+`fn_riwayat_periode_append_only` bukan temuan di atas kertas. Direproduksi
+ke basis hidup SEBELUM ditulis migrasinya:
+
+```
+INSERT periode → INSERT riwayat → DELETE periode
+  sebelum : ❌ "periode_akuntansi_riwayat append-only: DELETE ditolak"
+  sesudah : ✅ berhasil
+```
+
+Periode akuntansi **tak bisa dihapus sama sekali**, dan galatnya menyebut
+tabel LAIN daripada yang dihapus — persis yang diramalkan kepala migrasi
+296 sendiri, tiga ratus migrasi sebelumnya.
+
+`fn_lessons_status_transition` sengaja **tidak** ditutup. Berkas 114
+mengaktifkan `approved→propagated`; basis menolaknya dengan *"butuh
+keputusan founder"*. Basisnya yang benar (R-013). Menyamakannya akan
+menurunkan keputusan produk diam-diam lewat migrasi perapian.
+
+### Saya salah sekali, dan koreksinya penting
+
+Pengukuran pertama `has_permission` membuat saya menyimpulkan **kebocoran
+izin lintas tenant yang aktif** — 73 role `admin`, tanpa saringan tenant,
+di bawah 350 policy RLS. Saya nyaris melaporkannya begitu.
+
+Diukur sebelum ditulis: ketujuh puluh tiga salinan `admin` punya izin
+**identik**, jadi `EXISTS` atas 73 baris menjawab sama dengan atas 1.
+**Tak ada eskalasi yang bisa terjadi hari ini, dan tak ada kejadian yang
+perlu ditelusuri.** Selisih keputusan lama vs baru atas seluruh
+(peran × izin): NIHIL.
+
+Yang tetap wajib ditutup: keidentikan itu kebetulan, bukan invarian —
+dan menyesuaikan peran per tenant adalah fitur produk ini (ADR-004).
+Tenant pertama yang mencabut satu izin dari `admin`-nya tidak akan
+kehilangan izin itu.
+
+"Kebocoran aktif" dan "cacat laten yang menunggu pemakaian normal" butuh
+respons yang berbeda. Melaporkan yang kedua sebagai yang pertama akan
+mengirim founder mencari kejadian yang tak ada.
+
+### Penjaga, dan dua kali alat ukur saya sendiri yang salah
+
+`audit-badan-fungsi-mutakhir.mjs` — membandingkan BADAN, bukan nama.
+Mutasi: fungsi dikembalikan ke versi 294 → MERAH **dan menyebut
+pelakunya** → dipulihkan → HIJAU. 206 badan, 0 selisih.
+
+Dua kali saya hampir melapor temuan palsu:
+
+1. **Heuristik token** melaporkan 12 tersangka; sembilan palsu.
+   `'public'` dan nama fungsinya hidup di baris `CREATE`, tak pernah di
+   `prosrc`; `'admin'` datang dari KOMENTAR. Penjaga yang merah atas hal
+   benar akan diabaikan seluruh keluarannya.
+2. **`generate_gr_number`** bertahan merah sesudah normalisasi pertama.
+   Saya sudah menduga "cuma spasi" — tetapi menelusuri sampai teks
+   penuhnya lebih dulu, dan memang cuma spasi di sekitar `||`. Dugaan
+   yang benar pun tetap dugaan sampai diukur.
+
+Dan satu jebakan lama yang menggigit lagi: heredoc bash memakan `\\s`
+di regex, sehingga skrip telusur saya memulangkan "TAK terekstrak" untuk
+keenam fungsi — keluaran yang terbaca seperti temuan, padahal perintahnya
+yang rusak. Sama bentuknya dengan CR di §7a: **nol hasil bukan bukti
+ketiadaan.**
+
+### Yang menunggu founder
+
+Ketiga migrasi **berlaku di basis, belum tercatat di buku** (G-2).
+Ketiganya `CREATE OR REPLACE` + verifikasi, jadi idempoten — mengulangnya
+aman. Yang rusak bukan basisnya, melainkan arti bukunya.
+
+commit `6016b9e3` · test 63/63 hijau (7 berkas)
+
+---
+
 ## 2026-09-13 (lanjutan 13) — katalog AHSP PULIH lewat jalan yang ditunjuk rancangannya sendiri
 
 Founder: "kerjakan aja yg penting hasil yg terbaik". Dikerjakan, dan

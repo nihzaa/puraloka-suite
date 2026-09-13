@@ -65,7 +65,7 @@
 -- menguji fungsi INI, dengan data yang membedakan versi lama dari versi baru.
 -- ============================================================================
 
-CREATE OR REPLACE FUNCTION public.has_permission(permission_key text)
+CREATE OR REPLACE FUNCTION has_permission(permission_key text)
 RETURNS boolean
 LANGUAGE sql
 STABLE SECURITY DEFINER
@@ -102,6 +102,15 @@ $function$;
 -- migrasi 372 sendiri: ambang 100 di sana pernah HARD FAIL pada basis bersih
 -- karena menuntut hasil pekerjaan migrasi berikutnya (378). Yang dijamin
 -- berkas ini bentuk resolusi perannya, bukan isi katalog izin.
+--
+-- ⚠ `current_schema()`, BUKAN `'public'` dipaku — dan itu koreksi, bukan
+-- gaya. Versi pertama berkas ini menyalin `CREATE … FUNCTION public.
+-- has_permission` verbatim dari migrasi 372, dan `audit-migrasi-skema-
+-- dipaku.mjs` memerahkannya. Penjaga itu benar: skema yang dipaku membuat
+-- perbaikan TAK PERNAH sampai ke schema `test`, sehingga tak bisa
+-- diverifikasi test apa pun — persis cacat yang diperbaiki migrasi 165 untuk
+-- `fn_kasbon_approved_create_expense`, dan yang tanpa sadar saya warisi
+-- dengan menyalin bentuk lamanya.
 DO $$
 DECLARE
   n_ok INT;
@@ -109,17 +118,18 @@ BEGIN
   SELECT count(*) INTO n_ok
     FROM pg_proc p
     JOIN pg_namespace n ON n.oid = p.pronamespace
-   WHERE n.nspname = 'public'
+   WHERE n.nspname = current_schema()
      AND p.proname = 'has_permission'
      AND p.prosrc LIKE '%auth_company_id()%'
      AND p.prosrc LIKE '%LIMIT 1%';
 
   IF n_ok < 1 THEN
     RAISE EXCEPTION
-      '571 gagal: has_permission TIDAK sadar tenant — badan di basis masih '
+      '571 gagal: has_permission di schema % TIDAK sadar tenant — badan masih '
       'versi lama (tanpa auth_company_id()/LIMIT 1). Izin satu tenant akan '
-      'menjawab true untuk tenant lain begitu himpunan izinnya berbeda.';
+      'menjawab true untuk tenant lain begitu himpunan izinnya berbeda.',
+      current_schema();
   END IF;
 
-  RAISE NOTICE '571 OK — has_permission menyaring tenant lalu LIMIT 1 (% definisi)', n_ok;
+  RAISE NOTICE '571 OK — has_permission (schema %) menyaring tenant lalu LIMIT 1', current_schema();
 END $$;

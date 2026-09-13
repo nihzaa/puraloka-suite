@@ -4997,6 +4997,32 @@ secara bawaan, satu transaksi, dan memverifikasi sendiri sebelum commit.
 
 ## R-015 · Migrasi 111 tercatat JALAN, tetapi relaksasinya tak ada di basis
 
+> ### ⏳ SUDAH DIKERJAKAN — sisa SATU hal yang butuh Anda (2026-09-13)
+>
+> Anda memutuskan jalur (1). Sudah dijalankan, dan **cakupan yang dulu
+> saya tulis "BELUM diukur" kini terukur — dan ia menemukan DUA lagi.**
+>
+> | | |
+> |---|---|
+> | migrasi **570** | jalur reject estimasi pulih · `estimate-approval` **11/11** (2 sebelumnya merah) |
+> | migrasi **571** | `has_permission` sadar tenant — migrasi 372 **separuhnya** tak berlaku |
+> | migrasi **572** | empat badan tertinggal; `fn_riwayat_periode_append_only` **terukur rusak** |
+> | penjaga | `audit-badan-fungsi-mutakhir.mjs` — membandingkan **BADAN**, bukan nama |
+> | commit | `6016b9e3` |
+> | test | 63/63 hijau (7 berkas) |
+>
+> **🔴 YANG MENUNGGU ANDA — dan HANYA ini:** ketiga migrasi sudah berlaku
+> di basis, tetapi **belum dicatat di `supabase_migrations.schema_migrations`**.
+> Menulis ke buku itu Gerbang Keras G-2, jadi saya berhenti di sini.
+>
+> Tanpa entri itu, CI yang memutar rantai dari nol akan menjalankan
+> 570-572 lagi. Ketiganya `CREATE OR REPLACE` + blok verifikasi —
+> **idempoten**, jadi mengulangnya aman. Yang rusak bukan basisnya,
+> melainkan artinya: buku yang tak memuat migrasi yang sudah berlaku
+> adalah buku yang berhenti bisa dipercaya.
+>
+> Jawab **"catat 570-572"** dan saya tuliskan entrinya.
+
 **Ditemukan 2026-09-13** saat menelusuri 2 test merah `estimate-approval`.
 Ini Gerbang Keras G-2 (buku migrasi), jadi saya berhenti dan melapor.
 
@@ -5039,10 +5065,41 @@ Ini persis bentuk yang diperingatkan CLAUDE.md §5.5: *"entri palsu =
 migrasi dilewati senyap selamanya"* — hanya lebih halus, sebab
 entrinya tidak palsu dan artefaknya memang ada.
 
-⚠ Cakupan temuan ini BELUM diukur. Yang terbukti: satu migrasi (111).
-Berapa dari 545 migrasi lain yang mengganti isi fungsi tanpa mengubah
-namanya, dan karenanya tak terperiksa, TIDAK saya hitung — itu
-pengukuran tersendiri.
+⚠ ~~Cakupan temuan ini BELUM diukur.~~ **SUDAH DIUKUR 2026-09-13**, dan
+angkanya jauh lebih besar dari satu:
+
+```
+berkas migrasi               : 546
+fungsi didefinisikan >1 kali :  21
+migrasi yang MENGGANTI ISI   :  26   ← tak terperiksa ledger-diff
+```
+
+Ketujuh selisih badan ditelusuri satu per satu — sebab **angka tanpa
+penelusuran bukan temuan, melainkan tersangka**:
+
+| Fungsi | Verdict |
+|---|---|
+| `fn_estimate_version_status_transition` | basi → **570** |
+| `has_permission` | basi → **571** |
+| `fn_riwayat_periode_append_only` | basi → **572** (terukur rusak) |
+| `fn_assembly_component_parent_draft` | basi → **572** |
+| `fn_edition_provenance_immutable` | basi → **572** |
+| `fn_kasbon_approved_create_expense` | basi → **572** |
+| `fn_lessons_status_transition` | **SENGAJA berbeda** — R-013, jangan ditutup |
+| `generate_gr_number` | **bukan selisih** — spasi di sekitar `` || `` |
+
+Dua hal yang layak dicatat dari penelusuran itu:
+
+- **Dugaan pertama saya tentang `has_permission` KELIRU.** Saya sempat
+  menyimpulkan itu kebocoran izin lintas tenant yang aktif. Diukur:
+  ketujuh puluh tiga salinan `admin` punya izin **identik**, jadi tak ada
+  eskalasi yang bisa terjadi hari ini dan **tak ada kejadian yang perlu
+  ditelusuri**. Yang tetap wajib ditutup: keidentikan itu kebetulan, dan
+  menyesuaikan peran per tenant adalah fitur produk ini (ADR-004).
+- **`fn_lessons_status_transition` justru harus dibiarkan menyimpang.**
+  Basisnya yang benar; berkasnya yang mendahului keputusan Anda (R-013).
+  Menyamakannya akan mengaktifkan propagasi diam-diam sebagai efek
+  samping kerapian teknis.
 
 ### Yang saya minta diputuskan
 
@@ -5057,10 +5114,28 @@ pengukuran tersendiri.
 menyatakan reject seharusnya ada — hanya basisnya yang tidak. Yang
 menyimpang satu, bukan empat.
 
-### Dan satu perbaikan yang tak butuh keputusan
+### Dan satu perbaikan yang tak butuh keputusan — ✅ SUDAH
 
-`ledger-diff.mjs` sebaiknya memeriksa ISI fungsi, bukan cuma namanya —
-mis. membandingkan potongan khas dari migrasi dengan `prosrc`. Tanpa itu
-ia akan terus memberi verdict "terbukti fisik" atas fungsi versi lama.
-Saya tidak mengubahnya sekarang: memperketat alat verifikasi ledger
-menyentuh G-2 juga.
+`ledger-diff.mjs` sebaiknya memeriksa ISI fungsi, bukan cuma namanya.
+**Dibangun sebagai penjaga TERPISAH**, bukan dengan mengubah
+`ledger-diff.mjs` — memperketat alat verifikasi ledger menyentuh G-2,
+dan penjaga baru tidak:
+
+```bash
+node apps/api/scripts/audit-badan-fungsi-mutakhir.mjs
+```
+
+Diukur: **206 badan** dibandingkan, 1 dikecualikan sengaja (R-013),
+0 selisih. Dibuktikan bisa merah lewat mutasi — `fn_riwayat_periode_
+append_only` dikembalikan ke versi 294 → **MERAH dan menyebut
+pelakunya** → dipulihkan → **HIJAU**.
+
+⚠ Batasnya tertulis di kepala berkasnya: hanya fungsi ber-badan dolar
+di skema `public`, hanya migrasi TERAKHIR tiap fungsi, dan skema `test`
+TIDAK diperiksa — ia punya salinan triggernya sendiri (terukur:
+`test.estimate_versions` memanggil `test.fn_…`). Menyamakan kedua skema
+itu keputusan tersendiri yang belum diambil.
+
+Tak ditabelkan di CLAUDE.md §6: ia butuh basis, dan
+`audit-penjaga-tercatat-jalan.mjs` mewajibkan yang tertabel benar-benar
+dijalankan `ci.yml`.
