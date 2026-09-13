@@ -4906,3 +4906,69 @@ mengklaim keputusan yang belum Anda ambil — dan `it.skip` TERLIHAT di
 keluaran test, tak seperti menghapusnya.
 
 **Saya tidak mengerjakan apa pun dari ketiganya** sampai ada keputusan.
+
+---
+
+## R-014 · Katalog AHSP kosong, dan trigger `draft` menahan pemulihannya
+
+**Ditemukan & diukur 2026-09-13.** Bukan cacat kode — dua aturan yang
+masing-masing BENAR, dan pemulihannya jatuh di antara keduanya.
+
+### Keadaannya
+
+```
+analisa AHSP nasional          : 2.747  (SELURUHNYA status `active`)
+baris komponen                 : 18.533
+komponen yang resource-nya ADA :      0
+RAB yang bergantung            :     51  ← semuanya menghitung dari NOL
+```
+
+Katalog AHSP — jantung estimasi biaya — berdiri utuh secara struktur dan
+kosong secara isi. Estimasi menghitung Rp 0 **tanpa satu pun galat**.
+
+### Kenapa tak bisa saya pulihkan sendiri
+
+Skrip pemulihan sudah siap, uji-keringnya bersih (15.149 dihapus,
+15.149 ditulis, nol resource hilang, simetris). Saat `--terapkan`:
+
+> Komponen Assembly hanya bisa diubah saat Assembly berstatus draft
+> (kini active). Paket kerja yang sudah active beku — **buat versi
+> Assembly baru**.
+
+Trigger `fn_assembly_component_parent_draft` (migrasi 107) — dan ia
+**BENAR**. Paket kerja yang sudah terbit tak boleh berubah diam-diam di
+bawah RAB yang sudah memakainya. Transaksinya batal seluruhnya; 18.533
+baris terbukti utuh sesudahnya.
+
+### Tiga jalan, dan masing-masing punya harganya
+
+1. **Buat versi baru** (yang disarankan trigger itu sendiri) — 2.620
+   assembly baru `version_number=2` berisi komponen benar, yang lama
+   dipensiunkan. Paling patuh pada rancangan. Mahal: menggandakan
+   katalog, dan 51 RAB tetap menunjuk versi lama yang kosong kecuali
+   ikut dialihkan.
+
+2. **Turunkan status ke `draft`, pulihkan, naikkan lagi** — murah dan
+   cepat. ⚠ Tapi itu menembus invarian lewat pintu belakang, dan
+   invariannya ada justru untuk mencegah komponen berubah di bawah RAB
+   yang memakainya. Kalau ditempuh, ia keputusan sadar, bukan jalan
+   pintas yang diam-diam.
+
+3. **Biarkan, seed ulang katalog dari nol** — hapus 2.747 analisa
+   nasional beserta komponennya, jalankan seed bersih. Paling bersih
+   hasilnya, tetapi 51 RAB kehilangan tautannya dan harus dipetakan
+   ulang.
+
+### Yang saya sarankan
+
+**(2), dengan catatan tertulis** — sebab basis ini seluruhnya data dummy
+dan katalognya memang belum pernah benar. Invarian itu melindungi RAB
+NYATA dari perubahan diam-diam; di sini tak ada RAB nyata yang
+dilindungi, yang ada 51 RAB yang justru sedang dirugikan oleh katalog
+kosong.
+
+Kalau kelak ada data produksi, jawabannya berubah jadi (1).
+
+**Saya tidak menjalankan apa pun dari ketiganya** sampai ada keputusan.
+Skrip pemulihannya (`pulihkan-komponen-ahsp.mjs`) sudah ada, uji-kering
+secara bawaan, satu transaksi, dan memverifikasi sendiri sebelum commit.

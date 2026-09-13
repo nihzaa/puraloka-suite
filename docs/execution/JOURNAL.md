@@ -5,6 +5,82 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-13 (lanjutan 12) — pemulihan AHSP ditahan trigger, dan trigger itu BENAR
+
+Melanjutkan temuan katalog AHSP kosong. Founder memilih "pulihkan".
+
+### Yang dikerjakan
+
+`pulihkan-komponen-ahsp.mjs` — uji-kering secara BAWAAN, satu transaksi,
+memverifikasi dirinya sendiri SEBELUM commit (kalau masih ada yatim
+sesudah penulisan, ia membatalkan sendiri).
+
+Uji-keringnya bersih:
+
+```
+analisa nasional berkomponen YATIM : 2.747
+   ada di dataset                  : 2.620
+   TIDAK ada di dataset            :   127  (dilewati, bukan dihapus)
+komponen akan DIHAPUS              : 15.149
+komponen akan DITULIS              : 15.149   ← simetris
+resource dataset yang HILANG       :      0
+```
+
+Snapshot 18.533 baris dibuat lebih dulu (5 MB) dan dibuktikan bisa
+dibaca kembali — `pg_dump` tak terpasang di mesin ini, jadi snapshot
+tabel yang sedang disentuh adalah cadangan yang bisa dibuat.
+
+### Lalu ia GAGAL, dan gagalnya benar
+
+```
+Komponen Assembly hanya bisa diubah saat Assembly berstatus draft
+(kini active). Paket kerja yang sudah active beku — buat versi
+Assembly baru.
+```
+
+`fn_assembly_component_parent_draft` (migrasi 107). Dan aturan itu
+**BENAR**: paket kerja yang sudah terbit tak boleh berubah diam-diam di
+bawah RAB yang sudah memakainya. Seluruh 2.747 analisa nasional berstatus
+`active`.
+
+Transaksinya batal seluruhnya. Diperiksa sesudahnya: **18.533 baris
+utuh, nol hilang** — rollback bekerja persis seperti yang dirancang.
+
+### Kenapa saya BERHENTI di sini
+
+Tiga jalan keluar, dan ketiganya keputusan founder, bukan keputusan yang
+mengerjakan:
+
+  1. buat versi baru (yang disarankan trigger itu sendiri) — 2.620
+     assembly `version_number=2`, mahal, dan 51 RAB tetap menunjuk versi
+     lama kecuali ikut dialihkan;
+  2. turunkan status ke `draft` lalu naikkan lagi — murah, TAPI menembus
+     invarian lewat pintu belakang;
+  3. hapus katalog nasional, seed ulang dari nol — paling bersih, tetapi
+     51 RAB kehilangan tautannya.
+
+Menembus invarian yang sengaja dipasang bukan keputusan teknis biasa.
+Dinaikkan jadi **R-014** dengan saran saya: (2) DENGAN catatan tertulis,
+sebab basis ini seluruhnya dummy dan katalognya memang belum pernah
+benar — invarian itu melindungi RAB NYATA, dan di sini tak ada RAB nyata
+yang dilindungi. Kalau kelak ada data produksi, jawabannya berubah
+jadi (1).
+
+### Bukti
+
+```
+uji-kering       15.149 ↔ 15.149, nol resource hilang
+snapshot         18.533 baris, 5 MB, terbaca kembali ✅
+--terapkan       DIBATALKAN trigger; 18.533 baris terbukti utuh sesudahnya
+semua penjaga    245 hijau · 0 MERAH · 0 tak ketemu
+```
+
+⚠ Penjaga `audit-ahsp-punya-komponen.mjs` MASIH merah, dan itu benar —
+katalognya memang masih kosong. Penjaga yang dihijaukan sebelum
+kondisinya pulih adalah penjaga yang berhenti menjaga.
+
+---
+
 ## 2026-09-13 (lanjutan 11) — katalog AHSP berdiri utuh dan KOSONG, dan tak satu alat pun melihatnya
 
 Menelusuri 3 test merah `cecep-adopt-analisa`. Galatnya
