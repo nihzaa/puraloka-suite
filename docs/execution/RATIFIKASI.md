@@ -5143,3 +5143,66 @@ itu keputusan tersendiri yang belum diambil.
 Tak ditabelkan di CLAUDE.md §6: ia butuh basis, dan
 `audit-penjaga-tercatat-jalan.mjs` mewajibkan yang tertabel benar-benar
 dijalankan `ci.yml`.
+
+---
+
+## R-016 · Dua test menuntut data yang SALING MENIADAKAN — satu akun, dua kebenaran
+
+**Ditemukan 2026-09-14** saat menghabiskan sisa test merah. Bukan cacat
+kode: dua berkas test sama-sama benar, dan keduanya tak bisa hijau
+bersamaan di basis yang sama.
+
+### Keadaannya
+
+Satu akun — `uji.direktur@puraloka.test` — menentukan keduanya:
+
+| Berkas | Menuntut | Kalau akun AKTIF |
+|---|---|---|
+| `anti-lockout-wiring.test.ts` | `users:roles:manage` dipegang **TEPAT SATU** role ber-user aktif | ❌ jadi 2 → seluruh berkas gagal prasyarat |
+| `authz-endpoints.test.ts` | ada pengguna aktif ber-peran `direktur` | ✅ 3 spek finance/kasbon bisa diuji |
+
+Role `direktur` memang memegang `users:roles:manage` — sudah diukur ke
+`role_permissions`, bukan ditebak dari nama jabatan.
+
+Jadi: **akun itu aktif → `anti-lockout` mati. Nonaktif → `authz-endpoints`
+mati.** Hari ini ia NONAKTIF, dan itulah sebabnya `authz-endpoints` merah.
+
+### Kenapa saya tidak memutuskan sendiri
+
+Ini bukan pilihan teknis yang bisa diambil diam-diam. Menghidupkan akunnya
+melemahkan prasyarat `anti-lockout` — dan berkas itu menguji **satu-satunya
+pengaman yang mencegah orang terakhir mencabut izinnya sendiri**, keadaan
+yang tak bisa diperbaiki dari dalam aplikasi.
+
+Sebaliknya, membiarkannya nonaktif berarti tiga endpoint UANG
+(`finance:invoice:create`, `finance:invoice:pay`,
+`mandor:kasbon:approve`) gerbangnya tak pernah diuji.
+
+⚠ Dan satu jalan yang kelihatan mudah tapi SALAH, sudah tertulis di kepala
+`authz-endpoints.test.ts` sendiri: menaikkan izin `pm` supaya testnya hijau.
+*"`finance:invoice:pay` memindahkan uang, dan memperluas kewenangan demi
+kehijauan test menukar pengendalian internal dengan kenyamanan."* Saya tidak
+menempuhnya.
+
+### Tiga pilihan
+
+1. **Pisahkan perannya** — buat role uji baru (mis. `direktur_uji`) yang
+   memegang izin finance/kasbon TAPI **tidak** memegang
+   `users:roles:manage`, lalu `authz-endpoints` memakai itu. Keduanya hijau,
+   dan tak ada kewenangan nyata yang berubah.
+   **Biayanya:** satu role uji tambahan di basis, lewat migrasi.
+
+2. **Longgarkan prasyarat `anti-lockout`** — hitung pemegang hanya di
+   company yang HIDUP, bukan lintas seluruh basis. Itu memperbaiki cacat
+   nyata (prasyaratnya memang tak menyaring company mati — hari ini
+   pemegang keduanya ada di tenant uji nonaktif), tetapi tetap tak
+   menyelesaikan kasus `direktur` yang satu company dengan `admin`.
+
+3. **Biarkan `authz-endpoints` merah** dan tandai `it.skip` dengan alasan
+   tertulis merujuk R-016 ini, seperti saran saya untuk R-013.
+
+**Saran saya: (1).** Ia menghijaukan keduanya tanpa mengubah kewenangan
+siapa pun di produksi — role uji tak pernah diberikan ke orang nyata, dan
+pemisahannya justru membuat maksud tiap test terbaca.
+
+**Saya tidak mengerjakan apa pun dari ketiganya** sampai ada keputusan.

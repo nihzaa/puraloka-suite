@@ -5,6 +5,90 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-14 — "pastikan tidak ada yg terhalang lagi": 19 merah, dan hampir semuanya menuduh KODE
+
+Founder: *"okee lanjutkan, pstikan tidak ada yg terhalang lagi"*. Suite penuh
+dijalankan untuk MENGUKUR, bukan menebak dari ingatan.
+
+### Angka pertama saya TIDAK SAH, dan itu perlu dicatat
+
+Run pertama: **258 berkas gagal · 75 test gagal**, plus
+`Connection terminated unexpectedly`. Saya hampir melaporkannya.
+
+Run kedua, kode yang sama persis: **18 berkas · 19 test**.
+
+Selisihnya bukan misteri — 258 berkas gagal atas hanya 75 test berarti
+kegagalan SETUP massal, tanda koneksi basis tumbang, bukan cacat. Persis
+jebakan yang sudah tertulis di CLAUDE.md §7 (dua run tumpang tindih, selisih
+16 kegagalan). **Exit code-nya 0 di kedua run**, jadi exit code tak bisa
+dipakai menilai.
+
+### Yang diperbaiki — lima berkas, dan NOL di antaranya cacat produk
+
+| Berkas | Tuduhan | Sebab sebenarnya |
+|---|---|---|
+| `ai-gerbang-biaya` (2) | gerbang biaya AI bocor | fixture menulis ke tenant LAIN |
+| `template-wbs` (1) | RLS longgar | **migrasi 374 separuh tak berlaku** → 573 |
+| `wa-sesi` (1) | pencabutan akses | perbaikan 2026-08-15 menukar cacat dgn kebalikannya |
+| `anti-lockout-wiring` (6 skip) | — | 9 akun sisa uji isolasi di company MATI |
+| `register-role` (5 skip) | — | FK `owner_user_id` dari tenant uji berkas LAIN |
+
+`ai-gerbang-biaya` yang paling lama menggantung. Saya berhenti menebak dan
+mengukur:
+
+```
+companies … LIMIT 1  → PT Puraloka Properti   ← yang di-setConfig
+auth_company_id()    → Puraloka Persada       ← yang dibaca RUTE
+```
+
+Admin seed anggota TIGA company. Gerbangnya MELOLOSKAN DENGAN BENAR — ia
+membaca konfigurasi yang memang mengizinkan, hanya milik tenant lain.
+Helper `companyRute()` sudah ada sejak 2026-08-28 untuk kelas cacat ini,
+lengkap dengan kalimat "fixture menulis ke tenant A, rute mencarinya di
+tenant B". Yang kurang cuma pemakaiannya.
+
+### Satu cacat NYATA: migrasi 374, separuh berlaku
+
+Bentuk yang sama dengan 372 kemarin. RESTRICTIVE mendarat, WITH CHECK tidak.
+Akibatnya tenant bisa **MENULIS** katalog bersama (`company_id NULL`) yang
+terbaca SELURUH tenant — kebocoran arah TULIS, di bawah 350 policy RLS.
+
+Verifikasi 374 memeriksa dua hal dan keduanya lolos dengan jujur; yang tak
+pernah diperiksa justru `with_check`-nya sendiri.
+
+⚠ Penjaga badan-fungsi yang lahir KEMARIN tak bisa melihat ini — 374 memasang
+policy lewat `EXECUTE format(...)`, dan penjaga itu sengaja melewatinya.
+Batas yang saya tulis di kepalanya ternyata batas yang NYATA: 28 dari 169
+migrasi ber-policy memasangnya dinamis. Ditutup penjaga baru
+(`audit-tulis-katalog-bersama.mjs`, terdaftar di ci.yml).
+
+### Saya salah DUA kali hari ini, keduanya ke arah "temuan besar"
+
+1. **"12 policy basi"** — regex saya mengambil blok `WITH CHECK` dari bagian
+   LAIN di berkas yang sama, jadi "migrasi terakhir" per tabel salah. Dibaca
+   langsung ke migrasi 131 §AB: kedua belas tabel katalog bersama memang
+   DITULIS longgar. Basis cocok dengan berkasnya. **Tak ada 12 policy basi** —
+   `cbs_*` satu-satunya kasus nyata.
+
+2. **Saringan `NOT is_active`** pada pembersih register-role — masuk akal,
+   dan tak berlaku: tenant-nya dihidupkan kembali oleh berkas test pemiliknya
+   sendiri. Diganti saringan NAMA, sesudah membuktikan tenant nyata
+   (`grup-uji-*`) tak ikut tersaring.
+
+Keduanya ketahuan karena diperiksa sebelum ditulis, bukan sesudah dilaporkan.
+
+### Sisa merah: 13, dan 6 di antaranya BENAR
+
+Enam menegakkan R-013 (propagasi lessons) — kodenya benar, keputusannya yang
+belum turun. Satu lagi dibuka sebagai **R-016**: `authz-endpoints` dan
+`anti-lockout-wiring` menuntut satu akun yang sama dalam keadaan BERLAWANAN,
+dan memilih salah satunya bukan keputusan teknis.
+
+migrasi 573 · penjaga 245 → 246 hijau · 0 MERAH
+commit `974efea9` `4d4f7679` `0acd9cf4` `062fa216`
+
+---
+
 ## 2026-09-13 (lanjutan 14) — tiga migrasi tercatat JALAN yang badannya tak pernah berlaku
 
 Founder: "yaa mulai dan lanjutkann" (R-015). Dikerjakan, dan cakupannya
