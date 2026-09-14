@@ -5,6 +5,91 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-14 (lanjutan 4) — antrean ratifikasi HABIS: R-020 · R-021 · R-023
+
+Founder: *"lanjutkann, kalo udh abis baru lanjut kerjaan lain"*. Ketiganya
+digarap sampai tak ada lagi yang menunggu keputusan.
+
+### R-023 TUNTAS — dan rute terakhirnya butuh izin BARU
+
+Satu rute tulis tersisa: `POST /projects/:id/progress-logs`. Memasang
+`progress:manage` di sana terlihat seperti jawabannya, dan itu SALAH:
+
+```
+siapa yang MENCATAT progres   pm 249 · mandor 24 · admin 1
+pemegang progress:manage      admin · direktur · project_manager_senior ·
+                              site_manager     ← BUKAN pm, BUKAN mandor
+```
+
+Memasangnya akan memutus **273 dari 274 pencatatan nyata**, dengan gejala
+"kok saya tak bisa lapor progres" tanpa satu pun galat yang menyebut izin.
+
+Migrasi 577 membuat `progress:create` — terpisah dari `progress:manage` yang
+juga mengizinkan MENGHAPUS log. Dua kewenangan beda sifat: mencatat menambah
+fakta lapangan, menghapus membuang fakta yang sudah masuk Kurva S & EVM.
+
+Ratchet **28 → 15**, dan kelima belas sisanya BUKAN utang — semuanya
+pengecualian beralasan tertulis (data milik sendiri, impor nol-tulis,
+access-log yang justru memutus jejak audit kalau digerbangi).
+
+### R-021 menutup dirinya sendiri — angkanya sudah basi
+
+Diambil untuk dikerjakan, lalu diukur ulang:
+
+| | 2026-09-01 | 2026-09-14 |
+|---|---|---|
+| grup induk mati ber-anak | 16 | **7** |
+| halaman dashboard YATIM | 36 | **4** |
+
+Dan ketujuh grup mati itu bukan kehilangan: **lima punya KEMBARAN AKTIF**
+berlabel sama — yang mati duplikatnya. Dari 69 anak, 42 href-nya sudah
+dilayani menu aktif lain, dan **27 sisanya SELURUHNYA rute `/m/…`** yang
+diperiksa ke disk: **nol punya `page.tsx`**.
+
+`/m/` bukan halaman hilang — ia satu halaman `[key]` yang sengaja dibangun
+untuk menu yang BELUM ADA. Menyalakannya justru memasang pintu menuju
+halaman "belum dibangun".
+
+Empat "yatim" pun bukan yatim: `/estimasi/{kas,rab,rap,varians}` dijangkau
+lewat tab di `estimasi/layout.tsx`.
+
+⚠ `audit-nav-yatim` yang dirujuk entri asli **tidak ada di repo ini** — angka
+36 tak bisa diproduksi ulang alat mana pun. Alasan tambahan untuk mengukur,
+bukan mempercayai.
+
+### R-020 gelombang 1 — sembilan pintu uang & HR
+
+```
+menu tanpa izin       116 → 107
+dilihat client        122 → 113
+menu uang/HR terbuka    9 → 0
+```
+
+Izinnya DIPILIH per-menu, bukan diturunkan dari gerbang rute — usul
+otomatisnya masih salah arah seperti dicatat entri aslinya (`cash:account:
+manage` untuk halaman LIHAT, `mandor:assign` untuk halaman yang cuma perlu
+melihat).
+
+Yang berhak tak kehilangan apa pun: client 0/6 · admin 6/6 ·
+manajer_keuangan 4/6 · kasir 2/6 · mandor 2/6 · pm 2/6.
+
+### Pola yang berulang sepanjang hari ini
+
+Tiga kali entri ratifikasi ternyata **lebih kecil atau berbeda** dari yang
+tertulis, dan tiap kali ketahuan hanya karena diukur ulang:
+
+- R-020 "datanya aman" → benar untuk `finance.ts`, salah di luar itu (R-023)
+- R-021 "36 halaman yatim" → 4, dan keempatnya bukan yatim
+- R-023 "17 utang" → 4 di antaranya tak pernah telanjang (regex saya sendiri)
+
+**Dokumen ratifikasi pun bisa basi**, persis seperti yang diperingatkan
+pembuka CLAUDE.md untuk dokumen konteks.
+
+migrasi 577, 578 · penjaga **249** hijau · 0 MERAH
+commit `0dfd6f2e` `3a0d0f1e`
+
+---
+
 ## 2026-09-14 (lanjutan 3) — "lanjutt": menggarap R-020, menemukan yang lebih dalam
 
 Founder: *"yaudahh lanjut"*. Diambil R-020 (116 menu tanpa izin), item terbuka
