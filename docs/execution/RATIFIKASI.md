@@ -4518,6 +4518,69 @@ Bukan satu merge besar. **Per-kelompok, tiap kelompok diverifikasi sendiri:**
 Tiap langkah: suite penuh + `jalankan-semua-penjaga.mjs` sebelum lanjut.
 Kalau satu kelompok merah, yang dibatalkan cuma kelompok itu.
 
+### ── TAHAP 2 DICOBA 2026-09-14: bahkan kelompok "paling aman" pun 15 MERAH
+
+K5 langkah 2 berbunyi *"144 berkas cabang-saja: nol bentrok — masuk tanpa
+keputusan"*. **Dua-duanya salah**, dan keduanya ketahuan dari mengukur.
+
+**(a) Bukan 144, tapi 96.** Empat puluh delapan di antaranya ADA JUGA di
+main — kedua sisi membuatnya sendiri sesudah bercabang, jadi git menghitungnya
+"tambahan sepihak" padahal isinya bertabrakan. Dari 48 itu: 37 identik
+(sudah pernah dipetik silang), 11 berbeda.
+
+Yang 11: lima migrasi (430, 432, 433, 466, 467) — dan **semuanya pola yang
+sama lagi**: main punya saringan `is_active` dari 2026-08-31, cabang tidak.
+Plus `eas.json`, yang di main sudah berisi URL produksi sungguhan sementara
+di cabang masih kosong. Main menang di kesebelasnya.
+
+**(b) "Masuk tanpa keputusan" tidak benar.** Diukur di worktree, base = main
+lokal (bukan `origin/main` — lihat jebakan di bawah):
+
+```
+main murni              :  0 MERAH
+main + 96 berkas        : 15 MERAH
+```
+
+tsc tetap hijau. Yang merah penjaga:
+
+```
+audit-kegagalan-senyap        186 > ambang 185
+audit-guard-schema              6 > ambang 4
+audit-modal-dialog             38 > ambang 37
+lint-ratchet                  hutang lint BERTAMBAH
+audit-information-schema-disaring   migrasi baru tak menyaring table_schema
+audit-baca-tak-terpotong      pembacaan penuh terpotong diam-diam
+audit-dialog-bukan-bawaan     1 dialog bawaan peramban
+audit-nav-yatim               1 halaman tanpa tautan nav
+uji-endpoint-ada              1 path menunjuk rute yang TIDAK ADA
+gen-indeks-docs               indeks basi
+… dan 5 lagi
+```
+
+Sebabnya masuk akal dan **bukan cacat cabang**: ratchet di main sudah
+DIKETATKAN sejak 22 Agustus, dan kode cabang ditulis sebelum ambang-ambang
+itu ada. Kode yang sah di zamannya kini melanggar lantai yang lebih tinggi.
+
+Artinya tiap kelompok merge butuh **pekerjaan penyesuaian**, bukan sekadar
+pemindahan. Itu tak mengubah keputusannya, tetapi mengubah ongkosnya — dan
+ongkos yang ditaksir terlalu rendah adalah bentuk kabar buruk yang paling
+telat ketahuan.
+
+⚠ **Dua jebakan alat yang memakan waktu saya, dicatat supaya tak diulang:**
+
+1. `origin/main` di worktree **BASI** — ia tertinggal seluruh pekerjaan sesi
+   ini (migrasi 570-581). Penjaga penomoran melapor "12 LOMPATAN BARU" yang
+   sesungguhnya migrasi saya sendiri yang ada di main lokal. Pakai `main`,
+   bukan `origin/main`, untuk base worktree di mesin ini.
+
+2. Saya memakai **`git stash`** untuk mengukur baseline — persis yang dilarang
+   CLAUDE.md §8a.1 saat sesi lain hidup di checkout yang sama. Ada TIGA entri
+   stash milik sesi lain di tumpukan itu. Pulih dengan `apply <sha>` + `drop`
+   lewat tag, dan tak ada yang hilang — tetapi itu keberuntungan, bukan
+   metode. Yang benar: **commit WIP**. Dan baseline dari keadaan ter-stash
+   pun memberi angka SALAH (7 merah, padahal sesungguhnya 0) — checkout yang
+   setengah jadi tak bisa diukur.
+
 ### Kalau K2 dijawab "tunda"
 
 Tak ada yang rusak hari ini — dev sudah punya schemanya. Yang tertunda:
