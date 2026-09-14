@@ -5,6 +5,90 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-14 (lanjutan 6) — suite penuh: 7.306/7.313, dan satu merah adalah cacat SAYA
+
+Suite penuh dijalankan sesudah perbaikan lanjutan 5 (satu run, tidak tumpang
+tindih — §7):
+
+```
+Test Files  1 failed | 496 passed (497)
+     Tests  1 failed | 7306 passed | 6 skipped (7313)
+```
+
+Angka itu jauh di bawah baseline `TEST-SISA-49` (63 merah di 24 berkas,
+2026-09-13). Saya TIDAK mengklaim semuanya ditutup oleh saya: sebagian besar
+memang ditutup sesi-sesi belakangan ini (kontrak, retensi, situs, gl-api,
+cecep-adopt), dan angka ini cuma pengukuran hari ini. Yang perlu dicatat:
+`TEST-SISA-49` di QUEUE.yaml kini BASI ke arah "lebih buruk dari kenyataan".
+
+### Yang satu merah: `approval_chain_template` RLS aktif, NOL policy
+
+Dan ini cacat saya sendiri, dari migrasi 580 sesi sebelumnya.
+
+```
+t5a0-policy-dasar.test.ts
+  expected [ 'approval_chain_template' ] to deeply equal []
+```
+
+Saya membuat tabelnya, menyalakan RLS-nya, dan **tak pernah menulis
+policy-nya**. Himpunan PERMISSIVE yang kosong bernilai FALSE — jadi tabel itu
+tak terbaca SIAPA PUN lewat klien ber-token pengguna. Bukan "terbatas": nol
+baris untuk semua.
+
+**Kenapa nol gejala selama ini**, dan ini bagian yang layak diingat:
+satu-satunya pembacanya adalah trigger `trg_company_rantai_approval`, yang
+`SECURITY DEFINER` dan karena itu menembus RLS. Tenant baru tetap lahir
+dengan 13 rantai — BENAR — sementara tabel sumbernya buta bagi aplikasi.
+Yang akan menemukannya nanti: halaman pengaturan pertama yang menampilkan
+katalognya, dan ia akan melapor "belum ada data", bukan galat.
+
+Penjaganya sudah ada dan bekerja dengan benar. Yang gagal: **saya tak
+menjalankan suite penuh sesudah 580.** Penjaga `jalankan-semua-penjaga.mjs`
+hijau 251 saat itu, dan saya membaca hijau itu sebagai cukup — padahal cacat
+ini hidup di TEST, bukan di penjaga skrip.
+
+Ditutup `581_policy_katalog_rantai.sql`, memakai pola yang sudah hidup di
+basis untuk kasus yang sama persis (`permissions`, diverifikasi ke
+`pg_policies` bukan dikarang): baca = authenticated/service_role, tulis =
+service_role SAJA.
+
+Arah tulis itu bukan kehati-hatian berlebih. Tabel ini **tak punya
+`company_id`** — 13 baris yang sama untuk semua tenant. Katalog bersama yang
+bisa ditulis tenant sudah dibayar sekali di repo ini (migrasi 573,
+`cbs_catalog`), dan di sini akibatnya lebih tajam: ia menentukan alur
+persetujuan yang lahir di tiap pelanggan BARU.
+
+Dibuktikan bisa merah lewat mutasi (§8a.2) — dan diperiksa DUA hal, merah
+DAN menyebut namanya:
+
+```
+DROP kedua policy   → MERAH, "expected [ 'approval_chain_template' ]"
+pulihkan            → 4/4 lulus
+```
+
+⚠ Satu hal yang bekerja seperti seharusnya dan layak dicatat:
+`apply-migrasi.mjs` MENOLAK memulihkan lewat jalur apply ("Versi 581 SUDAH
+tercatat di buku. Berhenti."). Itu perlindungan G-2 yang benar — pemulihan
+dilakukan dengan menjalankan isi berkasnya langsung, bukan dengan menghapus
+catatan buku.
+
+```
+t5a0-policy-dasar            → 4/4 lulus
+audit-tabel-force-berpagar   → nol telanjang, nol buntu (118 tabel C)
+audit-tulis-katalog-bersama  → nol pelonggaran baru
+jalankan-semua-penjaga.mjs   → 251 hijau · 0 MERAH · 4 dilewati · 0 tak ketemu
+ledger-diff                  → 581 TERCATAT-KONSISTEN
+```
+
+### Pelajaran yang saya tulis untuk diri sendiri
+
+Migrasi yang MEMBUAT TABEL punya daftar periksa yang tak dimiliki migrasi
+lain: RLS menyala tanpa policy adalah keadaan yang **tak bergejala di jalur
+trigger/service_role**, yaitu persis jalur yang dipakai untuk mengujinya
+sendiri. Hijau di penjaga skrip tidak menggantikan suite penuh.
+
+---
+
 ## 2026-09-14 (lanjutan 5) — tujuh test tumbang oleh trigger sendiri; R-018 ditutup, R-009 diukur ulang
 
 Founder: *"lanjutt, kamu bantu selesaikann"*.

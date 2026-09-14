@@ -4029,10 +4029,41 @@ items:
 
   - id: TEST-SISA-49
     fase: null
-    judul: "63 test merah di 24 berkas (bukan 49/27) — 14 SUDAH ditutup, sisanya sebagian besar fixture"
+    judul: "DIUKUR ULANG 2026-09-14: 1 merah dari 7.313 (bukan 63/24) — judul lama basi"
     status: todo
-    prioritas: sedang
+    prioritas: rendah
     catatan: |
+      ══ DIUKUR ULANG 2026-09-14 — BACA INI DULU, sisa catatan di bawah BASI ══
+
+      Suite penuh, satu run, tidak tumpang tindih (§7):
+
+          Test Files  1 failed | 496 passed (497)
+               Tests  1 failed | 7306 passed | 6 skipped (7313)
+
+      Judul lama ("63 merah di 24 berkas") kini basi ke arah LEBIH BURUK
+      dari kenyataan — dan itu arah yang mahal juga: ia membuat
+      `MERGE-SUMBU-UI` terlihat terblokir padahal prasyaratnya hampir
+      terpenuhi.
+
+      Satu merah itu `t5a0-policy-dasar` — `approval_chain_template` RLS
+      aktif tapi nol policy, cacat dari migrasi 580. **SUDAH DITUTUP**
+      lewat `581_policy_katalog_rantai.sql`, dibuktikan bisa merah lewat
+      mutasi. Sesudahnya 4/4 lulus.
+
+      ⚠ Angka 7.306 ini dari SATU run di basis dev. Ia TIDAK mengatakan
+      apa-apa tentang CI berbagi-shard (lihat R-009 — flake antar-shard
+      masih terbuka, dan merahnya berpindah-pindah).
+
+      ── Konsekuensi untuk `MERGE-SUMBU-UI`
+
+      Item itu memblokir dirinya pada "49 test merah pra-ada" supaya
+      kegagalan SESUDAH merge bisa dibedakan. Prasyarat itu praktis
+      terpenuhi sekarang: garis dasarnya 0 merah di dev. Yang TETAP berlaku
+      sebagai penghalang: 222 dari 359 berkas disentuh kedua sisi (62%
+      permukaan bentrok), dan itu tak berubah oleh angka test.
+
+      ── Yang di bawah ini catatan SEBELUM pengukuran di atas ──────────────
+
       Diukur 2026-09-11 sesudah cacat akun penjadwal ditutup:
 
           sebelum : 7.131 lulus · 68 gagal · 32/494 berkas
