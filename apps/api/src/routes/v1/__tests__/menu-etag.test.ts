@@ -129,8 +129,34 @@ beforeAll(async () => {
       const idLama = lama.rows[0].id
       await c.query(`DELETE FROM company_menu_settings WHERE company_id = $1`, [idLama])
       await c.query(`DELETE FROM company_members WHERE company_id = $1`, [idLama])
+      /*
+        ⚠ Kepemilikan tenant dilepas dulu — 2026-09-14. `companies.owner_user_id`
+        menunjuk `users`, jadi menghapus akun uji yang masih tercatat sebagai
+        pemilik gagal dengan `companies_owner_user_id_fkey` — dan seluruh
+        berkas ini lalu SKIP, bukan merah di test tertentu.
+
+        ⚠ Disaring `NOT is_active`, BUKAN `code LIKE 'uji-etag-%'`. Diukur:
+        yang memilikinya justru tenant `[UJI-KUOTA]` / `[UJI-BACASAJA]` /
+        `[UJI-GERBANG]` — berkas test LAIN yang memilih pengguna mana pun
+        sebagai owner. Menyaring lewat kode `uji-etag-` melewatkan semuanya.
+
+        Tenant AKTIF tak pernah disentuh: tenant nyata tak boleh kehilangan
+        pemiliknya gara-gara pembersih test.
+      */
+      await c.query(
+        `UPDATE companies SET owner_user_id = NULL
+          WHERE NOT is_active
+            AND owner_user_id IN (SELECT id FROM users WHERE email LIKE 'uji-etag-%@example.test')`)
       await c.query(`DELETE FROM users WHERE email LIKE 'uji-etag-%@example.test'`)
       await c.query(`SET session_replication_role = 'replica'`)
+      // ⚠ Rantai approval dibuang dulu — ditambahkan 2026-09-14.
+      //
+      // Migrasi 580 (R-010) memasang trigger yang memberi tiap company BARU
+      // 13 rantai + langkahnya. FK-nya `ON DELETE RESTRICT` (disengaja:
+      // tenant yang masih punya alur persetujuan tak boleh lenyap diam-diam),
+      // jadi DELETE company gagal tanpa ini.
+      await c.query(`DELETE FROM approval_steps WHERE chain_id IN (SELECT id FROM approval_chains WHERE company_id = $1)`, [idLama]).catch(() => {})
+      await c.query(`DELETE FROM approval_chains WHERE company_id = $1`, [idLama]).catch(() => {})
       await c.query(`DELETE FROM companies WHERE id = $1`, [idLama])
       await c.query(`SET session_replication_role = 'origin'`)
     }
@@ -154,29 +180,31 @@ beforeAll(async () => {
        VALUES ('uji-etag-menu', '[TEST] Tenant ETag', $1)
        RETURNING id`, [pemilik])).rows[0].id
 
-    // Rantai approval `submittal` diisi TANGAN — dan itu sendiri temuan.
-    //
-    // `submittal-aturan` menegakkan: setiap company wajib punya rantai
-    // submittal, karena tanpanya pengajuan tak bisa diputuskan siapa pun.
-    // Migrasi 159 mengisinya untuk company yang ADA saat migrasi jalan, dan
-    // TIDAK ADA trigger yang melakukannya untuk company yang lahir sesudahnya
-    // (diverifikasi ke `pg_trigger`: satu-satunya trigger di `companies`
-    // adalah `trg_company_no_casual_delete`).
-    //
-    // Artinya di SaaS multi-tenant, pelanggan kedua dan seterusnya lahir
-    // tanpa rantai submittal. Dicatat untuk ratifikasi — perbaikannya
-    // menyentuh skema, bukan berkas test ini.
+    /*
+      Rantai approval `submittal` — DIBACA, bukan lagi diisi tangan.
+
+      ⚠ Catatan lama di sini sudah BASI dan sengaja diganti, bukan dihapus:
+      ia menyatakan *"TIDAK ADA trigger yang melakukannya untuk company yang
+      lahir sesudahnya (diverifikasi ke `pg_trigger`: satu-satunya trigger di
+      `companies` adalah `trg_company_no_casual_delete`)"*, dan menutup dengan
+      "dicatat untuk ratifikasi".
+
+      Pengukuran itu BENAR saat ditulis. Ratifikasinya turun, dan migrasi 580
+      (R-010) memasang `trg_company_rantai_approval` — tiap company baru kini
+      lahir dengan 13 jenis rantai + langkahnya. INSERT tangan di sini lalu
+      menabrak `uq_approval_chains_company_entity`, dan galat 23505 itu
+      terbaca seperti fixture kotor, bukan seperti catatan yang tertinggal
+      dari kodenya (CLAUDE.md §8a.2: penjelasan BENAR mendampingi keadaan
+      SALAH).
+
+      Yang dibutuhkan berkas ini cuma `chain` yang hidup. Membacanya, bukan
+      membuatnya, sekalian menjaga triggernya benar-benar bekerja.
+    */
     const chain = (await c.query(
-      `INSERT INTO approval_chains (company_id, entity_type, label, is_active)
-       VALUES ($1, 'submittal', 'Persetujuan Submittal', true) RETURNING id`,
-      [companyB])).rows[0].id
-    // Rantai TANPA langkah bersifat fail-closed (ADR-007): nol orang bisa
-    // menyetujui, dan gejalanya "403" untuk semua. `submittal-aturan` menguji
-    // itu terpisah, jadi langkahnya ikut dibuat.
-    await c.query(
-      `INSERT INTO approval_steps (company_id, chain_id, level, required_permission, label)
-       VALUES ($1, $2, 1, 'submittal:decide', 'Keputusan konsultan/pemberi kerja')`,
-      [companyB, chain])
+      `SELECT id FROM approval_chains
+        WHERE company_id = $1 AND entity_type = 'submittal'`,
+      [companyB])).rows[0]?.id
+    expect(chain, 'trg_company_rantai_approval (580) tak memasang rantai submittal').toBeTruthy()
 
     const authB = (await c.query(`SELECT gen_random_uuid() id`)).rows[0].id
 
