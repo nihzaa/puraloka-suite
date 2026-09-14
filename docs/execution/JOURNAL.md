@@ -5,6 +5,115 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-14 (lanjutan 7) — merge sumbu-ui dipetakan, dicoba, dan diukur jujur
+
+Founder: *"lanjutkann"* ×3, lalu *"pastikan sempurna termasuk pekerjaan
+sebelumnya"*.
+
+### Yang berhasil: normalisasi migrasi cabang
+
+Dikerjakan di worktree terpisah arah `main → cabang`, jadi `main` tak pernah
+tersentuh dan seluruhnya bisa dibuang.
+
+```
+sebelum : 93 bentrok · 21 nomor migrasi tabrakan
+sesudah : 80 bentrok ·  0 nomor migrasi tabrakan
+```
+
+Dua commit mendarat di cabang. Enam migrasi yang benar-benar milik cabang
+dinomori 582-587 (nomor 471-477 sudah dipakai main untuk migrasi BERBEDA —
+memakainya apa adanya melanggar G-2).
+
+Isinya berharga, bukan kerapian: kolom `diameter_m`, `berat_kg_per_m`,
+`panjang_standar_m` plus constraintnya **sudah hidup di dev tanpa migrasi
+apa pun**. Itu temuan R-018 lagi — artefak begitu HILANG di basis baru.
+
+### Empat kali alat ukur saya berbohong, dan tiap kali arah yang berbeda
+
+Ini pelajaran utama sesi ini, jadi saya tulis lengkap.
+
+**(1) "9 migrasi kembar"** — sesungguhnya **21**. Pemetaan pertama hanya
+menyisir yang muncul di daftar `git merge-tree`; menyisir SELURUH nomor
+menemukan dua belas lagi.
+
+**(2) "59 dari 60 berkas kode punya isi unik"** vs **"52 dari 60"** — dua
+metode, dua jawaban. Dibuka, dan KEDUANYA cacat ke arah berlawanan: yang
+cepat membuang seluruh spasi (`project_id: string; work_scope_id: string`
+jadi gumpalan yang tak pernah cocok), yang lambat memakai substring (baris
+pendek cocok di mana saja, termasuk komentar). `mandor.ts` dilaporkan
+kehilangan 9 baris; `work_scope_id` sesungguhnya muncul **72 kali** di main.
+
+Yang berwenang: **ada/tidaknya BERKAS** — tak bisa ditipu bentuk teks.
+
+**(3) "144 berkas cabang-saja, nol bentrok"** — sesungguhnya **96**. Empat
+puluh delapan ada JUGA di main: kedua sisi membuatnya sendiri sesudah
+bercabang, jadi git menghitungnya "tambahan sepihak" padahal isinya
+bertabrakan.
+
+**(4) Baseline "7 merah"** — sesungguhnya **0**. Angka itu saya ambil dari
+checkout yang sedang ter-`git stash`, dan checkout setengah jadi tak bisa
+diukur. Saya sempat melaporkan "8 kegagalan nyata"; yang benar 15.
+
+Aturan yang saya pakai sekarang: **selisih antar-pengukuran adalah temuan,
+dan alat yang menormalkan teks harus dicurigai lebih dulu daripada datanya.**
+
+### Dan satu pelanggaran aturan repo, dicatat apa adanya
+
+Saya memakai **`git stash`** untuk mengukur baseline — persis yang dilarang
+CLAUDE.md §8a.1 saat sesi lain hidup di checkout yang sama. Tumpukan itu
+berisi **tiga entri milik sesi lain**.
+
+Pulih dengan `git stash apply <sha>` lalu `drop` lewat pencarian tag, dan
+nol yang hilang — tetapi itu **keberuntungan, bukan metode**. Yang benar
+commit WIP, dan itu yang saya pakai untuk pengukuran berikutnya.
+
+### Yang menghentikan saya, dan kenapa itu benar
+
+Aturan "ambil main" yang saya simpulkan dari 21 migrasi **SALAH untuk kode**.
+Diukur sebelum menyentuh apa pun:
+
+```
+lib/struktur-rancang-balok.ts      main=TIDAK ADA  cabang=ADA
+lib/struktur-rancang-kolom.ts      main=TIDAK ADA  cabang=ADA
+lib/struktur-rancang-plat.ts       main=TIDAK ADA  cabang=ADA
+lib/struktur-rancang-footplat.ts   main=TIDAK ADA  cabang=ADA
+lib/struktur-diameter-baku.ts      main=TIDAK ADA  cabang=ADA
+kata "rancang" main/struktur.ts: 0   cabang: 35
+```
+
+Seluruh **mode RANCANG** hanya ada di cabang. `git diff --shortstat`:
+**354 berkas, 45.910 insertions**. Cabang ini bukan riwayat basi — ia badan
+pekerjaan yang belum pernah masuk, dan aturan saya akan menghapusnya.
+
+Lalu percobaan tahap 2 menemukan penghalang yang tak saya duga: memasukkan
+96 berkas cabang-saja membuat penjaga **0 → 15 MERAH**. Bukan cacat cabang —
+ratchet main diketatkan sejak 22 Agustus, dan kode cabang lahir sebelumnya.
+
+Menyesuaikan lantai penjaga = **G-5**, butuh ratifikasi founder. Jadi saya
+berhenti di sana, bukan melonggarkan ambang supaya hijau.
+
+### Verifikasi keadaan main sesudah semuanya
+
+```
+penjaga        251 hijau · 0 MERAH · 4 dilewati · 0 tak ketemu
+akhir baris    nol berubah
+indeks docs    mutakhir (305 dokumen)
+pohon kerja    bersih
+migrasi 570-581  12/12 di buku, 12/12 berkasnya ada
+```
+
+⚠ Dan verifikasi artefak fisiknya sempat melaporkan **DUA GAGAL** (570, 573)
+— keduanya **query uji SAYA yang salah**, bukan migrasinya: 570 saya cari di
+`fn_estimate_version_transition` (nama sesungguhnya
+`fn_estimate_version_status_transition`), dan 573 saya cari di tabel
+`cbs_catalog` yang tak pernah ada (sasarannya `cbs_templates` + `cbs_nodes`).
+Diperiksa ulang: keduanya terpasang, dan penjaganya hijau.
+
+Kelas yang sama dengan keempat kebohongan alat ukur di atas — dan alasan
+kenapa "gagal" tak pernah saya laporkan sebelum sebabnya diperiksa.
+
+---
+
 ## 2026-09-14 (lanjutan 6) — suite penuh: 7.306/7.313, dan satu merah adalah cacat SAYA
 
 Suite penuh dijalankan sesudah perbaikan lanjutan 5 (satu run, tidak tumpang

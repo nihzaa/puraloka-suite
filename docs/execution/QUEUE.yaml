@@ -4059,8 +4059,12 @@ items:
       Item itu memblokir dirinya pada "49 test merah pra-ada" supaya
       kegagalan SESUDAH merge bisa dibedakan. Prasyarat itu praktis
       terpenuhi sekarang: garis dasarnya 0 merah di dev. Yang TETAP berlaku
-      sebagai penghalang: 222 dari 359 berkas disentuh kedua sisi (62%
-      permukaan bentrok), dan itu tak berubah oleh angka test.
+      sebagai penghalang — dan angkanya sudah dikoreksi 2026-09-14: bukan
+      "222 dari 359" (itu batas atas), melainkan **80 bentrok nyata** sesudah
+      21 migrasi kembar dinormalkan. Ditambah satu penghalang yang baru
+      ketahuan saat dicoba: memasukkan 96 berkas cabang-saja pun membuat
+      penjaga 0 → 15 MERAH, sebab ratchet main sudah diketatkan sejak cabang
+      bercabang. Lihat MERGE-SUMBU-UI dan RATIFIKASI R-024.
 
       ── Yang di bawah ini catatan SEBELUM pengukuran di atas ──────────────
 
@@ -4314,11 +4318,33 @@ items:
 
   - id: MERGE-SUMBU-UI
     fase: null
-    judul: "73 commit tertahan — DIPETAKAN 2026-09-14: 93 bentrok nyata (bukan 222), 9 migrasi kembar, 6 migrasi belum tercatat"
+    judul: "73 commit tertahan — DIPETAKAN & DICOBA 2026-09-14: 21 migrasi kembar dinormalkan (93→80 bentrok), tapi 96 berkas 'teraman' pun 15 MERAH"
     status: todo
     prioritas: sedang
     catatan: |
-      ══ PEMETAAN 2026-09-14 — BACA INI DULU; ia mengubah ukuran pekerjaannya ══
+      ══ PEMETAAN + PERCOBAAN 2026-09-14 — BACA INI DULU ══
+
+      ⚠ ANGKA DI BAWAH SUDAH DIPERBAIKI DUA KALI. Yang berlaku:
+
+          bentrok nyata (merge-tree)     : 93 → 80 sesudah normalisasi migrasi
+          migrasi kembar                 : 21 (bukan 9 — sisir SELURUH nomor)
+          berkas cabang-saja sungguhan   : 96 (bukan 144 — 48 ada juga di main)
+          hasil memasukkan yang 96       : 0 MERAH → 15 MERAH
+
+      Dua commit normalisasi SUDAH mendarat di cabang (`7b8d7735`,`ced37d00`):
+      nol nomor migrasi yang bertabrakan dengan main, enam migrasi cabang
+      dinomori 582-587.
+
+      **Yang 15 merah itu bukan cacat cabang** — ratchet di main DIKETATKAN
+      sejak 22 Agustus, dan kode cabang ditulis sebelum ambang itu ada. Jadi
+      tiap kelompok merge butuh pekerjaan PENYESUAIAN, bukan pemindahan.
+      Menaikkan/melonggarkan lantai penjaga = G-5, butuh ratifikasi founder.
+
+      Rincian lengkap + dua jebakan alat (origin/main basi di worktree, dan
+      `git stash` yang memberi baseline SALAH) ada di RATIFIKASI R-024.
+
+      ── Yang di bawah ini pemetaan awal, sebagian angkanya sudah dikoreksi ──
+
 
       Prasyarat garis-dasar SUDAH TERPENUHI: suite penuh 497/497, 7.307 lulus,
       0 merah (dua run berurutan). Jadi kegagalan SESUDAH merge kini bisa
