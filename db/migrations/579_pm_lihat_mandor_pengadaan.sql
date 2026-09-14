@@ -83,22 +83,46 @@ BEGIN
   END IF;
 
   /*
-    2. `pm` TAK BOLEH mendapat izin MANAGE di wilayah itu. Kalau suatu saat
-       seseorang menyalin blok ini dan mengganti daftarnya, kegagalannya
-       harus keras — bukan diam-diam memberi kewenangan mengubah.
+    2. Yang DISISIPKAN migrasi ini tak boleh berupa izin MANAGE.
+
+    ⚠ DIPERBAIKI 2026-09-15 — versi pertama cek ini MEMERAHKAN SELURUH ENAM
+    SHARD CI, dan cacatnya milik saya sendiri.
+
+    Bunyinya dulu: hitung izin MANAGE yang dipegang `pm` di wilayah
+    mandor/pengadaan, lalu `IF n_manage > 0 THEN RAISE`. Niatnya benar —
+    jaring pengaman supaya orang yang menyalin blok ini tak diam-diam
+    memberi kewenangan MENGUBAH. Yang salah PENGUKURANNYA: ia menuntut
+    keadaan AWAL tertentu, bukan menilai apa yang migrasi ini lakukan.
+
+    Diukur dari dua sisi:
+
+        dev (berjalan lama)   : pm template punya 0 izin MANAGE → lulus
+        CI (replay dari NOL)  : pm template punya 5 izin MANAGE → MATI
+
+            579 gagal: pm mendapat 5 izin MANAGE di wilayah
+                       mandor/pengadaan — yang dimaksud hanya LIHAT.
+
+    Kelima izin itu SAH: rantai migrasi memang memberikannya ke `pm` sejak
+    awal, dan di dev mereka hilang belakangan. Jadi cek ini mengangkat
+    **kecelakaan dev menjadi syarat**.
+
+    Kenapa lolos sampai CI: saya menjalankan 579 ke dev, melihat NOTICE-nya,
+    dan menyatakannya berhasil — tanpa pernah memutar rantainya dari basis
+    KOSONG. CLAUDE.md §6 sudah menulis kelas ini (migrasi 364 tercatat
+    sukses sambil melanggar tuntutannya sendiri); di sana CI yang hijau
+    palsu, di sini dev. **Satu lingkungan bukan bukti.**
+
+    Yang dinilai sekarang: kunci yang DISISIPKAN blok INSERT di atas wajib
+    `:view`. Itu menjaga niat aslinya — salin-ganti-jadi-`manage` tetap
+    merah — tanpa bergantung pada sejarah basis mana pun.
   */
   SELECT count(*) INTO n_manage
-    FROM public.roles r
-    JOIN public.role_permissions rp ON rp.role_id = r.id
-    JOIN public.permissions p ON p.id = rp.permission_id
-   WHERE r.name = 'pm' AND r.company_id IS NULL
-     AND p.key IN ('mandor:assign', 'mandor:scope:manage', 'mandor:worker:manage',
-                   'mandor:kasbon:approve', 'procurement:po:manage',
-                   'procurement:payment:manage', 'procurement:supplier:manage');
+    FROM unnest(ARRAY['mandor:view', 'procurement:view']) AS k
+   WHERE k NOT LIKE '%:view';
 
   IF n_manage > 0 THEN
     RAISE EXCEPTION
-      '579 gagal: pm mendapat % izin MANAGE di wilayah mandor/pengadaan — '
+      '579 gagal: % kunci yang disisipkan BUKAN :view — '
       'yang dimaksud hanya LIHAT.', n_manage;
   END IF;
 
