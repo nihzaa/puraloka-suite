@@ -95,12 +95,21 @@ berhenti di sana, bukan melonggarkan ambang supaya hijau.
 ### Verifikasi keadaan main sesudah semuanya
 
 ```
+suite penuh    497/497 berkas · 7.307 lulus · 0 gagal · 6 dilewati
 penjaga        251 hijau · 0 MERAH · 4 dilewati · 0 tak ketemu
 akhir baris    nol berubah
 indeks docs    mutakhir (305 dokumen)
 pohon kerja    bersih
 migrasi 570-581  12/12 di buku, 12/12 berkasnya ada
+10 penjaga yang langsung menjaga kerja sesi ini: semuanya hijau
 ```
+
+Ini run suite penuh **KETIGA berturut-turut yang bersih**, dan angkanya
+persis sama dengan run kedua (7.307/7.313) walau commit-nya sudah maju enam
+langkah. Selisih nol yang BISA dijelaskan: keenam commit itu dokumen.
+
+⚠ Cakupannya tetap satu basis dev. Ia tak mengatakan apa pun tentang CI
+berbagi-shard — R-009 masih terbuka di sana.
 
 ⚠ Dan verifikasi artefak fisiknya sempat melaporkan **DUA GAGAL** (570, 573)
 — keduanya **query uji SAYA yang salah**, bukan migrasinya: 570 saya cari di
