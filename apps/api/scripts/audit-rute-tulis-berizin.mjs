@@ -142,19 +142,34 @@ const LANTAI = new Set([
     `DELETE notifications/subscribe` mengelola langganan push milik sendiri.
     Hitungan mentah "tanpa requirePermission" melebih-lebihkan masalahnya.
   */
-  // UTANG — menunggu R-023. Bukan disetujui, cuma dibekukan supaya tak tumbuh.
-  'POST /api/v1/cash/expenses',
+  /*
+    ── R-023 gelombang 1 SELESAI 2026-09-14 (founder: ikut rekomendasi saya)
+
+    Enam rute dikeluarkan dari lantai sesudah dipasangi gerbang — yang
+    menyentuh UANG & ORANG lebih dulu:
+
+        mandor/workers POST/PATCH/DELETE  mandor:worker:manage
+        mandor/worker-kasbons POST        mandor:kasbon:create
+        mandor/wage-reports POST          mandor:wage:create
+        cash/expenses POST                cash:expense:create
+
+    Keempat izin sudah ADA di katalog — tak perlu migrasi izin baru.
+
+    ⚠ Diperiksa sebelum dipasang, sebab arah gagal yang satu lagi (menu
+    HILANG dari yang berhak) sama mahalnya: siapa yang BENAR-BENAR membuat
+    pengeluaran diukur ke basis — admin 142, pm 1. Yang satu itu akun UJI
+    (`uji.pm.portal@`), barisnya lahir dari trigger kasbon, bukan alur PM
+    sungguhan. Jadi pemasangan ini tak memutus pemakaian nyata.
+
+    Sisanya di bawah masih menunggu gelombang berikutnya.
+  */
+  // UTANG — menunggu R-023 gelombang 2.
   'POST /api/v1/companies',
   'POST /api/v1/companies/:id/members',
   'PATCH /api/v1/companies/:id/members/:userId',
   'PATCH /api/v1/companies/:id/pengaturan',
   'POST /api/v1/kasbons',
-  'POST /api/v1/mandor/workers',
-  'PATCH /api/v1/mandor/workers/:id',
-  'DELETE /api/v1/mandor/workers/:id',
-  'POST /api/v1/mandor/worker-kasbons',
   'PATCH /api/v1/mandor/worker-kasbons/:id/cicilan',
-  'POST /api/v1/mandor/wage-reports',
   'POST /api/v1/mandor/kasbon-photo/upload',
   'POST /api/v1/documents/:documentId/access-log',
   'POST /api/v1/projects/:projectId/progress-logs',
