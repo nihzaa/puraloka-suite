@@ -4211,8 +4211,10 @@ items:
 
       Yang mengerjakan: mulai dari fixture, JANGAN dari rutenya.
 
-      ⚠ `situs:kelola` nol baris di tabel `permissions`. Kalau ada rute
-      memakainya, ia menolak semua orang tanpa gejala. Belum ditelusuri.
+      ⚠ ~~`situs:kelola` nol baris di tabel `permissions`~~ — DITUTUP
+      2026-09-14: kunci itu tak dipakai kode mana pun, jadi tak ada yang
+      bisa ditolaknya. Rinciannya di bawah, di tempat peringatan yang sama
+      muncul kedua kalinya.
 
       ── 9 retensi-subkontrak: DITELUSURI, belum ketemu — jangan ulangi jalur ini
 
@@ -4254,8 +4256,30 @@ items:
       Sembilan kegagalan `situs.test` bergejala sama (403 di tempat yang
       mengharap 200/404/422) — periksa bersamaan, kemungkinan satu akar.
 
-      ⚠ `situs:kelola` NOL baris di tabel `permissions`. Kalau ada rute
-      memakainya, ia menolak SEMUA orang tanpa gejala.
+      ⚠ ~~`situs:kelola` NOL baris di tabel `permissions`~~ — DITUTUP
+      2026-09-14, kekhawatirannya TIDAK berdasar. Peringatan ini muncul dua
+      kali di catatan dan dua kali bertanda "belum ditelusuri"; ditelusuri
+      sekarang, dan jawabannya satu perintah:
+
+          grep -rn "situs:kelola" apps/api/src apps/web    → NOL
+          kunci situs:* yang BENAR-BENAR dipakai kode:
+            'situs:manage'  5×
+            'situs:view'    3×
+
+      `situs:kelola` bukan kunci hantu yang menolak semua orang — ia bukan
+      kunci sama sekali. Tak ada rute yang memakainya, jadi tak ada yang
+      bisa ditolaknya. Yang mengira sebaliknya (saya, dua kali) menyimpulkan
+      dari nama Indonesia yang WAJAR untuk repo ini, bukan dari pengukuran.
+
+      Dan kelas cacat itu memang sudah dijaga — bukan perlu penelusuran
+      tangan:
+
+          node apps/api/scripts/audit-izin-benar-ada.mjs
+          ✅ 189 kunci dipakai kode, semuanya terdaftar di basis
+
+      ⚠ Jadi 9 merah `situs.test` TIDAK punya akar ini. Jangan memulai dari
+      sana; mulai dari fixture-nya bersama `retensi-subkontrak`, seperti
+      tertulis di atas.
 
   - id: MERGE-SUMBU-UI
     fase: null
