@@ -5299,10 +5299,44 @@ pemisahannya justru membuat maksud tiap test terbaca.
 > pembuat kasbon      : mandor 67 · lainnya 0
 > ```
 >
-> **🔴 SISA: 16 rute**, sudah dibekukan ratchet sehingga tak bisa bertambah.
-> Sebagian besar bukan uang (progress-logs, impor tahap baca, notifikasi
-> milik sendiri). Gelombang berikutnya menunggu keputusan — atau biarkan,
-> sebab penjaganya sudah menahan pertumbuhannya.
+> ### Sisa 16 — ditelusuri SATU PER SATU, dan semuanya kini beralasan tertulis
+>
+> | kelompok | n | kenapa tak digerbangi |
+> |---|---|---|
+> | data milik SENDIRI | 11 | MFA sendiri, notifikasi sendiri, company default sendiri — izin peran justru SALAH di sini |
+> | impor tahap baca | 2 | terbukti NOL `.insert/.update/.delete`; tahap `commit` yang menulis SUDAH bergerbang per-skema |
+> | jejak & unggahan | 2 | `access-log` memutus jejak audit kalau digerbangi; `kasbon-photo` menyertai pengajuan yang sudah bergerbang |
+> | **progress-logs** | **1** | **butuh izin BARU — lihat di bawah** |
+>
+> **🔴 SATU yang benar-benar menunggu keputusan Anda:**
+> `POST /projects/:id/progress-logs`.
+>
+> Diukur siapa yang BENAR-BENAR mencatat progres:
+>
+> ```
+> pm     249
+> mandor  24
+> admin    1
+> ```
+>
+> Dan satu-satunya izin yang ada — `progress:manage` — dipegang admin ·
+> direktur · project_manager_senior · site_manager. **Bukan `pm`, bukan
+> `mandor`.**
+>
+> Memasangnya akan **memutus 273 dari 274 pemakaian nyata**, dan gejalanya
+> *"kok saya tak bisa lapor progres"* tanpa satu pun galat yang menyebut izin
+> — arah gagal yang persis diperingatkan R-020, hanya berbalik.
+>
+> **Yang dibutuhkan: kunci izin BARU** (mis. `progress:create`) yang dipegang
+> pm & mandor, terpisah dari `progress:manage` yang juga mengizinkan
+> MENGHAPUS log. Menambah kunci ke katalog izin adalah keputusan produk lewat
+> migrasi — bukan efek samping pemasangan gerbang, jadi saya berhenti di sini.
+>
+> ⚠ Jalurnya TIDAK telanjang sepenuhnya: tenant divalidasi
+> (`proyekMilikTenant`) dan ada gerbang idempotensi. Yang belum ada
+> pembatasan PERAN.
+>
+> Jawab **"buat izin progress:create"** dan saya kerjakan migrasinya.
 
 ---
 

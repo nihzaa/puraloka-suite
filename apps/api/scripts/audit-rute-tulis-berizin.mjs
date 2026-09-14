@@ -198,7 +198,6 @@ const LANTAI = new Set([
     yang menulis `requireOwnerGrup`. Lihat catatan di GERBANG.
   */
   // UTANG — menunggu R-023 gelombang 2.
-  'POST /api/v1/projects/:projectId/progress-logs',
 ])
 
 /* Bentuk gerbang yang DIHITUNG SAH — bukan hanya requirePermission. */
