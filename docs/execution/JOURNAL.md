@@ -5,6 +5,120 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-14 (lanjutan 5) — tujuh test tumbang oleh trigger sendiri; R-018 ditutup, R-009 diukur ulang
+
+Founder: *"lanjutt, kamu bantu selesaikann"*.
+
+### Migrasi 580 menumbangkan tujuh berkas test — dan galatnya menuduh FK
+
+R-010 dipasang sesi sebelumnya: `trg_company_rantai_approval` memberi tiap
+company BARU 13 rantai approval + langkahnya. FK-nya `ON DELETE RESTRICT`,
+disengaja — tenant yang masih punya alur persetujuan tak boleh lenyap
+diam-diam.
+
+Akibatnya tiap test yang menghapus company-nya sendiri merah, dengan galat
+yang menyebut `approval_chains_company_id_fkey` alih-alih menyebut trigger
+yang baru dipasang. Perbaikan yang benar bukan melonggarkan FK-nya: enam
+berkas membuang rantai + langkahnya lebih dulu.
+
+Dua di antaranya bukan sekadar pembersihan.
+
+**`menu-etag` mengisi rantai submittal dengan TANGAN**, di bawah komentar
+yang panjang dan — saat ditulis — BENAR:
+
+> TIDAK ADA trigger yang melakukannya untuk company yang lahir sesudahnya
+> (diverifikasi ke `pg_trigger`: satu-satunya trigger di `companies` adalah
+> `trg_company_no_casual_delete`). … Dicatat untuk ratifikasi.
+
+Ratifikasinya turun. Kodenya tidak ikut. Sekarang rantainya DIBACA, bukan
+dibuat — sekalian membuktikan triggernya bekerja. §8a.2: penjelasan benar
+mendampingi keadaan salah, di komentar yang menerangkan kenapa keadaannya
+begitu.
+
+**Dan saya salah sekali di sini, tercatat apa adanya.** `menu-etag` juga
+harus melepas `owner_user_id` sebelum menghapus penggunanya. Saringan
+pertama saya `code LIKE 'uji-etag-%'` — masuk akal, dan **meleset total**.
+Diukur: yang memiliki pengguna itu 21 tenant `[UJI-KUOTA]`/`[UJI-BACASAJA]`/
+`[UJI-GERBANG]`, milik berkas test LAIN yang memilih pengguna mana pun
+sebagai owner. Nol dari 21 cocok dengan saringan saya. Yang menyelamatkannya
+cuma mengukur dulu alih-alih percaya bahwa nama fixture memberi tahu siapa
+pemiliknya. Sekarang disaring `NOT is_active` — tenant nyata tak tersentuh.
+
+**`pendirian-tenant-lengkap` menuntut `disalin === acuan`.** Sejak trigger
+memasangnya saat company LAHIR, helper menemukan semuanya sudah ada dan
+memulangkan 0 — dengan benar; ia melewati 23505 sebagai "sudah ada". Yang
+dijaga berkas itu adalah tenant baru punya alur persetujuan yang HIDUP, dan
+siapa yang memasangnya tak mengubah invariannya. Memakukannya ke salah satu
+jalur membuat test merah tiap kali jalurnya diperbaiki.
+
+```
+9 berkas terdampak → 111/111 lulus
+jalankan-semua-penjaga.mjs → 251 hijau · 0 MERAH · 4 dilewati · 0 tak ketemu
+```
+
+### R-018 ditutup — keputusannya sudah diambil, catatannya yang tertinggal
+
+Entri R-018 meminta founder memilih antara "kedua sektor memang dimaksudkan
+ada" dan "sisa percobaan", dan berbunyi **"Belum ada yang diubah"**.
+
+Diukur hari ini: penjaganya HIJAU, 11 = 11. Jalan (1) sudah dipilih dan
+dikerjakan lewat `553_sektor_struktur_ke_check.sql` — dengan satuan dari
+AHSP SE-47/2026, bukan tebakan (`bored_pile` m' = kedalaman × titik;
+`baja_profil` kg = panjang × berat/m × batang). Persis kekhawatiran yang
+dulu membuat saya TIDAK memperbaikinya sendiri.
+
+Diverifikasi dua sisi, sebab "tercatat di buku" tidak cukup (§5.5): entri
+553 ada di `schema_migrations` DAN CHECK di basis memuat sebelas sektor.
+Kelas berbeda dari 111/372/374, yang bukunya mencatat sukses tanpa artefak.
+
+**Satu selisih yang saya biarkan TERBUKA alih-alih ditebak:** catatan asli
+mencatat dua baris take-off (`bored_pile` 1, `baja_profil` 1); hari ini nol
+baris ber-sektor di seluruh tabel. Saya tidak tahu kapan atau oleh apa.
+Menulis "mungkin replay skema test" sebagai sebab akan lebih rapi dan lebih
+mahal — selisih yang tak bisa dijelaskan adalah temuan yang belum dibuka.
+Yang bisa dikatakan yakin: penjaganya menjaga KEMAMPUAN basis menerima
+sektornya, bukan adanya baris contoh, dan ia hijau tanpa mereka.
+
+Kenapa entri itu basi berminggu-minggu: 553 turun tanpa RATIFIKASI.md ikut
+diperbarui di commit yang sama (§8a.4). Racun konteks pembuka CLAUDE.md,
+kali ini di dokumen yang justru mendaftar apa yang menunggu founder.
+
+### R-009 tetap terbuka — tetapi premisnya sudah tidak benar
+
+Catatan asli menutup dengan pilihan *"menambah project Supabase CI, atau
+Postgres lokal di runner"*. **Project CI terpisah itu SUDAH ADA** —
+`ci-isolation.yml` + `CI_DIRECT_URL`, terukur ke berkas. Dan flake-nya tetap
+ada, sebab yang dibagi enam shard bukan basis dev melainkan satu project CI
+yang sama. Menambah project memindahkan perebutan, tidak menghapusnya.
+
+Pertanyaan yang sebenarnya menunggu: bagaimana enam shard berhenti berbagi
+satu basis. Rekomendasi saya **(b) satu schema per shard** di project yang
+sudah dibayar — bukan enam project (menggandakan permukaan rawatan enam kali
+tanpa menutup cacat baru), bukan Postgres lokal (shim `auth.*` membuat CI
+hijau atas perilaku yang tak ada di produksi — kelas cacat terburuk di repo
+ini).
+
+Batasnya saya tulis di entrinya, sebab ia yang membuat (b) bukan jawaban
+pasti: repo ini SUDAH punya schema `test` yang membayangi 9 tabel dan
+bayangan itu sendiri sumber cacat. Karena itu (b) diusulkan sebagai
+**percobaan berbukti** — dua shard dulu, sepuluh jalan, bandingkan angka
+merahnya. Kalau tidak turun, (b) salah.
+
+Tidak saya kerjakan sendiri: menyentuh rahasia CI yang tak hidup di mesin
+ini, dan opsi (a) menambah biaya langganan berulang — keputusan bisnis,
+bukan teknis.
+
+### Keadaan antrean sesudah sesi ini
+
+| Sisa | Kenapa bukan milik saya |
+|---|---|
+| R-006 | butuh Supabase support — katalog butuh superuser (`permission denied for table pg_depend`) |
+| R-007 | bentuk grup/holding, CoA per-PT, akses pemilik grup — keputusan produk |
+| R-009 | biaya langganan / rahasia CI |
+| R-013 | 4 `it.skip` — keputusan founder, terbuka dengan sengaja |
+
+---
+
 ## 2026-09-14 (lanjutan 4) — antrean ratifikasi HABIS: R-020 · R-021 · R-023
 
 Founder: *"lanjutkann, kalo udh abis baru lanjut kerjaan lain"*. Ketiganya

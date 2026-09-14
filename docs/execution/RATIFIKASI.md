@@ -3193,7 +3193,101 @@ supaya bisa dihentikan kapan pun tanpa meninggalkan setengah jadi.
 
 ---
 
-## R-009 · P1 · FLAKE antar-shard: CI merah berpindah-pindah, hijau saat diulang
+## R-009 · ⏳ MASIH TERBUKA — tetapi pertanyaannya BERUBAH (diukur ulang 2026-09-14)
+
+**Tetap menunggu founder. Catatan asli di bawah, tidak dihapus — tetapi satu
+premisnya sudah tidak benar, dan itu mengubah pilihannya.**
+
+### Premis yang sudah basi
+
+Catatan asli menutup dengan:
+
+> Perlu keputusan: menambah project Supabase CI, atau memakai Postgres lokal
+> di runner (yang dulu ditolak karena butuh shim `auth.*`).
+
+**Project Supabase CI terpisah itu SUDAH ADA.** Diukur ke berkas, bukan ke
+ingatan:
+
+```
+.github/workflows/ci-isolation.yml   → workflow_dispatch, aksi
+                                        inventory | periksa-gl | setup | setup-clean
+ci.yml                               → CI_DIRECT_URL (rahasia CI), 6 shard
+```
+
+Jadi pilihan "menambah project CI" sudah dijalankan, dan **flake-nya tetap
+ada**. Sebabnya masuk akal sesudah diukur: yang dibagi enam shard bukan
+basis dev, melainkan **satu project CI yang sama**. Menambah satu project
+memindahkan perebutan, tidak menghapusnya.
+
+Pertanyaan yang sebenarnya menunggu: **bagaimana enam shard berhenti berbagi
+satu basis** — bukan basis mana yang dipakai.
+
+### Yang sudah dibayar untuk menahannya sementara
+
+Bukan nol, dan itu perlu diketahui sebelum memutuskan. `ci.yml` sudah memuat
+obat-obat sementara yang masing-masing berhasil untuk kasusnya:
+
+- barisan `ci-shared-ci-db` (satu run CI pada satu waktu)
+- TAG unik per-run, T6 membuat sendiri kondisinya, klasifikasi tenancy
+- aturan operasional tertulis: `setup-clean` hanya saat tak ada run CI aktif
+
+Dan biayanya juga sudah terukur: `ci-isolation.yml` sengaja di LUAR barisan
+itu (supaya run inventarisnya tak dibatalkan), yang pada 2026-09-04 memakan
+**tiga run** — WIPE dan shard menulis ke basis yang sama, lalu gagal dengan
+`type "project_status" already exists`: galat yang menuduh migrasinya.
+
+### Rekomendasi saya — jalur (b)
+
+| | Jalan | Biaya | Yang ditutup |
+|---|---|---|---|
+| a | satu project Supabase per shard (6) | 6× kuota, 6× `setup-clean`, 6 rahasia | semuanya |
+| **b** | **satu SCHEMA per shard di project CI yang sudah ada** | **nol biaya langganan** | perebutan baris & seed |
+| c | Postgres lokal di runner | nol langganan | semuanya, TAPI butuh shim `auth.*` |
+
+**(b)** yang saya sarankan. Alasannya bukan harga saja:
+
+- **(a)** menggandakan permukaan yang harus dirawat enam kali. Tiap
+  `setup-clean` sudah punya sejarah balapannya sendiri; enam project berarti
+  enam kali sejarah itu, dan tak ada di antaranya yang menutup cacat baru.
+- **(c)** pernah ditolak karena shim `auth.*`, dan alasan itu **masih
+  berlaku** — RLS repo ini bersandar pada `auth_company_id()`. Shim yang
+  menyimpang dari Supabase sungguhan membuat CI hijau atas perilaku yang
+  tidak ada di produksi: kelas cacat terburuk di repo ini, bukan yang mau
+  saya tambah.
+- **(b)** memakai yang sudah dibayar, dan cacat yang dilaporkan R-009
+  semuanya berada di lapis DATA (baris seed saling cocok, urutan eksekusi,
+  `fn_isi_company_id()` melihat company shard lain) — persis yang dipisahkan
+  schema.
+
+⚠ **Dan batasnya wajib disebut, sebab ia yang membuat (b) bukan jawaban
+sempurna:** repo ini SUDAH punya schema `test` yang membayangi 9 tabel
+`public`, dan bayangan itu sendiri sumber cacat (CLAUDE.md §1 —
+`approval-satu-pintu` merah dengan `['approved_by','approved_by',…]`).
+Menambah enam schema lagi menambah permukaan yang sama. Yang **tidak**
+ditutup (b): objek yang memang global lintas schema — `storage.objects`
+sudah ketahuan dan sudah diperbaiki di F2-5; kalau ada yang lain, ia akan
+tetap berebut.
+
+Karena itu (b) saya usulkan sebagai **percobaan berbukti**, bukan sebagai
+yang pasti benar: pasang untuk dua shard dulu, jalankan sepuluh kali,
+bandingkan angka merahnya. Kalau tidak turun, (b) salah dan tak perlu
+diteruskan ke enam.
+
+### Kenapa saya tidak mengerjakannya sendiri
+
+Ia menyentuh lingkungan CI dan rahasia GitHub (`CI_*`), yang tidak hidup di
+mesin ini — sama kelasnya dengan R-006 dan R-008. Dan **(a)** menambah biaya
+langganan berulang: itu keputusan bisnis, bukan teknis, jadi bukan milik saya
+sekalipun keputusan teknis sudah didelegasikan.
+
+### Sementara itu — aturan lama TETAP berlaku
+
+**Rerun job yang merah sebelum mendiagnosis.** Hijau saat diulang = flake
+ini, bukan regresi. Yang **tidak boleh**: melonggarkan assertion agar hijau.
+
+---
+
+## R-009 (asli) · P1 · FLAKE antar-shard: CI merah berpindah-pindah, hijau saat diulang
 
 **Status:** terbuka · dibuka 2026-08-04 · **bukan cacat kode**
 
@@ -4113,7 +4207,89 @@ tanpa memeriksa `pg_policies`. Dua lapis, dan saya hanya mengukur satu.
 
 ---
 
-## R-018 · Dua sektor take-off ada di BASIS tanpa migrasi — dan hilang di VPS
+## R-018 · ✅ SELESAI — diukur ulang 2026-09-14, tak ada lagi yang perlu diputuskan
+
+**Ditutup 2026-09-14. Catatan aslinya dipertahankan di bawah, tidak dihapus.**
+
+Entri ini meminta founder memilih antara dua jalan ("memang dimaksudkan ada"
+vs "sisa percobaan"). **Keputusan itu sudah diambil dan sudah dikerjakan** —
+sebelum saya sampai. Yang tertinggal hanya catatannya.
+
+### Yang diukur hari ini
+
+```
+node apps/api/scripts/audit-sektor-takeoff-cocok.mjs
+  di kode  : 11
+  di basis : 11
+  selisih  : 0
+  ✅ 11 sektor take-off — kode dan basis cocok, semuanya punya satuan & cabang
+```
+
+Jalan **1** yang dipilih: kedua sektor memang dimaksudkan ada.
+
+`db/migrations/553_sektor_struktur_ke_check.sql` memasukkan `bored_pile` dan
+`baja_profil` ke CHECK lewat jalur migrasi (DROP + ADD utuh, sebab CHECK tak
+bisa "ditambahi"), dan satuannya **bukan tebakan** — diambil dari
+`_source/ahsp/`, SE Bina Konstruksi No. 47 Tahun 2026:
+
+| sektor | satuan | volume |
+|---|---|---|
+| `bored_pile` | m' | kedalaman × jumlah titik |
+| `baja_profil` | kg | panjang × berat/m × batang |
+
+Persis kekhawatiran yang membuat saya **tidak** memperbaikinya sendiri
+2026-08-31 ("menebak salah satu rumusnya menghasilkan kuantitas RAB yang
+salah tanpa galat") — dan jawabannya bukan tebakan, melainkan sumber resmi.
+
+### Verifikasi G-2 — bukan sekadar "tercatat"
+
+Catatan asli memperingatkan bahwa artefak yang ada di dev tanpa migrasi akan
+HILANG di basis baru. Jadi "ada entri di buku" tidak cukup; artefak fisiknya
+harus terbukti (CLAUDE.md §5.5). Diukur keduanya:
+
+```
+buku migrasi  : 553_sektor_struktur_ke_check ✓ (dan 477_takeoff_sektor ✓)
+CHECK di basis: ARRAY['atap','plafon','dinding','lantai','kusen','daun',
+                      'sanitair','mep_pipa','mep_titik',
+                      'bored_pile','baja_profil']   ← sebelas
+```
+
+Ini kelas yang BERBEDA dari 111/372/374 (migrasi 570-573): di sana bukunya
+mencatat sukses sementara artefaknya tak ada. Di sini keduanya cocok.
+
+### Satu hal yang berubah dari catatan asli, dan layak disebut
+
+Catatan asli melaporkan dua baris take-off ber-sektor:
+
+```
+bored_pile   1 baris   2026-08-20 19:45
+baja_profil  1 baris   2026-08-20 22:28
+```
+
+Diukur hari ini: **nol baris** ber-sektor di seluruh tabel. Keduanya sudah
+tak ada. Saya **tidak tahu** kapan atau oleh apa — mungkin replay skema test,
+mungkin pembersihan. Saya menuliskannya apa adanya alih-alih menebak
+sebabnya: selisih yang tak bisa dijelaskan adalah temuan yang belum dibuka,
+dan menutupnya dengan cerita lebih mahal daripada membiarkannya terbuka
+(§8a.2).
+
+Yang bisa dikatakan dengan yakin: ketiadaannya **tidak berbahaya**. Keduanya
+data dummy percobaan, dan yang dijaga penjaga adalah KEMAMPUAN basis
+menerima sektornya — bukan adanya baris contoh. Penjaganya hijau tanpa
+mereka.
+
+### Kenapa entri ini sempat basi berminggu-minggu
+
+Perbaikannya turun lewat migrasi 553, dan **RATIFIKASI.md tak ikut
+diperbarui di commit yang sama** (CLAUDE.md §8a.4). Akibatnya entri yang
+berbunyi "Belum ada yang diubah" bertahan di atas keadaan yang sudah
+berubah — dan pembacanya wajar menyimpulkan masih ada keputusan menggantung.
+Bentuk yang sama dengan racun konteks di pembuka CLAUDE.md, kali ini di
+dokumen yang justru mendaftar apa yang menunggu founder.
+
+---
+
+## R-018 (asli) · Dua sektor take-off ada di BASIS tanpa migrasi — dan hilang di VPS
 
 **Diajukan 2026-08-31. Belum ada yang diubah.**
 
