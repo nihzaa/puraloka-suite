@@ -5252,7 +5252,61 @@ pemisahannya justru membuat maksud tiap test terbaca.
 
 ---
 
-## R-023 · 17 rute TULIS tanpa gerbang otorisasi — klien bisa MENGHAPUS tukang
+## R-023 · ✅ SEBAGIAN BESAR SELESAI 2026-09-14 — rute TULIS tanpa gerbang otorisasi
+
+> Founder menyerahkan keputusannya ke rekomendasi saya, dan saran saya
+> **pilihan (1): bertahap, mulai dari yang menyentuh uang & orang**.
+> Dikerjakan dua gelombang.
+>
+> | | |
+> |---|---|
+> | **gelombang 1** | `mandor/workers` POST/PATCH/DELETE · `mandor/worker-kasbons` · `mandor/wage-reports` · `cash/expenses` |
+> | **gelombang 2** | `kasbons` POST · `mandor/worker-kasbons/:id/cicilan` |
+> | ratchet | **28 → 16** |
+> | commit | `6c9a4cc9` · `d80c95d7` |
+>
+> Keenam izin sudah ADA di katalog — nol migrasi izin baru.
+>
+> ### Dua koreksi atas angka saya sendiri
+>
+> **"17 utang" terlalu besar.** Empat rute `companies` TAK PERNAH telanjang —
+> mereka bergerbang `requireGroupOwner()` (RPC `is_group_owner`, membalas
+> 403). Yang salah regex penjaga saya yang menulis `requireOwnerGrup`. Nama
+> yang tak pernah ada di kode tak pernah cocok.
+>
+> **Dua rute PINDAH ke kategori SAH**, sesudah dibaca:
+>
+> - `documents/:id/access-log` — mencatat siapa MEMBUKA dokumen; penulisannya
+>   efek samping dari membaca, tenant sudah divalidasi. Menuntut izin di sana
+>   MEMUTUS jejak audit justru untuk pembaca yang sah.
+> - `mandor/kasbon-photo/upload` — unggah foto nota ke bucket privat, tak
+>   menulis baris kasbon mana pun; pengajuannya sendiri sudah bergerbang.
+>
+> ### Dibuktikan MENAHAN, bukan sekadar terpasang
+>
+> ```
+> client  → DITOLAK di keenam rute
+> pm      → DITOLAK di kasbons & cash/expenses
+> mandor  → BOLEH di miliknya, DITOLAK di cash/expenses
+> admin   → BOLEH di semuanya
+> ```
+>
+> Dan diperiksa DULU supaya tak memutus pemakaian nyata — arah gagal yang satu
+> lagi (menu hilang dari yang berhak) sama mahalnya:
+>
+> ```
+> pembuat pengeluaran : admin 142 · pm 1   → yang 1 itu akun UJI, lahir dari trigger
+> pembuat kasbon      : mandor 67 · lainnya 0
+> ```
+>
+> **🔴 SISA: 16 rute**, sudah dibekukan ratchet sehingga tak bisa bertambah.
+> Sebagian besar bukan uang (progress-logs, impor tahap baca, notifikasi
+> milik sendiri). Gelombang berikutnya menunggu keputusan — atau biarkan,
+> sebab penjaganya sudah menahan pertumbuhannya.
+
+---
+
+## R-023 (asli) · 17 rute TULIS tanpa gerbang otorisasi — klien bisa MENGHAPUS tukang
 
 **Ditemukan 2026-09-14** saat menggarap R-020. Bukan cacat baru: ia sudah ada
 sejak rutenya ditulis, dan R-020 tak bisa melihatnya karena cakupannya beda.

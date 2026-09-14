@@ -5,6 +5,95 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-14 (lanjutan 3) — "lanjutt": menggarap R-020, menemukan yang lebih dalam
+
+Founder: *"yaudahh lanjut"*. Diambil R-020 (116 menu tanpa izin), item terbuka
+terbesar. Yang ditemukan bukan itu.
+
+### R-020 BENAR untuk cakupannya, dan cakupannya cuma satu berkas
+
+R-020 menyimpulkan *"yang bocor PINTU, bukan isi"* — sah, sebab yang
+diperiksanya `finance.ts` dan rutenya memang berpagar. Diperiksa ke SELURUH
+rute tulis:
+
+```
+DELETE /api/v1/mandor/workers/:id → preHandler: [authenticate] SAJA
+  satu-satunya cek: if (user.role === 'mandor' && worker.mandor_id !== user.id)
+```
+
+Peran SELAIN mandor tak diperiksa, dan penghapusannya jalan lewat
+`request.db!` yang cuma menyaring TENANT. **Klien bisa menghapus tukang milik
+perusahaan yang sama.**
+
+⚠ Bentuk pemeriksaannya sendiri memakai literal `'mandor'` — persis yang
+dilarang ADR-004 (§5.1). Tenant yang menamai perannya lain tak terlindungi.
+
+Cakupannya diukur, bukan ditaksir: 13 pengguna client aktif, tetapi
+`worker_kasbons` baru 1 baris. Belum ada kerusakan besar yang SUDAH terjadi —
+yang terbuka JALURNYA.
+
+### ⚠ Penjaga pertama saya HAMPIR SELURUHNYA BUTA
+
+Ini yang paling layak dibaca ulang nanti, sebab hijaunya terlihat sama persis
+dengan hijau yang sah.
+
+Regex-nya menuntut jalur SE-BARIS dengan `app.post(`. Pola dominan di repo ini
+menaruh tipe generik dulu, jalurnya beberapa baris di bawah:
+
+```
+jalur se-baris (TERLIHAT) : 147
+app.post<{...}> (TERLEWAT): 265
+```
+
+Penjaga itu **melewatkan lebih banyak daripada yang diperiksanya**. Yang
+menunjukkannya hanya uji mutasi: gerbang `ncr:manage` dicabut sengaja →
+penjaga tetap HIJAU.
+
+Sesudah diperbaiki: 115 → 385 rute terperiksa, dan mutasi yang sama → MERAH
++ menyebut rutenya.
+
+**Inilah sebabnya §8a.2 menuntut penjaga baru dibuktikan bisa MERAH** — bukan
+formalitas.
+
+### Tiga koreksi lain atas hitungan saya sendiri
+
+1. `canParticipateInChain` & `hasPermission` DIHITUNG SAH — keduanya gerbang
+   nyata (rantai approval ADR-007; izin yang dipilih per-jenis-entitas).
+2. `requireOwnerGrup` vs `requireGroupOwner` — saya menulis nama yang **tak
+   pernah ada di kode**, jadi EMPAT rute bergerbang terhitung telanjang,
+   termasuk yang mendirikan badan usaha. Kelas yang sama dengan
+   `audit-keparahan-sepakat.mjs`: menjaga kosakata yang DIBAYANGKAN.
+3. Dua rute (`access-log`, `kasbon-photo/upload`) dipindah ke kategori SAH
+   sesudah dibaca — menuntut izin di sana justru memutus jejak audit dan
+   alur mandor di lapangan.
+
+### R-023 dikerjakan dua gelombang, ratchet 28 → 16
+
+Sebelum memasang tiap gerbang, diukur siapa yang BENAR-BENAR memakainya:
+
+```
+pembuat pengeluaran : admin 142 · pm 1   → yang 1 akun UJI, lahir dari trigger
+pembuat kasbon      : mandor 67 · lainnya 0
+```
+
+Kalau yang `pm 1` itu alur sungguhan, gerbangnya akan memutus pekerjaan
+orang — dan gejalanya "menu saya kok tidak ada" tanpa satu pun galat.
+
+### Satu test merah yang ternyata BUKAN flake
+
+`risiko-proyek-endpoint` merah di suite penuh, lulus 3/3 sendirian. Bukan
+flake: **422 adalah keadaan KETIGA yang sah**. Urutan tahap maju-saja, dan
+kalau permintaan `mediasi` menang duluan, permintaan `negosiasi` jadi
+transisi MUNDUR → 422, gerbang yang bekerja benar.
+
+Catatan panjang di test itu sudah menerangkan kenapa [200, 200] sah; yang
+terlewat urutan kebalikannya.
+
+penjaga **249** hijau · 0 MERAH
+commit `38719140` `6c9a4cc9` `d80c95d7` `080a0045`
+
+---
+
 ## 2026-09-14 (lanjutan 2) — tiga run suite penuh, tiga hasil berbeda, dan cacat UANG di dalamnya
 
 ### Saya menyatakan "0 MERAH" sebelum benar-benar diverifikasi
