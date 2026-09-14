@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
-import { authenticate } from '../../plugins/auth.js'
+import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { susunEkspor, formatSah, FORMAT_EKSPOR } from '../../lib/ekspor-tabel.js'
 import { gerbangIdempotensi, catatIdempotensi, sudahDibalas } from '../../utils/idempotency.js'
 import { createNotifications } from '../../utils/notifications.js'
@@ -243,7 +243,7 @@ export default async function kasbonRoutes(app: FastifyInstance) {
   // work_scope_id opsional; project_id wajib (bisa dari scope atau langsung)
   // mandor: status=pending | admin/pm: auto-approved dengan cash_account_id
   app.post('/api/v1/kasbons', {
-    preHandler: [authenticate]
+    preHandler: [authenticate, requirePermission('mandor:kasbon:create')]
   }, async (request, reply) => {
     /*
       GERBANG IDEMPOTENSI — untuk antrean offline mobile (2026-08-27).

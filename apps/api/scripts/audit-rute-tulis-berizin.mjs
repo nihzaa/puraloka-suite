@@ -134,6 +134,25 @@ const LANTAI = new Set([
   */
   'POST /api/v1/impor/baca',
   'POST /api/v1/impor/pratinjau',
+  /*
+    `documents/:id/access-log` — MENCATAT siapa MEMBUKA dokumen, dan penulisan
+    itu efek samping dari MEMBACA. Diperiksa: tenant divalidasi
+    (`proyekMilikTenant`), lalu fire-and-forget. Menuntut izin di sini akan
+    MEMUTUS jejak audit justru untuk pembaca yang sah — jejak yang dipakai
+    menyelidiki akses mencurigakan.
+  */
+  'POST /api/v1/documents/:documentId/access-log',
+  /*
+    `mandor/kasbon-photo/upload` — mengunggah foto nota ke bucket privat
+    (`kasbon-photos`, service_role-only sejak migrasi 098). Ia tak menulis
+    baris kasbon mana pun; pemakaiannya menyertai pengajuan kasbon yang
+    gerbangnya SUDAH dipasang (`mandor:kasbon:create`).
+
+    ⚠ Dicatat sebagai keputusan, bukan kelalaian: mengunci unggahan foto
+    lebih ketat daripada kasbonnya sendiri hanya memindahkan kegagalan ke
+    langkah yang lebih membingungkan bagi mandor di lapangan.
+  */
+  'POST /api/v1/mandor/kasbon-photo/upload',
 
   /*
     ⚠ TIGA rute dikeluarkan dari lantai 2026-09-14 sesudah diperiksa satu per
@@ -163,15 +182,22 @@ const LANTAI = new Set([
 
     Sisanya di bawah masih menunggu gelombang berikutnya.
   */
+  /*
+    ── R-023 gelombang 2 SELESAI 2026-09-14
+
+        kasbons POST                      mandor:kasbon:create
+        mandor/worker-kasbons/:id/cicilan mandor:kasbon:create
+
+    Diukur sebelum dipasang: SELURUH 67 kasbon di basis dibuat peran `mandor`,
+    dan `mandor:kasbon:create` dipegang admin · direktur · mandor. Tak ada
+    pemakaian nyata yang terputus.
+
+    ⚠ EMPAT rute `companies` KELUAR dari lantai 2026-09-14 — dan keempatnya
+    TAK PERNAH telanjang. Mereka bergerbang `requireGroupOwner()` (RPC
+    `is_group_owner`, membalas 403) sejak awal; yang salah regex penjaga ini
+    yang menulis `requireOwnerGrup`. Lihat catatan di GERBANG.
+  */
   // UTANG — menunggu R-023 gelombang 2.
-  'POST /api/v1/companies',
-  'POST /api/v1/companies/:id/members',
-  'PATCH /api/v1/companies/:id/members/:userId',
-  'PATCH /api/v1/companies/:id/pengaturan',
-  'POST /api/v1/kasbons',
-  'PATCH /api/v1/mandor/worker-kasbons/:id/cicilan',
-  'POST /api/v1/mandor/kasbon-photo/upload',
-  'POST /api/v1/documents/:documentId/access-log',
   'POST /api/v1/projects/:projectId/progress-logs',
 ])
 
@@ -189,7 +215,18 @@ const LANTAI = new Set([
   bergerbang dengan benar — dan penjaga yang merah atas hal benar akan
   diabaikan seluruh keluarannya (CLAUDE.md §8a.2).
 */
-const GERBANG = /requirePermission|hasPermission|canParticipateInChain|requireModul|requireOwnerGrup|requireSaasAdmin/
+/*
+  ⚠ `requireGroupOwner` ditambahkan 2026-09-14 — dan itu KEKELIRUAN SAYA
+  SENDIRI, bukan temuan. Versi pertama menulis `requireOwnerGrup` (bahasa
+  Indonesia) padahal fungsinya bernama `requireGroupOwner`. Nama yang tak
+  pernah ada di kode tak pernah cocok, jadi ENAM rute bergerbang terhitung
+  telanjang — termasuk `POST /api/v1/companies` yang justru mendirikan badan
+  usaha.
+
+  Kelas yang sama dengan `audit-keparahan-sepakat.mjs` di CLAUDE.md §6: pola
+  yang menjaga kosakata yang DIBAYANGKAN, bukan yang dipakai.
+*/
+const GERBANG = /requirePermission|hasPermission|canParticipateInChain|requireModul|requireGroupOwner|requireSaasAdmin/
 
 const tanpa = []
 let bergerbang = 0

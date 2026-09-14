@@ -417,7 +417,9 @@ export default async function mandorRoutes(app: FastifyInstance) {
 
 
   // PATCH /api/v1/mandor/worker-kasbons/:id/cicilan
-  app.patch('/api/v1/mandor/worker-kasbons/:id/cicilan', { preHandler: [authenticate] }, async (request, reply) => {
+  app.patch('/api/v1/mandor/worker-kasbons/:id/cicilan', {
+    preHandler: [authenticate, requirePermission('mandor:kasbon:create')],
+  }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const body = request.body as { nominal: number; catatan?: string }
 
