@@ -2831,6 +2831,31 @@ jobs:
       - name: Rute tulis wajib bergerbang otorisasi
         run: node scripts/audit-rute-tulis-berizin.mjs
 
+      # Tiap company AKTIF wajib punya rantai approval LENGKAP + langkahnya.
+      #
+      # R-010 (2026-08-05): pelanggan BARU lahir tanpa rantai `submittal`, dan
+      # entrinya memperingatkan cakupannya belum diperiksa. Diperiksa
+      # 2026-09-14 — peringatan itu benar: SEMBILAN dari 13 jenis hanya ada di
+      # tenant PERTAMA. Dua tenant nyata lain punya 4 dari 13.
+      #
+      # `canParticipateInChain` fail-closed (approval.ts:199) — dan itu BENAR,
+      # ember [C]. Tapi rantai yang TAK ADA berarti nol orang bisa menyetujui:
+      # kasbon, PO, estimasi, cuti tak bisa diputuskan siapa pun, termasuk
+      # pemilik perusahaannya. Gejalanya 403 untuk SEMUA orang, bukan pesan
+      # yang menjelaskan konfigurasinya kurang.
+      #
+      # Ditutup migrasi 580 (trigger AFTER INSERT + backfill). Penjaga ini
+      # memastikan triggernya tak diam-diam berhenti bekerja.
+      #
+      # ⚠ Memeriksa TIGA arah, dan yang kedua bukan basa-basi: rantai yang ADA
+      # tapi TANPA LANGKAH tetap fail-closed — hasilnya sama persis dengan
+      # rantai yang hilang, jadi penjaga yang cuma menghitung rantai akan hijau
+      # pada keadaan yang sama rusaknya.
+      - name: Rantai approval lengkap tiap tenant
+        run: node scripts/audit-rantai-approval-lengkap.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       # Tabel yang lahir DI LUAR jalur migrasi hidup nyaman di dev dan HILANG
       # di tiap basis baru — VPS termasuk. Tiga kali terjadi 2026-08-31, dan
       # tiap kali gejalanya menunjuk ke tempat lain:
