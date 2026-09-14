@@ -3193,7 +3193,60 @@ pernah ada.
 
 ---
 
-## R-010 · P1 · Pelanggan baru lahir TANPA rantai approval — pengajuannya tak bisa diputuskan siapa pun
+## R-010 · ✅ SELESAI 2026-09-14 — dan cakupannya 9× lebih luas dari yang tercatat
+
+> Dikerjakan lewat migrasi **580** (usul 1) + penjaga
+> `audit-rantai-approval-lengkap.mjs` (usul 3) — persis rekomendasi entri ini.
+>
+> ### Peringatan entri aslinya benar
+>
+> *"Perlu diperiksa mana saja yang di-seed per-company… BELUM diperiksa —
+> jangan diasumsikan hanya submittal."* Diperiksa:
+>
+> ```
+> submittal · back_charge · klaim_perjalanan · opname_bersama   786-787 company
+> sembilan jenis lain                                                 1 company
+> ```
+>
+> **Sembilan dari 13 jenis hanya ada di tenant PERTAMA.** Dua tenant nyata
+> punya 4 dari 13 — jadi kasbon, PO, estimasi, cuti, change order di sana tak
+> bisa diputuskan siapa pun, termasuk pemiliknya.
+>
+> ### Dibuktikan sebelum & sesudah
+>
+> | | sebelum | sesudah |
+> |---|---|---|
+> | tenant BARU | 0 rantai · 0 langkah | **13 · 13** |
+> | PT Puraloka Nusantara | 4 | **13** |
+> | PT Puraloka Properti | 4 | **13** |
+>
+> Cetakannya DIBACA dari tenant yang lengkap, bukan ditulis tangan — 13
+> pasangan (entity_type, izin) dari ingatan menghasilkan rantai yang MIRIP
+> tapi tak sama, dan izin yang meleset satu huruf tak bisa dipenuhi siapa pun.
+>
+> ### Penjaga memeriksa TIGA arah
+>
+> Rantai ADA tapi TANPA LANGKAH tetap fail-closed — hasilnya sama persis
+> dengan rantai yang hilang. Mutasi: trigger dicabut → MERAH; langkah dihapus
+> → MERAH + menyebut tenant & jenisnya; dipulihkan → HIJAU.
+>
+> ### ⚠ Dua penjaga repo menangkap cacat migrasi SAYA
+>
+> `audit-migrasi-skema-dipaku` (saya memaku `public.`) dan
+> `audit-klasifikasi-tenancy` (tabel cetakan tanpa jalur tenancy). Keduanya
+> benar; keduanya diperbaiki.
+>
+> ### Dan triggernya MENGUNGKAP dua kebocoran fixture lama
+>
+> Dua test menyisipkan level-2 ke SETIAP rantai tapi `RETURNING id` cuma
+> menangkap `rows[0]` — 15 + 18 baris tertinggal. Tak bergejala selama hanya
+> satu company punya rantai. Kini dihapus lewat LABEL; nol residu sesudah run.
+>
+> commit `1e6046f0` · test 193/193 · penjaga 250 hijau
+
+---
+
+## R-010 (asli) · P1 · Pelanggan baru lahir TANPA rantai approval — pengajuannya tak bisa diputuskan siapa pun
 
 **Status:** terbuka · dibuka 2026-08-05 · **cacat produksi, ditemukan lewat test**
 
