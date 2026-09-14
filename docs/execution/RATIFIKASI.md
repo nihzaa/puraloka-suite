@@ -4074,7 +4074,80 @@ SELECT r.name, count(rp.*) izin,
 
 ---
 
-## R-020 · 116 menu tanpa izin — klien melihat 121 dari 191 pintu
+## R-020 · ✅ GELOMBANG 1 SELESAI 2026-09-14 — dan ia melahirkan R-023
+
+> Diambil untuk dikerjakan. Angkanya masih berlaku (sedikit lebih besar), dan
+> penelusurannya menemukan sesuatu yang LEBIH BESAR di luar cakupan aslinya.
+>
+> | | 2026-08-31 | 2026-09-14 |
+> |---|---|---|
+> | menu aktif | 191 | **205** |
+> | tanpa `required_permissions` | 116 | **116** |
+> | dilihat peran `client` | 121 | **122** |
+>
+> ### Yang ditemukan saat menggarapnya
+>
+> Kesimpulan R-020 — *"yang bocor PINTU, bukan isi"* — **sah untuk
+> cakupannya**: yang diperiksa `finance.ts`, dan rutenya memang berpagar.
+>
+> Diperiksa ke SELURUH rute tulis, ceritanya lain: `DELETE
+> /mandor/workers/:id` hanya ber-`authenticate`, dan klien bisa menghapus
+> tukang. Itu dibuka sebagai **R-023** dan sudah TUNTAS (ratchet 28 → 15).
+>
+> ### Kenapa R-020 sendiri belum saya kerjakan
+>
+> Alasan aslinya masih berlaku, dan pengukuran ulang menegaskannya: menurunkan
+> izin menu secara otomatis dari gerbang rute **menghasilkan usul yang salah
+> arah**. Diukur ulang untuk 9 menu uang/HR:
+>
+> ```
+> /kas/akun        → cash:account:manage   (MANAGE, untuk halaman LIHAT)
+> /mandor/kasbon   → mandor:assign         (izin MENUGASKAN, bukan melihat)
+> /kas/pengeluaran → 4 izin campur, termasuk approve
+> ```
+>
+> Izin LIHAT yang tepat SEMUANYA ADA (`cash:view`, `mandor:view`,
+> `procurement:view`, `rekonsiliasi:view`, `finance:tax:view`) — jadi ini
+> pekerjaan MEMILIH, bukan menurunkan, dan salah pilih menghilangkan menu dari
+> orang yang berhak.
+>
+> ### Gelombang 1 SELESAI 2026-09-14 — migrasi 578
+>
+> Kesembilan menu UANG & HR dipasangi izin LIHAT yang DIPILIH per-menu:
+>
+> ```
+> /kas · /kas/akun · /kas/pengeluaran · /kas/transfer  → cash:view
+> /kas/rekonsiliasi                                     → rekonsiliasi:view
+> /laporan?tab=pajak                                    → finance:tax:view
+> /mandor/kasbon · /mandor/upah                         → mandor:view
+> /procurement/kualifikasi                              → procurement:view
+> ```
+>
+> Hasil terukur:
+>
+> | | sebelum | sesudah |
+> |---|---|---|
+> | menu tanpa izin | 116 | **107** |
+> | dilihat `client` | 122 | **113** |
+> | menu uang/HR tanpa izin | 9 | **0** |
+>
+> Dan yang berhak TIDAK kehilangan apa pun — diperiksa per peran atas 6 menu:
+>
+> ```
+> client 0/6 · admin 6/6 · manajer_keuangan 4/6 · kasir 2/6 · mandor 2/6 · pm 2/6
+> ```
+>
+> Verifikasi migrasinya memeriksa TIGA arah: menu berizin, kunci ada di
+> katalog (kunci hantu menolak SEMUA orang tanpa gejala), dan `client` tak
+> lagi melihatnya.
+>
+> ⚠ Sisa **107 menu** menunggu — tiap menu butuh pemilihan izin tersendiri,
+> dan menurunkannya otomatis sudah terbukti menghasilkan usul salah arah.
+> Bukan pekerjaan yang bisa diselesaikan satu migrasi.
+
+---
+
+## R-020 (asli) · 116 menu tanpa izin — klien melihat 121 dari 191 pintu
 
 **Diajukan 2026-08-31. Belum ada yang diubah. Ditemukan sesi `puraloka-suite-e7`,
 diukur ulang di sini.**
@@ -4170,7 +4243,62 @@ SELECT count(*) FILTER (WHERE required_permissions IS NULL
 
 ---
 
-## R-021 · 246 menu mati sesudah rantai migrasi — 36 halaman kini yatim
+## R-021 · ✅ TAK PERLU DIPUTUSKAN LAGI — diukur ulang 2026-09-14, angkanya sudah basi
+
+> Diambil untuk dikerjakan, dan pengukuran ulangnya menutupnya sendiri.
+> Angka 2026-09-01 di bawah **tidak lagi menggambarkan keadaan**.
+>
+> | | 2026-09-01 | 2026-09-14 |
+> |---|---|---|
+> | grup induk MATI ber-anak berhalaman | 16 | **7** |
+> | anak berhalaman di bawahnya | 104 | **69** |
+> | halaman dashboard YATIM | 36 | **4** |
+>
+> ### Dan ketujuh grup mati itu bukan kehilangan
+>
+> **Lima dari tujuh punya KEMBARAN yang AKTIF** dengan label sama — yang mati
+> duplikatnya, dinonaktifkan dengan benar:
+>
+> ```
+> Alat & Aset · Gudang & Material · Mandor & Subkon · Master Data · Pengadaan
+>   → masing-masing 1 aktif + 1 mati
+> ```
+>
+> Dari 69 anak berhalaman di bawah induk mati, **42 href-nya sudah dilayani
+> menu AKTIF lain**. Sisa 27 diperiksa ke disk:
+>
+> ```
+> href tak terlayani menu aktif : 27
+> di antaranya PUNYA page.tsx   : 0
+> berawalan /m/ (placeholder)   : 27 dari 27
+> ```
+>
+> Kedua puluh tujuhnya rute `/m/…` — dan `/m/` **bukan halaman
+> yang hilang**, melainkan satu halaman `[key]` yang sengaja dibangun untuk
+> menu yang BELUM ADA, lengkap dengan penjelasan per-menu (apa yang akan
+> dikerjakan, kenapa belum ada, ke mana sementara ini).
+>
+> Menyalakannya justru akan memasang pintu yang menuju halaman "belum
+> dibangun" — kebalikan dari yang R-021 hendak perbaiki.
+>
+> ### Empat halaman "yatim" pun bukan yatim
+>
+> `/estimasi/kas` · `/estimasi/rab` · `/estimasi/rap` · `/estimasi/varians`
+>
+> Keempatnya dijangkau lewat tab di `estimasi/layout.tsx`, bukan lewat
+> sidebar. Itu sub-navigasi yang disengaja, bukan halaman yang terlepas.
+>
+> ⚠ `audit-nav-yatim` yang dirujuk entri asli **tidak ada** di repo ini.
+> Angka 36 itu tak bisa diproduksi ulang oleh alat mana pun yang tersisa —
+> alasan tambahan untuk mengukur ulang alih-alih mempercayainya.
+>
+> **Tak ada yang perlu Anda putuskan.** Kalau kelak sebuah menu `/m/`
+> benar-benar dibangun halamannya, menyalakannya jadi keputusan satu menu —
+> bukan 104 sekaligus.
+
+---
+
+## R-021 (asli) · 246 menu mati sesudah rantai migrasi — 36 halaman kini yatim
 
 **Diajukan 2026-09-01. Belum ada yang diubah. Ditemukan sesi
 `puraloka-suite-7b`, ditelusuri di sini.**
