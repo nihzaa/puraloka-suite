@@ -80,12 +80,35 @@ jalankan-semua-penjaga.mjs   → 251 hijau · 0 MERAH · 4 dilewati · 0 tak ket
 ledger-diff                  → 581 TERCATAT-KONSISTEN
 ```
 
+### Suite penuh KEDUA — sesudah 581, hijau seluruhnya
+
+Dijalankan BERURUTAN (bukan paralel — §7), commit `444e9d53`:
+
+```
+Test Files  497 passed (497)
+     Tests  7307 passed | 6 skipped (7313)
+```
+
+Selisihnya tepat satu terhadap run sebelumnya (7.306 → 7.307 lulus): assertion
+`t5a0-policy-dasar` berbalik, dan tak ada lagi yang bergeser. Selisih yang
+COCOK dengan yang diharapkan — kalau ia meleset, itu temuan baru, bukan
+pembulatan.
+
+⚠ Cakupannya: satu basis dev, dua run berurutan. Ia TIDAK mengatakan apa pun
+tentang CI berbagi-shard — R-009 masih terbuka, dan merah di sana
+berpindah-pindah antar-shard.
+
 ### Pelajaran yang saya tulis untuk diri sendiri
 
 Migrasi yang MEMBUAT TABEL punya daftar periksa yang tak dimiliki migrasi
 lain: RLS menyala tanpa policy adalah keadaan yang **tak bergejala di jalur
 trigger/service_role**, yaitu persis jalur yang dipakai untuk mengujinya
 sendiri. Hijau di penjaga skrip tidak menggantikan suite penuh.
+
+Dan sepupunya, yang sudah menggigit saya sekali sesi ini (lanjutan 4): saya
+pernah mengklaim "0 MERAH" sebelum membuktikannya. Aturan yang saya pakai
+sekarang: **dua run berurutan pada commit yang SAMA**, dan selisih antar-run
+harus bisa dijelaskan angka per angka.
 
 ---
 
