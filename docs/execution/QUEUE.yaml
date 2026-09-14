@@ -4314,10 +4314,104 @@ items:
 
   - id: MERGE-SUMBU-UI
     fase: null
-    judul: "73 commit tertahan di feat/sumbu-ui-roadmap — 11 migrasinya SUDAH jalan di basis"
+    judul: "73 commit tertahan — DIPETAKAN 2026-09-14: 93 bentrok nyata (bukan 222), 9 migrasi kembar, 6 migrasi belum tercatat"
     status: todo
     prioritas: sedang
     catatan: |
+      ══ PEMETAAN 2026-09-14 — BACA INI DULU; ia mengubah ukuran pekerjaannya ══
+
+      Prasyarat garis-dasar SUDAH TERPENUHI: suite penuh 497/497, 7.307 lulus,
+      0 merah (dua run berurutan). Jadi kegagalan SESUDAH merge kini bisa
+      dibedakan dari yang sudah ada — penghalang utama item ini hilang.
+
+      ── 1. "222 berkas bentrok" adalah BATAS ATAS, bukan bentrok
+
+      222 itu jumlah berkas yang disentuh KEDUA sisi. Bentrok NYATA diukur
+      dengan `git merge-tree` (bukan ditaksir dari nama berkas):
+
+          disentuh cabang       : 359
+          disentuh main         : 1.185
+          disentuh KEDUA sisi   : 222   ← angka lama
+          BENTROK NYATA         :  93   ← git merge-tree
+
+      Ukur ulang sendiri:
+
+          B=$(git merge-base origin/main feat/sumbu-ui-roadmap)
+          git merge-tree --write-tree origin/main feat/sumbu-ui-roadmap > /tmp/mt.txt
+          awk '/^[0-9]{6} [0-9a-f]{40} [123]	/ {print $4}' /tmp/mt.txt | sort -u
+
+      ── 2. Sembilan migrasi KEMBAR — dan resolusinya mekanis
+
+      Migrasi yang SAMA ada di kedua sisi dengan NOMOR BERBEDA. Main memakai
+      462-488, cabang menomori ulang jadi 474-496:
+
+          main 474 = cabang 488   profil_baja_cnp_inp          IDENTIK
+          main 475 = cabang 489   struktur_elemen_jenis_baja   IDENTIK
+          main 476 = cabang 490   mitra_induk_hidup            BERBEDA
+          main 477 = cabang 491   takeoff_sektor               BERBEDA
+          main 483 = cabang 492   struktur_sloof_tangga        IDENTIK
+          main 484 = cabang 493   struktur_balok_t             IDENTIK
+          main 485 = cabang 494   tujuh_otomasi_bertenggat     BERBEDA
+          main 486 = cabang 495   struktur_komposit_atap       IDENTIK
+          main 488 = cabang 496   struktur_sambungan_ringan    IDENTIK
+
+      ⚠ Nomor 488 dipakai DUA migrasi berbeda (main: sambungan_ringan;
+      cabang: profil_baja) — kelas yang sama dengan R-015/R-016.
+
+      **Ketiga yang BERBEDA, main-nya yang LEBIH BARU** — diverifikasi isi,
+      bukan tanggal:
+
+        · takeoff_sektor    — cabang TAK punya bored_pile & baja_profil
+                              (itu perbaikan R-018 yang mendarat di main)
+        · mitra_induk_hidup — cabang TAK punya UPDATE yang menghidupkan
+                              induknya; ia MEMERIKSA tanpa MENGERJAKAN
+        · tujuh_otomasi_…   — cabang TAK punya saringan `is_active`
+                              (membandingkan dua populasi berbeda)
+
+      **Resolusi untuk kesembilan: AMBIL MAIN, buang duplikat cabang.**
+      Dan itu bukan selera — buku migrasi mencatat penomoran MAIN (474, 477,
+      488…); nomor 489-496 milik cabang TAK PERNAH tercatat.
+
+      ── 3. Enam migrasi cabang yang BELUM TERCATAT — ini isi sebenarnya
+
+      Tujuh belas migrasi hanya ada di cabang. Sebelas di antaranya sudah
+      tercatat di buku (478-482, 497-501) — itu yang ditemukan
+      `audit-migrasi-tertinggal-deploy.mjs`. **Enam sisanya belum**:
+
+          cabang 471  takeoff_sektor_bored_pile     114 baris
+          cabang 472  menu_ikon_anak_konsisten       65 baris
+          cabang 473  takeoff_sektor_baja_profil    131 baris
+          cabang 474  nama_analisa_poer_plat         91 baris
+          cabang 476  izin_template_rab              80 baris
+          cabang 477  template_item_cost_code        56 baris
+
+      ⚠ Nomor 471-477 SUDAH DIPAKAI main untuk migrasi yang BERBEDA. Keenamnya
+      WAJIB dinomori ulang ke 582+ saat merge — memakai nomornya apa adanya
+      adalah pelanggaran G-2.
+
+      ── 4. Kenapa keenam itu BERHARGA, bukan sekadar kerapian
+
+      Diukur ke basis: kolom `diameter_m`, `berat_kg_per_m`,
+      `panjang_standar_m` dan constraint `takeoff_diameter_positif`,
+      `takeoff_berat_per_m_positif`, `takeoff_panjang_standar_positif`
+      **SUDAH ADA di dev** — dipasang di luar jalur migrasi.
+
+      Itu PERSIS temuan R-018: artefak yang ada di dev tanpa migrasi akan
+      HILANG di basis baru (VPS bersih, CI dari nol). Keenam berkas ini
+      adalah jejak kertas yang hilang untuk schema yang sudah hidup.
+
+      Jadi merge ini menutup lubang nyata, bukan merapikan riwayat.
+
+      ⚠ Migrasi 553 TIDAK menggantikannya: 553 hanya menyentuh CHECK
+      `takeoff_sektor_sah`, tidak membuat kolom maupun constraint lain.
+
+      ── 5. Urutan yang disarankan
+
+      Keputusan yang tersisa (arah merge, dan apakah dikerjakan sekarang)
+      BELUM diambil — lihat RATIFIKASI R-024.
+
+      ── Yang di bawah catatan SEBELUM pemetaan di atas ────────────────────
+
       Ditemukan 2026-09-11 oleh `audit-migrasi-tertinggal-deploy.mjs` pada
       jalan pertamanya, dari arah yang tak diduga: entri buku migrasi yang
       BERKASNYA TAK ADA.

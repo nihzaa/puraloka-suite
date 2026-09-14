@@ -4207,6 +4207,116 @@ tanpa memeriksa `pg_policies`. Dua lapis, dan saya hanya mengukur satu.
 
 ---
 
+## R-024 · G-2 · Merge `feat/sumbu-ui-roadmap` — 6 migrasi butuh penomoran ulang
+
+**Status:** menunggu founder · dibuka 2026-09-14
+**Terkait:** QUEUE `MERGE-SUMBU-UI` (pemetaan lengkap ada di sana)
+
+### Kenapa ini sampai ke Anda, bukan saya kerjakan sendiri
+
+Dua dari lima pengecualian autopilot kena sekaligus (CLAUDE.md §8a.1):
+
+- **G-2 buku migrasi** — enam migrasi cabang harus DINOMORI ULANG sebelum
+  masuk, dan penomoran menentukan apa yang di-replay CI selamanya.
+- **Menimpa kerja yang belum ter-commit** — 73 commit milik cabang, dan
+  resolusi bentroknya membuang sebagian isinya.
+
+Sisanya (93 bentrok berkas biasa) akan saya kerjakan sendiri tanpa bertanya.
+
+### Keadaan terukur hari ini
+
+```
+tertahan (main..cabang)   :  73 commit
+tertinggal (cabang..main) : 783 commit      ← cabang bercabang 2026-08-22
+bentrok NYATA (merge-tree):  93 berkas      (bukan 222 — itu batas atas)
+garis dasar test          : 497/497, 7.307 lulus, 0 merah
+```
+
+Garis dasar nol merah itu penting: ia yang dulu memblokir item ini, sebab
+kegagalan sesudah merge tak bisa dibedakan dari yang sudah ada. Sekarang bisa.
+
+### Yang sebenarnya dibawa cabang ini — dan kenapa berharga
+
+Enam migrasi cabang **belum tercatat di buku**, dan isinya bukan kerapian:
+
+```
+471  takeoff_sektor_bored_pile     114 baris
+472  menu_ikon_anak_konsisten       65
+473  takeoff_sektor_baja_profil    131
+474  nama_analisa_poer_plat         91
+476  izin_template_rab              80
+477  template_item_cost_code        56
+```
+
+Diukur ke basis: kolom `diameter_m`, `berat_kg_per_m`, `panjang_standar_m`
+plus tiga constraint-nya **SUDAH ADA di dev** — dipasang di luar jalur
+migrasi. Itu persis temuan R-018: artefak yang ada di dev tanpa migrasi akan
+**hilang di basis baru** (VPS bersih, CI dari nol).
+
+Jadi keenam berkas ini adalah **jejak kertas yang hilang untuk schema yang
+sudah hidup**. Tanpa merge, basis baru tak akan pernah punya kolomnya, dan
+kode yang menyentuhnya gagal berhari-hari kemudian dengan galat yang menuduh
+KODE (`column does not exist`).
+
+⚠ Migrasi 553 TIDAK menggantikannya — ia hanya menyentuh CHECK
+`takeoff_sektor_sah`, bukan kolom maupun constraint lain.
+
+### Sembilan migrasi kembar — resolusinya sudah jelas, saya sebut supaya terlihat
+
+Migrasi yang SAMA ada di dua sisi dengan nomor berbeda (main 462-488, cabang
+menomori ulang 474-496). Tiga di antaranya isinya BERBEDA, dan **main yang
+lebih baru dalam ketiganya** — diverifikasi isi, bukan tanggal:
+
+| | yang HILANG di versi cabang |
+|---|---|
+| `takeoff_sektor` | dua sektor struktur — yaitu perbaikan R-018 |
+| `mitra_induk_hidup` | `UPDATE` yang menghidupkan induknya; ia memeriksa tanpa mengerjakan |
+| `tujuh_otomasi_bertenggat` | saringan `is_active` — membandingkan dua populasi berbeda |
+
+Buku migrasi mencatat penomoran MAIN (474, 477, 488…); nomor 489-496 milik
+cabang tak pernah tercatat. **Ambil main, buang duplikat cabang** — untuk
+kesembilannya.
+
+⚠ Nomor **488 dipakai DUA migrasi berbeda** di dua sisi. Kelas yang sama
+dengan R-015/R-016 (delapan nomor dipakai dua kali), dan itu sebabnya
+penomoran ulang tak boleh ditebak.
+
+### Yang saya minta diputuskan
+
+**K1 — penomoran ulang keenam migrasi ke 582-587?**
+
+Rekomendasi saya: **YA**. Nomor 471-477 sudah dipakai main untuk migrasi
+BERBEDA; memakainya apa adanya adalah pelanggaran G-2 yang membuat CI
+me-replay berkas yang salah. Urutan relatifnya dipertahankan
+(bored_pile → ikon → baja_profil → poer_plat → izin_template → cost_code).
+
+⚠ Keenamnya akan BENAR-BENAR JALAN di basis baru, dan sebagian sudah ada
+artefaknya di dev — jadi masing-masing wajib idempoten (`IF NOT EXISTS` /
+`DROP … IF EXISTS`) sebelum dicatat. Itu saya periksa satu per satu, bukan
+diasumsikan.
+
+**K2 — dikerjakan sekarang, atau sesudah pekerjaan lain?**
+
+Rekomendasi saya: **sekarang**. Alasannya bukan kerapian — jaraknya melebar
+sendiri (763 → 783 commit tertinggal dalam satu hari), dan tiap commit baru
+di main menambah permukaan bentrok. Garis dasar 0 merah juga tak akan
+bertahan selamanya; ia yang membuat verifikasi sesudah merge bermakna.
+
+**K3 — arah merge: `main → cabang` dulu, baru PR balik?**
+
+Rekomendasi saya: **YA**. Menarik 783 commit main KE cabang lebih dulu
+membuat bentroknya diselesaikan DI LUAR `main`, jadi `main` tak pernah dalam
+keadaan setengah-jadi. Kalau hasilnya buruk, cabangnya dibuang tanpa
+menyentuh apa pun.
+
+### Kalau K2 dijawab "tunda"
+
+Tak ada yang rusak hari ini — dev sudah punya schemanya. Yang tertunda:
+**basis BARU tetap tak bisa dibangun utuh** (VPS bersih, CI dari nol), dan
+itu diam sampai ada yang mencoba.
+
+---
+
 ## R-018 · ✅ SELESAI — diukur ulang 2026-09-14, tak ada lagi yang perlu diputuskan
 
 **Ditutup 2026-09-14. Catatan aslinya dipertahankan di bawah, tidak dihapus.**
