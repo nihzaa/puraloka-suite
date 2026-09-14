@@ -2807,6 +2807,30 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # Rute TULIS wajib punya gerbang OTORISASI, bukan cuma `authenticate`.
+      #
+      # 2026-09-14, saat menelusuri R-020: `DELETE /mandor/workers/:id` hanya
+      # ber-`authenticate`, dan satu-satunya pemeriksaannya
+      # `if (user.role === 'mandor' && ...)` — jadi peran SELAIN mandor,
+      # termasuk `client`, lolos tanpa diperiksa. Isolasi tenant tetap utuh;
+      # yang hilang pembatasan SIAPA di dalam tenant.
+      #
+      # Beda dari R-020: di sana MENU tampil lalu API menolak (cacat
+      # pengalaman). Di sini API-nya TIDAK menolak.
+      #
+      # ⚠ Versi pertama penjaga ini HAMPIR SELURUHNYA BUTA — regex-nya
+      # menuntut jalur se-baris dengan `app.post(`, sementara pola dominan di
+      # repo ini `app.post<{...}>(` dengan jalur beberapa baris di bawah:
+      # 147 terlihat, 265 TERLEWAT. Hanya uji mutasi yang menunjukkannya
+      # (gerbang dicabut sengaja → penjaga tetap hijau). Sudah diperbaiki dan
+      # dibuktikan merah.
+      #
+      # RATCHET: sebagian rute SAH tanpa izin peran (MFA sendiri, notifikasi
+      # sendiri, impor tahap baca yang nol tulis). Lantai menyimpan DAFTAR
+      # NAMA + alasan per entri, bukan cuma angka.
+      - name: Rute tulis wajib bergerbang otorisasi
+        run: node scripts/audit-rute-tulis-berizin.mjs
+
       # Tabel yang lahir DI LUAR jalur migrasi hidup nyaman di dev dan HILANG
       # di tiap basis baru — VPS termasuk. Tiga kali terjadi 2026-08-31, dan
       # tiap kali gejalanya menunjuk ke tempat lain:

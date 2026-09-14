@@ -5249,3 +5249,95 @@ siapa pun di produksi — role uji tak pernah diberikan ke orang nyata, dan
 pemisahannya justru membuat maksud tiap test terbaca.
 
 **Saya tidak mengerjakan apa pun dari ketiganya** sampai ada keputusan.
+
+---
+
+## R-023 · 17 rute TULIS tanpa gerbang otorisasi — klien bisa MENGHAPUS tukang
+
+**Ditemukan 2026-09-14** saat menggarap R-020. Bukan cacat baru: ia sudah ada
+sejak rutenya ditulis, dan R-020 tak bisa melihatnya karena cakupannya beda.
+
+### Kenapa R-020 menyimpulkan "datanya aman", dan kenapa itu tetap benar
+
+R-020 memeriksa `finance.ts` dan menemukan rutenya berpagar
+`requirePermission('finance:view:all')` — jadi menu yang tampil ke klien
+ditolak API. Kesimpulan *"yang bocor PINTU, bukan isi"* **sah untuk cakupan
+itu**.
+
+Yang tak diperiksa: rute di luar `finance.ts`. Diukur ke SELURUH rute tulis:
+
+```
+rute TULIS bergerbang        373
+rute TULIS TANPA gerbang      28
+   di antaranya SAH            11   (data milik sendiri, impor nol-tulis)
+   UTANG                       17
+```
+
+### Contoh yang diverifikasi baris demi baris
+
+`DELETE /api/v1/mandor/workers/:id` → `preHandler: [authenticate]` saja.
+Satu-satunya pemeriksaan di dalamnya:
+
+```ts
+if (user.role === 'mandor' && worker.mandor_id !== user.id) return 403
+```
+
+Peran SELAIN mandor tak diperiksa sama sekali, dan penghapusannya jalan lewat
+`request.db!` yang cuma menyaring TENANT. **Jadi klien bisa menghapus tukang
+milik perusahaan yang sama.**
+
+⚠ Dan perhatikan bentuk pemeriksaannya: ia memakai literal `'mandor'` sebagai
+gerbang — persis yang dilarang ADR-004 (§5.1 CLAUDE.md). Peran adalah data
+konfigurasi per-tenant; tenant yang menamai perannya lain tak terlindungi
+sama sekali.
+
+### Cakupan dampaknya — DIUKUR, bukan ditaksir
+
+```
+pengguna aktif berperan client : 13
+baris worker_kasbons hari ini  :  1  (Rp 2.000.000)
+```
+
+Jadi **belum ada kerusakan besar yang sudah terjadi** — datanya masih sedikit.
+Yang dibuka ini jalurnya, dan ia tumbuh seiring pemakaian nyata.
+
+### Tujuh belas yang jadi utang
+
+`cash/expenses` · `companies` (+members, pengaturan) · `kasbons` ·
+`mandor/workers` (POST/PATCH/DELETE) · `mandor/worker-kasbons` (+cicilan) ·
+`mandor/wage-reports` · `mandor/kasbon-photo/upload` ·
+`projects/:id/progress-logs` · `documents/:id/access-log`
+
+Sudah DIBEKUKAN penjaga `audit-rute-tulis-berizin.mjs` (ratchet, terdaftar
+di ci.yml) — jumlahnya tak bisa naik lagi tanpa CI merah.
+
+### Yang saya minta diputuskan
+
+Memasang izin di ketujuh belas rute berarti **memilih kunci izin untuk
+masing-masing**, dan salah pilih punya dua arah gagal yang sudah tercatat
+mahal di repo ini:
+
+- terlalu longgar → gerbangnya tak menahan apa pun
+- terlalu ketat → menu HILANG dari orang yang berhak, dan gejalanya "menu
+  saya kok tidak ada" tanpa satu pun galat (kelas yang sama dengan R-020,
+  berbalik arah)
+
+Tiga pilihan:
+
+1. **Kerjakan bertahap, mulai dari yang menyentuh UANG & ORANG** —
+   `mandor/workers` (hapus tukang), `mandor/worker-kasbons`,
+   `mandor/wage-reports`, `cash/expenses`, `kasbons`. Tujuh rute, dan
+   izinnya sudah ADA di katalog (`mandor:worker:manage`,
+   `mandor:kasbon:create`, `mandor:wage:create`, `cash:expense:create`).
+   Sisanya menyusul.
+2. **Kerjakan semua sekaligus** — 17 rute, satu commit. Lebih cepat, tapi
+   kalau satu pilihan izin salah, gejalanya muncul di 17 tempat sekaligus.
+3. **Tunda** — penjaga sudah membekukannya, jadi ia tak bertambah buruk.
+
+**Saran saya: (1).** Yang lima pertama itu menghapus orang dan memindahkan
+uang, izinnya sudah ada di katalog jadi tak perlu migrasi izin baru, dan
+tujuh rute cukup kecil untuk diverifikasi satu per satu lewat test.
+
+⚠ Dan satu hal yang saya TIDAK sarankan: memperbaiki literal `'mandor'` di
+dalam handler sekaligus. Itu menyentuh ADR-004 di banyak tempat dan layak
+jadi pekerjaannya sendiri — bukan efek samping pemasangan gerbang.
