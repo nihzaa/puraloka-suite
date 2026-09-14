@@ -4410,13 +4410,52 @@ dari 21 migrasi + K4 — *"pola yang sama berulang di seluruh cabang ini"* —
 **tidak berlaku untuk berkas kode**, dan menerapkannya akan menghapus
 pekerjaan nyata.
 
-Diukur sebelum menyentuh apa pun (dan inilah yang menyelamatkannya):
+Diukur sebelum menyentuh apa pun (dan inilah yang menyelamatkannya).
+
+⚠ **Angka pertama yang saya tulis di sini SALAH, dan saya biarkan terlihat
+supaya alat ukurnya tak dipakai ulang.** Dua metode dijalankan dan hasilnya
+BERBEDA — itu sendiri temuan:
 
 ```
-berkas kode bentrok                         : 60
-  main SUDAH memuat semua baris cabang      :  1   ← aman
-  cabang punya baris yang main TAK PUNYA    : 59   ← "ambil main" = MENGHAPUS
+metode CEPAT  (comm atas baris, spasi dibuang) : 59 perlu diperiksa ·  1 aman
+metode LAMBAT (grep -qF substring)             : 52 perlu diperiksa ·  8 aman
 ```
+
+**Keduanya cacat, ke arah berlawanan.** Yang cepat membuang SELURUH spasi,
+jadi `project_id: string; work_scope_id: string` jadi satu gumpalan yang tak
+pernah cocok walau isinya ada di main. Yang lambat memakai substring, jadi
+baris pendek cocok di mana saja — termasuk di dalam komentar.
+
+Contohnya `mandor.ts`: metode cepat bilang 9 baris hilang; diperiksa
+langsung, `work_scope_id` muncul **72 kali** di versi main. Alarm palsu.
+
+Yang berwenang adalah perbandingan yang tak bisa ditipu bentuk teks —
+**ada atau tidaknya BERKAS**:
+
+```
+lib/struktur-rancang-balok.ts      main=TIDAK ADA  cabang=ADA
+lib/struktur-rancang-kolom.ts      main=TIDAK ADA  cabang=ADA
+lib/struktur-rancang-plat.ts       main=TIDAK ADA  cabang=ADA
+lib/struktur-rancang-footplat.ts   main=TIDAK ADA  cabang=ADA
+lib/struktur-diameter-baku.ts      main=TIDAK ADA  cabang=ADA
+
+kata "rancang"  main/struktur.ts   :  0
+                cabang/struktur.ts : 35
+```
+
+Dan `git diff --numstat` per berkas memperlihatkan bentuk sebenarnya:
+**kedua sisi sama-sama menambah banyak di berkas yang sama** — bukan satu
+menggantikan yang lain.
+
+```
+otomasi-terjadwal.ts   cabang +2.703/-84   main +2.532/-53
+struktur.ts            cabang   +679/-12   main   +196/-2
+estimasi/struktur/page cabang   +365/-40   main    +17/-4
+```
+
+Itu pengembangan PARALEL, dan tak satu pun dari 60 berkas yang diff-nya
+identik dengan main (0 dari 60). Kesimpulannya tak berubah — yang berubah
+keyakinan saya pada angkanya.
 
 `apps/api/src/routes/v1/struktur.ts` sendiri punya **406 baris** yang tak ada
 di main. Isinya bukan gaya penulisan:
