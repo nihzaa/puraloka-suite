@@ -4309,11 +4309,109 @@ membuat bentroknya diselesaikan DI LUAR `main`, jadi `main` tak pernah dalam
 keadaan setengah-jadi. Kalau hasilnya buruk, cabangnya dibuang tanpa
 menyentuh apa pun.
 
+### ── DIKERJAKAN SEBAGIAN 2026-09-14, dan berhenti di tempat yang benar
+
+Bagian yang **aman dan bisa dibatalkan** sudah saya kerjakan di worktree
+terpisah (`/e/tmp/sumbu-merge`), arah `main → cabang` — jadi `main` tak
+pernah tersentuh dan seluruhnya bisa dibuang tanpa jejak.
+
+**Dua commit normalisasi sudah mendarat di cabang** (`7b8d7735`, `ced37d00`):
+
+```
+sebelum : 93 bentrok · 21 nomor migrasi tabrakan
+sesudah :  80 bentrok ·  0 nomor migrasi tabrakan
+```
+
+Duplikat migrasi ternyata **21, bukan 9**. Pemetaan pertama saya hanya
+menangkap yang muncul di daftar `git merge-tree`; menyisir SELURUH nomor
+menemukan dua belas lagi. Sebelas ada di main dengan nomor lain (tujuh
+identik, empat berbeda dan main LEBIH BARU dalam keempatnya), dan yang
+kedua belas (`475_template_rab`) sudah disediakan main lewat 532+541 —
+dengan versi yang **LEBIH BAIK**: main menyalakan RLS, versi cabang tidak
+sama sekali. Tabel tanpa RLS/policy baru saja dibayar sesi ini (migrasi 581).
+
+Keenam migrasi yang benar-benar hanya milik cabang sudah dinomori **582-587**
+(K1 saya kerjakan sesuai rekomendasi — nomor 471-477 sudah dipakai main untuk
+migrasi BERBEDA, jadi memakainya apa adanya melanggar G-2).
+
+### ── KENAPA SAYA BERHENTI DI 80 BENTROK, dan ini yang perlu Anda putuskan
+
+Kedelapan puluh itu **bukan** derau akhir-baris — saya ukur: nol dari 80
+identik sesudah CR dinormalkan. 84 hunk, sebagian besar satu hunk per berkas.
+
+Yang membuatnya bukan pekerjaan mekanis: **66 dari 80 menyentuh satuan,
+rumus, atau uang.** Contoh yang saya buka pertama sudah cukup menjelaskan:
+
+```
+apps/api/src/lib/takeoff-sektor.ts
+  cabang : 'bored_pile'  → m³  (π/4 × diameter² × kedalaman)
+  main   : 'bored_pile'  → m'  (kedalaman × jumlah titik)
+```
+
+**Dua satuan berbeda untuk sektor yang sama.** Memilih yang salah tak
+mengeluarkan satu pun galat — ia menghasilkan kuantitas RAB yang salah, dan
+itu kelas cacat yang sudah dibayar di repo ini (harga per m³ tersalin ke
+baris kg → 1 m³ beton Rp 626 juta, menyebar ke 32 AHSP).
+
+Saya **condong ke main** (satuannya dari AHSP SE Bina Konstruksi No. 47/2026,
+sudah saya verifikasi lewat migrasi 553 saat menutup R-018), tetapi:
+
+- versi cabang menyebut rumusnya WAJIB sama dengan `analisaTiang` di
+  `struktur-tiang.ts`, dan itu klaim konsistensi yang tak bisa saya
+  sepelekan tanpa memeriksa modul strukturnya;
+- keduanya bisa BENAR untuk hal yang berbeda — "mengebor lubang" dijual per
+  meter, "mengisi beton" per m³. Kalau begitu yang dibutuhkan DUA sektor,
+  bukan memilih salah satu.
+
+Menebaknya diam-diam persis yang dilarang: menutup selisih dengan cerita
+yang nyaman alih-alih mengukurnya (§8a.2).
+
+**K4 — `bored_pile` — TERJAWAB SENDIRI, tak jadi menunggu Anda.**
+
+Saya tulis K4 sebagai pertanyaan, lalu memeriksa modul strukturnya seperti
+yang seharusnya saya lakukan lebih dulu. Jawabannya sudah tertulis di kode
+main, dan bukan preferensi:
+
+> AHSP sudah memisahkan harga per diameter ("φ 20 cm", "φ 30 cm" adalah butir
+> yang berbeda dengan harga berbeda), jadi **mengalikan luas penampang di
+> sini akan menghitung diameter DUA KALI**.
+
+Jadi versi cabang (m³, π/4 × d² × kedalaman) bukan alternatif yang sah — ia
+menghitung diameter dua kali terhadap AHSP yang harganya SUDAH per-diameter.
+Yang dijual butir itu adalah **mengebor**, dan satuannya m'.
+
+Dugaan saya "mungkin dua sektor berbeda (mengebor per m', mengisi beton per
+m³)" juga tak perlu: yang diperiksa `takeoff-sektor.ts` adalah kuantitas
+untuk BUTIR AHSP, dan butir pengecoran punya sektornya sendiri.
+
+Diverifikasi ke penjaga, bukan ke selera:
+
+```
+audit-takeoff-kembar-sepakat  11 sektor, layar & API sepakat, 0 ketidaksepakatan
+audit-sektor-takeoff-cocok    11 sektor, kode & basis cocok, semua bersatuan
+audit-harga-satuan-waras      nol harga identik lintas satuan ruah/massa
+```
+
+**Resolusi: AMBIL MAIN**, sama seperti 21 migrasi sebelumnya. Pola yang sama
+berulang di seluruh cabang ini — ia bercabang 2026-08-22 dan main terus
+diperbaiki sesudahnya.
+
+⚠ Saya catat ini sebagai koreksi cara kerja, bukan cuma hasil: saya sempat
+menaikkan pertanyaan yang **bisa saya ukur sendiri**. Menanyakan hal yang
+terukur sama borosnya dengan menebak hal yang tidak.
+
+Yang **tidak** saya lakukan: menyelesaikan 80 bentrok lalu melaporkannya
+sebagai selesai. Resolusi yang salah di wilayah ini hijau di semua alat.
+
 ### Kalau K2 dijawab "tunda"
 
 Tak ada yang rusak hari ini — dev sudah punya schemanya. Yang tertunda:
 **basis BARU tetap tak bisa dibangun utuh** (VPS bersih, CI dari nol), dan
 itu diam sampai ada yang mencoba.
+
+Worktree `/e/tmp/sumbu-merge` saya TINGGALKAN dalam keadaan bersih (merge
+di-abort, dua commit normalisasi tetap ada). Membuangnya: hapus junction
+`node_modules`-nya DULU, baru `git worktree remove` (CLAUDE.md §8a.1).
 
 ---
 
