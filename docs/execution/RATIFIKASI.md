@@ -2744,7 +2744,67 @@ version IN ('163',…,'174')`. Reversibel penuh; belum ada produksi.
 
 ---
 
-## R-006 · P0 · Database TIDAK BISA dicadangkan — butuh tindakan Supabase
+## R-006 · P0 · ⚠ DIUKUR ULANG 2026-09-14 — datanya AMAN, tapi jobnya MERAH 5 hari
+
+> Diambil untuk dikerjakan. Sebagian saya perbaiki; intinya **tetap butuh
+> Supabase** dan itu dikonfirmasi, bukan diasumsikan.
+>
+> ### Yang tak bisa saya perbaiki, dan buktinya
+>
+> Fungsi yatim bertambah: **3**, bukan 1.
+>
+> ```
+> 2840878  trigger_calc_retention_amount_probe   ns 2840025 (hilang)
+> 6925492  fn_assembly_component_parent_draft    ns 6925186 (hilang)
+> 6925985  project_company_id                    ns 6925186 (hilang)
+> ```
+>
+> Dicoba membuangnya, dua jalan, keduanya di dalam transaksi ber-ROLLBACK:
+>
+> ```
+> DROP FUNCTION <sig>   → "function … does not exist"  (namespace-nya hilang)
+> DELETE FROM pg_depend → "permission denied for table pg_depend"
+> ```
+>
+> Menyunting katalog butuh superuser, dan Supabase tak memberikannya.
+> **Kesimpulan R-006 benar: ini hanya bisa diselesaikan Supabase.**
+>
+> ### ⚠ Yang entri ini TIDAK catat, dan justru lebih mendesak
+>
+> Job `cadangan-harian.yml` **MERAH lima hari berturut-turut** (9-13 Sep).
+>
+> Ditelusuri per-langkah — dan hasilnya melegakan:
+>
+> ```
+> ✅ Cadangan darurat (COPY)        success
+> ✅ Simpan cadangan darurat        success
+> ❌ Buktikan dump berisi           failure   ← mencari berkas yang tak pernah dibuat
+> ⏭ Kunci / Buktikan / Simpan      skipped
+> ```
+>
+> Artefak `cadangan-darurat-2026-09-13` **ada, 11,8 MB, belum kedaluwarsa**.
+> Jadi datanya memang tercadangkan tiap hari — yang gagal cuma verifikasi
+> jalur `pg_dump` yang mustahil berhasil.
+>
+> **Diperbaiki:** empat langkah jalur `pg_dump` kini dipagari
+> `if: env.PGDUMP_GAGAL == '0'`, mengikuti pola yang SUDAH dipakai dua
+> langkah jalur darurat (baris 281 & 354).
+>
+> Alasannya bukan kerapian: merah yang WAJAR dan berulang mengajari orang
+> mengabaikan kolom status, dan kegagalan sungguhan nanti ikut terabaikan —
+> kelas yang sama dengan `audit-jadwal-company-hidup` di CLAUDE.md §6. Job
+> yang merah tiap hari adalah jaring pengaman yang tak seorang pun lihat.
+>
+> ### 🔴 Yang TETAP menunggu Anda
+>
+> Hubungi dukungan Supabase untuk membersihkan 3 fungsi yatim di katalog.
+> Tanpa itu `pg_dump` — dan karenanya perkakas pemulihan resmi Supabase —
+> tetap mustahil. Cadangan `COPY` menyelamatkan DATA, bukan STRUKTUR
+> (struktur dipulihkan dari `db/migrations/*.sql`).
+
+---
+
+## R-006 (asli) · P0 · Database TIDAK BISA dicadangkan — butuh tindakan Supabase
 
 **Status:** menunggu founder · dibuka 2026-08-03
 **Diukur ulang 2026-08-07:** fungsi yatimnya **MASIH ADA** (oid 2840878,
