@@ -4581,6 +4581,48 @@ telat ketahuan.
    pun memberi angka SALAH (7 merah, padahal sesungguhnya 0) — checkout yang
    setengah jadi tak bisa diukur.
 
+### ── DI MANA PEKERJAANNYA TERSIMPAN (worktree sudah dibuang)
+
+Worktree `/e/tmp/sumbu-merge` sudah dibersihkan 2026-09-14 — junction
+`node_modules` dihapus DULU tanpa `/S` (CLAUDE.md §8a.1), dibuktikan nol
+junction tersisa, lalu direktorinya. `node_modules` asli utuh.
+
+**Cabang tetap hidup di repo, tak ada yang hilang:**
+
+| cabang | commit | isi |
+|---|---|---|
+| `feat/sumbu-ui-roadmap` | `ced37d00` | 73 commit asli **+ dua commit normalisasi migrasi** (nol nomor tabrakan, enam migrasi jadi 582-587) |
+| `integrasi/sumbu-tahap2` | `55401fd2` | main + 96 berkas cabang-saja sebagai commit WIP — yang terbukti 15 MERAH |
+
+Untuk melanjutkan, buat worktree baru dari `main` **LOKAL** (bukan
+`origin/main` — ia basi, lihat jebakan di atas), lalu ambil dari cabangnya.
+
+### Apa yang harus diputuskan supaya bisa lanjut
+
+Selain K1/K2/K5 di atas, satu hal baru:
+
+**K6 — lima belas penjaga merah itu diapakan?**
+
+Ratchet main sudah diketatkan sejak cabang bercabang. Kode cabang sah di
+zamannya, melanggar lantai hari ini. Tiga jalan, dan **semuanya menyentuh
+G-5 kecuali yang ketiga**:
+
+| | jalan | ongkos | risiko |
+|---|---|---|---|
+| a | naikkan lantai ratchet supaya muat | murah | **melemahkan penjaga = G-5**; hutangnya jadi permanen dan tak ada yang menagih |
+| b | perbaiki kodenya sampai memenuhi lantai sekarang | mahal, per-berkas | tak ada — ini yang benar |
+| **c** | **masukkan bertahap, tiap kelompok DIPERBAIKI dulu** | mahal tapi terbagi | tak ada; tiap langkah bisa dibatalkan sendiri |
+
+Rekomendasi saya **(c)**, dan alasan menolak (a) bukan kaku: lantai yang
+dinaikkan "sementara" tak pernah turun lagi — tak ada yang menagih hutang
+yang sudah disahkan. Penjaga yang lantainya mengikuti kode berhenti menjaga
+apa pun.
+
+⚠ Saya **tidak** menjalankan (a) sendiri meski itu membuat semuanya hijau
+dalam sepuluh menit. Melemahkan penjaga adalah Gerbang Keras G-5, dan hijau
+yang dibeli dengan melonggarkan ambang adalah bentuk laporan palsu yang
+paling sulit ketahuan nanti.
+
 ### Kalau K2 dijawab "tunda"
 
 Tak ada yang rusak hari ini — dev sudah punya schemanya. Yang tertunda:
