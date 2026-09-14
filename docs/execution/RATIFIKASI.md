@@ -3677,7 +3677,83 @@ Anda kehendaki untuk membawanya ke CI.
 
 ---
 
-## R-017 · Peran PM kehilangan 183 izin — termasuk `projects:view`
+## R-017 · ✅ SELESAI 2026-09-14 — dan judul aslinya sudah TIDAK BENAR
+
+> Diambil untuk dikerjakan. Bagian terburuknya sudah diperbaiki seseorang,
+> dan entri ini tak pernah diperbarui.
+>
+> | | 2026-08-31 | 2026-09-14 |
+> |---|---|---|
+> | izin `pm` | 37 | **58** |
+> | `pm` punya `projects:view` | ❌ | **✅** |
+> | izin `admin` | 228 | 229 |
+>
+> **Kalimat paling tajam di entri asli — *"PM tak bisa melihat proyek. Klien
+> bisa."* — sudah tidak berlaku.**
+>
+> ### Yang TERSISA, dan kenapa ini bukan lagi cacat melainkan PILIHAN
+>
+> Izin `pm` hari ini koheren: estimasi/RAB/RAP, K3, mutu, NCR, punch,
+> inspeksi, izin kerja, progres. Itu paket manajer proyek lapangan.
+>
+> Yang TAK dipegangnya dan menutup **10 menu aktif**:
+>
+> ```
+> mandor:view      → /mandor · kasbon · opname · SPK · upah   (5 menu)
+> procurement:view → /procurement · hutang · kualifikasi      (3 menu)
+> reports:view     → /laporan                                 (1)
+> clients:view     → /klien                                   (1)
+> ```
+>
+> ⚠ `/kalender` TIDAK tertutup — sidebar memakai **match-ANY**
+> (`required_permissions.some(...)`), dan PM lolos lewat `projects:view`.
+> Angka 11 yang terlihat dari query kasar karena itu salah; yang benar 10.
+>
+> ### Kenapa saya tak menambahkannya sendiri
+>
+> Diukur apa yang PM KERJAKAN di basis: 19 proyek sebagai `pm_id`, 249
+> catatan progres, 1 pengeluaran (akun uji). Tak satu pun menyentuh mandor,
+> pengadaan, atau klien — jadi datanya **tak membuktikan** PM butuh keempat
+> izin itu.
+>
+> Dan arah sebaliknya tak netral: `procurement:view` membuka **utang
+> supplier**, `mandor:view` membuka **upah & kasbon tukang**. Memberikannya
+> berarti memutuskan bahwa manajer proyek boleh melihat angka pembayaran
+> pihak ketiga — keputusan kewenangan, bukan perbaikan bug.
+>
+> ### Yang saya minta diputuskan
+>
+> 1. **Beri `mandor:view` + `procurement:view` saja** — PM mengelola
+>    pelaksanaan, dan tak bisa melihat mandor/pengadaan di proyeknya sendiri
+>    itu janggal. `reports:view` & `clients:view` menyusul bila perlu.
+> 2. **Beri keempatnya** — PM melihat seluruh operasional proyek.
+> 3. **Biarkan** — 58 izin memang paket yang dimaksud; yang perlu dilihat
+>    PM sudah ada.
+>
+> **Saran saya: (1)** — dan founder sudah menyerahkan keputusan semacam ini
+> ke rekomendasi saya, jadi **DIKERJAKAN** lewat migrasi **579**.
+>
+> ```
+> izin pm                        58 → 60
+> izin MANAGE mandor/pengadaan   NIHIL  (sengaja — LIHAT saja)
+> izin client                    8 → 8  (tak tersentuh)
+> menu aktif terlihat pm         36
+> ```
+>
+> Verifikasi migrasinya memeriksa TIGA arah, dan yang kedua menjaga maksudnya:
+> kalau suatu saat seseorang menyalin bloknya dan mengganti daftar izinnya,
+> migrasi GAGAL KERAS bila `pm` mendapat `manage` di wilayah itu.
+>
+> `reports:view` & `clients:view` TIDAK diberikan: lebih dekat ke wilayah
+> komersial yang wajar dipegang admin/direktur, dan tak satu pun aktivitas
+> `pm` di basis menyentuh keduanya.
+>
+> ⚠ Apa pun pilihannya, ia **bukan** perbaikan 183 izin seperti judul asli —
+> itu angka dari keadaan yang sudah tak ada.
+
+---
+
+## R-017 (asli) · Peran PM kehilangan 183 izin — termasuk `projects:view`
 
 **Diajukan 2026-08-31. MENUNGGU FOUNDER — belum ada yang diubah.**
 
