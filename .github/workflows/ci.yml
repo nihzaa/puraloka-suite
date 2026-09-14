@@ -2856,6 +2856,32 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # Tiap peran wajib memegang minimal SATU izin.
+      #
+      # R-019 (2026-08-31): 16 peran template buatan migrasi 364 berakhir
+      # dengan NOL izin. Yang membuatnya lebih dari kerapian — migrasi 364
+      # TERCATAT SUKSES, dan ia diakhiri tuntutannya sendiri:
+      #
+      #     IF n_kosong > 0 THEN RAISE EXCEPTION '364 gagal: …'
+      #
+      # Diukur saat itu: n_kosong = 16. Migrasi yang tercatat sukses
+      # meninggalkan basis dalam keadaan yang ia sendiri nyatakan GAGAL —
+      # kelas yang sama dengan 111/372/374 (migrasi 570-572).
+      #
+      # CI hijau sepanjang itu karena CI memutar rantai dari basis KOSONG,
+      # tempat 364 berjalan utuh. Yang menyimpang cuma basis yang sudah lama.
+      #
+      # Keadaannya kini pulih (diukur 2026-09-14: n_kosong = 0 di seluruh
+      # tenant) — penjaga ini mencegahnya kambuh. Peran tanpa izin tak
+      # mengeluarkan galat; ia cuma menolak pemakainya di tiap pintu dengan
+      # pesan yang menuduh otorisasi, bukan konfigurasi peran yang kosong.
+      #
+      # AMBANG NOL: tak ada alasan sah sebuah peran ada tanpa satu pun izin.
+      - name: Tiap peran punya izin
+        run: node scripts/audit-peran-punya-izin.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       # Tabel yang lahir DI LUAR jalur migrasi hidup nyaman di dev dan HILANG
       # di tiap basis baru — VPS termasuk. Tiga kali terjadi 2026-08-31, dan
       # tiap kali gejalanya menunjuk ke tempat lain:

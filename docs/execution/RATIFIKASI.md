@@ -4191,7 +4191,48 @@ benar: ia sedang melaporkan sesuatu yang nyata.
 
 ---
 
-## R-019 · Enam belas peran template TANPA satu pun izin — dan migrasi 364 melanggar tuntutannya sendiri
+## R-019 · ✅ SUDAH PULIH sebelum saya sampai — kini DIJAGA agar tak kambuh
+
+> Diambil untuk dikerjakan, dan pengukuran ulangnya menutupnya sendiri —
+> kejadian KELIMA hari ini sebuah entri ratifikasi ternyata basi.
+>
+> | | 2026-08-31 | 2026-09-14 |
+> |---|---|---|
+> | peran template TANPA izin | 16 | **0** |
+> | tuntutan migrasi 364 (`n_kosong`) | 16 | **0 ✅** |
+> | peran tanpa izin di SELURUH tenant | — | **0** |
+>
+> Keenam belas kini berizin 6-34 masing-masing:
+>
+> ```
+> payroll_officer 6 · penagihan 7 · kasir 9 · logistik 9 ·
+> procurement_officer 9 · k3_officer 11 · kontrak_admin 12 · akuntan 17 ·
+> hrd 18 · estimator 19 · qaqc 21 · auditor_internal 27 · qhse_manager 28 ·
+> site_manager 29 · project_manager_senior 30 · manajer_keuangan 34
+> ```
+>
+> ### Yang saya kerjakan: penjaganya
+>
+> Keadaannya pulih, tetapi **tak ada apa pun yang mencegahnya kambuh** — dan
+> begitulah R-019 lahir lalu bertahan dua pekan tanpa satu pun alat melihatnya.
+>
+> `audit-peran-punya-izin.mjs` (ambang NOL, terdaftar di ci.yml). Mutasi:
+> izin `kasir` dikosongkan → **MERAH menyebut `kasir @ (template)`** →
+> dipulihkan dengan menyalin dari salinan tenant → **HIJAU**.
+>
+> ⚠ Pemulihannya pun tak ditulis tangan: sembilan izin disalin dari salinan
+> tenant yang utuh, lalu diperiksa isinya — seluruhnya kas/pembayaran,
+> koheren untuk peran kasir.
+>
+> ⚠ BATAS yang ditulis di kepalanya: yang diperiksa ADANYA izin, bukan
+> kecukupannya. Peran dengan satu izin yang salah tetap lolos — itu wilayah
+> keputusan kewenangan (R-017), bukan invarian yang bisa dijaga skrip.
+>
+> **Tak ada yang perlu Anda putuskan.**
+
+---
+
+## R-019 (asli) · Enam belas peran template TANPA satu pun izin — dan migrasi 364 melanggar tuntutannya sendiri
 
 **Diajukan 2026-08-31. MENUNGGU FOUNDER — belum ada yang diubah.**
 
