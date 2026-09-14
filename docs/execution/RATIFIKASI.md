@@ -4403,6 +4403,82 @@ terukur sama borosnya dengan menebak hal yang tidak.
 Yang **tidak** saya lakukan: menyelesaikan 80 bentrok lalu melaporkannya
 sebagai selesai. Resolusi yang salah di wilayah ini hijau di semua alat.
 
+### ── ⚠ SAYA SALAH: "ambil main" BENAR untuk migrasi, SALAH untuk kode
+
+Ditulis 2026-09-14 sesudah mencoba menerapkannya. Aturan yang saya simpulkan
+dari 21 migrasi + K4 — *"pola yang sama berulang di seluruh cabang ini"* —
+**tidak berlaku untuk berkas kode**, dan menerapkannya akan menghapus
+pekerjaan nyata.
+
+Diukur sebelum menyentuh apa pun (dan inilah yang menyelamatkannya):
+
+```
+berkas kode bentrok                         : 60
+  main SUDAH memuat semua baris cabang      :  1   ← aman
+  cabang punya baris yang main TAK PUNYA    : 59   ← "ambil main" = MENGHAPUS
+```
+
+`apps/api/src/routes/v1/struktur.ts` sendiri punya **406 baris** yang tak ada
+di main. Isinya bukan gaya penulisan:
+
+```
+lib/struktur-rancang-balok.ts      main=TIDAK ADA  cabang=ADA
+lib/struktur-rancang-kolom.ts      main=TIDAK ADA  cabang=ADA
+lib/struktur-rancang-plat.ts       main=TIDAK ADA  cabang=ADA
+lib/struktur-rancang-footplat.ts   main=TIDAK ADA  cabang=ADA
+lib/struktur-diameter-baku.ts      main=TIDAK ADA  cabang=ADA
+
+kata "rancang" di main/struktur.ts : 0
+```
+
+Seluruh **mode RANCANG** — "berapa batang?", bukan "apakah kuat?" — hanya ada
+di cabang: perancang balok/kolom/pelat/footplate, ukuran besi dari SNI
+2052:2017 (yang BENAR-BENAR dijual), gambar & status hidup di dalam form.
+
+Ukuran kerjanya:
+
+```
+git diff --shortstat merge-base..cabang
+  354 files changed, 45.910 insertions(+), 4.310 deletions(-)
+  144 berkas BARU yang tak bentrok sama sekali
+```
+
+**Cabang ini bukan riwayat basi — ia badan pekerjaan yang belum pernah
+masuk.** Kalimat saya sebelumnya ("main yang lebih baru dalam ketiganya")
+benar untuk MIGRASI dan saya generalisasikan terlalu jauh. Persis kesalahan
+yang CLAUDE.md §8a.2 namai: **angka tanpa cakupan adalah setengah angka.**
+
+Merge di-abort lagi. Dua commit normalisasi migrasi TETAP sah dan tetap di
+cabang — yang batal hanya resolusi 80 bentroknya.
+
+### Yang sebenarnya dibutuhkan, dan kenapa ia lebih besar dari dugaan awal
+
+Resolusi yang benar untuk 59 berkas itu **bukan memilih satu sisi** melainkan
+MENGGABUNG: main membawa perbaikan sesudah 2026-08-22, cabang membawa fitur
+yang tak pernah main punya, dan keduanya menyentuh berkas yang sama.
+
+Enam berkas dokumen (`JOURNAL`, `RATIFIKASI`, `QUEUE`, `INDEKS`, `ROADMAP`,
+`CLAUDE.md`) bersifat append-only — gabungnya mekanis tapi panjang.
+
+Perkiraan jujur: ini pekerjaan **satu sesi penuh sendiri**, bukan sisipan —
+dan tiap berkas menuntut pembacaan dua sisi, bukan perintah git. Enam puluh
+enam di antaranya menyentuh satuan/rumus/uang, tempat resolusi yang salah
+hijau di semua alat.
+
+### K5 — cara merge yang saya sarankan sekarang (BERUBAH dari K3)
+
+Bukan satu merge besar. **Per-kelompok, tiap kelompok diverifikasi sendiri:**
+
+1. migrasi (SELESAI — dua commit normalisasi)
+2. berkas cabang-SAJA: 144 berkas, nol bentrok — masuk tanpa keputusan
+3. modul struktur (`struktur*.ts` + halamannya): kelompok fitur terbesar,
+   punya testnya sendiri
+4. sisanya per-domain (otomasi, estimasi, kas, mandor)
+5. dokumen: gabung append-only, terakhir
+
+Tiap langkah: suite penuh + `jalankan-semua-penjaga.mjs` sebelum lanjut.
+Kalau satu kelompok merah, yang dibatalkan cuma kelompok itu.
+
 ### Kalau K2 dijawab "tunda"
 
 Tak ada yang rusak hari ini — dev sudah punya schemanya. Yang tertunda:
