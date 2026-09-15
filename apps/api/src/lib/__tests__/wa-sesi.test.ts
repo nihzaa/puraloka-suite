@@ -135,6 +135,15 @@ describe('PENCABUTAN AKSES langsung berlaku — perbedaan dari TJS', () => {
     // Sesi sah dulu.
     expect((await bangunSesiDariNomor(supabase, NOMOR)).ok).toBe(true)
 
+    // Nilai `is_default` dibaca SEBELUM dihapus — sesudahnya barisnya sudah
+    // tak ada untuk ditanya, dan menebaknya melahirkan cacat yang dijelaskan
+    // di bawah.
+    const { rows: semula } = await db.query(
+      `SELECT is_default FROM company_members WHERE company_id = $1 AND user_id = $2`,
+      [companyId, userId],
+    )
+    const defaultSemula: boolean = semula[0]?.is_default ?? false
+
     // Cabut keanggotaan — persis yang terjadi saat orang keluar dari
     // perusahaan.
     await db.query(
@@ -170,11 +179,29 @@ describe('PENCABUTAN AKSES langsung berlaku — perbedaan dari TJS', () => {
       Dijaga `audit-keanggotaan-punya-default.mjs` (ambang NOL), jadi kalau
       pola ini kembali ia merah dalam hitungan menit, bukan setelah ada yang
       kebetulan menjalankan test yang tepat.
+
+      ── ⚠ TETAPI `true` DIPAKU juga SALAH (diperbaiki 2026-09-14)
+
+      Perbaikan 2026-08-15 di atas menukar satu cacat dengan cacat sebaliknya.
+      `idx_company_members_one_default` adalah:
+
+          UNIQUE (user_id) WHERE is_default
+
+      — satu default per PENGGUNA, LINTAS company. Pengguna yang dipilih
+      `LIMIT 1` di `beforeAll` ternyata anggota TIGA company, dan barisnya di
+      sini BUKAN yang default. Jadi memaku `true` menciptakan default KEDUA:
+
+          duplicate key value violates unique constraint
+          "idx_company_members_one_default"
+
+      Yang benar: pulihkan NILAI SEMULA, bukan nilai yang kebetulan benar
+      untuk pengguna satu-company. Nilainya dibaca SEBELUM dihapus — sesudah
+      dihapus, barisnya sudah tak ada untuk ditanya.
     */
     await db.query(
       `INSERT INTO company_members (company_id, user_id, role_id, is_default, is_active)
-       VALUES ($1, $2, $3, true, true)`,
-      [companyId, userId, roleId],
+       VALUES ($1, $2, $3, $4, true)`,
+      [companyId, userId, roleId, defaultSemula],
     )
   })
 

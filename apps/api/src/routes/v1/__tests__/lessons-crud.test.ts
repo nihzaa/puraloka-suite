@@ -221,9 +221,26 @@ describe('trigger lama masih menjaga', () => {
   it('status tak bisa melompat draft → propagated', async () => {
     // Transisi diatur trigger: melompati approval berarti knowledge base
     // berubah tanpa satu pun manusia menyetujuinya.
+    //
+    // ⚠ Pola pesannya DILONGGARKAN 2026-09-14, dan yang diuji TIDAK berubah.
+    //
+    // Trigger menolak dengan BENAR, hanya saja lewat cabang yang lebih
+    // spesifik — `fn_lessons_status_transition` memeriksa `propagated` lebih
+    // dulu dan menjawab:
+    //
+    //     "Transisi ke propagated (write-back ke knowledge base) BELUM
+    //      diaktifkan … (butuh keputusan founder)"        ← R-013
+    //
+    // Pola lama `/[Tt]ransisi status/` menuntut kalimat cabang UMUM, jadi
+    // test ini merah atas penolakan yang justru lebih tegas. Yang dijaga
+    // berkas ini adalah DITOLAKNYA lompatan itu, bukan kata-katanya.
+    //
+    // Kedua kalimat diterima supaya test tetap sah apa pun keputusan R-013:
+    // kalau propagasi kelak diaktifkan, cabang umum yang akan menolak
+    // lompatan draft → propagated, dan pola ini sudah mencakupnya.
     await expect(
       db.query(`UPDATE lessons_learned_records SET status = 'propagated' WHERE id = $1`, [lessonId]),
-    ).rejects.toThrow(/[Tt]ransisi status/)
+    ).rejects.toThrow(/[Tt]ransisi (status|ke propagated)/)
   })
 
   it('DRAFT boleh dihapus, yang sudah maju TIDAK — trg_lessons_no_delete', async () => {

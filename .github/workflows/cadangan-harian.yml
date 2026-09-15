@@ -359,7 +359,21 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
+      # ⚠ HANYA bila `pg_dump` berhasil — ditambahkan 2026-09-14.
+      #
+      # Tanpa pagar ini langkah di bawah mencari berkas dump yang TAK PERNAH
+      # dibuat (R-006: `pg_dump` mati oleh fungsi yatim di katalog), lalu
+      # menggagalkan seluruh job — padahal jalur DARURAT di atasnya SUKSES
+      # dan artefaknya tersimpan terenkripsi.
+      #
+      # Diukur 2026-09-13: job ini MERAH lima hari berturut-turut, sementara
+      # `cadangan-darurat-2026-09-13` (11,8 MB) ada dan belum kedaluwarsa.
+      #
+      # Merah yang WAJAR dan berulang mengajari orang mengabaikan kolom
+      # status — dan kegagalan sungguhan nanti ikut terabaikan. Kelas yang
+      # sama dengan `audit-jadwal-company-hidup` di CLAUDE.md §6.
       - name: Buktikan dump berisi
+        if: env.PGDUMP_GAGAL == '0'
         run: |
           N=$(pg_restore --list "keluar/puraloka-$CAP.dump" | grep -c "TABLE DATA" || true)
           echo "TABLE DATA dalam dump: $N"
@@ -370,6 +384,7 @@ jobs:
           echo "TABEL=$N" >> $GITHUB_ENV
 
       - name: Kunci dengan AES-256
+        if: env.PGDUMP_GAGAL == '0'
         env:
           SANDI: ${{ secrets.SANDI_CADANGAN }}
         run: |
@@ -392,6 +407,7 @@ jobs:
       # Cadangan yang tak bisa didekripsi adalah berkas sampah yang menyamar
       # sebagai jaring pengaman — dan itu baru ketahuan saat dibutuhkan.
       - name: Buktikan masih bisa dibuka
+        if: env.PGDUMP_GAGAL == '0'
         env:
           SANDI: ${{ secrets.SANDI_CADANGAN }}
         run: |

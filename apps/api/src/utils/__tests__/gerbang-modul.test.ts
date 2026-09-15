@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { supabase } from '../supabase.js'
 import { bacaKeadaanModul } from '../gerbang-modul.js'
+import { bongkarCompanyUji } from '../../test-utils/bongkar-company-uji.js'
 
 /**
  * GERBANG MODUL — yang diuji ARAH KEGAGALANNYA.
@@ -53,7 +54,7 @@ afterAll(async () => {
   // dihapus eksplisit supaya kegagalan cascade tak lolos diam-diam.
   if (companyId) {
     await supabase.from('entitlement_snapshot').delete().eq('company_id', companyId)
-    await supabase.from('companies').delete().eq('id', companyId)
+    await bongkarCompanyUji(supabase, companyId)
   }
 })
 

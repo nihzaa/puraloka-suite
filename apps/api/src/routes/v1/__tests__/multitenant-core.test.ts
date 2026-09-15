@@ -263,6 +263,14 @@ describe('T2 — P1: company pertama diperlakukan tenant biasa (ADR-011 §9.5)',
     expect(r.rows[0].cid).toBe(kedua)
     await c.query(`DELETE FROM company_members WHERE company_id=$1`, [kedua])
     await c.query(`ALTER TABLE companies DISABLE TRIGGER trg_company_no_casual_delete`)
+    // ⚠ Rantai approval dibuang dulu — ditambahkan 2026-09-14.
+    //
+    // Migrasi 580 (R-010) memasang trigger yang memberi tiap company BARU
+    // 13 rantai + langkahnya. FK-nya `ON DELETE RESTRICT` (disengaja:
+    // tenant yang masih punya alur persetujuan tak boleh lenyap diam-diam),
+    // jadi DELETE company gagal tanpa ini.
+    await c.query(`DELETE FROM approval_steps WHERE chain_id IN (SELECT id FROM approval_chains WHERE company_id = $1)`, [kedua]).catch(() => {})
+    await c.query(`DELETE FROM approval_chains WHERE company_id = $1`, [kedua]).catch(() => {})
     await c.query(`DELETE FROM companies WHERE id=$1`, [kedua])
     await c.query(`ALTER TABLE companies ENABLE TRIGGER trg_company_no_casual_delete`)
   }, 30_000)
@@ -281,6 +289,14 @@ describe('T2 — P1: company pertama diperlakukan tenant biasa (ADR-011 §9.5)',
     expect(ya.rows[0].v).toBe(true)
     expect(tidak.rows[0].v).toBe(false)
     await c.query(`ALTER TABLE companies DISABLE TRIGGER trg_company_no_casual_delete`)
+    // ⚠ Rantai approval dibuang dulu — ditambahkan 2026-09-14.
+    //
+    // Migrasi 580 (R-010) memasang trigger yang memberi tiap company BARU
+    // 13 rantai + langkahnya. FK-nya `ON DELETE RESTRICT` (disengaja:
+    // tenant yang masih punya alur persetujuan tak boleh lenyap diam-diam),
+    // jadi DELETE company gagal tanpa ini.
+    await c.query(`DELETE FROM approval_steps WHERE chain_id IN (SELECT id FROM approval_chains WHERE company_id = $1)`, [asing]).catch(() => {})
+    await c.query(`DELETE FROM approval_chains WHERE company_id = $1`, [asing]).catch(() => {})
     await c.query(`DELETE FROM companies WHERE id=$1`, [asing])
     await c.query(`ALTER TABLE companies ENABLE TRIGGER trg_company_no_casual_delete`)
   }, 30_000)
@@ -314,6 +330,14 @@ describe('T2 — dua tenant berdampingan (bibit fixture P2)', () => {
 
     await c.query(`DELETE FROM company_members WHERE company_id=$1`, [b])
     await c.query(`ALTER TABLE companies DISABLE TRIGGER trg_company_no_casual_delete`)
+    // ⚠ Rantai approval dibuang dulu — ditambahkan 2026-09-14.
+    //
+    // Migrasi 580 (R-010) memasang trigger yang memberi tiap company BARU
+    // 13 rantai + langkahnya. FK-nya `ON DELETE RESTRICT` (disengaja:
+    // tenant yang masih punya alur persetujuan tak boleh lenyap diam-diam),
+    // jadi DELETE company gagal tanpa ini.
+    await c.query(`DELETE FROM approval_steps WHERE chain_id IN (SELECT id FROM approval_chains WHERE company_id = $1)`, [b]).catch(() => {})
+    await c.query(`DELETE FROM approval_chains WHERE company_id = $1`, [b]).catch(() => {})
     await c.query(`DELETE FROM companies WHERE id=$1`, [b])
     await c.query(`ALTER TABLE companies ENABLE TRIGGER trg_company_no_casual_delete`)
   }, 30_000)
@@ -337,6 +361,14 @@ describe('T2 — dua tenant berdampingan (bibit fixture P2)', () => {
     const sebelum = (await c.query(`SELECT count(*)::int n FROM users`)).rows[0].n
 
     await c.query(`ALTER TABLE companies DISABLE TRIGGER trg_company_no_casual_delete`)
+    // ⚠ Rantai approval dibuang dulu — ditambahkan 2026-09-14.
+    //
+    // Migrasi 580 (R-010) memasang trigger yang memberi tiap company BARU
+    // 13 rantai + langkahnya. FK-nya `ON DELETE RESTRICT` (disengaja:
+    // tenant yang masih punya alur persetujuan tak boleh lenyap diam-diam),
+    // jadi DELETE company gagal tanpa ini.
+    await c.query(`DELETE FROM approval_steps WHERE chain_id IN (SELECT id FROM approval_chains WHERE company_id = $1)`, [b]).catch(() => {})
+    await c.query(`DELETE FROM approval_chains WHERE company_id = $1`, [b]).catch(() => {})
     await c.query(`DELETE FROM companies WHERE id=$1`, [b])
     await c.query(`ALTER TABLE companies ENABLE TRIGGER trg_company_no_casual_delete`)
 

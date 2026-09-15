@@ -2735,6 +2735,174 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # Katalog bersama (`company_id IS NULL`) boleh DIBACA semua tenant,
+      # tak boleh DITULIS tenant mana pun.
+      #
+      # 2026-09-14: migrasi 374 memperketat `cbs_templates`/`cbs_nodes` —
+      # RESTRICTIVE-nya MENDARAT, `WITH CHECK`-nya TIDAK. Satu berkas, dua
+      # pekerjaan, satu berlaku. Ditemukan TEST, bukan penjaga.
+      #
+      # Dua penjaga yang ada tak bisa melihatnya, dan keduanya jujur:
+      #   · `audit-tabel-force-berpagar.mjs` menjaga policy ADA & RESTRICTIVE,
+      #     bukan ISI `with_check`-nya;
+      #   · `audit-badan-fungsi-mutakhir.mjs` membandingkan BADAN FUNGSI, dan
+      #     374 memasang policy lewat `EXECUTE format(...)` — dinamis, sengaja
+      #     dilewati. Batas itu tertulis di kepalanya, dan nyata: 28 dari 169
+      #     migrasi ber-policy memasangnya dinamis.
+      #
+      # RESTRICTIVE digabung AND, jadi WITH CHECK adalah gerbang TULIS yang
+      # sesungguhnya. Cabang `IS NULL` di sana = tenant boleh menyuntikkan
+      # atau menyunting cetakan yang dipakai SELURUH tenant lain. Kebocoran
+      # arah TULIS — yang lebih jarang diperiksa orang.
+      #
+      # RATCHET, bukan ambang nol: 12 tabel AB memang DIRANCANG longgar sejak
+      # migrasi 131 §AB (katalog nasional). Mengubah itu keputusan founder,
+      # bukan efek samping penjaga. Yang dijaga: tak boleh BERTAMBAH, dan yang
+      # sudah diperketat tak boleh kambuh.
+      - name: Katalog bersama tak boleh ditulis tenant
+        run: node scripts/audit-tulis-katalog-bersama.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Akar grup AKTIF wajib punya pemilik — dan teardown test tak boleh
+      # memakai `companies.delete()`, yang TAK PERNAH berhasil.
+      #
+      # 2026-09-14: `t9-kelola-badan-usaha` merah atas tiga tenant yang TIDAK
+      # pernah ia buat. Pembuatnya tiga berkas lain yang membongkar tenant
+      # ujinya lewat `.delete()` — ditolak trigger `fn_company_no_casual_delete`
+      # (migrasi 126 §8), galatnya DITELAN `supabase-js` (memulangkan { error },
+      # tidak melempar), jadi teardown "berhasil" dengan tenang sambil
+      # menambah satu tenant AKTIF tanpa pemilik tiap jalan suite.
+      #
+      # Kelas yang dijaga `audit-catch-senyap.mjs` di kode produksi — hanya
+      # saja ini di TEST, tempat penjaga itu tak melihat.
+      #
+      # Dua arah: KEADAAN (nol akar aktif yatim) dan BENTUK KODE (nol
+      # `.delete()` di test). Menjaga keadaannya saja tak cukup — polanya akan
+      # kembali, dan residunya baru terlihat sesudah menumpuk.
+      # Residu tenant uji disapu DULU — lihat kepala skripnya untuk alasannya.
+      #
+      # Ringkasnya: `bongkarCompanyUji()` sudah benar dan dipakai setiap berkas
+      # yang membuat tenant uji, tetapi ia tak bisa berbuat apa-apa terhadap run
+      # yang MATI SEBELUM `afterAll` (migrasi HARD FAIL, tripwire exit 1, runner
+      # dibatalkan). Sisanya tenant AKTIF tanpa pemilik, dan penjaga di bawah
+      # memerahkan ENAM shard karenanya — kegagalan yang menuduh penjaga,
+      # padahal yang salah sisa run sebelumnya. Terjadi 2026-09-15.
+      #
+      # Penjaganya TIDAK dilonggarkan: akar grup yatim yang NYATA tetap cacat
+      # produk, dan ambangnya tetap NOL. Yang dibersihkan residunya.
+      - name: Sapu residu tenant uji (sebelum penjaga akar grup)
+        run: node scripts/sapu-tenant-uji-tertinggal.mjs
+        # ⚠ `env:` WAJIB — tanpa `DIRECT_URL` skripnya mati exit 2 TANPA
+        # SATU BARIS KELUARAN, dan itu terbaca seperti skripnya rusak.
+        # Terjadi pada jalan pertamanya: langkah baru dipasang tanpa
+        # prasyaratnya ikut, persis cacat yang sama dengan langkah
+        # saudaranya di bawah yang SUDAH punya env.
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      - name: Akar grup wajib punya pemilik
+        run: node scripts/audit-akar-grup-punya-pemilik.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Counter penomoran tak boleh tertinggal di belakang nomor yang SUDAH
+      # BEREDAR — kalau tertinggal, dokumen berikutnya bernomor KEMBAR.
+      #
+      # 2026-09-14: invoice tertinggi 27 (INV/2026/09/027), sementara 9 dari 12
+      # counter bulan masih 26 → sembilan bulan akan menerbitkan 027 lagi.
+      #
+      # ⚠ Basis TIDAK menahannya: invoice unik hanya `(project_id,
+      # invoice_number)` — per PROYEK, bukan per company. Dua invoice di proyek
+      # berbeda milik company yang sama boleh bernomor sama tanpa satu pun
+      # galat, lalu keluar ke klien sebagai dokumen tagihan bernomor kembar.
+      # Migrasi 135: "untuk dokumen yang keluar ke pihak ketiga, nomor kembar
+      # bukan ketidakrapian — itu cacat audit."
+      #
+      # Migrasi 135 SUDAH menyinkronkan dengan benar, dan tetap tak cukup: ia
+      # sekali jalan, sementara invoice baru lahir sesudahnya dan hanya
+      # menaikkan counter bulannya sendiri. Yang dijaga di sini KEADAANNYA,
+      # bukan sinkronisasinya.
+      - name: Counter dokumen tak tertinggal dari nomor beredar
+        run: node scripts/audit-counter-dokumen-tak-tertinggal.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Rute TULIS wajib punya gerbang OTORISASI, bukan cuma `authenticate`.
+      #
+      # 2026-09-14, saat menelusuri R-020: `DELETE /mandor/workers/:id` hanya
+      # ber-`authenticate`, dan satu-satunya pemeriksaannya
+      # `if (user.role === 'mandor' && ...)` — jadi peran SELAIN mandor,
+      # termasuk `client`, lolos tanpa diperiksa. Isolasi tenant tetap utuh;
+      # yang hilang pembatasan SIAPA di dalam tenant.
+      #
+      # Beda dari R-020: di sana MENU tampil lalu API menolak (cacat
+      # pengalaman). Di sini API-nya TIDAK menolak.
+      #
+      # ⚠ Versi pertama penjaga ini HAMPIR SELURUHNYA BUTA — regex-nya
+      # menuntut jalur se-baris dengan `app.post(`, sementara pola dominan di
+      # repo ini `app.post<{...}>(` dengan jalur beberapa baris di bawah:
+      # 147 terlihat, 265 TERLEWAT. Hanya uji mutasi yang menunjukkannya
+      # (gerbang dicabut sengaja → penjaga tetap hijau). Sudah diperbaiki dan
+      # dibuktikan merah.
+      #
+      # RATCHET: sebagian rute SAH tanpa izin peran (MFA sendiri, notifikasi
+      # sendiri, impor tahap baca yang nol tulis). Lantai menyimpan DAFTAR
+      # NAMA + alasan per entri, bukan cuma angka.
+      - name: Rute tulis wajib bergerbang otorisasi
+        run: node scripts/audit-rute-tulis-berizin.mjs
+
+      # Tiap company AKTIF wajib punya rantai approval LENGKAP + langkahnya.
+      #
+      # R-010 (2026-08-05): pelanggan BARU lahir tanpa rantai `submittal`, dan
+      # entrinya memperingatkan cakupannya belum diperiksa. Diperiksa
+      # 2026-09-14 — peringatan itu benar: SEMBILAN dari 13 jenis hanya ada di
+      # tenant PERTAMA. Dua tenant nyata lain punya 4 dari 13.
+      #
+      # `canParticipateInChain` fail-closed (approval.ts:199) — dan itu BENAR,
+      # ember [C]. Tapi rantai yang TAK ADA berarti nol orang bisa menyetujui:
+      # kasbon, PO, estimasi, cuti tak bisa diputuskan siapa pun, termasuk
+      # pemilik perusahaannya. Gejalanya 403 untuk SEMUA orang, bukan pesan
+      # yang menjelaskan konfigurasinya kurang.
+      #
+      # Ditutup migrasi 580 (trigger AFTER INSERT + backfill). Penjaga ini
+      # memastikan triggernya tak diam-diam berhenti bekerja.
+      #
+      # ⚠ Memeriksa TIGA arah, dan yang kedua bukan basa-basi: rantai yang ADA
+      # tapi TANPA LANGKAH tetap fail-closed — hasilnya sama persis dengan
+      # rantai yang hilang, jadi penjaga yang cuma menghitung rantai akan hijau
+      # pada keadaan yang sama rusaknya.
+      - name: Rantai approval lengkap tiap tenant
+        run: node scripts/audit-rantai-approval-lengkap.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Tiap peran wajib memegang minimal SATU izin.
+      #
+      # R-019 (2026-08-31): 16 peran template buatan migrasi 364 berakhir
+      # dengan NOL izin. Yang membuatnya lebih dari kerapian — migrasi 364
+      # TERCATAT SUKSES, dan ia diakhiri tuntutannya sendiri:
+      #
+      #     IF n_kosong > 0 THEN RAISE EXCEPTION '364 gagal: …'
+      #
+      # Diukur saat itu: n_kosong = 16. Migrasi yang tercatat sukses
+      # meninggalkan basis dalam keadaan yang ia sendiri nyatakan GAGAL —
+      # kelas yang sama dengan 111/372/374 (migrasi 570-572).
+      #
+      # CI hijau sepanjang itu karena CI memutar rantai dari basis KOSONG,
+      # tempat 364 berjalan utuh. Yang menyimpang cuma basis yang sudah lama.
+      #
+      # Keadaannya kini pulih (diukur 2026-09-14: n_kosong = 0 di seluruh
+      # tenant) — penjaga ini mencegahnya kambuh. Peran tanpa izin tak
+      # mengeluarkan galat; ia cuma menolak pemakainya di tiap pintu dengan
+      # pesan yang menuduh otorisasi, bukan konfigurasi peran yang kosong.
+      #
+      # AMBANG NOL: tak ada alasan sah sebuah peran ada tanpa satu pun izin.
+      - name: Tiap peran punya izin
+        run: node scripts/audit-peran-punya-izin.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       # Tabel yang lahir DI LUAR jalur migrasi hidup nyaman di dev dan HILANG
       # di tiap basis baru — VPS termasuk. Tiga kali terjadi 2026-08-31, dan
       # tiap kali gejalanya menunjuk ke tempat lain:
