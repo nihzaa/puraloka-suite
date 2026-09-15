@@ -8,7 +8,7 @@ import { logAuditEvent } from '../../utils/audit.js'
 import { naikkanTerpisah } from '../../lib/penagihan-co.js'
 import { computeAndPersistPenalty, estimatePenalty } from '../../utils/penalty.js'
 import { computeAging, retentionOutstanding, validateDpDeduction } from '../../lib/ar-register.js'
-import { susunEkspor, formatSah, FORMAT_EKSPOR } from '../../lib/ekspor-tabel.js'
+import { susunEkspor, formatSah, FORMAT_EKSPOR, ambilSeluruhnya } from '../../lib/ekspor-tabel.js'
 import {
   evaluasiGerbangProgres,
   type HasilGerbangProgres,
@@ -264,41 +264,51 @@ export default async function financeRoutes(app: FastifyInstance) {
     if (idProyek === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
 
     /*
-      BATAS ATAS DINYATAKAN, bukan diserahkan ke bawaan PostgREST.
+      BATAS ATAS DINYATAKAN, dan kali ini BENAR-BENAR terukur.
 
-      Bawaannya memotong senyap di 1.000 baris — berkas yang terunduh
-      lalu terlihat lengkap padahal tidak. Dengan batas eksplisit,
-      kelebihannya TERDETEKSI dan dilaporkan lewat header + keterangan
-      di dalam berkasnya sendiri.
+      Bentuk lamanya `.limit(BATAS + 1)` lalu `semua.length > BATAS`.
+      Idiom itu tak pernah bisa bekerja: PostgREST memotong di 1.000 baris
+      KERAS, jadi `.limit(5001)` memulangkan 1.000 dan `terpotong` bernilai
+      false SELAMANYA. Ekspor berhenti diam-diam di 1.000 invoice, header
+      `x-ekspor-terpotong` tak pernah menyala, dan `totalTagih`/`totalBelum`
+      dijumlahkan dari potongan itu lalu dicetak sebagai jumlah lengkap.
+
+      `ambilSeluruhnya()` mengambil bertahap per 1.000 lewat `.range()`
+      sampai habis — alasan lengkapnya di `lib/ekspor-tabel.ts`.
     */
     const BATAS = 5000
 
-    let q = supabase
-      .from('invoices')
-      .select(`
-        invoice_number, invoice_type, status,
-        base_amount, tax_amount, total_amount, amount_paid, amount_due,
-        issued_date, due_date, paid_date,
-        projects ( name )
-      `)
-      .in('project_id', idProyek)
-      .order('issued_date', { ascending: false })
-      .limit(BATAS + 1)
+    const bangunQuery = () => {
+      let q = request.db!
+        .unsafe(
+          'invoices',
+          'ekspor invoice lintas proyek; disaring .in(project_id, …) dengan daftar dari ' +
+            'proyekBolehDibaca(request, project_id) — gerbang yang SAMA dengan rute daftarnya',
+        )
+        .select(`
+          invoice_number, invoice_type, status,
+          base_amount, tax_amount, total_amount, amount_paid, amount_due,
+          issued_date, due_date, paid_date,
+          projects ( name )
+        `)
+        .in('project_id', idProyek)
+        .order('issued_date', { ascending: false })
 
-    if (status) q = q.eq('status', status)
-    if (type) q = q.eq('invoice_type', type)
+      if (status) q = q.eq('status', status)
+      if (type) q = q.eq('invoice_type', type)
+      return q
+    }
 
-    const { data, error } = await q
-    if (error) {
-      request.log.error({ err: error }, 'gagal memuat invoice untuk ekspor')
+    const { baris: semua, terpotong, galat } = await ambilSeluruhnya<
+      Record<string, unknown> & { projects?: { name?: string } | null }
+    >(bangunQuery, BATAS)
+
+    if (galat) {
+      request.log.error({ err: galat }, 'gagal memuat invoice untuk ekspor')
       return reply.status(500).send({ error: 'Gagal memuat data invoice' })
     }
 
-    const semua = (data ?? []) as unknown as Array<Record<string, unknown> & {
-      projects?: { name?: string } | null
-    }>
-    const terpotong = semua.length > BATAS
-    const baris = (terpotong ? semua.slice(0, BATAS) : semua).map((b) => ({
+    const baris = semua.map((b) => ({
       invoice_number: b.invoice_number ?? '',
       proyek: b.projects?.name ?? '',
       invoice_type: b.invoice_type ?? '',
@@ -2241,7 +2251,26 @@ export default async function financeRoutes(app: FastifyInstance) {
      
     for (const row of (wageRes.data || []) as any[]) add(row.paid_at, 0, Number(row.net_amount))
      
-    for (const row of (kasbonRes.data || []) as any[]) add(row.kasbon_date, 0, Number(row.amount))
+    /*
+     * ⚠ KASBON HANYA ditambahkan bila `expense` TIDAK ikut dipilih.
+     *
+     * Trigger `trg_kasbon_approved_create_expense` mencatat tiap kasbon
+     * `approved` sebagai baris `project_expenses` (ref_type='kasbon'). Kalau
+     * kedua sumber diminta bersamaan — dan `typeFilter` bawaannya memang
+     * memilih semuanya — uang yang sama masuk dua kali ke deret "keluar".
+     *
+     * Diukur 2026-09-15: 55 kasbon approved/settled ↔ 55 baris expense,
+     * Rp 550.600.000 di kedua sisi, nol yatim di kedua arah.
+     *
+     * Ketika pengguna menyaring HANYA kasbon (tanpa expense), barisnya tetap
+     * perlu ditambahkan — kalau tidak, grafiknya kosong dan itu keliru ke
+     * arah sebaliknya. Karena itu syaratnya `!typeFilter.includes('expense')`,
+     * bukan penghapusan.
+     */
+    if (!typeFilter.includes('expense')) {
+       
+      for (const row of (kasbonRes.data || []) as any[]) add(row.kasbon_date, 0, Number(row.amount))
+    }
      
     for (const row of (ppRes.data || []) as any[]) add(row.paid_at, 0, Number(row.gross_payment))
      

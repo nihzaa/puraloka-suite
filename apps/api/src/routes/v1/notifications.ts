@@ -463,21 +463,102 @@ export default async function notificationRoutes(app: FastifyInstance) {
     const todayStr = today.toISOString().split('T')[0]
     const in3Days = new Date(today.getTime() + 3 * 86_400_000).toISOString().split('T')[0]
 
-    // Milestone approaching: target_date dalam 3 hari ke depan, belum completed/cancelled
+    /*
+      ── DUA cacat diperbaiki di blok ini; keduanya diam total ────────────────
+
+      1. SARINGAN STATUS MENYEBUT NILAI ENUM YANG TAK ADA.
+
+         Bentuk lamanya:
+
+             .not('status', 'in', '("completed","cancelled")')
+
+         Enum `milestone_status` berisi TEPAT empat nilai — `pending`,
+         `in_progress`, `completed`, `overdue`. TIDAK ADA `cancelled`.
+         Diukur lewat pg_enum 2026-09-15, dan lewat PostgREST sungguhan:
+
+             code 22P02 — invalid input value for enum
+                          milestone_status: "cancelled"
+             data  = null
+
+         Galat itu TIDAK PERNAH diperiksa: kedua hasil dibaca `.data ?? []`,
+         jadi `null` menjadi larik kosong, kedua loop tak pernah berputar
+         sekali pun, dan rutenya membalas
+
+             { success: true, approaching: 0, overdue: 0,
+               notifications_created: 0 }
+
+         Sukses yang sempurna palsu. Rute ini TAK PERNAH mengirim satu pun
+         notifikasi milestone sejak ditulis — dan bentuk balasannya persis
+         sama dengan "sudah diperiksa, memang tak ada yang jatuh tempo",
+         jadi tak ada yang bisa membedakannya. Dengan saringan yang benar,
+         basis yang sama memulangkan 19 milestone.
+
+         Yang menahan agar ini tak terulang: galatnya kini DIPERIKSA dan
+         rutenya GAGAL KERAS. Saringan enum yang salah eja berikutnya akan
+         berbunyi 500, bukan 200 bernilai nol.
+
+      2. KEDUA PEMBACAAN MEMAKAI `supabase` MENTAH, TANPA company_id.
+
+         Loop di bawahnya memakai `request.companyId!` untuk membuat
+         notifikasi — jadi milestone milik tenant LAIN akan menghasilkan
+         notifikasi yang dikirim ke penerima tenant INI. Selama ini
+         tersamar oleh galat 400 di atas (nol baris = nol kebocoran), jadi
+         memperbaiki (1) TANPA (2) justru akan MENGAKTIFKAN kebocorannya.
+
+         `milestones` berkategori C di `tenant-map.generated.ts` — ia
+         mewarisi tenancy lewat `project_id`, tak punya `company_id`
+         sendiri. `viaProject()` tak berlaku di sini karena rute ini
+         memang lintas-proyek (tak ada satu proyek sebagai konteks), jadi
+         dipakai pola `.in('project_id', await db.projectIds())` seperti
+         yang dianjurkan doc `projectIds()` di `tenant-db.ts`.
+    */
+    const db = request.db!
+    const idProyek = await db.projectIds()
+
+    // Tenant tanpa proyek: tak ada milestone yang mungkin miliknya.
+    // `.in('project_id', [])` sah, tapi menyebutnya di sini membuat
+    // niatnya terbaca tanpa harus menelusuri perilaku PostgREST.
+    if (idProyek.length === 0) {
+      return reply.send({ success: true, approaching: 0, overdue: 0, notifications_created: 0 })
+    }
+
+    const ALASAN =
+      'cek milestone lintas-proyek; milestones kategori C (mewarisi lewat project_id, ' +
+      'tanpa company_id sendiri) dan rute ini tak punya satu proyek sebagai konteks — ' +
+      'disaring .in(project_id, db.projectIds())'
+
+    const KOLOM = 'id, title, target_date, project_id, projects(name, pm_id)'
+
+    // Milestone approaching: target_date dalam 3 hari ke depan, belum selesai.
     const [approachingRes, overdueRes] = await Promise.all([
-      supabase
-        .from('milestones')
-        .select('id, title, target_date, project_id, projects(name, pm_id)')
+      db.unsafe('milestones', ALASAN)
+        .select(KOLOM)
+        .in('project_id', idProyek)
         .gte('target_date', todayStr)
         .lte('target_date', in3Days)
-        .not('status', 'in', '("completed","cancelled")'),
+        .not('status', 'in', '("completed")'),
 
-      supabase
-        .from('milestones')
-        .select('id, title, target_date, project_id, projects(name, pm_id)')
+      db.unsafe('milestones', ALASAN)
+        .select(KOLOM)
+        .in('project_id', idProyek)
         .lt('target_date', todayStr)
-        .not('status', 'in', '("completed","cancelled")'),
+        .not('status', 'in', '("completed")'),
     ])
+
+    /*
+      Galat DIPERIKSA — inti perbaikan (1).
+
+      `.data ?? []` yang lama mengubah kegagalan menjadi "nol baris", dan
+      nol yang salah tak bisa dibedakan dari nol yang benar. 500 di sini
+      berisik, dan memang harus: pemanggilnya cron, dan cron yang menerima
+      200 tak punya alasan memberi tahu siapa pun.
+    */
+    for (const [nama, res] of [['approaching', approachingRes], ['overdue', overdueRes]] as const) {
+      if (res.error) {
+        request.log.error({ err: res.error, bagian: nama }, 'gagal memuat milestone untuk pengecekan')
+        return reply.status(500).send({ error: `Gagal memuat milestone (${nama})` })
+      }
+    }
 
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')

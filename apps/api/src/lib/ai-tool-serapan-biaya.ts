@@ -26,9 +26,10 @@
  * YANG DIBANGUN: SERAPAN BIAYA TERHADAP PROGRES
  * ══════════════════════════════════════════════════════════════════════════
  *
- * Yang bisa dipercaya: uang yang BENAR-BENAR keluar (pengeluaran disetujui +
- * kasbon disetujui/lunas) dibandingkan `contract_value` dan `progress_pct` —
- * ketiganya terisi untuk seluruh 13 proyek.
+ * Yang bisa dipercaya: uang yang BENAR-BENAR keluar (pengeluaran disetujui —
+ * kasbon SUDAH termasuk di dalamnya lewat trigger, lihat catatan di `jalan()`)
+ * dibandingkan `contract_value` dan `progress_pct` — ketiganya terisi untuk
+ * seluruh 13 proyek.
  *
  * Sinyalnya: **selisih serapan − progres**.
  *
@@ -96,12 +97,52 @@ export const toolSerapanBiaya: DefinisiToolAi = {
     const idProyek = proyek.map((p) => p.id)
 
     /*
-     * Uang yang BENAR-BENAR keluar — dua sumber, dan keduanya perlu.
+     * Uang yang BENAR-BENAR keluar — SATU sumber, dan itu koreksi.
      *
-     * `project_expenses` kategori C (lewat `unsafe()` + saringan project_id),
-     * `kasbons` kategori B (`.from()` sah). Kasbon ikut karena di lapangan ia
-     * sering jadi jalur utama uang keluar: mengabaikannya membuat proyek yang
-     * banyak kasbonnya terlihat paling hemat.
+     * ⚠ SAMPAI 2026-09-15 TOOL INI MENGHITUNG KASBON DUA KALI.
+     *
+     * Kasbon dijumlahkan sebagai sumber TERPISAH, padahal trigger
+     * `trg_kasbon_approved_create_expense` sudah menyisipkan barisnya sendiri
+     * ke `project_expenses` begitu kasbon mencapai `approved`. Uang yang sama,
+     * dihitung dua kali — dan tak ada satu pun galat, sebab kedua query
+     * berhasil dan kedua angkanya sah sendiri-sendiri.
+     *
+     * Diukur ke basis 2026-09-15, seluruh tabel, DUA ARAH:
+     *
+     *   kasbons status IN (approved, settled)        55 baris  Rp 550.600.000
+     *   project_expenses ref_type='kasbon'           55 baris  Rp 550.600.000
+     *   kasbon approved/settled TANPA baris expense   0 baris  Rp 0
+     *   expense ref kasbon yang kasbonnya bukan itu   0 baris
+     *
+     * Dampaknya bukan selisih kecil. "Renovasi Toko Pak Rudi — Sukajadi"
+     * dilaporkan menyerap 73,1% kontrak; yang benar 36,6% — tepat dua kali
+     * lipat. Selisih serapan−progres yang jadi SINYAL seluruh tool ini karena
+     * itu ikut palsu: proyek yang sehat terbaca "uang mendahului pekerjaan",
+     * dan di layar yang dipakai memutuskan.
+     *
+     * ── Kenapa saringannya `ref_type='kasbon'`, BUKAN `expense_source`
+     *
+     * Godaannya memakai `expense_source='main_cash'`: pada data hari ini
+     * kedua saringan memulangkan 55 baris yang sama persis. Itu KEBETULAN,
+     * bukan jaminan — `lib/tulis-klaim.ts:397` dan `routes/v1/cash.ts:627`
+     * keduanya membuat pengeluaran `main_cash` yang BUKAN dari kasbon. Begitu
+     * satu saja dibuat lewat jalur itu, saringan `expense_source` mulai
+     * membuang pengeluaran sah dan angkanya salah ke arah TERLALU KECIL —
+     * arah yang terbaca seperti kabar baik.
+     *
+     * Trigger menandai barisnya `ref_type='kasbon', ref_id=NEW.id` (dibaca
+     * lewat `pg_get_functiondef`, bukan dari nama migrasi). Itu tautan yang
+     * tepat, jadi itu yang dipakai — di sini hanya untuk MENERANGKAN, sebab
+     * jumlahnya sudah lengkap tanpa disaring.
+     *
+     * ── Yang TIDAK dijamin trigger, dan sengaja tidak ditambal di sini
+     *
+     * Trigger diam (RETURN NEW) bila proyeknya belum punya satu pun
+     * `project_expense_categories`. Diukur: dua proyek uji ada dalam keadaan
+     * itu, dan keempat kasbonnya `pending`/`rejected` — jadi nol uang hilang
+     * hari ini. Menambal itu di sini berarti menghitung dua kali lagi begitu
+     * kategorinya dibuat; tempatnya trigger/migrasi, bukan tool baca.
+     * Dijaga `scripts/audit-serapan-tak-dobel-kasbon.mjs`.
      */
     const { data: pe } = await db
       .unsafe(
@@ -113,20 +154,10 @@ export const toolSerapanBiaya: DefinisiToolAi = {
       .eq('status', 'approved')
       .limit(1000)
 
-    const { data: kb } = await db
-      .from('kasbons')
-      .select('project_id, amount, status')
-      .in('status', ['approved', 'settled'])
-      .limit(1000)
-
     const perProyek = new Map<string, number>()
     for (const b of (pe ?? []) as unknown as Array<Record<string, unknown>>) {
       const id = String(b.project_id ?? '')
       if (id) perProyek.set(id, (perProyek.get(id) ?? 0) + (Number(b.total_amount) || 0))
-    }
-    for (const b of (kb ?? []) as unknown as Array<Record<string, unknown>>) {
-      const id = String(b.project_id ?? '')
-      if (id) perProyek.set(id, (perProyek.get(id) ?? 0) + (Number(b.amount) || 0))
     }
 
     interface Nilai {
@@ -195,10 +226,12 @@ export const toolSerapanBiaya: DefinisiToolAi = {
 
     bagian.push(
       '',
-      'Yang dihitung: pengeluaran disetujui + kasbon disetujui/lunas. RAB TIDAK',
-      'dipakai — diukur 2026-08-16, hanya 2 dari 13 proyek punya RAB dan pada',
-      'keduanya RAB melebihi nilai kontrak, jadi margin yang dihitung darinya',
-      'akan salah besar.',
+      'Yang dihitung: pengeluaran disetujui. Kasbon yang sudah disetujui SUDAH',
+      'termasuk di dalamnya — trigger basis mencatatnya sebagai pengeluaran,',
+      'jadi menjumlahkannya lagi berarti menghitung uang yang sama dua kali.',
+      'RAB TIDAK dipakai — diukur 2026-08-16, hanya 2 dari 13 proyek punya RAB',
+      'dan pada keduanya RAB melebihi nilai kontrak, jadi margin yang dihitung',
+      'darinya akan salah besar.',
     )
 
     return {

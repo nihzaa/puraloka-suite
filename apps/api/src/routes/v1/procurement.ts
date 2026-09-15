@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission, hasPermission } from '../../plugins/auth.js'
-import { susunEkspor, formatSah, FORMAT_EKSPOR } from '../../lib/ekspor-tabel.js'
+import { susunEkspor, formatSah, FORMAT_EKSPOR, ambilSeluruhnya } from '../../lib/ekspor-tabel.js'
 import { requireModul } from '../../utils/gerbang-modul.js'
 import { createNotification, createNotifications } from '../../utils/notifications.js'
 import { resolveRecipients } from '../../utils/notification-routing.js'
@@ -875,9 +875,16 @@ export default async function procurementRoutes(app: FastifyInstance) {
     const idProyek = await proyekBolehDibaca(request, project_id)
     if (idProyek === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
 
-    /* Lihat catatan di `/finance/invoices/ekspor`: bawaan PostgREST
-       memotong SENYAP di 1.000, jadi batasnya dinyatakan dan
-       kelebihannya dilaporkan. */
+    /*
+      BATAS ATAS DINYATAKAN, dan kali ini BENAR-BENAR terukur.
+
+      Bentuk lamanya `.limit(BATAS + 1)` lalu `semua.length > BATAS`.
+      PostgREST memotong di 1.000 baris KERAS — `.limit(5001)` memulangkan
+      1.000 — jadi `terpotong` bernilai false SELAMANYA, ekspor berhenti
+      diam-diam di 1.000 PO, dan `total` dijumlahkan dari potongan itu lalu
+      dicetak sebagai jumlah lengkap. Alasan lengkap dan bukti pengukurannya
+      di `lib/ekspor-tabel.ts`.
+    */
     const BATAS = 5000
 
     /*
@@ -892,39 +899,42 @@ export default async function procurementRoutes(app: FastifyInstance) {
       aturan bahwa akses mentah tak boleh BERTAMBAH tanpa alasan
       tertulis. Alasannya kini tertulis.
     */
-    let q = request.db!
-      .unsafe(
-        'purchase_orders',
-        'ekspor PO lintas proyek: purchase_orders mewarisi tenant lewat project_id ' +
-          'dan TIDAK punya company_id sendiri. Disaring .in(project_id, …) dengan ' +
-          'daftar dari proyekBolehDibaca(request, project_id) — gerbang yang SAMA ' +
-          'dengan rute daftarnya, supaya yang boleh dilihat di layar sama persis ' +
-          'dengan yang boleh diunduh.',
-      )
-      .select(`
-        po_number, status, order_date, expected_delivery_date, total_amount, payment_terms,
-        project:projects(name),
-        supplier:suppliers(name)
-      `)
-      .in('project_id', idProyek)
-      .order('order_date', { ascending: false })
-      .limit(BATAS + 1)
+    const bangunQuery = () => {
+      let q = request.db!
+        .unsafe(
+          'purchase_orders',
+          'ekspor PO lintas proyek: purchase_orders mewarisi tenant lewat project_id ' +
+            'dan TIDAK punya company_id sendiri. Disaring .in(project_id, …) dengan ' +
+            'daftar dari proyekBolehDibaca(request, project_id) — gerbang yang SAMA ' +
+            'dengan rute daftarnya, supaya yang boleh dilihat di layar sama persis ' +
+            'dengan yang boleh diunduh.',
+        )
+        .select(`
+          po_number, status, order_date, expected_delivery_date, total_amount, payment_terms,
+          project:projects(name),
+          supplier:suppliers(name)
+        `)
+        .in('project_id', idProyek)
+        .order('order_date', { ascending: false })
 
-    if (supplier_id) q = q.eq('supplier_id', supplier_id)
-    if (status) q = q.eq('status', status)
+      if (supplier_id) q = q.eq('supplier_id', supplier_id)
+      if (status) q = q.eq('status', status)
+      return q
+    }
 
-    const { data, error } = await q
-    if (error) {
-      request.log.error({ err: error }, 'gagal memuat PO untuk ekspor')
+    const { baris: semua, terpotong, galat } = await ambilSeluruhnya<
+      Record<string, unknown> & {
+        project?: { name?: string } | null
+        supplier?: { name?: string } | null
+      }
+    >(bangunQuery, BATAS)
+
+    if (galat) {
+      request.log.error({ err: galat }, 'gagal memuat PO untuk ekspor')
       return reply.status(500).send({ error: 'Gagal memuat data pesanan' })
     }
 
-    const semua = (data ?? []) as unknown as Array<Record<string, unknown> & {
-      project?: { name?: string } | null
-      supplier?: { name?: string } | null
-    }>
-    const terpotong = semua.length > BATAS
-    const baris = (terpotong ? semua.slice(0, BATAS) : semua).map((b) => ({
+    const baris = semua.map((b) => ({
       po_number: b.po_number ?? '',
       proyek: b.project?.name ?? '',
       pemasok: b.supplier?.name ?? '',

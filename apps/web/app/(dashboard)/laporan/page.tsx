@@ -37,7 +37,7 @@ interface Project { id: string; name: string; location: string; status: string; 
 
 interface ProjectSummaryData {
   project: { id: string; name: string; location: string; status: string; contract_model: string; contract_value: number; start_date: string; end_date: string; description: string; clients: { id: string; contact_person: string; phone: string } | null; pm: { id: string; name: string } | null };
-  summary: { totalInvoiced: number; totalPaid: number; totalDue: number; totalExpense: number; totalKasbon: number; totalWage: number; totalOutflow: number; latestProgress: number; serapan: number };
+  summary: { totalInvoiced: number; totalPaid: number; totalDue: number; totalExpense: number; totalKasbon: number; totalWage: number; totalOutflow: number; latestProgress: number; serapan: number | null };
   termin: TerminSchedule[] | null;
   invoices: Invoice[];
   milestones: Milestone[];
@@ -834,7 +834,13 @@ function TabRingkasan({ data, canViewFinance }: { data: ProjectSummaryData; canV
       {/* KPI Row */}
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         <KpiCard label="Progress Fisik" value={`${summary.latestProgress.toFixed(0)}%`} sub="dari progress log terbaru" icon={<Activity size={20} color={C.green} />} accent={C.green} border={C.greenBorder} />
-        <KpiCard label="Serapan Anggaran" value={`${summary.serapan.toFixed(0)}%`} sub={fmtCompact(summary.totalExpense) + " dari kontrak"} icon={<TrendingDown size={20} color={C.blue} />} accent={C.blue} border={C.blueBorder} />
+        {/*
+          `serapan` kini `null` bila nilai kontrak belum diisi — "belum
+          diketahui", yang BUKAN hal yang sama dengan "0%". Ditampilkan
+          sebagai "—" beserta sebabnya, bukan angka yang mengundang
+          kesimpulan. API: routes/v1/reports.ts.
+        */}
+        <KpiCard label="Serapan Anggaran" value={summary.serapan == null ? "—" : `${summary.serapan.toFixed(0)}%`} sub={summary.serapan == null ? "nilai kontrak belum diisi" : fmtCompact(summary.totalExpense) + " dari kontrak"} icon={<TrendingDown size={20} color={C.blue} />} accent={C.blue} border={C.blueBorder} />
         {canViewFinance && <>
           <KpiCard label="Total Tagihan" value={fmtCompact(summary.totalInvoiced)} sub={`${contractPct.toFixed(0)}% dari kontrak`} icon={<FileText size={20} color={C.navy} />} accent={C.navy} />
           <KpiCard label="Piutang" value={fmtCompact(summary.totalDue)} sub="belum terbayar" icon={<Clock size={20} color={C.yellow} />} accent={C.yellow} border={C.yellowBorder} />
@@ -854,9 +860,18 @@ function TabRingkasan({ data, canViewFinance }: { data: ProjectSummaryData; canV
         <div style={{ padding: "var(--pad-kartu-lega)", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Serapan Anggaran</span>
-            <span style={{ fontSize: 13, fontWeight: 800, color: C.blue }}>{summary.serapan.toFixed(1)}%</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: summary.serapan != null && summary.serapan > 100 ? C.red : C.blue }}>
+              {summary.serapan == null ? "belum bisa dihitung" : `${summary.serapan.toFixed(1)}%`}
+            </span>
           </div>
-          <ProgressBar pct={summary.serapan} color={C.blue} height={10} />
+          {/*
+            Bilah tetap dijepit 100 (bilah 130% tak bisa digambar), TAPI
+            angkanya di atas TIDAK — dan warnanya berubah merah saat lewat
+            pagu. Menjepit ANGKA-nya adalah cacat yang baru saja diperbaiki
+            di API: pembengkakan biaya justru kondisi yang paling perlu
+            terlihat.
+          */}
+          <ProgressBar pct={Math.min(100, summary.serapan ?? 0)} color={summary.serapan != null && summary.serapan > 100 ? C.red : C.blue} height={10} />
         </div>
       </div>
 

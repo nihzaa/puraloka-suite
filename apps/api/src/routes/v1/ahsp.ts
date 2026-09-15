@@ -253,20 +253,59 @@ export default async function ahspRoutes(app: FastifyInstance) {
       // ini SE-68-2024 dan SNI-2013 terdaftar dengan NOL analisa. Tanpa angka
       // ini, memilihnya saat membuat versi menghasilkan katalog kosong tanpa
       // sebab yang terlihat, dan pemakai menyimpulkan sistemnya rusak.
-      const { data: asm } = await request.db!
-        .from('assemblies').select('edition_id').eq('status', 'active').limit(10000)
-      const per = new Map<string, number>()
-      for (const a of asm ?? []) {
-        if (a.edition_id) per.set(a.edition_id, (per.get(a.edition_id) ?? 0) + 1)
-      }
+      //
+      /*
+        ── Kenapa DIHITUNG DI BASIS, bukan ditally di JS
+
+        Sampai 2026-09-15 blok ini menarik barisnya lalu mencacahnya sendiri:
+
+            .from('assemblies').select('edition_id').eq('status','active').limit(10000)
+            for (const a of asm ?? []) per.set(a.edition_id, …)
+
+        `.limit(10000)` TIDAK menembus batas keras 1.000 baris PostgREST, dan
+        pemotongannya tak mengeluarkan galat: `data` terisi, `error` null.
+        Yang tercacah cuma 1.000 baris pertama, dan dari seribu itu 580 yang
+        kebetulan ber-`edition_id`.
+
+        Diukur ke produksi 2026-09-15: endpoint ini melaporkan SE-47-2026 =
+        **580** sementara kebenarannya **2.747** (SQL: count(*) FILTER
+        (WHERE status='active') per edisi). Jadi bukan sekadar kurang teliti —
+        angkanya salah 4,7 kali lipat.
+
+        Yang membuatnya bertahan: 580 TERLIHAT MASUK AKAL. Ia bukan nol, bukan
+        angka bulat mencurigakan, dan ia bergerak kalau katalog bertambah.
+        Tidak ada di layar yang bisa membedakannya dari jumlah yang benar —
+        dan angka ini justru yang dipakai orang untuk memutuskan apakah sebuah
+        edisi layak dipilih saat membuat versi RAB.
+
+        Sekarang tiap edisi dihitung di BASIS (`head: true` + `count: 'exact'`):
+        nol baris melewati kabel, jadi tak ada yang bisa terpotong. Jumlah
+        permintaannya = jumlah edisi terdaftar (3 hari ini), bukan jumlah
+        analisa — dan `head: true` membuat tiap permintaan hanya membawa
+        header `Content-Range`, bukan badan.
+      */
+      const edisi = data ?? []
+      const jumlah = await Promise.all(edisi.map(async (e) => {
+        const { count, error: errHitung } = await request.db!
+          .from('assemblies')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'active')
+          .eq('edition_id', e.id)
+        // Galat dilaporkan, TIDAK dijatuhkan ke 0: nol yang berarti "gagal
+        // menghitung" tak bisa dibedakan dari edisi yang memang kosong, dan
+        // keduanya menuntun ke kesimpulan yang berlawanan (yang satu "jangan
+        // dipilih", yang lain "perbaiki dulu").
+        if (errHitung) return null
+        return count ?? null
+      }))
 
       return reply.send({
-        data: (data ?? []).map((e) => ({ ...e, jumlah_analisa: per.get(e.id) ?? 0 })),
+        data: edisi.map((e, i) => ({ ...e, jumlah_analisa: jumlah[i] })),
       })
     })
 
   // ── GET /cecep/assemblies — katalog AHSP (filter edisi/sumber) ──────────────
-  app.get<{ Querystring: { edition?: string; source?: string; limit?: string; q?: string } }>(
+  app.get<{ Querystring: { edition?: string; source?: string; limit?: string; q?: string; komponen?: string } }>(
     '/api/v1/cecep/assemblies',
     { preHandler: [authenticate, requirePermission('cecep:assembly:view')] },
     async (request, reply) => {
@@ -283,11 +322,50 @@ export default async function ahspRoutes(app: FastifyInstance) {
       // hanya baris yang terlihat (virtualisasi). Cap tetap ada supaya katalog
       // yang tumbuh sepuluh kali lipat tak diam-diam melumpuhkan halaman.
       const limit = Math.max(1, Math.min(5000, Number(request.query.limit) || 100))
+
+      /*
+        ── `komponen=0` — daftar TANPA rincian komponen
+
+        Diukur ke produksi 2026-09-15:
+
+            GET /cecep/assemblies?limit=5000  →  27.247 ms, 4.504.050 byte,
+                                                 5.000 baris, 29.149 komponen
+
+        Dua puluh tujuh detik untuk sebuah DAFTAR. Yang memakan waktunya bukan
+        5.000 baris assembly — melainkan embed bersarang
+        `assembly_components → resources` yang ditarik untuk SETIAP baris
+        (33.682 baris komponen ada di basis), lima kali bolak-balik 1.000 baris
+        secara BERURUTAN.
+
+        Dan layar daftar tidak menampilkannya: `master/ahsp/page.tsx` merender
+        code, name, source, satuan dan lencana; rincian komponen datang dari
+        `/hsp-live` saat satu baris dibuka. Jadi untuk pemakaian terbesarnya,
+        seluruh embed itu terbuang.
+
+        ⚠ Tapi TIDAK boleh dihapus begitu saja — ada pembaca yang sungguh
+        memakainya, dan diamnya tak akan terlihat:
+
+          • `apps/web/app/pm-portal/cecep/ahsp/page.tsx:104` → `a.components.length`
+            ("13 komponen" di kartu katalog portal PM)
+          • `apps/web/app/(dashboard)/master/ahsp/page.tsx` modal Adopsi & Ubah
+            → `[...asal.components].sort(...)` — tabel koefisien yang disunting
+          • `__tests__/ahsp-endpoint.test.ts` → `expect(asm.components).toHaveLength(7)`
+
+        `components` yang hilang di sana tak melempar galat: `.length` pada
+        undefined melempar, tapi `[...undefined]` juga — dan yang lebih buruk,
+        embed KOSONG (`[]`) akan membuat modal Adopsi menampilkan tabel
+        koefisien kosong yang terbaca sebagai "analisa ini memang tak punya
+        komponen". Karena itu bawaannya TETAP MENYERTAKAN komponen, dan yang
+        opt-IN adalah peniadaannya (`komponen=0`). Pemanggil lama tak berubah
+        perilakunya sama sekali; yang tahu dirinya tak butuh, meminta tanpa.
+      */
+      const tanpaKomponen = request.query.komponen === '0'
+      const KOLOM_DASAR = `id, code, name, source, version_number, status, waste_factor,
+                 output_unit_code, is_import_baseline, edit_type,
+                 edition:ahsp_editions!assemblies_edition_id_fkey(code, name)`
       let q = request.db!
         .from('assemblies')
-        .select(`id, code, name, source, version_number, status, waste_factor,
-                 output_unit_code, is_import_baseline, edit_type,
-                 edition:ahsp_editions!assemblies_edition_id_fkey(code, name),
+        .select(tanpaKomponen ? KOLOM_DASAR : `${KOLOM_DASAR},
                  components:assembly_components(coefficient, sort_order,
                    resource:resources(code, name, category, unit_code))`)
         .order('code')
@@ -359,6 +437,48 @@ export default async function ahspRoutes(app: FastifyInstance) {
       const { count } = await hitung
 
       return reply.send({ data, total: count ?? null, limit })
+    })
+
+  // ── GET /cecep/assemblies/jumlah — ketiga hitungan saringan SEKALIGUS ──────
+  /*
+    Dropdown saringan katalog menyebut jumlahnya sendiri ("Analisa perusahaan
+    saja (424)") supaya pemakai tak perlu memilih dulu untuk tahu ada isinya.
+
+    Angka itu dulu diambil dengan TIGA permintaan terpisah ke daftar katalog,
+    masing-masing `?limit=1` semata-mata untuk membaca `total` di balasannya:
+
+        /cecep/assemblies?limit=1
+        /cecep/assemblies?source=company&limit=1
+        /cecep/assemblies?source=national&limit=1
+
+    Diukur ke produksi 2026-09-15: 5.266 ms · 5.259 ms · 5.231 ms. Lima detik
+    masing-masing untuk SATU ANGKA, dan `limit=1` sama sekali tak membuatnya
+    murah — handler daftar tetap merakit embed komponen bersarang, memulangkan
+    satu baris, lalu menjalankan `count` sebagai query keempat.
+
+    Di sini ketiganya dihitung langsung di basis dengan `head: true` — nol
+    baris melewati kabel — dan dikirim dalam satu balasan.
+
+    `null` DIPAKAI untuk "gagal dihitung", bukan 0. Nol yang berarti gagal tak
+    bisa dibedakan dari nol yang benar, dan di dropdown ini keduanya menuntun
+    ke kesimpulan berlawanan: "tak ada isinya, jangan pilih" vs "ada 5.367,
+    angkanya saja yang belum sampai".
+  */
+  app.get(
+    '/api/v1/cecep/assemblies/jumlah',
+    { preHandler: [authenticate, requirePermission('cecep:assembly:view')] },
+    async (request, reply) => {
+      const hitung = async (source?: string) => {
+        let q = request.db!.from('assemblies').select('id', { count: 'exact', head: true })
+        if (source) q = q.eq('source', source)
+        const { count, error } = await q
+        if (error) return null
+        return count ?? null
+      }
+      const [semua, company, national] = await Promise.all([
+        hitung(), hitung('company'), hitung('national'),
+      ])
+      return reply.send({ semua, company, national })
     })
 
   // ── GET /cecep/assemblies/price-coverage — analisa mana yang harganya kurang
@@ -889,25 +1009,68 @@ export default async function ahspRoutes(app: FastifyInstance) {
 
       // Dampak = berapa analisa yang tak bisa dihitung gara-gara resource ini.
       // Dihitung di aplikasi karena wrapper tenant tidak menyediakan jalur SQL
-      // mentah, dan menembusnya berarti melewati scoping otomatis. Batas 20.000
-      // baris cukup untuk ~18.000 komponen yang ada; kalau kelak terlampaui,
-      // angkanya jadi kurang — itu sebabnya `total_tanpa_harga` dilaporkan
-      // terpisah agar selisihnya terlihat, bukan tersamar.
-      const { data, error } = await request.db!
-        .from('assembly_components')
-        .select(`resource_id, assembly:assemblies!inner(source),
-                 resource:resources!inner(id, code, name, category, unit_code)`)
-        .limit(20000)
+      // mentah, dan menembusnya berarti melewati scoping otomatis.
+      //
+      /*
+        ── `.limit(20000)` TIDAK pernah memberi 20.000 baris
 
-      if (error) return reply.status(500).send({ error: error.message })
+        Komentar lama di sini berbunyi: "Batas 20.000 baris cukup untuk ~18.000
+        komponen yang ada". Dua hal salah dalam satu kalimat, dan keduanya
+        menenangkan:
 
+          1. Komponennya bukan ~18.000 melainkan **33.682** (diukur 2026-09-15).
+          2. Yang datang bukan 20.000 dan bukan 18.000, melainkan **1.000** —
+             batas keras PostgREST, yang tak bisa ditembus `.limit()`. Tanpa
+             galat, tanpa penanda.
+
+        Jadi peringkat "dampak terbesar" — yang seluruh gunanya adalah
+        memberitahu mana yang harus diisi LEBIH DULU — disusun dari 1.000 dari
+        33.682 baris komponen, 3% data.
+
+        Diukur ke basis 2026-09-15, lima teratas menurut kebenaran vs menurut
+        seribu baris pertama:
+
+            KEBENARAN                        YANG DITAMPILKAN
+            Mandor          2.513 analisa    Pekerja ( OJ )      92
+            Pekerja         2.380            Sewa mobil crane    69
+            Kepala tukang   1.608            Air Bersih          23
+            Tukang pipa       889            Kawat Las           19
+            Tukang listrik    638            Paku pancing 6x23   16
+
+        TAK SATU PUN yang benar muncul. Layar yang seluruh tujuannya
+        memprioritaskan justru menyuruh mengisi "Paku pancing 6x23" (16
+        analisa) sementara "Mandor" (2.513) tak terlihat sama sekali — dan
+        angka 92 terbaca persis seperti angka sungguhan.
+
+        `total_tanpa_harga` yang dilaporkan terpisah TIDAK menyelamatkannya:
+        ia dihitung dari `pakai` yang SAMA, jadi ia ikut salah. Dua angka dari
+        satu potongan tak bisa saling memeriksa.
+
+        Sekarang dibaca BERTAHAP per 1.000 sampai habis — pola yang sama
+        dengan handler daftar katalog di berkas ini.
+      */
+      const HALAMAN_KOMP = 1000
+      const BATAS_KOMP = 60000   // pagar terakhir; hari ini 33.682 baris
       type Row = {
         resource_id: string
         assembly: { source: string } | { source: string }[]
         resource: { id: string; code: string; name: string; category: string; unit_code: string }
       }
+      const data: Row[] = []
+      for (let mulai = 0; mulai < BATAS_KOMP; mulai += HALAMAN_KOMP) {
+        const { data: bagian, error } = await request.db!
+          .from('assembly_components')
+          .select(`resource_id, assembly:assemblies!inner(source),
+                   resource:resources!inner(id, code, name, category, unit_code)`)
+          .order('resource_id')
+          .range(mulai, mulai + HALAMAN_KOMP - 1)
+        if (error) return reply.status(500).send({ error: error.message })
+        data.push(...((bagian ?? []) as unknown as Row[]))
+        if (!bagian || bagian.length < HALAMAN_KOMP) break   // sudah habis
+      }
+
       const pakai = new Map<string, { r: Row['resource']; n: number }>()
-      for (const row of (data ?? []) as unknown as Row[]) {
+      for (const row of data) {
         const asm = Array.isArray(row.assembly) ? row.assembly[0] : row.assembly
         if (source && asm?.source !== source) continue
         const k = row.resource_id
@@ -938,6 +1101,40 @@ export default async function ahspRoutes(app: FastifyInstance) {
         data: daftar,
         total_tanpa_harga: [...pakai.values()].filter((x) => !sudah.has(x.r.id)).length,
       })
+    })
+
+  // ── GET /cecep/assemblies/:id/komponen — rincian komponen SATU analisa ─────
+  /*
+    Lahir bersama `komponen=0` di daftar katalog (lihat GET /cecep/assemblies).
+
+    Daftar yang membawa komponen untuk 5.000 baris membayar 27 detik; layar
+    daftar tak menampilkan satu pun dari 29.149 komponen itu. Yang sungguh
+    memakainya cuma modal Adopsi dan modal Ubah — dan keduanya bekerja atas
+    SATU analisa, yang baru diketahui saat modalnya dibuka.
+
+    Bentuk balasannya sengaja PERSIS sama dengan embed `components` di daftar
+    (`coefficient`, `sort_order`, `resource{code,name,category,unit_code}`),
+    supaya klien tak perlu dua pemahaman untuk satu hal yang sama.
+
+    Ini BUKAN duplikat `/hsp-live`: yang itu memulangkan komponen yang sudah
+    DIRATAKAN dan digabung harga (`resource_code`, `amount`, `subtotal`, tanpa
+    `sort_order`) — bentuk untuk membaca angka HSP, bukan untuk menyunting
+    koefisien. Memakai `/hsp-live` di modal sunting berarti menarik resolusi
+    harga penuh untuk data harga yang tak dipakai sama sekali.
+  */
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/cecep/assemblies/:id/komponen',
+    { preHandler: [authenticate, requirePermission('cecep:assembly:view')] },
+    async (request, reply) => {
+      const { data: asm, error } = await request.db!
+        .from('assemblies')
+        .select(`id, components:assembly_components(coefficient, sort_order,
+                   resource:resources(code, name, category, unit_code))`)
+        .eq('id', request.params.id)
+        .maybeSingle()
+      if (error) return reply.status(500).send({ error: error.message })
+      if (!asm) return reply.status(404).send({ error: 'Assembly tidak ditemukan' })
+      return reply.send({ data: asm.components ?? [] })
     })
 
   // ── GET /cecep/assemblies/:id/hsp-live — HSP dari harga YANG SEDANG BERLAKU ─

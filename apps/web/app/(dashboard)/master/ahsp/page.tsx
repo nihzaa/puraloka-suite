@@ -61,6 +61,57 @@ const GRUP_LABEL: Record<string, { huruf: string; judul: string }> = {
   equipment: { huruf: "C", judul: "Alat" },
 };
 
+/**
+ * Komponen SATU analisa, diambil saat modal dibuka.
+ *
+ * Daftar katalog kini dimuat dengan `komponen=0` (lihat `urlAssemblies`), jadi
+ * `asal.components` di modal Adopsi/Ubah tak lagi terisi dari daftar. Modal
+ * mengambilnya sendiri — satu analisa, bukan lima ribu.
+ *
+ * Tiga keadaan dibedakan dengan sengaja, dan larik KOSONG bukan salah satunya
+ * sebelum datanya benar-benar datang: tabel koefisien yang kosong karena masih
+ * memuat terlihat persis seperti analisa yang memang tak punya komponen, dan
+ * yang membacanya akan menyimpulkan analisanya rusak lalu menutup modalnya.
+ */
+function useKomponenAnalisa(id: string) {
+  const [data, setData] = useState<AsmComponent[] | null>(null);
+  const [galat, setGalat] = useState(false);
+  useEffect(() => {
+    let batal = false;
+    setData(null); setGalat(false);
+    api.get<{ data: AsmComponent[] }>(`/api/v1/cecep/assemblies/${id}/komponen`)
+      .then(r => { if (!batal) setData(r.data.data ?? []); })
+      .catch(() => { if (!batal) setGalat(true); });
+    return () => { batal = true; };
+  }, [id]);
+  return { data, galat };
+}
+
+/**
+ * Keadaan pengambilan komponen, dikatakan dengan kata — bukan dibiarkan jadi
+ * tabel kosong. Tabel kosong terbaca sebagai "analisa ini tak punya komponen",
+ * kesimpulan yang salah dan tak terkoreksi oleh apa pun di layar.
+ */
+function KeadaanKomponen({ k }: { k: ReturnType<typeof useKomponenAnalisa> }) {
+  if (k.galat) return (
+    <p role="status" style={{ fontSize: 12, color: C.red, margin: "0 0 10px" }}>
+      Rincian koefisien gagal dimuat. Tutup lalu buka lagi analisa ini —
+      menyimpan sekarang hanya akan menyalin koefisien aslinya tanpa perubahan.
+    </p>
+  );
+  if (k.data === null) return (
+    <p role="status" style={{ fontSize: 12, color: C.muted, margin: "0 0 10px" }}>
+      Memuat rincian koefisien…
+    </p>
+  );
+  if (k.data.length === 0) return (
+    <p role="status" style={{ fontSize: 12, color: C.muted, margin: "0 0 10px" }}>
+      Analisa ini tidak punya komponen.
+    </p>
+  );
+  return null;
+}
+
 function KatalogTab() {
   const sEditions = useData<{ data: Edition[] }>("/api/v1/cecep/editions");
   const editions = useMemo(() => sEditions.data?.data ?? [], [sEditions.data]);
@@ -126,11 +177,28 @@ function KatalogTab() {
     data: cara lama (potong 200 + cari ke server) membuat analisa di baris
     ke-500 tak pernah bisa DILIHAT oleh orang yang belum tahu kata kuncinya.
   */
+  /*
+    `komponen=0` — daftar TANPA rincian komponen.
+
+    Diukur ke produksi 2026-09-15, permintaan yang halaman ini kirim saat dibuka:
+
+        GET /cecep/assemblies?limit=5000  →  27.247 ms, 4.504.050 byte,
+                                             5.000 baris, 29.149 komponen
+
+    Yang dibayar 27 detik itu: embed bersarang `assembly_components → resources`
+    untuk SETIAP baris. Yang dirender daftar ini: code, name, source, satuan,
+    lencana — komponen TIDAK ADA di antaranya. Rincian komponen datang dari
+    `/hsp-live` saat satu baris dibuka (`bukaAnalisa`), bukan dari sini.
+
+    Yang sungguh butuh `components` cuma dua modal (Adopsi & Ubah), dan
+    keduanya mengambilnya sendiri saat dibuka — satu analisa, bukan lima ribu.
+  */
   const urlAssemblies = useMemo(() => {
     const q = new URLSearchParams();
     if (edition) q.set("edition", edition);
     if (sumber) q.set("source", sumber);
     q.set("limit", "5000");
+    q.set("komponen", "0");
     return `/api/v1/cecep/assemblies?${q}`;
   }, [edition, sumber]);
 
@@ -154,15 +222,41 @@ function KatalogTab() {
     kehilangan angkanya tetap bisa dipakai; pesan merah untuknya justru
     mengalihkan perhatian dari katalog yang jadi pekerjaan utama.
   */
-  const sSemua    = useData<{ total: number | null }>("/api/v1/cecep/assemblies?limit=1");
-  const sCompany  = useData<{ total: number | null }>("/api/v1/cecep/assemblies?source=company&limit=1");
-  const sNational = useData<{ total: number | null }>("/api/v1/cecep/assemblies?source=national&limit=1");
+  /*
+    SATU permintaan, bukan tiga.
+
+    Diukur ke produksi 2026-09-15, tiga permintaan lama — masing-masing
+    `?limit=1` semata untuk membaca satu angka `total`:
+
+        /cecep/assemblies?limit=1                  5.266 ms
+        /cecep/assemblies?source=company&limit=1   5.259 ms
+        /cecep/assemblies?source=national&limit=1  5.231 ms
+
+    `limit=1` tak membuatnya murah: handler daftar tetap merakit embed komponen
+    bersarang lalu menjalankan `count` sebagai query tersendiri. Sekarang
+    ketiganya dihitung di basis dan datang dalam satu balasan.
+
+    `null` di `jumlahPerSaring` berarti BELUM/GAGAL TERBACA — sengaja BUKAN 0.
+    Label lama memakai `?? 0`, jadi selama lima detik pertama dropdown
+    berbunyi "Semua (0)" — dan nol yang berarti "sedang dimuat" tak bisa
+    dibedakan dari nol yang berarti "katalognya kosong". Yang membaca lalu
+    menyimpulkan tak ada apa-apa di sana, dan menutup halaman sebelum
+    angkanya sempat datang.
+  */
+  const sJumlah = useData<{ semua: number | null; company: number | null; national: number | null }>(
+    "/api/v1/cecep/assemblies/jumlah");
 
   const jumlahPerSaring = useMemo(() => ({
-    semua:    sSemua.data?.total ?? 0,
-    company:  sCompany.data?.total ?? 0,
-    national: sNational.data?.total ?? 0,
-  }), [sSemua.data, sCompany.data, sNational.data]);
+    semua:    sJumlah.data?.semua ?? null,
+    company:  sJumlah.data?.company ?? null,
+    national: sJumlah.data?.national ?? null,
+  }), [sJumlah.data]);
+
+  /** "(1.234)" bila angkanya ada; "(memuat…)" selama belum, "(?)" bila gagal. */
+  const labelJumlah = useCallback((n: number | null) => {
+    if (n !== null) return `(${formatAngka(n)})`;
+    return sJumlah.memuat ? "(memuat…)" : "(jumlah tak terbaca)";
+  }, [sJumlah.memuat]);
 
   // Cakupan harga dimuat sekali per kombinasi filter — bukan per analisa dibuka.
   // Tanpa ini, analisa yang HSP-nya tak bisa dihitung baru ketahuan setelah
@@ -234,12 +328,12 @@ function KatalogTab() {
             yang akan tampil, beserta jumlahnya. */}
         <Pilihan className="isian-fokus" value={saring} onChange={e => setSaring(e.target.value)}
           aria-label="Saring katalog" style={{ ...GAYA_ISIAN, minWidth: 300 }}>
-          <option value="">Semua ({formatAngka(jumlahPerSaring.semua ?? 0)})</option>
+          <option value="">Semua {labelJumlah(jumlahPerSaring.semua)}</option>
           <option value="company">
-            Analisa perusahaan saja ({formatAngka(jumlahPerSaring.company ?? 0)})
+            Analisa perusahaan saja {labelJumlah(jumlahPerSaring.company)}
           </option>
           <option value="national">
-            Analisa nasional saja ({formatAngka(jumlahPerSaring.national ?? 0)})
+            Analisa nasional saja {labelJumlah(jumlahPerSaring.national)}
           </option>
           {editions.filter(e => (e.jumlah_analisa ?? 0) > 0).map(e => (
             <option key={e.id} value={`edition:${e.code}`}>
@@ -249,9 +343,19 @@ function KatalogTab() {
           {/* Edisi kosong tetap terlihat supaya jelas ia terdaftar tapi belum
               berisi — menyembunyikannya membuat pemakai mengira sistem hanya
               mendukung satu edisi. */}
-          {editions.filter(e => (e.jumlah_analisa ?? 0) === 0).map(e => (
+          {editions.filter(e => e.jumlah_analisa === 0).map(e => (
             <option key={e.id} value={`edition:${e.code}`} disabled>
               Edisi {e.code} — belum ada analisa
+            </option>
+          ))}
+          {/* TIGA keadaan, bukan dua. `jumlah_analisa` null/undefined berarti
+              API GAGAL menghitungnya, bukan "nol analisa" — dan yang kedua
+              di-`disabled`. Menyatukan keduanya berarti edisi yang isinya
+              ribuan analisa bisa muncul terkunci dengan alasan yang salah,
+              lalu pemakai menyimpulkan katalognya belum diimpor. */}
+          {editions.filter(e => e.jumlah_analisa === null || e.jumlah_analisa === undefined).map(e => (
+            <option key={e.id} value={`edition:${e.code}`}>
+              Edisi {e.code} (jumlah tak terbaca)
             </option>
           ))}
         </Pilihan>
@@ -599,7 +703,12 @@ function AdopsiModal({ asal, onClose, onDone }: {
   const [simpan, setSimpan] = useState(false);
   const [err, setErr] = useState("");
 
-  const komponen = [...asal.components].sort((a, b) => a.sort_order - b.sort_order);
+  // Komponen diambil saat modal dibuka — daftar katalog memuatnya dengan
+  // `komponen=0`, jadi `asal.components` tak lagi terisi dari sana.
+  const kompAsli = useKomponenAnalisa(asal.id);
+  const komponen = useMemo(
+    () => [...(kompAsli.data ?? [])].sort((a, b) => a.sort_order - b.sort_order),
+    [kompAsli.data]);
 
   async function kirim(e: React.FormEvent) {
     e.preventDefault();
@@ -693,6 +802,7 @@ function AdopsiModal({ asal, onClose, onDone }: {
           <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: "0 0 10px", lineHeight: 1.5 }}>
             Kosongkan yang tidak berubah — yang dikosongkan memakai angka aslinya.
           </p>
+          <KeadaanKomponen k={kompAsli} />
           {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — caption sr-only,
               scope="row", tabular-nums, dan overflow-x dijamin komponen.
 
@@ -764,7 +874,12 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
   const [simpan, setSimpan] = useState(false);
   const [err, setErr] = useState("");
 
-  const komponen = [...asal.components].sort((a, b) => a.sort_order - b.sort_order);
+  // Komponen diambil saat modal dibuka — sama seperti AdopsiModal, sebab
+  // daftar katalog kini dimuat dengan `komponen=0`.
+  const kompAsli = useKomponenAnalisa(asal.id);
+  const komponen = useMemo(
+    () => [...(kompAsli.data ?? [])].sort((a, b) => a.sort_order - b.sort_order),
+    [kompAsli.data]);
   const jadiCompany = editType === "deviation" && asal.source === "national";
 
   async function kirim(e: React.FormEvent) {
@@ -893,6 +1008,7 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
           <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: "0 0 10px", lineHeight: 1.5 }}>
             Kosongkan yang tidak berubah. Minimal satu koefisien wajib diubah.
           </p>
+          <KeadaanKomponen k={kompAsli} />
           {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — caption sr-only,
               scope="row", tabular-nums, dan overflow-x dijamin komponen.
               `kepalaBaris` di Uraian, alasan sama dengan tabel adopsi di atas:

@@ -1,0 +1,29 @@
+{
+  "situs": 24,
+  "daftar": [
+    "src/routes/v1/ahsp.ts:497",
+    "src/routes/v1/baseline-jadwal.ts:323",
+    "src/routes/v1/baseline-jadwal.ts:332",
+    "src/routes/v1/baseline-jadwal.ts:369",
+    "src/routes/v1/finance.ts:448",
+    "src/routes/v1/finance.ts:525",
+    "src/routes/v1/gl.ts:587",
+    "src/routes/v1/gl.ts:606",
+    "src/routes/v1/k3-lapangan.ts:153",
+    "src/routes/v1/k3-lapangan.ts:229",
+    "src/routes/v1/k3-lapangan.ts:704",
+    "src/routes/v1/kompetensi-sdm.ts:243",
+    "src/routes/v1/payroll-staf.ts:162",
+    "src/routes/v1/payroll-staf.ts:237",
+    "src/routes/v1/price-book.ts:223",
+    "src/routes/v1/price-book.ts:384",
+    "src/routes/v1/price-book.ts:40",
+    "src/routes/v1/reports.ts:1318",
+    "src/routes/v1/reports.ts:1438",
+    "src/routes/v1/reports.ts:1531",
+    "src/routes/v1/risiko-proyek.ts:269",
+    "src/routes/v1/susut-material.ts:48",
+    "src/routes/v1/tarif-payroll.ts:76",
+    "src/routes/v1/tutup-buku.ts:59"
+  ]
+}

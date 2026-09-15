@@ -304,6 +304,19 @@ jobs:
       - name: Klaim status atomik (approval & pembayaran ganda)
         run: node scripts/audit-klaim-status-atomik.mjs
 
+      # Kasbon TIDAK boleh dijumlahkan bersama `project_expenses`: trigger
+      # `trg_kasbon_approved_create_expense` sudah menaruh tiap kasbon
+      # approved di tabel itu (ref_type='kasbon'). Diukur 2026-09-15, seluruh
+      # tabel: 55 kasbon approved/settled <-> 55 baris expense, Rp 550.600.000
+      # di kedua sisi, nol yatim di kedua arah.
+      #
+      # Lima tempat menghitungnya dua kali, dan KELIMANYA hijau di seluruh
+      # alat — kedua query berhasil, kedua angkanya sah sendiri-sendiri, yang
+      # salah hanya jumlahnya. Dampaknya bukan pembulatan: satu proyek
+      # dilaporkan menyerap 73,1% nilai kontrak saat yang benar 36,6%.
+      - name: Serapan tak menghitung kasbon dua kali
+        run: node scripts/audit-serapan-tak-dobel-kasbon.mjs
+
       # Penjaga yang tak pernah merah adalah hiasan (CLAUDE.md 8a.2). Bukti
       # itu dijalankan CI, bukan sekali saat penjaganya ditulis: ia melepas
       # klaim atomik yang sungguhan dipakai di 5 berkas, memastikan penjaga
@@ -1893,6 +1906,94 @@ jobs:
       # MERAH (exit 1, menunjuk role-guard.ts:69) → dipulihkan → HIJAU (exit 0).
       - name: Baca tabel penuh tidak terpotong di 1.000 baris
         run: node scripts/audit-baca-tak-terpotong.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # `.limit(N)` TAK BISA menembus 1.000 — dan yang mengandalkannya berbohong.
+      #
+      # ⚠ BUKAN duplikat langkah di atasnya. Yang itu menjaga pembacaan tabel
+      # PENUH; daftar `PEMBATAS`-nya memuat `.limit(`, jadi `.limit(20000)`
+      # dianggap SUDAH DIBATASI dan dilewati tanpa diperiksa — padahal 20.000
+      # adalah angka yang TIDAK BISA dicapai. Cacatnya hidup di CELAH antara
+      # keduanya.
+      #
+      # DUA bentuk: (a) `.limit(N>1000)` — ratchet, lantai menyimpan DAFTAR
+      # NAMA (24 situs, diukur 2026-09-15); (b) idiom `.limit(X+1)` untuk
+      # mendeteksi pemotongan — ambang NOL, sebab ia tak sekadar diam, ia
+      # AKTIF MENJANJIKAN pemotongan akan ketahuan. `.limit(5001)` memulangkan
+      # 1.000, jadi `1000 > 5000` false SELAMANYA: header `x-ekspor-terpotong`
+      # tak pernah menyala, dan TOTAL UANG dijumlahkan dari himpunan terpotong
+      # lalu dicetak sebagai jumlah lengkap.
+      #
+      # Tak butuh basis — yang dibaca BENTUK di kode. Bukti merah: (a)
+      # `.limit(9999)` disuntik ke tutup-buku.ts → MERAH exit 1 menyebut
+      # `tutup-buku.ts:60` → dipulihkan → HIJAU exit 0; (b) idiom dikembalikan
+      # ke kasbons.ts → MERAH exit 1 menyebut `kasbons.ts:140` → dipulihkan →
+      # HIJAU exit 0.
+      - name: Batas baca waras (.limit tak menembus 1.000)
+        run: node scripts/audit-batas-baca-waras.mjs
+
+      # Mencacah DI ATAS pembacaan yang terpotong — ambang NOL.
+      #
+      # `GET /cecep/editions` menghitung analisa per edisi dengan menarik
+      # `.limit(10000)` lalu mencacahnya di JS. Diukur ke produksi 2026-09-15:
+      # endpoint melaporkan SE-47-2026 = 580, kebenarannya di basis 2.747.
+      # Salah 4,7 kali lipat, dan 580 TERLIHAT MASUK AKAL — bukan nol, bukan
+      # angka bulat, dan bergerak kalau katalog berubah.
+      #
+      # ⚠ BUKAN duplikat DUA langkah di atasnya, dan celahnya berbeda dari
+      # keduanya:
+      #   • `audit-baca-tak-terpotong` BUTA di sini — `.eq(` dan `.limit(`
+      #     keduanya ada di `PEMBATAS`-nya, jadi baris ini dilewati senyap.
+      #   • `audit-batas-baca-waras` melihat baris yang sama tetapi RATCHET
+      #     dengan lantai 24: keduapuluhempat situs `.limit(N>1000)` yang
+      #     sudah ada DIWARISKAN, termasuk yang salah ini — ia hijau atas
+      #     cacat 580-vs-2.747 dan akan tetap hijau.
+      # Yang ini ambang NOL, tetapi hanya atas himpunan yang lebih sempit:
+      # pembacaan >1.000 yang hasilnya DIPERAS JADI SATU NILAI (for/reduce/
+      # .length/Set/Map). Daftar yang terpotong masih memperlihatkan barisnya;
+      # sebuah ANGKA yang terpotong tak punya sisa yang bisa dilihat.
+      #
+      # Jalan pertamanya menemukan instans KEDUA yang tak seorang pun cari:
+      # `/cecep/prices/missing` menyusun peringkat "dampak terbesar" dari
+      # 1.000 dari 33.682 baris komponen. Lima teratas sesungguhnya (Mandor
+      # 2.513, Pekerja 2.380, Kepala tukang 1.608) TAK SATU PUN muncul; yang
+      # ditampilkan "Paku pancing 6x23" (16). Layar yang seluruh gunanya
+      # memprioritaskan menyuruh mengisi yang paling tak mendesak.
+      #
+      # Basis TIDAK jadi syarat memerahkan (hanya memperkaya laporan dengan
+      # jumlah baris nyata) — penjaga yang hijau karena tak memeriksa apa pun
+      # lebih buruk daripada tak ada.
+      #
+      # Bukti merah: (a) kode asli `jumlah_analisa` dikembalikan → MERAH
+      # exit 1 menyebut `ahsp.ts:289`, tabel `assemblies` 5.791 baris,
+      # variabel `asm`, "4.791 baris TAK PERNAH ikut terhitung" → dipulihkan
+      # → HIJAU exit 0; (b) bentuk `.range(0,19999)` + `new Set(...)`
+      # disuntik → MERAH exit 1 menyebut baris + `assembly_components`
+      # 33.682 baris → dipulihkan → HIJAU exit 0. `tsc` exit 0 pada KEDUA
+      # mutasi — typecheck tak bisa melihat kelas cacat ini.
+      - name: Cacah di atas baca terpotong (ambang NOL)
+        run: node scripts/audit-cacah-di-atas-baca-terpotong.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Saringan `.not(kolom,'in',…)` wajib menyebut nilai enum yang ADA.
+      #
+      # `/notifications/check-milestones` TAK PERNAH bekerja sejak ditulis:
+      # saringannya menyebut `cancelled`, sementara enum `milestone_status`
+      # hanya punya pending/in_progress/completed/overdue. PostgREST menolak
+      # SELURUH query dengan 22P02, galatnya tak diperiksa (`.data ?? []`),
+      # dan rutenya membalas `{success:true, approaching:0, overdue:0}` —
+      # sukses yang sempurna palsu, tak terbedakan dari "memang tak ada yang
+      # jatuh tempo". Dengan saringan yang benar: 19 milestone.
+      #
+      # Enum dibaca dari `pg_enum` (butuh basis), bukan dari daftar di kode —
+      # tabel yang hari ini cuma berisi dua nilai tetap boleh menghasilkan
+      # yang ketiga besok. Ambang NOL. Bukti merah: `cancelled` dikembalikan
+      # → MERAH exit 1 menyebut `notifications.ts:539` + nilai hantunya →
+      # dipulihkan → HIJAU exit 0.
+      - name: Saringan enum menyebut nilai yang ada
+        run: node scripts/audit-saringan-enum-ada.mjs
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
@@ -3926,6 +4027,31 @@ jobs:
       # (mutasinya di DB, dijalankan dalam transaksi yang selalu ROLLBACK).
       - name: Urutan sidebar tak bentrok
         run: node apps/web/scripts/audit-sidebar-urutan.mjs
+        working-directory: .
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+
+      # Ikon menu — DUA arah, ambang NOL.
+      #
+      # (a) Sub-menu wajib `Dot`. Aturan founder, tertulis sejak lama di
+      #     `sidebar.tsx` dan `ikon-menu.tsx` — tapi hanya sebagai KOMENTAR,
+      #     dan komentar tak menahan siapa pun: diukur 2026-09-15, SEPULUH
+      #     sub-menu aktif memakai ikon sendiri.
+      #
+      # (b) Tiap nama ikon wajib ada di tabel `IKON_MENU`. Inilah arah yang
+      #     mahal: `ikonMenu()` berakhir `?? FolderKanban`, jadi nama yang tak
+      #     terdaftar tidak gagal — ia terender sebagai FOLDER. Bukan ikon
+      #     hilang (itu terlihat), melainkan penanda KELIRU tanpa satu pun
+      #     galat. SEMBILAN nama aktif tak terdaftar hari itu: tujuh di
+      #     sub-menu (ditutup migrasi 582) dan DUA di INDUK — `g-akuntansi`
+      #     dan `g-alat-dokumen`, yang arah (a) tak akan pernah temukan sebab
+      #     induk memang BOLEH berikon. Cacatnya hidup di celah antar-arah.
+      #
+      # Bukti merah 3/3, tiap kali menyebut entrinya: sub-menu berikon → (a)
+      # merah · kunci induk dicabut dari IKON_MENU → (b) merah sementara (a)
+      # tetap hijau · kunci salah ketik → (c) merah.
+      - name: Ikon menu benar (sub-menu `Dot` + nama terdaftar)
+        run: node apps/api/scripts/audit-ikon-menu-benar.mjs
         working-directory: .
         env:
           DIRECT_URL: ${{ secrets.DIRECT_URL }}

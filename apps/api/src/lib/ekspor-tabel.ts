@@ -219,3 +219,107 @@ export async function susunEkspor(
       }
   }
 }
+
+/**
+ * ══════════════════════════════════════════════════════════════════════════
+ * AMBIL SELURUHNYA — dan kenapa `.limit(BATAS + 1)` TIDAK PERNAH bekerja
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Empat rute ekspor memakai idiom yang sama untuk mendeteksi pemotongan:
+ *
+ *     const BATAS = 5000
+ *     … .limit(BATAS + 1)                 // minta satu lebih dari batas
+ *     const terpotong = semua.length > BATAS   // kalau dapat 5001 → terpotong
+ *
+ * Idiomnya sah secara logika dan salah secara kenyataan: **PostgREST
+ * memotong di 1.000 baris, KERAS.** `.limit(5001)` tidak memulangkan 5.001
+ * baris; ia memulangkan 1.000. Maka `semua.length > 5000` bernilai `false`
+ * SELAMANYA, dan tiga akibat mengikutinya sekaligus:
+ *
+ *   • berkas ekspor diam-diam berhenti di 1.000 baris;
+ *   • header `x-ekspor-terpotong` selalu `'0'` — tanda yang dipasang justru
+ *     untuk memperingatkan hal ini tak pernah menyala;
+ *   • dan yang paling mahal: TOTAL UANG (`totalTagih`, `totalBelum`, total
+ *     kasbon, total PO) dijumlahkan dari 1.000 baris itu lalu dicetak di
+ *     keterangan berkas seolah jumlah lengkap. Angka yang terlalu KECIL
+ *     terbaca persis seperti kabar baik.
+ *
+ * Diukur 2026-09-15 lewat PostgREST sungguhan:
+ *
+ *     notifications  11.863 baris → .limit(5001) memulangkan  1.000
+ *     audit_logs    102.363 baris → .limit(5001) memulangkan  1.000
+ *     .range(0, 4999)             → memulangkan  1.000
+ *     .range(1000, 1999)          → memulangkan  1.000 baris LAIN
+ *
+ * Baris terakhir itu jalan keluarnya: `.range()` tidak bisa MEMPERBESAR satu
+ * respons, tetapi bisa MENGGESER jendelanya. Jadi diambil bertahap per 1.000
+ * sampai satu halaman memulangkan kurang dari ukuran halaman — pola yang
+ * sudah dipakai `routes/v1/ahsp.ts` (daftar analisa) dan
+ * `utils/role-guard.ts` (fetchRoleStates).
+ *
+ * ── Kenapa helper, bukan empat salinan loop
+ *
+ * Cacat ini lahir persis dari penyalinan: satu idiom yang salah, disalin
+ * empat kali, dengan komentar meyakinkan di tiap salinannya. Loop paging
+ * yang disalin empat kali akan menua dengan cara yang sama.
+ *
+ * ── Batas yang JUJUR
+ *
+ * `batas` tetap ada, tetapi artinya berubah: ia bukan lagi tebakan yang tak
+ * pernah tercapai melainkan pagar sungguhan. Bila data melewatinya,
+ * `terpotong` bernilai `true` KARENA MEMANG TERPOTONG — dan kali ini
+ * nilainya terukur, bukan diandaikan.
+ *
+ * @param bangun  pembuat query BARU tiap halaman. Harus fungsi, bukan satu
+ *                builder: builder Supabase sekali pakai — memanggil
+ *                `.range()` dua kali pada objek yang sama menimpa jendelanya,
+ *                bukan mengambil halaman berikutnya.
+ */
+export const HALAMAN_POSTGREST = 1000
+
+/**
+ * Bentuk MINIMAL yang dibutuhkan dari builder PostgREST: hanya `.range()`.
+ *
+ * Sengaja `any` pada `data`, dan itu keputusan yang perlu alasannya tertulis.
+ * Tipe hasil `.select()` Supabase menyatakan embed relasi sebagai ARRAY
+ * (`projects: { name: any }[]`) sementara PostgREST memulangkan OBJEK untuk
+ * relasi to-one. Ketaksesuaian itu sudah ada di repo ini SEBELUM helper ini —
+ * keempat pemanggil lama menutupnya dengan `as unknown as Array<…>`.
+ *
+ * Menuntut bentuk yang tepat di sini hanya memindahkan `as never` ke tiap
+ * pemanggil, dan itu LEBIH buruk: cast yang tersebar tak bisa diberi alasan
+ * satu kali. Jadi ketaksesuaian dinyatakan di SATU tempat, di sini.
+ */
+interface BuilderBerjendela {
+  range: (dari: number, sampai: number) => PromiseLike<{
+    data: any[] | null
+    error: { message: string } | null
+  }>
+}
+
+export async function ambilSeluruhnya<T>(
+  bangun: () => BuilderBerjendela,
+  batas: number,
+): Promise<{ baris: T[]; terpotong: boolean; galat: string | null }> {
+  const kumpul: T[] = []
+
+  for (let mulai = 0; mulai <= batas; mulai += HALAMAN_POSTGREST) {
+    // Diminta SATU lebih dari batas pada halaman yang melewatinya, supaya
+    // "tepat `batas` baris" bisa dibedakan dari "lebih dari `batas`".
+    const akhir = Math.min(mulai + HALAMAN_POSTGREST, batas + 1) - 1
+    if (akhir < mulai) break
+
+    const { data, error } = await bangun().range(mulai, akhir)
+    if (error) return { baris: [], terpotong: false, galat: error.message }
+
+    const bagian = data ?? []
+    kumpul.push(...bagian)
+
+    // Halaman yang tak penuh berarti sumbernya habis — berhenti, jangan
+    // menembak halaman kosong berikutnya.
+    if (bagian.length < akhir - mulai + 1) break
+  }
+
+  const terpotong = kumpul.length > batas
+  return { baris: terpotong ? kumpul.slice(0, batas) : kumpul, terpotong, galat: null }
+}
