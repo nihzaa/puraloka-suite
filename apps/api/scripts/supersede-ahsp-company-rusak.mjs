@@ -56,11 +56,19 @@
  *   · `estimate_items` yang menunjuk v-lama dialihkan ke v-baru — tanpa ini
  *     seluruh pekerjaan ini tak mengubah apa pun yang dilihat orang.
  *
- * ⚠ `version_number` v-baru = v-lama + 1, BUKAN dipaku 2. Company sudah
- * punya baris ber-`version_number = 2` (hasil koreksi migrasi 141), dan
- * memaku 2 akan menabrak unik `assembly_identity`
- * (code, edition_id, source, version_number) dengan galat yang menuduh
- * BARIS BARU alih-alih penomoran versinya.
+ * ⚠ `version_number` v-baru = **MAX(versi kode itu) + 1**, bukan dipaku 2 dan
+ * bukan pula `versi-baris-ini + 1`. Ketiganya pernah saya tulis, dan dua yang
+ * pertama SALAH:
+ *
+ *   · dipaku 2      → menabrak koreksi migrasi 141 yang sudah memakai v2;
+ *   · v-ini + 1     → mengandaikan baris AKTIF selalu versi tertinggi.
+ *     Tidak. Diukur 2026-09-16, `CIB-BGK-B.3` berversi 1·2·3 dengan
+ *     status superseded·ACTIVE·superseded — v-aktifnya 2, tertingginya 3.
+ *     `2 + 1 = 3` menabrak v3 yang sudah ada.
+ *
+ * Galatnya menuduh BARIS BARU (`duplicate key … assembly_identity`), bukan
+ * penomoran versinya, jadi arah perbaikannya tak terbaca dari pesan itu.
+ * Karena itu maksimum dibaca dari basis per-kode, sekali, di muka.
  *
  * ⚠ `is_import_baseline` v-baru diisi FALSE — baseline adalah jejak impor
  * pertama; menandai versi perbaikan sebagai baseline mengaburkan mana yang
@@ -216,12 +224,28 @@ try {
     process.exit(1)
   }
 
+  /*
+    Versi TERTINGGI per kode, dibaca SEKALI di muka — termasuk baris
+    `superseded`, sebab unik `assembly_identity` tak peduli status.
+    Dinaikkan di memori tiap kali sebuah versi baru lahir, supaya dua
+    analisa berkode sama dalam satu jalan pun tak bertabrakan.
+  */
+  const { rows: maksVersi } = await c.query(
+    `SELECT code, max(version_number) AS maks
+       FROM public.assemblies WHERE source = 'company' GROUP BY code`)
+  const maksByCode = new Map(maksVersi.map((r) => [r.code, Number(r.maks)]))
+
   /* Lapis 2 — versi baru per analisa. */
   let dibuat = 0
   let dialihkan = 0
   for (const a of vLama) {
     const d = dsByCode.get(a.code)
     if (!d) continue
+
+    /* Naikkan dari maksimum kode ini, lalu catat kembali — bukan dari versi
+       baris yang sedang di-supersede (baris aktif belum tentu tertinggi). */
+    const versiBaru = (maksByCode.get(a.code) ?? a.version_number ?? 1) + 1
+    maksByCode.set(a.code, versiBaru)
 
     /* 1. v-baru lahir DRAFT — satu-satunya status yang boleh menerima
           komponen. `sequence` di-stringify lalu di-cast: nilai array JS
@@ -236,7 +260,7 @@ try {
        VALUES ($1,$2,$3,'company',$4,$5,$6,$7::jsonb,$8,$9,false,'draft',$10,$11)
        RETURNING id`,
       [a.code, a.name, a.cost_code_id, a.reference_standard,
-       (a.version_number ?? 1) + 1, a.waste_factor ?? 0,
+       versiBaru, a.waste_factor ?? 0,
        JSON.stringify(a.sequence ?? []), a.output_unit_code, a.edition_id,
        adminId, a.company_id])
     const v2 = baru[0].id
