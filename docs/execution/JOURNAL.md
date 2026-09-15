@@ -5,6 +5,109 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-16 (lanjutan) — katalog PULIH, dan pemulihannya melahirkan tiga cacat
+
+Founder: *"lanjutkann"*.
+
+### Pemulihan berhasil
+
+```
+resource dibuat 441 · versi baru 420 · RAB dialihkan 22 · nol yatim
+company active   0/420 → 420/420 (100%)
+penjaga katalog  83% → 96%; per-sumber company 0% → 100%
+```
+
+Lalu `seed-harga-pokok.mjs --execute`: **2.779 harga** (2.357 nasional + 422
+company). Company dulu 0 bukan karena seeder cacat — resource-nya belum ada.
+Pemulihan yang membukanya.
+
+Analisa di screenshot founder, yang tabelnya dulu KOSONG:
+
+```
+CIB-BGK-B.2   4 komponen   → HSP Rp 17.778,75/m2 sebelum BUK
+```
+
+### Lalu pemulihan itu melahirkan TIGA cacat, dan saya yang menemukannya
+
+**1. Katalog company melonjak 420 → 844.** Daftar tak menyaring status, jadi
+tiap kode muncul dua kali (v1 superseded + v2 active), `CIB-BGK-B.3` empat
+kali. Yang berbahaya bukan panjangnya: kedua baris terlihat SAMA, dan yang
+membuka baris superseded mendapat tabel kosong lalu menyimpulkan analisanya
+rusak. Bawaannya kini `status='active'`, arsip lewat `?status=semua`.
+Saringan yang sama dipasang di `/jumlah` dan query `count` — kalau tidak,
+dropdown berkata 844 sementara daftarnya 420.
+
+**2. `prices/missing` salah peringkat — cacat yang SAMA dengan yang baru
+diperbaiki tepat di atasnya.** Pembacaan komponennya sudah di-paging, tetapi
+pencarian "mana yang sudah berharga" masih satu `.in()` atas ~2.900 id.
+Selama harga cuma 83 baris tak ada gejala; begitu 2.779 masuk, terpotong di
+1.000 dan 1.779 resource yang SUDAH berharga tetap terhitung belum.
+
+⚠ Dipotong per 200, bukan 500: 500 UUID melampaui batas panjang URL
+PostgREST dan dijawab galat yang terbaca sebagai **500 dari rutenya**.
+
+**3. Harga per KG = harga per M3** — satu kg pasir semahal satu m³.
+
+```
+Pasir beton   m3 Rp 370.200 · kg Rp 370.200
+Kerikil       m3 Rp 352.300 · kg Rp 352.300
+Pupuk organik m3 Rp 178.000 · kg Rp 178.000
+```
+
+Cacat dari SUMBERNYA (SE-47), dipakai 65 baris komponen — ~1.400× terlalu
+mahal, mengalir ke RAB dan kontrak tanpa galat. `audit-harga-satuan-waras`
+menangkapnya **pada hari harganya masuk**, bukan berbulan kemudian.
+
+Migrasi 590 mengoreksi lewat densitas ruah SNI/PUPR, konservatif — kalau
+meleset, meleset ke arah MAHAL. Sesudahnya beton nasional Rp 1,28–2,46
+juta/m³, angka yang wajar.
+
+### Tiga penolakan basis, ketiganya BENAR
+
+```
+UPDATE amount di tempat  → fn_price_book_immutable: "buat entry baru"
+status + expired_date    → ditolak juga; `expired_date` ikut dibekukan, dan
+                           galatnya menuduh HARGA padahal yang ditolak
+                           penanggalannya
+INSERT status='active'   → fn_assembly_component_parent_draft: komponen tak
+                           bisa ditambah ke assembly yang sudah aktif
+```
+
+Yang ketiga kesalahan saya sendiri: memperbaiki fixture `draft` jadi `active`
+di INSERT membuat SELURUH suite gagal di `beforeAll`, 27 test skipped. Urutan
+yang benar draft → isi komponen → aktifkan.
+
+### Dua pasang yang SENGAJA tak disentuh
+
+```
+Bentonite    m3 Rp 25.000 · kg Rp 25.000
+Paku sekrup  m3 Rp 30.090 · kg Rp 30.090
+```
+
+Di sini yang mencurigakan justru baris M3-nya — Rp 25.000/kg bentonite wajar,
+dan "paku sekrup per m³" bukan satuan orang membeli paku. Membaginya dengan
+densitas akan mengoreksi baris yang BENAR, dan densitas bentonite/paku bukan
+angka yang bisa diambil dari standar agregat. **Butuh keputusan manusia soal
+satuan, bukan rumus.**
+
+⚠ Dan ini menyingkap batas penjaganya: `audit-harga-satuan-waras` melaporkan
+**0** sesudah migrasi 590, padahal kedua pasang itu masih ada. Pencocokan
+namanya tak menjangkau keduanya. Penjaga hijau bukan berarti nol kasus.
+
+### Bukti
+
+```
+penjaga CI      255 hijau · 2 MERAH (keduanya butuh artefak coverage) · 0 tak ketemu
+ahsp-endpoint   27 lulus / 27
+tsc apps/api    exit 0 (tak disaring)
+lint-ratchet    0 error; no-explicit-any 223 → 221 (dikencangkan)
+migrasi 590     idempoten — jalan kedua: 0 dikoreksi
+pohon kerja     bersih
+```
+
+---
+
+
 ## 2026-09-16 — pemulihan katalog gagal DUA kali, dan keduanya gagal dengan benar
 
 Founder: *"kamuu aja yg bikin dan tuntaskan, dan jika ada yg harus
