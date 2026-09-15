@@ -280,19 +280,26 @@ export const HALAMAN_POSTGREST = 1000
 /**
  * Bentuk MINIMAL yang dibutuhkan dari builder PostgREST: hanya `.range()`.
  *
- * Sengaja `any` pada `data`, dan itu keputusan yang perlu alasannya tertulis.
+ * `unknown[]` pada `data`, BUKAN `any[]`, dan bedanya bukan gaya.
+ *
  * Tipe hasil `.select()` Supabase menyatakan embed relasi sebagai ARRAY
- * (`projects: { name: any }[]`) sementara PostgREST memulangkan OBJEK untuk
+ * (`projects: { name: … }[]`) sementara PostgREST memulangkan OBJEK untuk
  * relasi to-one. Ketaksesuaian itu sudah ada di repo ini SEBELUM helper ini —
  * keempat pemanggil lama menutupnya dengan `as unknown as Array<…>`.
  *
  * Menuntut bentuk yang tepat di sini hanya memindahkan `as never` ke tiap
  * pemanggil, dan itu LEBIH buruk: cast yang tersebar tak bisa diberi alasan
  * satu kali. Jadi ketaksesuaian dinyatakan di SATU tempat, di sini.
+ *
+ * ⚠ `any[]` sempat dipakai dan `lint-ratchet` menolaknya (223 → 224). Ia
+ * benar menolak: `any` MENULAR — tiap baris yang menyentuhnya ikut lepas
+ * dari pemeriksaan tipe, diam-diam. `unknown` menyatakan ketidaktahuan yang
+ * sama tanpa menularkannya; pemanggil tetap wajib menegaskan bentuknya,
+ * dan di sini penegasan itu memang sudah ada lewat parameter `T`.
  */
 interface BuilderBerjendela {
   range: (dari: number, sampai: number) => PromiseLike<{
-    data: any[] | null
+    data: unknown[] | null
     error: { message: string } | null
   }>
 }
@@ -312,7 +319,10 @@ export async function ambilSeluruhnya<T>(
     const { data, error } = await bangun().range(mulai, akhir)
     if (error) return { baris: [], terpotong: false, galat: error.message }
 
-    const bagian = data ?? []
+    // SATU penegasan bentuk, di batas: pemanggil yang menyatakan `T`, dan
+    // di sinilah baris mentah PostgREST menyeberang jadi `T`. Ditulis
+    // sekali di sini supaya tak tersebar jadi cast di tiap pemanggil.
+    const bagian = (data ?? []) as T[]
     kumpul.push(...bagian)
 
     // Halaman yang tak penuh berarti sumbernya habis — berhenti, jangan
