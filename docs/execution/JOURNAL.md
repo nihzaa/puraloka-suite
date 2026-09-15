@@ -5,6 +5,121 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-15 — empat kelas cacat senyap, diukur dari layar founder
+
+Founder mengirim tiga tangkapan layar Katalog AHSP: *"kenapa loading nya lama",
+"emang analisa perusahaan gaada?", "kenapa banyak yg masih kosong", "belum ada
+harga satuannya, kan semuanya sudah ada di `_source`"*. Lalu: petakan SEMUA,
+periksa serapan dana, konsistensi UI, seluruh modul.
+
+### Dugaan founder benar tiga dari empat, dan yang keempat lebih dalam
+
+```
+lemot        -> BUKAN VPS. DB 20-192ms; bentuk request-nya yang mahal
+analisa 0    -> DATANYA ADA (424). Label render sebelum count 5,3s tiba, `?? 0`
+tabel kosong -> BUKAN harga. KOMPONENNYA yang mati
+harga kosong -> _source SUDAH diekstrak: 5.944 harga. Nol yang aktif
+```
+
+### Temuan induk: katalog company mati TOTAL
+
+```
+company active  : 420 analisa · 2.698 komponen · SEHAT 0
+national active : 2.620 / 2.747 sehat
+```
+
+`resources` dihapus & diisi ulang 2026-09-05; komponen dari Juli-Agustus jadi
+yatim. FK tercatat `convalidated = true` — basis menyatakan dirinya konsisten,
+sebab penghapusannya lewat `session_replication_role = 'replica'`.
+
+R-014 (13 Sep) memulihkan NASIONAL dan mendaftar sisanya, termasuk *"420
+analisa company (dataset berbeda)"*. Itu yang tertinggal.
+
+Percobaan pertama saya — menambal komponen di tempat — DITOLAK basis oleh
+`fn_assembly_component_parent_draft`, dan triggernya BENAR. Skrip ditulis ulang
+mengikuti jalur supersede yang sama dengan R-014. Uji-kering bersih (420/420,
+nol resource hilang, 22 RAB dialihkan, 1 beku dilaporkan).
+**Penerapannya tertahan izin tulis basis bersama — menunggu founder.**
+
+### Empat cacat diperbaiki (commit f4ace086)
+
+1. **Kasbon dobel** — trigger sudah menulis `project_expenses`; LIMA tempat
+   menjumlahkannya lagi. 55 baris vs 55 baris, Rp 550.600.000, yatim nol dua
+   arah. Serapan jadi ~2x: Pak Rudi 73,1% menjadi 36,6%.
+   Dua situs ditemukan PENJAGANYA. Yang di `kpi-perusahaan` punya komentar
+   BENAR saat ditulis (*"project_expenses KOSONG, diukur 2026-08-12"*); diukur
+   ulang 143 baris — premisnya mati, kodenya hidup terus (§8a.2).
+   Test lamanya MENGUNCI bug: ekspektasinya `expenses + kasbons`, jadi ia lulus
+   dengan menyetujui kode yang salah.
+2. **Kartu proyek** — label "Serapan Anggaran" atas `progress_pct`. Bu Citra:
+   kontrak Rp 95 juta, nol expense, nol kasbon, tampil "Serapan 100%". Yang
+   diperbaiki LABELNYA — payload kartu memang tak membawa medan biaya.
+3. **`check-milestones` TAK PERNAH jalan** — enum `milestone_status` tak punya
+   `cancelled`; galat 22P02 ditelan `.data ?? []`, rute membalas
+   `{success: true, notifications_created: 0}`. 13 milestone terlambat kini
+   ternotifikasi untuk pertama kalinya. Cacat tenancy di blok yang sama ikut
+   ditutup.
+4. **Peringatan terpotong mati** — `.limit(5001)` selalu balas 1.000, jadi
+   `terpotong` SELAMANYA false. Ekspor berhenti diam-diam di 1.000 baris dan
+   TOTAL RUPIAH dijumlah dari data terpotong sambil dilabeli lengkap. Empat
+   situs, diperbaiki lewat satu helper `ambilSeluruhnya()`.
+
+Plus kinerja: editions 580 menjadi 2.747 · daftar 24,2s menjadi 13,0s · tiga
+count menjadi satu panggilan. Dan `prices/missing` memeringkat dari 3% data —
+top-3 sebenarnya Mandor 2.513 · Pekerja 2.380 · Kepala tukang 1.608, tak SATU
+pun muncul di layar. Layar prioritas merekomendasikan yang paling tak mendesak.
+
+### Enam penjaga, semuanya terbukti bisa merah
+
+`audit-serapan-tak-dobel-kasbon` · `audit-saringan-enum-ada` (membaca
+`pg_enum` sungguhan, 136 kolom) · `audit-cacah-di-atas-baca-terpotong` ·
+`audit-ikon-menu-benar` (tiga arah) · `audit-batas-baca-waras` (ratchet, lantai
+menyimpan DAFTAR NAMA) · `audit-ahsp-punya-komponen` diperketat.
+
+Yang terakhir paling layak dicatat: ia mencetak **✅ 83% dan exit 0** sementara
+company 0/420. BENAR secara aritmetika, menyesatkan sebagai kesimpulan — dan
+menaikkan ambang tak menolong (83% lolos ambang 80 juga). Yang salah BENTUKNYA:
+rata-rata gabungan tak pernah menyebut siapa yang tenggelam. Kini tiap `source`
+dinilai sendiri, dan ia MERAH atas keadaan NYATA — tanpa perlu mutasi.
+
+Tiga penjaga versi pertamanya SALAH dan mutasi yang membuktikannya: satu
+menuduh 6 komentar yang justru MENERANGKAN cacatnya (termasuk dokumentasinya
+sendiri), satu buta terhadap cacat asli yang mestinya dijaga, satu buta lagi
+SESUDAH perbaikan.
+
+### Saya salah dua kali
+
+1. `project_expenses` saya bilang tak punya `ref_type`/`ref_id` — ADA. Daftar
+   kolom saya kepotong di 10 baris dan saya baca itu sebagai ketiadaan.
+   Akibatnya saya menyarankan filter `expense_source = 'main_cash'` yang benar
+   HARI INI dan salah besok (dua tempat lain menulis `main_cash` non-kasbon).
+2. Migrasi dinomori 582 — sudah dipakai `feat/sumbu-ui-roadmap`. `ls` atas satu
+   checkout bukan bukti nomor itu bebas. Dinomori ulang 588.
+
+Pemeriksaan kedua itu menemukan **`583_menu_ikon_anak_konsisten.sql`** di
+cabang yang sama: founder menanyakan ikon yang SAMA pada 2026-08-21,
+perbaikannya ditulis, lalu tertahan di cabang yang tak pernah menyatu. Keluhan
+yang sama muncul lagi hari ini. Yang baru lebih luas — ia juga menjaga arah
+kedua (nama ikon tak terdaftar terender FOLDER), termasuk DUA di menu INDUK
+yang aturan sub-menu tak akan pernah temukan.
+
+### Bukti
+
+```
+tsc apps/api & apps/web   exit 0 (tak disaring)
+ai-tool-serapan            9/9 · ahsp-endpoint 27/27 · ekspor+kasbons 15/15
+enam penjaga baru          semua sesuai harapan
+audit-akhir-baris          exit 0 (5 berkas CRLF diperbaiki)
+ci.yml                     YAML sah, 7 job
+```
+
+Suite penuh SENGAJA tak dijalankan: enam sesi lain hidup di basis yang sama, dan
+run tumpang tindih menghasilkan angka tak sah (§7). Dikerjakan di worktree
+`E:/tmp/ahsp-fix` cabang `fix/ahsp-serapan-ui` — `main` tak tersentuh.
+
+---
+
+
 ## 2026-09-14 (lanjutan 7) — merge sumbu-ui dipetakan, dicoba, dan diukur jujur
 
 Founder: *"lanjutkann"* ×3, lalu *"pastikan sempurna termasuk pekerjaan
