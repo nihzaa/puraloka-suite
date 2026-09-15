@@ -5,6 +5,93 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-15 (lanjutan) — worktree baru lahir CRLF, dan LIMA penjaga merah karenanya
+
+Founder: *"lanjutkannn, pastikan sempurnaa"*. Menjalankan SELURUH penjaga CI
+di worktree, bukan memilih yang terasa relevan (§7).
+
+```
+jalan pertama : 249 hijau · 7 MERAH
+jalan terakhir: 254 hijau · 2 MERAH (keduanya butuh artefak coverage)
+```
+
+### Lima dari tujuh merah itu SATU sebab, dan sebabnya bukan kode
+
+`core.autocrlf = true` di mesin ini. Saat `git worktree add` membuat
+`E:/tmp/ahsp-fix`, SELURUH berkas teks ditulis CRLF — menimpa
+`.gitattributes` yang berbunyi `* text=auto eol=lf`.
+
+`git status` BERSIH sepanjang waktu itu, sebab git menyimpan LF dan tahu
+konversinya. Yang tidak tahu: penjaga yang membaca teks sumber apa adanya.
+
+```
+audit-guard-schema            6 (ambang 4)   → 4/4 HIJAU
+audit-penomoran-migrasi       6 lompatan     → nol lompatan (sebab lain, nyata)
+gen-indeks-docs --check       BASI           → mutakhir, NOL diff isi
+audit-gambar-punya-judul      gambarUntuk() tak ditemukan → 8 jenis HIJAU
+uji-induk-punya-ikhtisar      transpile patah → 10 punya ikhtisar HIJAU
+uji-antrean (mobile)          ERR_MODULE_NOT_FOUND → 16 lulus (junction kurang)
+```
+
+Yang paling menipu `audit-guard-schema`: ia melaporkan **6 pelanggaran
+`to_regclass` tanpa skema**, lengkap dengan nomor baris. Angkanya masuk akal,
+berkasnya nyata, dan dua di antaranya PALSU — regexnya tak cocok dengan
+`to_regclass('public.…')` yang diikuti CR, jadi baris yang SUDAH BENAR
+terhitung melanggar.
+
+Penjaga yang merah atas hal yang benar adalah kelas yang CLAUDE.md §6
+peringatkan: seluruh keluarannya lalu diabaikan.
+
+**Ukurannya, dan ini yang membuatnya sulit dilihat:** main dan worktree
+sama-sama `autocrlf=true`, tetapi jumlah berkas ber-CR BERBEDA (main 198
+migrasi, worktree 557). Jadi dua checkout dari commit yang sama memberi
+jawaban penjaga yang berbeda. Membandingkan "apakah ini regresi saya?"
+dengan menjalankan penjaga di main MENJAWAB SALAH — di sana hijau.
+
+**Aturannya:** worktree baru wajib `git config core.autocrlf false` SEBELUM
+berkasnya dipakai, dan `node_modules` dijunction untuk KETIGA app (api, web,
+**mobile** — yang terakhir saya lewatkan, dan `uji-antrean` gagal dengan
+`ERR_MODULE_NOT_FOUND` yang terbaca seperti cacat kode).
+
+### Dua merah yang NYATA, dan keduanya milik saya
+
+**1. `lint-ratchet` 223 → 224.** Helper `ambilSeluruhnya()` memakai `any[]`.
+Alasan yang saya tulis di komentar tetap sah (ketaksesuaian tipe embed
+PostgREST dinyatakan di satu tempat) — tapi itu argumen untuk MEMUSATKAN
+cast, bukan untuk memakai `any`. `any` MENULAR; `unknown` menyatakan
+ketidaktahuan yang sama tanpa menularkannya, dan penegasan bentuknya memang
+sudah ada lewat parameter `T`. Diganti → 0 error, 226 warning.
+
+**2. `audit-penomoran-migrasi`: 6 lompatan baru.** Migrasi saya bernomor 588
+sementara 582-587 tak ada di sini. Lompatannya nyata dan alasannya nyata —
+`feat/sumbu-ui-roadmap` memegang keenamnya. Didaftarkan beserta nama
+berkasnya; celah ini menutup sendiri saat cabang itu menyatu.
+
+### Sisa dua merah: artefak coverage, bukan cacat
+
+`coverage-ratchet` dan `audit-route-coverage-nol` butuh
+`apps/api/coverage/coverage-summary.json` — keluaran `vitest --coverage`,
+ter-gitignore. Menjalankannya berarti suite penuh, dan enam sesi lain hidup
+di basis yang sama: angka dari run tumpang tindih TIDAK SAH (§7). Keduanya
+tetap berjalan di CI.
+
+### Bukti akhir
+
+```
+penjaga CI          254 hijau · 2 MERAH (coverage) · 0 tak ketemu
+tsc apps/api        exit 0 (tak disaring)
+tsc apps/web        exit 0 (tak disaring)
+vitest (3 berkas)   47 lulus / 47
+pohon kerja         bersih
+```
+
+Tiga berkas yang saya normalkan akhir barisnya (`struktur.ts`,
+`tujuan-grup.ts`, `antrean.ts`) TIDAK ter-commit, dan itu benar: git sudah
+menyimpannya LF: `git diff --cached` kosong. Yang berbeda cuma salinan kerja.
+
+---
+
+
 ## 2026-09-15 — empat kelas cacat senyap, diukur dari layar founder
 
 Founder mengirim tiga tangkapan layar Katalog AHSP: *"kenapa loading nya lama",

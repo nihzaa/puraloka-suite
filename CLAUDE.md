@@ -906,11 +906,48 @@ merah sebelum saya?"), pakai worktree terpisah — **jangan `git stash`**. Dan
 
 ```bash
 git worktree add --detach /e/tmp/base <commit>
+cd /e/tmp/base && git config core.autocrlf false   # ⚠ WAJIB — lihat di bawah
 cmd //c "mklink /J E:\\tmp\\base\\node_modules E:\\Project\\puraloka-suite\\node_modules"
 cmd //c "mklink /J E:\\tmp\\base\\apps\\api\\node_modules E:\\Project\\puraloka-suite\\apps\\api\\node_modules"
+cmd //c "mklink /J E:\\tmp\\base\\apps\\web\\node_modules E:\\Project\\puraloka-suite\\apps\\web\\node_modules"
+cmd //c "mklink /J E:\\tmp\\base\\apps\\mobile\\node_modules E:\\Project\\puraloka-suite\\apps\\mobile\\node_modules"
 cp apps/api/.env /e/tmp/base/apps/api/.env
+cp apps/web/.env.local /e/tmp/base/apps/web/.env.local
 # selesai: rmdir junction-nya DULU, baru `git worktree remove`
 ```
+
+⚠ **WORKTREE BARU LAHIR CRLF, dan `git status` BERSIH sepanjang itu.**
+
+Mesin ini `core.autocrlf = true`, dan itu MENIMPA `.gitattributes`
+(`* text=auto eol=lf`). Tiap `git worktree add` menulis SELURUH berkas teks
+sebagai CRLF. Git tahu konversinya jadi diam; yang tak tahu adalah penjaga
+yang membaca teks sumber apa adanya.
+
+Diukur 2026-09-15 — **LIMA penjaga merah, nol di antaranya cacat kode**:
+
+```
+audit-guard-schema         6 pelanggaran (ambang 4)   → sebenarnya 4
+audit-gambar-punya-judul   "gambarUntuk() tak ditemukan di rute"
+uji-induk-punya-ikhtisar   "transpile patah"
+gen-indeks-docs --check    "BASI"  (padahal NOL diff isi)
+uji-antrean (mobile)       ERR_MODULE_NOT_FOUND
+```
+
+Yang paling menipu yang pertama: ia menyebut **nomor baris** dan **nama
+berkas** yang nyata, dan dua dari enamnya PALSU — regexnya tak cocok dengan
+`to_regclass('public.…')` yang diikuti CR, jadi baris yang SUDAH BENAR
+terhitung melanggar. Penjaga yang merah atas hal yang benar akan diabaikan
+seluruh keluarannya (§6).
+
+⚠ Dan jangan memakai main sebagai pembanding untuk menjawab *"apakah ini
+regresi saya?"* — main dan worktree sama-sama `autocrlf=true` tetapi jumlah
+berkas ber-CR-nya BERBEDA (main 198 migrasi, worktree 557). Dua checkout dari
+commit yang SAMA memberi jawaban penjaga yang berbeda, dan main menjawab
+HIJAU. Ukur CR-nya langsung: `tr -cd '\r' < <berkas> | wc -c`.
+
+⚠ Junction untuk **KETIGA** app, bukan cuma api. `apps/mobile/node_modules`
+yang terlewat membuat `uji-antrean.mjs` gagal `ERR_MODULE_NOT_FOUND` — galat
+yang menuduh MODUL, bukan junction yang kurang.
 
 ### 8a.2 Tiap sektor WAJIB ditest dan diaudit
 
