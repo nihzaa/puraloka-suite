@@ -2901,7 +2901,52 @@ isinya** (`DROP SCHEMA … CASCADE`), bukan schema-nya saja.
 
 ---
 
-## R-007 · F2-1 · ADR-010 bentuk grup/holding — minta ratifikasi
+## R-007 · ✅ K2 DIPUTUSKAN 2026-09-15 — bagan akun BISA DIATUR, tidak dikunci
+
+**Founder:** *"bagan bisa diatur aja jangan terkuncii"*
+
+### Yang diputuskan
+
+**K2 — Chart of Accounts: per-PT, BISA DIATUR.** Tiap badan usaha memegang
+bagan akunnya sendiri dan boleh mengubahnya; induk TIDAK memaksakan
+bagannya, dan konsolidasi ditempuh lewat **peta**, bukan lewat penyeragaman.
+
+Ini persis rekomendasi yang diajukan, dan alasannya komersial bukan teknis:
+PT yang sudah berjalan punya bagan akun sendiri. Memaksakan bagan induk =
+memaksa mereka membuang riwayat pembukuan, dan itu menghalangi penjualan.
+
+### Apa yang ikut tertutup, dan apa yang TIDAK
+
+Keputusan ini **mengunci arah** K1 dan K3 karena keduanya bergantung
+padanya:
+
+- **K1** (`companies.parent_company_id`) — tetap, dan memang cuma konfirmasi
+  ADR-011. Bagan per-PT hanya masuk akal bila induk-anak berupa baris
+  terpisah, dan itu yang sudah ada.
+- **K3** — konsolidasi **dihitung**, tak disimpan. Menyimpan hasil
+  konsolidasi berarti membekukan pemetaan akun, dan bagan yang "bisa diatur"
+  akan membuat angka beku itu diam-diam basi.
+
+⚠ **K4 BELUM dijawab** dan sengaja saya biarkan terbuka: apakah pemilik grup
+dapat akses otomatis ke seluruh anak perusahaan. Itu pertanyaan KEWENANGAN,
+bukan bentuk data — jawaban "bagan bisa diatur" tidak menyentuhnya, dan saya
+tak akan menyimpulkannya sendiri.
+
+### Yang TIDAK berubah hari ini
+
+Tak ada kode yang ditulis atas keputusan ini. Ia mengikat **arah**, dan
+implementasinya menunggu fase yang tepat (F2-1). Yang berubah: pertanyaannya
+tak lagi menggantung, dan siapa pun yang membangun GL multi-PT nanti tak
+perlu menebak.
+
+⚠ Yang **dilarang** diturunkan dari keputusan ini: menambah UI yang membuat
+RLS, invarian pembukuan berpasangan, atau isolasi tenant bisa dikonfigurasi.
+"Bagan bisa diatur" berlaku untuk BAGAN AKUN, bukan untuk Ember [C]
+(CLAUDE.md §5.3).
+
+---
+
+## R-007 (asli) · F2-1 · ADR-010 bentuk grup/holding — minta ratifikasi
 
 **Status:** menunggu founder · dibuka 2026-08-03
 **Berkas:** `docs/adr/ADR-010-bentuk-grup-holding.md`

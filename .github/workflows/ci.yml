@@ -2881,6 +2881,27 @@ jobs:
       # Dua arah: KEADAAN (nol akar aktif yatim) dan BENTUK KODE (nol
       # `.delete()` di test). Menjaga keadaannya saja tak cukup — polanya akan
       # kembali, dan residunya baru terlihat sesudah menumpuk.
+      # Residu tenant uji disapu DULU — lihat kepala skripnya untuk alasannya.
+      #
+      # Ringkasnya: `bongkarCompanyUji()` sudah benar dan dipakai setiap berkas
+      # yang membuat tenant uji, tetapi ia tak bisa berbuat apa-apa terhadap run
+      # yang MATI SEBELUM `afterAll` (migrasi HARD FAIL, tripwire exit 1, runner
+      # dibatalkan). Sisanya tenant AKTIF tanpa pemilik, dan penjaga di bawah
+      # memerahkan ENAM shard karenanya — kegagalan yang menuduh penjaga,
+      # padahal yang salah sisa run sebelumnya. Terjadi 2026-09-15.
+      #
+      # Penjaganya TIDAK dilonggarkan: akar grup yatim yang NYATA tetap cacat
+      # produk, dan ambangnya tetap NOL. Yang dibersihkan residunya.
+      - name: Sapu residu tenant uji (sebelum penjaga akar grup)
+        run: node scripts/sapu-tenant-uji-tertinggal.mjs
+        # ⚠ `env:` WAJIB — tanpa `DIRECT_URL` skripnya mati exit 2 TANPA
+        # SATU BARIS KELUARAN, dan itu terbaca seperti skripnya rusak.
+        # Terjadi pada jalan pertamanya: langkah baru dipasang tanpa
+        # prasyaratnya ikut, persis cacat yang sama dengan langkah
+        # saudaranya di bawah yang SUDAH punya env.
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       - name: Akar grup wajib punya pemilik
         run: node scripts/audit-akar-grup-punya-pemilik.mjs
         env:
