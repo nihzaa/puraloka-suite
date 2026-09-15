@@ -45,6 +45,23 @@
  * Penjaga ini membalik arahnya: yang diperiksa bukan adanya pelanggaran,
  * melainkan adanya ISI.
  *
+ * ── Dan SATU persentase saja tidak cukup
+ *
+ * Diukur 2026-09-15, penjaga ini mencetak `✅ 83%` dan exit 0 atas
+ * keadaan berikut:
+ *
+ *     national active : 2.620 / 2.747  (95%)
+ *     company  active :     0 /   420  ( 0%)   ← SELURUHNYA mati
+ *
+ * Ia BENAR secara aritmetika dan menyesatkan secara kesimpulan. Yang
+ * tenggelam justru analisa PERUSAHAAN — satu-satunya yang benar-benar
+ * dipakai badan usaha ini.
+ *
+ * Menaikkan ambang tak menolong: 83% lolos ambang 80 juga. Yang salah
+ * BENTUKNYA — rata-rata gabungan tak pernah menyebutkan siapa yang
+ * tenggelam. Karena itu tiap `source` kini dinilai SENDIRI, dan
+ * rinciannya dicetak SELALU, bukan cuma saat merah.
+ *
  * ⚠ BATAS: ia menghitung keterhubungan baris, bukan kewajaran angkanya.
  * Koefisien yang salah nilai tetap lolos — itu wilayah
  * `audit-harga-satuan-waras.mjs`, dan penjaga itu baru berarti sesudah
@@ -66,6 +83,31 @@ import { buatClient } from '../../../scripts/db/_koneksi.mjs'
   Di bawah itu, estimasi biaya tak bisa diandalkan.
 */
 const AMBANG_PERSEN = 50
+
+/*
+  Ambang KEDUA, per-sumber — dan ia lahir dari kegagalan ambang pertama.
+
+  Diukur 2026-09-15: penjaga ini mencetak `✅ 83%` dan exit 0, sementara
+  keadaan sesungguhnya:
+
+      national active : 2.620 dari 2.747 sehat  (95%)
+      company  active :     0 dari   420 sehat  ( 0%)   ← SELURUHNYA mati
+
+  Ke-420 analisa perusahaan — satu-satunya yang benar-benar dipakai badan
+  usaha ini — tak satu pun bisa menghitung HSP, dan penjaganya MELULUSKAN.
+
+  Sebabnya bukan ambang yang kurang tinggi. Menaikkan 50 jadi 80 pun tetap
+  hijau, sebab 83% memang di atasnya. Yang salah BENTUK pengukurannya:
+  satu persentase gabungan membiarkan kategori besar yang sehat menutupi
+  kategori lain yang mati total. Rata-rata tak pernah menyebutkan siapa
+  yang tenggelam.
+
+  Karena itu tiap `source` dinilai SENDIRI. Ambangnya sengaja rendah (1%,
+  artinya "ada tanda kehidupan"), bukan 50: yang dijaga di sini adalah
+  kategori yang MATI TOTAL — keadaan yang tak mungkin benar dan selalu
+  berarti sumber dayanya hilang, bukan sekadar seed yang belum lengkap.
+*/
+const AMBANG_PER_SUMBER_PERSEN = 1
 
 const c = buatClient()
 await c.connect()
@@ -108,12 +150,35 @@ try {
   const r = rows[0]
   const persen = r.analisa === 0 ? 0 : Math.round((r.analisa_hidup / r.analisa) * 100)
 
+  /*
+    Rincian PER-SUMBER. Angka gabungan di atas tak bisa memperlihatkan
+    kategori yang mati total; yang ini bisa, dan karena itu ia dicetak
+    SELALU — bukan hanya saat merah. Penjaga yang cuma bersuara saat
+    gagal tak pernah mengajari pembacanya apa yang normal.
+  */
+  const { rows: perSumber } = await c.query(`
+    SELECT a.source,
+           count(*)::int AS analisa,
+           count(*) FILTER (
+             WHERE EXISTS (SELECT 1 FROM public.assembly_components ac
+                             JOIN public.resources r ON r.id = ac.resource_id
+                            WHERE ac.assembly_id = a.id))::int AS hidup
+      FROM public.assemblies a
+     WHERE a.status = 'active'
+     GROUP BY a.source
+     ORDER BY a.source`)
+
   console.log('── AHSP punya komponen ──')
   console.log(`  analisa AKTIF            : ${r.analisa}`)
   console.log(`     punya komponen hidup  : ${r.analisa_hidup}  (${persen}%)`)
   console.log(`  baris komponen           : ${r.komponen}`)
   console.log(`     resource-nya ADA      : ${r.komponen_hidup}`)
   console.log(`  sumber daya (resources)  : ${r.sumberdaya}`)
+  console.log('  per sumber:')
+  for (const s of perSumber) {
+    const p = s.analisa === 0 ? 0 : Math.round((s.hidup / s.analisa) * 100)
+    console.log(`     ${String(s.source).padEnd(10)} ${String(s.hidup).padStart(5)} / ${String(s.analisa).padStart(5)}  (${p}%)`)
+  }
 
   /*
     Katalog KOSONG bukan "nol pelanggaran". Kalau tak ada analisa sama
@@ -136,6 +201,32 @@ try {
     console.error('\n   ⚠ FK-nya tercatat valid. Baris pelanggar tetap bisa lahir kalau')
     console.error("   penghapusannya lewat session_replication_role = 'replica'.")
     console.error('\n   Pulihkan: node apps/api/scripts/seed-ahsp-full.mjs')
+    process.exit(1)
+  }
+
+  /*
+    Kategori yang MATI TOTAL — diperiksa sesudah ambang gabungan, sebab
+    inilah yang lolos darinya. Merahnya WAJIB menyebut sumber mana,
+    jumlahnya, dan perintah pemulihnya: merah tanpa nama memaksa orang
+    berikutnya menyisir 3.167 baris sendiri (§8a.2).
+  */
+  const mati = perSumber.filter((s) => {
+    const p = s.analisa === 0 ? 0 : (s.hidup / s.analisa) * 100
+    return s.analisa > 0 && p < AMBANG_PER_SUMBER_PERSEN
+  })
+  if (mati.length > 0) {
+    console.error(`\n❌ ${mati.length} sumber katalog MATI TOTAL (ambang ${AMBANG_PER_SUMBER_PERSEN}% per sumber):`)
+    for (const s of mati) {
+      console.error(`     source='${s.source}' — ${s.hidup} dari ${s.analisa} analisa aktif punya komponen terbaca`)
+    }
+    console.error('\n   Angka GABUNGAN di atas HIJAU, dan justru itu masalahnya:')
+    console.error(`   ${persen}% gabungan menutupi kategori yang nol. Rata-rata tak`)
+    console.error('   pernah menyebutkan siapa yang tenggelam.')
+    console.error('\n   Analisa perusahaan adalah yang benar-benar dipakai badan usaha;')
+    console.error('   nol komponen berarti nol HSP, dan HSP nol tak bergalat — ia')
+    console.error('   cuma menghitung Rp 0.')
+    console.error("\n   Pulihkan (company): node apps/api/scripts/supersede-ahsp-company-rusak.mjs --terapkan")
+    console.error('   Uji-kering dulu tanpa `--terapkan`.')
     process.exit(1)
   }
 

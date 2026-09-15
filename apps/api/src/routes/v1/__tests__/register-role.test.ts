@@ -69,6 +69,43 @@ async function bersihkan() {
     `DELETE FROM company_members WHERE user_id IN
        (SELECT id FROM users WHERE name LIKE $1 OR email LIKE $2)`,
     [`${TANDA}%`, `%regrole.uji%`])
+
+  /*
+    ⚠ Dan `company_members` pun belum cukup — `companies.owner_user_id`
+    menunjuk `users` JUGA (diperbaiki 2026-09-14):
+
+        update or delete on table "users" violates foreign key constraint
+        "companies_owner_user_id_fkey" on table "companies"
+
+    Yang memegangnya bukan company buatan berkas INI, melainkan tiga tenant
+    uji milik berkas LAIN ([UJI-KUOTA], [UJI-GERBANG], [UJI-BACASAJA]) yang
+    kebetulan memakai akun `pm.regrole.uji@…` sebagai pemilik lalu
+    meninggalkannya. Pembersih di sini tak punya cara tahu itu.
+
+    Kepemilikannya DILEPAS (NULL), bukan company-nya dihapus: menghapus
+    tenant adalah keputusan sadar yang dijaga trigger
+    `fn_company_no_casual_delete` (migrasi 126 §8) — dan pembersih test
+    adalah persis "efek samping" yang dilarang trigger itu.
+
+    ⚠ Disaring lewat NAMA TENANT (`[UJI-…]`), bukan `NOT is_active`.
+
+    Percobaan pertama memakai `NOT is_active` dengan alasan "tenant hidup tak
+    boleh kehilangan pemilik". Masuk akal, dan SALAH: ketiga tenant itu
+    dihidupkan kembali oleh berkas test pemiliknya sendiri, jadi saat
+    pembersih ini berjalan mereka `is_active = true` dan saringannya
+    melewatkan semuanya — FK tetap menolak, gejalanya tak berubah sedikit
+    pun.
+
+    Yang membedakan tenant uji dari tenant nyata bukan status aktifnya
+    melainkan NAMANYA. Tenant nyata di basis ini tak berawalan `[UJI-`.
+  */
+  await client.query(
+    `UPDATE companies SET owner_user_id = NULL
+      WHERE name LIKE '[UJI-%'
+        AND owner_user_id IN
+            (SELECT id FROM users WHERE name LIKE $1 OR email LIKE $2)`,
+    [`${TANDA}%`, `%regrole.uji%`])
+
   await client.query(`DELETE FROM users WHERE name LIKE $1 OR email LIKE $2`,
     [`${TANDA}%`, `%regrole.uji%`])
 

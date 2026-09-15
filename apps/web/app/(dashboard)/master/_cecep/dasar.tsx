@@ -75,8 +75,19 @@ export interface Project { id: string; name: string }
 export interface Edition {
   id: string; code: string; name: string; publish_date: string | null;
   source_sha256: string | null; is_active: boolean;
-  /** Jumlah analisa AKTIF di edisi ini. 0 = terdaftar tapi isinya belum diimpor. */
-  jumlah_analisa?: number;
+  /**
+   * Jumlah analisa AKTIF di edisi ini.
+   *
+   *   angka  → jumlah sebenarnya (dihitung di basis, bukan ditally dari baris
+   *            yang terlanjur termuat — lihat `ahsp.ts` GET /cecep/editions)
+   *   0      → terdaftar tapi isinya belum diimpor
+   *   null   → API GAGAL menghitungnya. BUKAN nol. Jangan `?? 0`: edisi
+   *            berisi 2.747 analisa yang gagal dihitung lalu ditampilkan
+   *            sebagai "belum ada analisa" terbaca sebagai fakta, dan
+   *            pemakainya berhenti memakai edisi yang justru satu-satunya
+   *            yang terisi.
+   */
+  jumlah_analisa?: number | null;
 }
 interface VersionSummary { id: string; version_number: number; status: string; total_amount: number }
 export interface Scenario { id: string; name: string; purpose: string | null; status: string; versions: VersionSummary[] }
@@ -147,7 +158,19 @@ export interface AsmComponent { coefficient: number; sort_order: number; resourc
 export interface Assembly {
   id: string; code: string; name: string; source: string; version_number: number; status: string;
   output_unit_code: string; is_import_baseline: boolean;
-  edition: { code: string; name: string } | null; components: AsmComponent[];
+  edition: { code: string; name: string } | null;
+  /**
+   * HANYA ADA bila daftar diminta TANPA `komponen=0`.
+   *
+   * `GET /cecep/assemblies` membawa embed komponen bersarang secara bawaan,
+   * dan itu 27 detik untuk 5.000 baris (diukur ke produksi 2026-09-15). Layar
+   * yang tak merender komponen meminta `komponen=0` dan TIDAK mendapat medan
+   * ini — karenanya opsional, supaya `tsc` memaksa pembacanya memutuskan apa
+   * yang terjadi saat ia tak ada, bukan mendapat `[]` diam-diam.
+   *
+   * Untuk komponen SATU analisa: `GET /cecep/assemblies/:id/komponen`.
+   */
+  components?: AsmComponent[];
 }
 export interface EstItem {
   id: string; quantity: number; amount: number; notes: string | null;

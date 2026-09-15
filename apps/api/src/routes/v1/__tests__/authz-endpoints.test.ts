@@ -73,6 +73,28 @@ interface Spec {
   itu keputusan produk yang ditulis di RATIFIKASI lalu diberikan lewat
   migrasi — bukan efek samping perbaikan test.
 
+  ⚠ KENAPA `direktur_uji`, BUKAN `direktur` (R-022, migrasi 575)
+
+  Ketiga spek itu semula memakai `direktur`, dan berkas ini karenanya MATI
+  selama berbulan-bulan — bukan karena gerbangnya rusak, melainkan karena
+  akun `uji.direktur@…` sengaja DINONAKTIFKAN.
+
+  Sebabnya: role `direktur` memegang `users:roles:manage`, dan
+  `anti-lockout-wiring.test.ts` menuntut izin itu dipegang TEPAT SATU role
+  ber-user aktif — skenario "pemegang terakhir", satu-satunya keadaan yang
+  membuat uji lockout bermakna. Jadi dua berkas menuntut satu akun dalam
+  keadaan BERLAWANAN:
+
+      akun AKTIF    → anti-lockout gagal prasyarat (pemegang jadi 2)
+      akun NONAKTIF → berkas INI mati, tiga endpoint UANG tak teruji
+
+  `direktur_uji` memutus simpul itu: salinan `direktur` (227 izin) MINUS
+  `users:roles:manage`. Ia punya ketiga izin uang yang diuji di sini, dan
+  tak menyentuh hitungan pemegang kunci peran.
+
+  **Jangan mengembalikannya ke `direktur`** — itu mematikan salah satu dari
+  dua berkas, dan yang mati bergantung pada keadaan akunnya saja.
+
   Cara memeriksa sebelum menambah spek baru:
 
       SELECT r.name FROM roles r
@@ -81,10 +103,10 @@ interface Spec {
        WHERE p.key = '<izin>' AND r.company_id IS NULL;
 */
 const SPECS: Spec[] = [
-  { name: 'buat invoice',            routes: financeRoutes,     method: 'POST',   url: '/api/v1/finance/invoices',                     permission: 'finance:invoice:create',  allow: 'direktur', deny: 'pm',     payload: {} },
-  { name: 'bayar invoice',           routes: financeRoutes,     method: 'POST',   url: `/api/v1/finance/invoice/${UUID}/pay`,          permission: 'finance:invoice:pay',     allow: 'direktur', deny: 'pm',     payload: {} },
+  { name: 'buat invoice',            routes: financeRoutes,     method: 'POST',   url: '/api/v1/finance/invoices',                     permission: 'finance:invoice:create',  allow: 'direktur_uji', deny: 'pm',     payload: {} },
+  { name: 'bayar invoice',           routes: financeRoutes,     method: 'POST',   url: `/api/v1/finance/invoice/${UUID}/pay`,          permission: 'finance:invoice:pay',     allow: 'direktur_uji', deny: 'pm',     payload: {} },
   { name: 'putihkan denda',          routes: financeRoutes,     method: 'PATCH',  url: `/api/v1/finance/invoice/${UUID}/waive-penalty`,permission: 'finance:penalty:waive',   allow: 'admin', deny: 'pm',     payload: { reason: 'uji' } },
-  { name: 'approve/reject kasbon',   routes: kasbonRoutes,      method: 'PATCH',  url: `/api/v1/kasbons/${UUID}/status`,               permission: 'mandor:kasbon:approve',   allow: 'direktur', deny: 'pm',     payload: { status: 'approved' } },
+  { name: 'approve/reject kasbon',   routes: kasbonRoutes,      method: 'PATCH',  url: `/api/v1/kasbons/${UUID}/status`,               permission: 'mandor:kasbon:approve',   allow: 'direktur_uji', deny: 'pm',     payload: { status: 'approved' } },
   { name: 'approve change order',    routes: changeOrderRoutes, method: 'PATCH',  url: `/api/v1/change-orders/${UUID}/approve`,        permission: 'change_order:approve',    allow: 'admin', deny: 'pm',     payload: {} },
   { name: 'reject change order',     routes: changeOrderRoutes, method: 'PATCH',  url: `/api/v1/change-orders/${UUID}/reject`,         permission: 'change_order:approve',    allow: 'admin', deny: 'pm',     payload: {} },
   { name: 'approve expense kas',     routes: cashRoutes,        method: 'PATCH',  url: `/api/v1/cash/expenses/${UUID}/status`,         permission: 'cash:expense:approve',    allow: 'admin', deny: 'pm',     payload: { status: 'approved' } },

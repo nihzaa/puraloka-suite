@@ -23,8 +23,9 @@
  * ── Yang dibuktikan
  *
  *   1. RAB TIDAK dipakai — dijaga di sumber, karena datanya menyesatkan
- *   2. uang keluar = pengeluaran disetujui + kasbon disetujui/lunas
- *      (angkanya dihitung ulang lewat SQL terpisah)
+ *   2. uang keluar = pengeluaran disetujui SAJA — kasbon sudah termasuk
+ *      di dalamnya lewat trigger basis; menjumlahkannya lagi berarti
+ *      menghitung uang yang sama dua kali (diperbaiki 2026-09-15)
  *   3. kontrak nol DIPISAH — pembagiannya akan menghasilkan Infinity
  *   4. diurut selisih, paling mendahului di atas
  *   5. MINUS besar dinyatakan BUKAN kabar baik
@@ -117,16 +118,26 @@ describe('tool serapan biaya', () => {
 
   it('uang keluar COCOK dengan basis — dihitung ulang lewat SQL', async () => {
     /*
-      Kasbon IKUT. Di lapangan ia sering jadi jalur utama uang keluar, dan
-      mengabaikannya membuat proyek yang banyak kasbonnya terlihat paling
-      hemat — persis terbalik.
+      ⚠ TEST INI DULU MENGUNCI CACATNYA — diperbaiki 2026-09-15.
+
+      Versi sebelumnya menghitung harapannya sebagai
+      `project_expenses + kasbons`, dan lulus. Yang ia buktikan bukan bahwa
+      angkanya benar, melainkan bahwa kode dan test SEPAKAT — keduanya
+      menghitung kasbon dua kali.
+
+      Kasbon SUDAH ada di `project_expenses`: trigger
+      `trg_kasbon_approved_create_expense` menyisipkan barisnya (ref_type=
+      'kasbon') begitu kasbon mencapai `approved`. Diukur seluruh tabel:
+      55 kasbon approved/settled ↔ 55 baris expense, Rp 550.600.000 di kedua
+      sisi, nol yatim di kedua arah.
+
+      Harapan di bawah karena itu membaca `project_expenses` SAJA. Kalau
+      seseorang menambahkan kasbon lagi ke kodenya, test ini MERAH.
     */
     const { rows } = await db.query(
       `SELECT p.name,
               (SELECT COALESCE(sum(e.total_amount),0) FROM project_expenses e
-                WHERE e.project_id = p.id AND e.status = 'approved')
-            + (SELECT COALESCE(sum(k.amount),0) FROM kasbons k
-                WHERE k.project_id = p.id AND k.status IN ('approved','settled')) AS keluar
+                WHERE e.project_id = p.id AND e.status = 'approved') AS keluar
          FROM projects p
         WHERE p.company_id = $1 AND p.is_deleted = false
           AND p.status IN ('active','on_hold') AND p.contract_value > 0
@@ -194,6 +205,75 @@ describe('tool serapan biaya', () => {
 
     const urut = [...selisih].sort((a, b) => b - a)
     expect(selisih, 'urutan tak menempatkan yang paling mendahului di atas').toEqual(urut)
+  })
+
+  it('kasbon TIDAK dihitung dua kali — trigger sudah menaruhnya di expenses', async () => {
+    /*
+      Rekonsiliasi ke basis, DUA ARAH. Penjaga skrip membaca BENTUK kode;
+      yang ini membaca ANGKANYA.
+
+      Kalau suatu hari ada kasbon approved yang TIDAK menghasilkan baris
+      expense (mis. proyeknya belum punya satu pun `project_expense_categories`
+      — trigger diam-diam RETURN NEW dalam keadaan itu), test ini MERAH dan
+      keputusan "baca dari expenses saja" pantas ditinjau ulang. Itu syarat
+      pencabutannya, ditulis sebagai pengukuran, bukan sebagai janji.
+    */
+    const { rows } = await db.query(
+      `SELECT
+         (SELECT count(*) FROM kasbons k
+           WHERE k.company_id = $1 AND k.status IN ('approved','settled')
+             AND NOT EXISTS (SELECT 1 FROM project_expenses e
+                              WHERE e.ref_type = 'kasbon' AND e.ref_id = k.id)
+         )::int AS kasbon_tanpa_expense,
+         (SELECT count(*) FROM project_expenses e
+           JOIN kasbons k ON k.id = e.ref_id
+          WHERE e.ref_type = 'kasbon'
+            AND k.status NOT IN ('approved','settled')
+         )::int AS expense_yatim`, [companyId])
+
+    const { kasbon_tanpa_expense, expense_yatim } = rows[0]
+    expect(
+      kasbon_tanpa_expense,
+      `${kasbon_tanpa_expense} kasbon approved/settled TIDAK punya baris ` +
+        'project_expenses — membaca dari expenses saja akan KEHILANGAN uang itu. ' +
+        'Tinjau ulang: trigger diam bila proyeknya tak punya expense category.',
+    ).toBe(0)
+    expect(expense_yatim, 'baris expense ref kasbon yang kasbonnya tak lagi disetujui').toBe(0)
+  })
+
+  it('serapan yang dilaporkan TIDAK dua kali lipat — diadu ke SQL per proyek', async () => {
+    /*
+      Cacat aslinya terlihat persis di sini: "Renovasi Toko Pak Rudi" tertulis
+      73% saat yang benar 37%. Yang diperiksa persentase yang BENAR-BENAR
+      dicetak, bukan variabel antara.
+    */
+    const { rows } = await db.query(
+      `SELECT p.name, p.contract_value,
+              (SELECT COALESCE(sum(e.total_amount),0) FROM project_expenses e
+                WHERE e.project_id = p.id AND e.status = 'approved') AS keluar,
+              (SELECT COALESCE(sum(k.amount),0) FROM kasbons k
+                WHERE k.project_id = p.id AND k.status IN ('approved','settled')) AS kasbon
+         FROM projects p
+        WHERE p.company_id = $1 AND p.is_deleted = false
+          AND p.status IN ('active','on_hold') AND p.contract_value > 0
+        ORDER BY kasbon DESC LIMIT 1`, [companyId])
+    if (rows.length === 0 || Number(rows[0].kasbon) === 0) return
+
+    const r = rows[0]
+    const benar = (Number(r.keluar) / Number(r.contract_value)) * 100
+    const dobel = ((Number(r.keluar) + Number(r.kasbon)) / Number(r.contract_value)) * 100
+
+    const h = await toolSerapanBiaya.jalan(ctx(), {})
+    const baris = h.isi.split(/\r?\n/).find((l) => l.includes(r.name)) ?? ''
+    expect(baris, `proyek '${r.name}' tak muncul`).toBeTruthy()
+
+    const pct = Number(/\((\d+)% kontrak\)/.exec(baris)?.[1] ?? NaN)
+    expect(pct, 'persentase serapan tak terbaca dari keluaran').not.toBeNaN()
+    expect(
+      Math.abs(pct - benar),
+      `serapan '${r.name}' ditulis ${pct}%, yang benar ${benar.toFixed(0)}% ` +
+        `(angka dobel akan ${dobel.toFixed(0)}%)`,
+    ).toBeLessThanOrEqual(1)
   })
 
   it('MINUS besar dinyatakan BUKAN kabar baik', async () => {

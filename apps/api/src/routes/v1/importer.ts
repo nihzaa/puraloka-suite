@@ -9,7 +9,7 @@ import {
 } from '../../lib/importer.js'
 import { terminPemasok } from '../../lib/importer-nilai.js'
 import {
-  susunEkspor, formatSah, FORMAT_EKSPOR,
+  susunEkspor, formatSah, FORMAT_EKSPOR, ambilSeluruhnya,
 } from '../../lib/ekspor-tabel.js'
 
 /**
@@ -429,30 +429,32 @@ export default async function importerRoutes(app: FastifyInstance) {
       // Kolom diambil dari SKEMA — satu sumber dengan impor.
       const kunciKolom = s.kolom.map((k) => k.kunci)
 
-      const { data, error } = await request.db!
-        .unsafe(tabel, 'ekspor massal; disaring company_id di baris berikutnya')
-        .select(kunciKolom.join(', '))
-        .eq('company_id', request.companyId!)
-        .order('created_at', { ascending: true })
-        // Batas eksplisit. PostgREST memotong senyap di 1.000 baris, dan
-        // berkas yang terpotong diam-diam lebih berbahaya daripada ekspor
-        // yang gagal: orang menyuntingnya lalu mengimpornya kembali, dan
-        // yang tak ikut terekspor terlihat seperti data yang memang tak ada.
-        .limit(BATAS_EKSPOR + 1)
+      /*
+        Diambil BERTAHAP, bukan `.limit(BATAS_EKSPOR + 1)`.
 
-      if (error) {
-        request.log.error({ err: error, tabel }, 'gagal membaca tabel untuk ekspor')
+        Bentuk lamanya minta 5.001 baris lalu menyimpulkan "terpotong" bila
+        dapat lebih dari 5.000. PostgREST memotong di 1.000 KERAS, jadi ia
+        memulangkan 1.000 dan syaratnya tak pernah benar — berkas berhenti
+        diam-diam di 1.000 baris justru pada kelas cacat yang komentar di
+        bawahnya sendiri peringatkan: orang menyuntingnya lalu mengimpornya
+        kembali, dan yang tak ikut terekspor terlihat seperti data yang
+        memang tak ada. Alasan lengkap di `lib/ekspor-tabel.ts`.
+      */
+      const { baris: semua, terpotong, galat } = await ambilSeluruhnya<Record<string, unknown>>(
+        () => request.db!
+          .unsafe(tabel, 'ekspor massal; disaring company_id di baris berikutnya')
+          .select(kunciKolom.join(', '))
+          .eq('company_id', request.companyId!)
+          .order('created_at', { ascending: true }),
+        BATAS_EKSPOR,
+      )
+
+      if (galat) {
+        request.log.error({ err: galat, tabel }, 'gagal membaca tabel untuk ekspor')
         return reply.status(500).send({ error: `Gagal membaca data ${s.label}` })
       }
 
-      // Lewat `unknown` lebih dulu: `.select()` bernilai string DINAMIS, jadi
-      // TypeScript tak bisa menyimpulkan bentuk barisnya dan memulangkan tipe
-      // galat generik. Kolomnya sendiri berasal dari `SKEMA` (konstanta di
-      // kode), bukan dari masukan pengguna — jadi yang hilang cuma inferensi,
-      // bukan jaminannya.
-      const semua = (data ?? []) as unknown as Array<Record<string, unknown>>
-      const terpotong = semua.length > BATAS_EKSPOR
-      const baris = terpotong ? semua.slice(0, BATAS_EKSPOR) : semua
+      const baris = semua
 
       // Identitas tenant untuk kop dokumen. Gagal memuatnya TIDAK
       // menghentikan ekspor — berkas tanpa kop tetap berguna, berkas yang

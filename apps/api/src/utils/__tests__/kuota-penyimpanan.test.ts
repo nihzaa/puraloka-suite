@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { supabase } from '../supabase.js'
 import { muatPenyimpanan } from '../kuota-penyimpanan.js'
+import { bongkarCompanyUji } from '../../test-utils/bongkar-company-uji.js'
 
 /**
  * KUOTA PENYIMPANAN — yang diuji ARAH KEGAGALANNYA.
@@ -40,7 +41,7 @@ afterAll(async () => {
     await supabase.from('plan_feature_values').delete().eq('plan_id', planId)
     await supabase.from('plans').delete().eq('id', planId)
   }
-  if (companyId) await supabase.from('companies').delete().eq('id', companyId)
+  if (companyId) await bongkarCompanyUji(supabase, companyId)
 })
 
 describe('kuota penyimpanan — tanpa langganan', () => {

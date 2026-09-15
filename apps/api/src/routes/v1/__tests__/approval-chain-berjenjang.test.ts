@@ -32,7 +32,6 @@ let adminUserId: string
 let pengajuId: string
 let projectId: string
 let coId: string
-let level2Id: string
 
 const actAs = (a: string) => {
   vi.spyOn(supabaseAuth.auth, 'getUser').mockResolvedValue({ data: { user: { id: a } }, error: null } as never)
@@ -160,7 +159,7 @@ beforeAll(async () => {
   await client.query(
     `DELETE FROM approval_steps WHERE level >= 2 AND chain_id IN
       (SELECT id FROM approval_chains WHERE entity_type = 'change_order')`)
-  const { rows: st } = await client.query(
+  await client.query(
     // `company_id` diwariskan dari chain induknya, bukan diserahkan ke fallback
     // `fn_isi_company_id()` — fallback itu hanya mengisi bila `companies` berisi
     // TEPAT SATU baris, dan berhenti bekerja begitu ada test lain yang membuat
@@ -168,8 +167,7 @@ beforeAll(async () => {
     `INSERT INTO approval_steps (company_id, chain_id, level, required_permission, label)
      SELECT company_id, id, 2, 'settings:finance:manage', '[TEST] Level 2'
        FROM approval_chains WHERE entity_type = 'change_order'
-     RETURNING id`)
-  level2Id = st[0].id
+`)
 }, 90_000)
 
 afterEach(() => { vi.restoreAllMocks() })
@@ -177,7 +175,20 @@ afterEach(() => { vi.restoreAllMocks() })
 afterAll(async () => {
   // Kembalikan state dev sepenuhnya. Rantai dikembalikan ke 1 level lebih dulu:
   // meninggalkan level 2 akan mengubah perilaku approval CO untuk SEMUA orang.
-  if (level2Id) await client.query(`DELETE FROM approval_steps WHERE id = $1`, [level2Id])
+  /*
+    ⚠ Dihapus lewat LABEL, bukan `level2Id` — diperbaiki 2026-09-14.
+
+    INSERT di `beforeAll` menyisipkan level 2 ke SETIAP rantai
+    `change_order` (satu per company), tetapi `RETURNING id` hanya
+    menangkap `st[0]`. Jadi pembersih lama membuang SATU dan meninggalkan
+    sisanya — diukur: 15 baris `[TEST] Level 2` tertinggal di basis.
+
+    Tak bergejala selama hanya SATU company punya rantai. Sejak migrasi 580
+    (R-010) tiap tenant punya rantainya sendiri, dan sisa itu mengubah
+    perilaku approval di tenant lain: `estimate-approval` merah dengan
+    "expected undefined to be 'approved'" — rantainya diam-diam jadi 2 level.
+  */
+  await client.query(`DELETE FROM approval_steps WHERE label = '[TEST] Level 2'`)
   await purgeTestProjects()
   await app.close()
   await client.end()
@@ -185,9 +196,29 @@ afterAll(async () => {
 
 describe('Rantai approval berjenjang — level 1 TIDAK boleh menggerakkan uang', () => {
   it('prasyarat: rantai change_order benar-benar punya 2 level', async () => {
+    /*
+      ⚠ DISARING ke company yang dipakai fixture — diperbaiki 2026-09-14.
+
+      Versi sebelumnya menghitung SELURUH langkah `change_order` di basis,
+      tanpa menyebut company. Itu benar selama satu alasan saja: **hanya
+      tenant pertama yang punya rantai approval**.
+
+      Migrasi 580 (R-010) menutup cacat itu — tiap tenant kini punya ke-13
+      rantai, dan tenant BARU mendapatkannya lewat trigger. Akibatnya query
+      tanpa saringan memulangkan [1,1,1,1,2,2,2,2], dan test merah atas
+      keadaan yang justru DIPERBAIKI.
+
+      Company-nya dipilih dengan cara yang sama persis seperti `beforeAll`
+      memilihnya untuk proyek uji — kalau tidak, prasyarat ini memeriksa
+      rantai tenant LAIN daripada yang dipakai testnya.
+    */
     const { rows } = await client.query(
       `SELECT s.level FROM approval_steps s JOIN approval_chains c ON c.id = s.chain_id
-        WHERE c.entity_type = 'change_order' ORDER BY s.level`)
+        WHERE c.entity_type = 'change_order'
+          AND c.company_id = (SELECT id FROM companies
+                               WHERE parent_company_id IS NULL
+                               ORDER BY created_at LIMIT 1)
+        ORDER BY s.level`)
     expect(rows.map(r => Number(r.level))).toEqual([1, 2])
   }, 30_000)
 

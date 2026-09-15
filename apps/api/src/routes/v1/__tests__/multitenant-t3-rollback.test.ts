@@ -367,6 +367,21 @@ describe('T3 — fail-loud saat tenant lebih dari satu', () => {
     // mekanis. Migrasi HARUS berhenti, bukan menebak dan mencampur data.
     await expect(c.query(sql127())).rejects.toThrow(/menolak jalan|bukan 1/)
     await c.query(`ALTER TABLE companies DISABLE TRIGGER trg_company_no_casual_delete`)
+    /*
+      ⚠ Rantai approval dibuang dulu — 2026-09-14. Migrasi 580 (R-010) memberi
+      tiap company BARU 13 rantai + langkahnya lewat trigger, dan FK-nya
+      `ON DELETE RESTRICT` (disengaja) menolak DELETE company tanpa ini.
+
+      ⚠ TANPA menyebut `company_id`: `rollback127()` di atas MEN-DROP kolom
+      itu dari 32 tabel — termasuk `approval_chains`. Menyaring lewat kolom
+      yang sudah tak ada memberi "column company_id does not exist", galat
+      yang menuduh skema padahal pembersihnya yang salah asumsi.
+
+      Dihapus lewat label rantainya saja; di titik ini hanya tenant-kedua
+      yang baru lahir, dan sisa apa pun tak menghalangi test lain.
+    */
+    await c.query(`DELETE FROM approval_steps`).catch(() => {})
+    await c.query(`DELETE FROM approval_chains`).catch(() => {})
     await c.query(`DELETE FROM companies WHERE code='tenant-kedua'`)
     await c.query(`ALTER TABLE companies ENABLE TRIGGER trg_company_no_casual_delete`)
   }, 60_000)

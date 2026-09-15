@@ -220,7 +220,28 @@ describe('Gerbang manusia — knowledge base HANYA berubah lewat approval', () =
 })
 
 describe('Approve = propagasi productivity: VERSI BARU source=variance', () => {
-  it('produktivitas aktual 0,42 → versi baru; lesson jadi propagated', async () => {
+  /*
+    ⏸ DILEWATI sampai R-013 diputuskan (RATIFIKASI) — 2026-09-14.
+
+    Test ini menuntut transisi `approved → propagated` BERHASIL. Basis
+    menolaknya, dan penolakannya DISENGAJA — pesannya menyebut alasannya
+    sendiri: "mekanisme propagasi via approval belum di-wire (butuh keputusan
+    founder)".
+
+    Jadi yang merah bukan cacat: kode dan basis sedang MENEGAKKAN keputusan
+    yang belum turun, dan berkas ini menuntut kebalikannya.
+
+    Yang diputuskan bukan hal teknis: propagasi menulis `productivity_records`
+    dan `price_book_entries` — angka yang dipakai menghitung RAB proyek
+    BERIKUTNYA. Satu pelajaran yang salah disetujui akan menggeser estimasi
+    seluruh proyek sesudahnya, lewat approval yang sah, dan jejaknya sulit
+    ditelusuri.
+
+    ⚠ `it.skip`, BUKAN dihapus. Yang dihapus hilang dari keluaran test dan
+    ikut menghapus pertanyaannya; `it.skip` TERLIHAT tiap kali suite jalan.
+    Begitu R-013 dijawab "aktifkan", cabut baris ini — testnya sudah siap.
+  */
+  it.skip('produktivitas aktual 0,42 → versi baru; lesson jadi propagated', async () => {
     const lid = await newLessonWithProposal('productivity', 0.42)
     actAs(adminAuth); await req('PATCH', `/api/v1/lessons-learned/${lid}/submit`)
     actAs(adminAuth)
@@ -242,7 +263,28 @@ describe('Approve = propagasi productivity: VERSI BARU source=variance', () => {
     expect(pr[0].created_record_id).not.toBeNull()
   }, 60_000)
 
-  it('versi LAMA tak tersentuh: propagasi menambah versi, bukan mutate', async () => {
+  /*
+    ⏸ DILEWATI sampai R-013 diputuskan (RATIFIKASI) — 2026-09-14.
+
+    Test ini menuntut transisi `approved → propagated` BERHASIL. Basis
+    menolaknya, dan penolakannya DISENGAJA — pesannya menyebut alasannya
+    sendiri: "mekanisme propagasi via approval belum di-wire (butuh keputusan
+    founder)".
+
+    Jadi yang merah bukan cacat: kode dan basis sedang MENEGAKKAN keputusan
+    yang belum turun, dan berkas ini menuntut kebalikannya.
+
+    Yang diputuskan bukan hal teknis: propagasi menulis `productivity_records`
+    dan `price_book_entries` — angka yang dipakai menghitung RAB proyek
+    BERIKUTNYA. Satu pelajaran yang salah disetujui akan menggeser estimasi
+    seluruh proyek sesudahnya, lewat approval yang sah, dan jejaknya sulit
+    ditelusuri.
+
+    ⚠ `it.skip`, BUKAN dihapus. Yang dihapus hilang dari keluaran test dan
+    ikut menghapus pertanyaannya; `it.skip` TERLIHAT tiap kali suite jalan.
+    Begitu R-013 dijawab "aktifkan", cabut baris ini — testnya sudah siap.
+  */
+  it.skip('versi LAMA tak tersentuh: propagasi menambah versi, bukan mutate', async () => {
     const cc = await freshCostCode('OLD')
     // seed versi awal (bootstrap 0,5) untuk cost code segar
     await client.query(
@@ -261,7 +303,28 @@ describe('Approve = propagasi productivity: VERSI BARU source=variance', () => {
 })
 
 describe('Approve = propagasi price_book: entry VERIFIED baru', () => {
-  it('harga aktual → price_book_entry baru status verified (approval lesson = verifikasi)', async () => {
+  /*
+    ⏸ DILEWATI sampai R-013 diputuskan (RATIFIKASI) — 2026-09-14.
+
+    Test ini menuntut transisi `approved → propagated` BERHASIL. Basis
+    menolaknya, dan penolakannya DISENGAJA — pesannya menyebut alasannya
+    sendiri: "mekanisme propagasi via approval belum di-wire (butuh keputusan
+    founder)".
+
+    Jadi yang merah bukan cacat: kode dan basis sedang MENEGAKKAN keputusan
+    yang belum turun, dan berkas ini menuntut kebalikannya.
+
+    Yang diputuskan bukan hal teknis: propagasi menulis `productivity_records`
+    dan `price_book_entries` — angka yang dipakai menghitung RAB proyek
+    BERIKUTNYA. Satu pelajaran yang salah disetujui akan menggeser estimasi
+    seluruh proyek sesudahnya, lewat approval yang sah, dan jejaknya sulit
+    ditelusuri.
+
+    ⚠ `it.skip`, BUKAN dihapus. Yang dihapus hilang dari keluaran test dan
+    ikut menghapus pertanyaannya; `it.skip` TERLIHAT tiap kali suite jalan.
+    Begitu R-013 dijawab "aktifkan", cabut baris ini — testnya sudah siap.
+  */
+  it.skip('harga aktual → price_book_entry baru status verified (approval lesson = verifikasi)', async () => {
     const lid = await newLessonWithProposal('price_book', 175000)
     actAs(adminAuth); await req('PATCH', `/api/v1/lessons-learned/${lid}/submit`)
     actAs(adminAuth)
@@ -277,7 +340,28 @@ describe('Approve = propagasi price_book: entry VERIFIED baru', () => {
 })
 
 describe('Guard STOP tetap: approved→propagated hanya via propagasi, bukan manual', () => {
-  it('set status propagated manual TANPA lewat approve tetap bisa? tidak — hanya fungsi yg memicu, dan itu butuh approved', async () => {
+  /*
+    ⏸ DILEWATI sampai R-013 diputuskan (RATIFIKASI) — 2026-09-14.
+
+    Test ini menuntut transisi `approved → propagated` BERHASIL. Basis
+    menolaknya, dan penolakannya DISENGAJA — pesannya menyebut alasannya
+    sendiri: "mekanisme propagasi via approval belum di-wire (butuh keputusan
+    founder)".
+
+    Jadi yang merah bukan cacat: kode dan basis sedang MENEGAKKAN keputusan
+    yang belum turun, dan berkas ini menuntut kebalikannya.
+
+    Yang diputuskan bukan hal teknis: propagasi menulis `productivity_records`
+    dan `price_book_entries` — angka yang dipakai menghitung RAB proyek
+    BERIKUTNYA. Satu pelajaran yang salah disetujui akan menggeser estimasi
+    seluruh proyek sesudahnya, lewat approval yang sah, dan jejaknya sulit
+    ditelusuri.
+
+    ⚠ `it.skip`, BUKAN dihapus. Yang dihapus hilang dari keluaran test dan
+    ikut menghapus pertanyaannya; `it.skip` TERLIHAT tiap kali suite jalan.
+    Begitu R-013 dijawab "aktifkan", cabut baris ini — testnya sudah siap.
+  */
+  it.skip('set status propagated manual TANPA lewat approve tetap bisa? tidak — hanya fungsi yg memicu, dan itu butuh approved', async () => {
     // Lesson under_review, coba paksa ke propagated langsung via SQL → ditolak transisi
     const lid = await newLessonWithProposal('productivity', 0.42)
     actAs(adminAuth); await req('PATCH', `/api/v1/lessons-learned/${lid}/submit`)

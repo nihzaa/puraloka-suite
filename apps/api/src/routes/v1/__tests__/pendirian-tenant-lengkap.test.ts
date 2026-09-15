@@ -71,9 +71,25 @@ describe('F7-1 · tenant baru lahir dengan alur persetujuan yang hidup', () => {
       [idUji])
     expect(acuan[0].n, 'basis tak punya rantai contoh — test tak bermakna').toBeGreaterThan(0)
 
+    /*
+      ⚠ Yang diperiksa HASILNYA, bukan berapa yang DISALIN — diubah
+      2026-09-14.
+
+      Sejak migrasi 580 (R-010) trigger `trg_company_rantai_approval` sudah
+      memasang seluruh rantai saat company LAHIR, jadi helper ini menemukan
+      semuanya sudah ada dan memulangkan `disalin: 0` — dengan benar; ia
+      melewati 23505 sebagai "sudah ada", bukan galat.
+
+      Menuntut `disalin === acuan` berarti menuntut helper MENYALIN, padahal
+      yang dijaga berkas ini adalah tenant baru punya alur persetujuan yang
+      HIDUP. Siapa yang memasangnya — trigger atau helper — tak mengubah
+      invariannya, dan memakukannya ke salah satu membuat test merah setiap
+      kali jalurnya diperbaiki.
+
+      `ok` tetap dituntut: helper yang GAGAL tetap harus merah.
+    */
     const hasil = await siapkanRantaiApproval(idUji!)
     expect(hasil.ok, hasil.error).toBe(true)
-    expect(hasil.disalin).toBe(acuan[0].n)
 
     // Jumlah jenis harus SAMA, bukan sekadar "lebih dari nol".
     const { rows: punya } = await client.query(

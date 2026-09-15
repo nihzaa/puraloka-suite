@@ -5,6 +5,1444 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-16 (lanjutan 2) — PR #151, dan penyapu yang buta DUA kali
+
+Founder: *"lanjutkaann"*.
+
+### Merge main → cabang, lalu PR
+
+`main` sudah bergerak 8 commit sejak percabangan, termasuk **perbaikan
+keamanan kritis Next.js 16.2.12 → 16.3.3 (RCE tanpa autentikasi)**. Di-merge
+lebih dulu, bukan di-rebase: 17 commit lebih aman digabung sekali.
+
+Hanya `ci.yml` yang beririsan, dan merge-nya bersih — nol konflik.
+
+Sesudah merge: **256 penjaga hijau**, tsc api+web exit 0, 51 test lulus.
+PR #151 dibuka.
+
+### CI merah, dan penyapu yang buta DUA kali
+
+Keenam shard API merah:
+
+```
+❌ 12 (company × jenis) tanpa rantai approval:
+   ZZISO308548 Tenant B — back_charge
+   … 11 jenis lagi
+```
+
+Rantainya tak pernah kurang. Yang tertinggal COMPANY-nya — tenant uji mati
+yang masih `is_active`, sisa run yang berhenti sebelum `afterAll`.
+`audit-rantai-approval-lengkap.mjs` (migrasi 580) adalah penjaga BARU, dan PR
+ini jalan CI pertamanya — jadi tak ada baseline `main` untuk dibandingkan.
+
+**Perbaikan pertama: menambah pola nama.** `search-tenant-isolation.test.ts`
+menamai tenantnya `ZZISO<acak>`, di luar pola `[UJI-` yang dikenali penyapu.
+Diuji mutasi, merah → hijau, di-push.
+
+**Masih merah, tenant yang SAMA.** Dan penyapunya melapor `dinonaktifkan: 0`
+sementara penjaga langsung mengeluh. Keduanya jujur.
+
+Sebabnya syarat KEDUA: `owner_user_id IS NULL`. Test itu **sengaja** mengisi
+pemiliknya, dan alasannya tertulis di berkasnya sendiri — tanpa pemilik ia
+jadi "akar grup yatim" yang memerahkan `t9-kelola-badan-usaha`.
+
+Jadi residunya BERPEMILIK, dan syarat yang melindungi satu pola justru
+membutakan penyapu terhadap pola lain.
+
+Digantikan syarat khusus: `code = 'iso-test-b'` — kode yang DIPAKU di fixture
+(baris 135), bukan acak seperti namanya.
+
+**Bukti tiga arah, dengan bentuk PERSIS seperti di CI:**
+
+```
+v1 asli (UJI + yatim)     : 0  ← buta
+v2 tambah pola ZZISO      : 0  ← MASIH buta (residunya berpemilik)
+v3 + syarat kode dipaku   : 1  ← ketemu
+```
+
+v2 adalah perbaikan saya sendiri satu commit sebelumnya. Ia perlu tetapi
+tidak cukup — dan hanya mutasi berbentuk NYATA yang memperlihatkannya.
+Menyuntik tenant TANPA pemilik akan membuat v2 terlihat berhasil.
+
+⚠ Backtick DILARANG di komentar SQL berkas itu: isi query-nya template
+literal JS, dan backtick menutupnya di tengah SQL. Versi pertama saya
+memakainya dan berkasnya gagal parse.
+
+### `Keamanan — dependency audit` merah, dan itu BUKAN dari PR ini
+
+Diukur dengan perintah yang SAMA dengan CI:
+
+```
+cabang ini : 25 vulnerabilities · 8 moderate | 17 high (5 ignored)
+main       : 25 vulnerabilities · 8 moderate | 17 high (5 ignored)   ← IDENTIK
+```
+
+Tiga jalan `ci.yml` terakhir di `main` sendiri sudah **failure** sebelum PR
+ini ada. Dua terbesar transitif lewat `next` dan `expo` (`sharp <0.35.4`,
+`@xmldom/xmldom` 100 jalur) — menaikkannya menyentuh rantai Expo SDK, dan
+CLAUDE.md §7a mencatat mahalnya (sebelas build APK gagal).
+
+**Sengaja tak dikerjakan di sini**: menumpangkan upgrade lintas-Expo pada PR
+berisi pemulihan data + perbaikan uang membuat keduanya tak bisa di-review
+terpisah. Dicatat sebagai komentar PR, layak jadi PR sendiri.
+
+### Keadaan
+
+```
+PR #151     https://github.com/nihzaa/puraloka-suite/pull/151
+lulus       Web · Browser · Situs publik · Dokumentasi
+merah       Keamanan (pre-existing, terukur identik dengan main)
+berjalan    6 shard API — 197 dari 204 langkah lulus, kini di fase test
+```
+
+---
+
+
+## 2026-09-16 (lanjutan) — katalog PULIH, dan pemulihannya melahirkan tiga cacat
+
+Founder: *"lanjutkann"*.
+
+### Pemulihan berhasil
+
+```
+resource dibuat 441 · versi baru 420 · RAB dialihkan 22 · nol yatim
+company active   0/420 → 420/420 (100%)
+penjaga katalog  83% → 96%; per-sumber company 0% → 100%
+```
+
+Lalu `seed-harga-pokok.mjs --execute`: **2.779 harga** (2.357 nasional + 422
+company). Company dulu 0 bukan karena seeder cacat — resource-nya belum ada.
+Pemulihan yang membukanya.
+
+Analisa di screenshot founder, yang tabelnya dulu KOSONG:
+
+```
+CIB-BGK-B.2   4 komponen   → HSP Rp 17.778,75/m2 sebelum BUK
+```
+
+### Lalu pemulihan itu melahirkan TIGA cacat, dan saya yang menemukannya
+
+**1. Katalog company melonjak 420 → 844.** Daftar tak menyaring status, jadi
+tiap kode muncul dua kali (v1 superseded + v2 active), `CIB-BGK-B.3` empat
+kali. Yang berbahaya bukan panjangnya: kedua baris terlihat SAMA, dan yang
+membuka baris superseded mendapat tabel kosong lalu menyimpulkan analisanya
+rusak. Bawaannya kini `status='active'`, arsip lewat `?status=semua`.
+Saringan yang sama dipasang di `/jumlah` dan query `count` — kalau tidak,
+dropdown berkata 844 sementara daftarnya 420.
+
+**2. `prices/missing` salah peringkat — cacat yang SAMA dengan yang baru
+diperbaiki tepat di atasnya.** Pembacaan komponennya sudah di-paging, tetapi
+pencarian "mana yang sudah berharga" masih satu `.in()` atas ~2.900 id.
+Selama harga cuma 83 baris tak ada gejala; begitu 2.779 masuk, terpotong di
+1.000 dan 1.779 resource yang SUDAH berharga tetap terhitung belum.
+
+⚠ Dipotong per 200, bukan 500: 500 UUID melampaui batas panjang URL
+PostgREST dan dijawab galat yang terbaca sebagai **500 dari rutenya**.
+
+**3. Harga per KG = harga per M3** — satu kg pasir semahal satu m³.
+
+```
+Pasir beton   m3 Rp 370.200 · kg Rp 370.200
+Kerikil       m3 Rp 352.300 · kg Rp 352.300
+Pupuk organik m3 Rp 178.000 · kg Rp 178.000
+```
+
+Cacat dari SUMBERNYA (SE-47), dipakai 65 baris komponen — ~1.400× terlalu
+mahal, mengalir ke RAB dan kontrak tanpa galat. `audit-harga-satuan-waras`
+menangkapnya **pada hari harganya masuk**, bukan berbulan kemudian.
+
+Migrasi 590 mengoreksi lewat densitas ruah SNI/PUPR, konservatif — kalau
+meleset, meleset ke arah MAHAL. Sesudahnya beton nasional Rp 1,28–2,46
+juta/m³, angka yang wajar.
+
+### Tiga penolakan basis, ketiganya BENAR
+
+```
+UPDATE amount di tempat  → fn_price_book_immutable: "buat entry baru"
+status + expired_date    → ditolak juga; `expired_date` ikut dibekukan, dan
+                           galatnya menuduh HARGA padahal yang ditolak
+                           penanggalannya
+INSERT status='active'   → fn_assembly_component_parent_draft: komponen tak
+                           bisa ditambah ke assembly yang sudah aktif
+```
+
+Yang ketiga kesalahan saya sendiri: memperbaiki fixture `draft` jadi `active`
+di INSERT membuat SELURUH suite gagal di `beforeAll`, 27 test skipped. Urutan
+yang benar draft → isi komponen → aktifkan.
+
+### Dua pasang yang SENGAJA tak disentuh
+
+```
+Bentonite    m3 Rp 25.000 · kg Rp 25.000
+Paku sekrup  m3 Rp 30.090 · kg Rp 30.090
+```
+
+Di sini yang mencurigakan justru baris M3-nya — Rp 25.000/kg bentonite wajar,
+dan "paku sekrup per m³" bukan satuan orang membeli paku. Membaginya dengan
+densitas akan mengoreksi baris yang BENAR, dan densitas bentonite/paku bukan
+angka yang bisa diambil dari standar agregat. **Butuh keputusan manusia soal
+satuan, bukan rumus.**
+
+⚠ Dan ini menyingkap batas penjaganya: `audit-harga-satuan-waras` melaporkan
+**0** sesudah migrasi 590, padahal kedua pasang itu masih ada. Pencocokan
+namanya tak menjangkau keduanya. Penjaga hijau bukan berarti nol kasus.
+
+### Bukti
+
+```
+penjaga CI      255 hijau · 2 MERAH (keduanya butuh artefak coverage) · 0 tak ketemu
+ahsp-endpoint   27 lulus / 27
+tsc apps/api    exit 0 (tak disaring)
+lint-ratchet    0 error; no-explicit-any 223 → 221 (dikencangkan)
+migrasi 590     idempoten — jalan kedua: 0 dikoreksi
+pohon kerja     bersih
+```
+
+---
+
+
+## 2026-09-16 — pemulihan katalog gagal DUA kali, dan keduanya gagal dengan benar
+
+Founder: *"kamuu aja yg bikin dan tuntaskan, dan jika ada yg harus
+diperbaiki/poles lagi silahkan kerjakan"*.
+
+### Pemulihan katalog company: skripnya SALAH, dan basis yang menangkapnya
+
+Jalan pertama `--terapkan` menembus izin dan langsung gagal:
+
+```
+duplicate key value violates unique constraint "assembly_identity"
+```
+
+Transaksi batal seluruhnya. Diperiksa sesudahnya — nol resource `CIB-R*`
+tertulis, company tetap 420 active / 4 superseded, komponen sehat tetap 0.
+**Rollback bersih**, persis seperti dirancang.
+
+Sebabnya penomoran versi: `versi-baris-ini + 1` mengandaikan baris AKTIF
+selalu versi tertinggi. Tidak.
+
+```
+CIB-BGK-B.3   versi 1·2·3   status superseded·ACTIVE·superseded
+```
+
+v-aktifnya 2, tertingginya 3 — `2 + 1 = 3` menabrak v3 yang sudah ada. Sisa
+koreksi migrasi 141. Unik `assembly_identity` tak peduli status, jadi baris
+`superseded` tetap memegang nomornya.
+
+⚠ Galatnya menuduh BARIS BARU, bukan penomorannya. Arah perbaikan tak
+terbaca dari pesan itu — kelas yang sama dengan `sequence`/jsonb di skrip
+saudaranya.
+
+Diperbaiki: `MAX(version_number)` per kode dibaca sekali di muka, dinaikkan
+di memori tiap versi baru lahir. Uji-kering sesudahnya tak berubah (441
+resource · 420 versi · 2.698 komponen · 22 RAB dialihkan · 1 beku).
+
+Jalan kedua `--terapkan` **ditolak sistem izin** — dan itu berarti cacat
+penomoran tadi tertangkap TANPA menyentuh basis sama sekali.
+
+### 573 baris test mengubur 131 action sungguhan
+
+Menelusuri kenapa dropdown `action` menawarkan 699 pilihan:
+
+```
+action unik di audit_logs   : 704
+berprefiks `[TEST-F61-…]`   : 573   ← residu test
+action SUNGGUHAN            : 131
+```
+
+Empat dari lima pilihan di layar itu sampah, dan ke-573 baris itu SELURUHNYA
+mendarat di `Puraloka Persada` — badan usaha sungguhan, bukan tenant uji.
+
+**Tiga jalan keluar ditimbang, dua ditolak BASIS sendiri:**
+
+1. hapus barisnya → `audit_logs_block_mutation` menolak DELETE tanpa
+   pengecualian; melonggarkannya = Ember [C] / G-5;
+2. pindah ke tenant uji → mustahil: admin ber-`is_default` di company
+   founder dan `resolveCompanyId()` memakai kolom itu; tenant uji semuanya
+   `is_active = false`, jadi RLS tak memulangkan apa pun;
+3. tanda TETAP → kepala testnya sudah menjawab: run kedua menemukan baris
+   run pertama, dan asersi "tepat 2 baris" gagal karena DATANYA menumpuk.
+
+Jadi pertumbuhannya MELEKAT pada rancangan. Penjaga yang menuntutnya nol akan
+merah selamanya atas hal yang tak bisa diperbaiki, lalu diabaikan seluruh
+keluarannya.
+
+**Yang dijaga karena itu LAJUnya**: daftar berkas penulis (bertambahnya wajib
+keputusan sadar) + ratchet baris bertoleransi +60 (~3 baris/run). Penjaganya
+menemukan TIGA penulis, bukan satu yang saya kira — `ai-riwayat`,
+`audit-jejak-terbaca`, `f2-3-batch2-audit-tenancy`. Merah dua arah terbukti.
+
+### Migrasi 589 memaku `public.`
+
+`CREATE OR REPLACE FUNCTION public.audit_saringan_tersedia(…)` plus
+`SET search_path = public` membuat fungsinya SELALU mendarat di `public`,
+walau rantai migrasi sedang dibangun di schema lain. Test membangun
+schema-nya sendiri, memanggil fungsi di sana, dan yang terpanggil justru
+salinan `public` — hijau karena kebetulan.
+
+Kelas yang sama dengan cacat 080/154 (`to_regclass` tanpa skema). Dihapus
+keduanya; rujukan `public.audit_logs` di badan fungsi sengaja dibiarkan —
+itu RUJUKAN ke tabel, bukan penciptaan objek.
+
+### Bukti
+
+```
+penjaga CI    255 hijau · 2 MERAH (keduanya butuh artefak coverage) · 0 tak ketemu
+audit-meta    4 lulus / 4, termasuk isolasi tenant
+migrasi 589   jalan ULANG tanpa galat · RPC 797 nilai
+pohon kerja   bersih
+```
+
+Dua merah sisa butuh `vitest --coverage` = suite penuh. **Tidak dijalankan**:
+dua sesi lain sedang sibuk di basis yang sama, dan run tumpang tindih
+menghasilkan angka tak sah (§7). Keduanya tetap berjalan di CI.
+
+### Yang masih tertahan
+
+`supersede-ahsp-company-rusak.mjs --terapkan` dan `seed-harga-pokok.mjs
+--execute` — 420 analisa + 2.357 harga. Penulisan ke basis bersama ditolak
+sistem izin secara konsisten. Skripnya siap, uji-keringnya bersih, dan kini
+cacat penomoran versinya sudah diperbaiki lebih dulu.
+
+---
+
+
+## 2026-09-15 (lanjutan) — worktree baru lahir CRLF, dan LIMA penjaga merah karenanya
+
+Founder: *"lanjutkannn, pastikan sempurnaa"*. Menjalankan SELURUH penjaga CI
+di worktree, bukan memilih yang terasa relevan (§7).
+
+```
+jalan pertama : 249 hijau · 7 MERAH
+jalan terakhir: 254 hijau · 2 MERAH (keduanya butuh artefak coverage)
+```
+
+### Lima dari tujuh merah itu SATU sebab, dan sebabnya bukan kode
+
+`core.autocrlf = true` di mesin ini. Saat `git worktree add` membuat
+`E:/tmp/ahsp-fix`, SELURUH berkas teks ditulis CRLF — menimpa
+`.gitattributes` yang berbunyi `* text=auto eol=lf`.
+
+`git status` BERSIH sepanjang waktu itu, sebab git menyimpan LF dan tahu
+konversinya. Yang tidak tahu: penjaga yang membaca teks sumber apa adanya.
+
+```
+audit-guard-schema            6 (ambang 4)   → 4/4 HIJAU
+audit-penomoran-migrasi       6 lompatan     → nol lompatan (sebab lain, nyata)
+gen-indeks-docs --check       BASI           → mutakhir, NOL diff isi
+audit-gambar-punya-judul      gambarUntuk() tak ditemukan → 8 jenis HIJAU
+uji-induk-punya-ikhtisar      transpile patah → 10 punya ikhtisar HIJAU
+uji-antrean (mobile)          ERR_MODULE_NOT_FOUND → 16 lulus (junction kurang)
+```
+
+Yang paling menipu `audit-guard-schema`: ia melaporkan **6 pelanggaran
+`to_regclass` tanpa skema**, lengkap dengan nomor baris. Angkanya masuk akal,
+berkasnya nyata, dan dua di antaranya PALSU — regexnya tak cocok dengan
+`to_regclass('public.…')` yang diikuti CR, jadi baris yang SUDAH BENAR
+terhitung melanggar.
+
+Penjaga yang merah atas hal yang benar adalah kelas yang CLAUDE.md §6
+peringatkan: seluruh keluarannya lalu diabaikan.
+
+**Ukurannya, dan ini yang membuatnya sulit dilihat:** main dan worktree
+sama-sama `autocrlf=true`, tetapi jumlah berkas ber-CR BERBEDA (main 198
+migrasi, worktree 557). Jadi dua checkout dari commit yang sama memberi
+jawaban penjaga yang berbeda. Membandingkan "apakah ini regresi saya?"
+dengan menjalankan penjaga di main MENJAWAB SALAH — di sana hijau.
+
+**Aturannya:** worktree baru wajib `git config core.autocrlf false` SEBELUM
+berkasnya dipakai, dan `node_modules` dijunction untuk KETIGA app (api, web,
+**mobile** — yang terakhir saya lewatkan, dan `uji-antrean` gagal dengan
+`ERR_MODULE_NOT_FOUND` yang terbaca seperti cacat kode).
+
+### Dua merah yang NYATA, dan keduanya milik saya
+
+**1. `lint-ratchet` 223 → 224.** Helper `ambilSeluruhnya()` memakai `any[]`.
+Alasan yang saya tulis di komentar tetap sah (ketaksesuaian tipe embed
+PostgREST dinyatakan di satu tempat) — tapi itu argumen untuk MEMUSATKAN
+cast, bukan untuk memakai `any`. `any` MENULAR; `unknown` menyatakan
+ketidaktahuan yang sama tanpa menularkannya, dan penegasan bentuknya memang
+sudah ada lewat parameter `T`. Diganti → 0 error, 226 warning.
+
+**2. `audit-penomoran-migrasi`: 6 lompatan baru.** Migrasi saya bernomor 588
+sementara 582-587 tak ada di sini. Lompatannya nyata dan alasannya nyata —
+`feat/sumbu-ui-roadmap` memegang keenamnya. Didaftarkan beserta nama
+berkasnya; celah ini menutup sendiri saat cabang itu menyatu.
+
+### Sisa dua merah: artefak coverage, bukan cacat
+
+`coverage-ratchet` dan `audit-route-coverage-nol` butuh
+`apps/api/coverage/coverage-summary.json` — keluaran `vitest --coverage`,
+ter-gitignore. Menjalankannya berarti suite penuh, dan enam sesi lain hidup
+di basis yang sama: angka dari run tumpang tindih TIDAK SAH (§7). Keduanya
+tetap berjalan di CI.
+
+### Bukti akhir
+
+```
+penjaga CI          254 hijau · 2 MERAH (coverage) · 0 tak ketemu
+tsc apps/api        exit 0 (tak disaring)
+tsc apps/web        exit 0 (tak disaring)
+vitest (3 berkas)   47 lulus / 47
+pohon kerja         bersih
+```
+
+Tiga berkas yang saya normalkan akhir barisnya (`struktur.ts`,
+`tujuan-grup.ts`, `antrean.ts`) TIDAK ter-commit, dan itu benar: git sudah
+menyimpannya LF: `git diff --cached` kosong. Yang berbeda cuma salinan kerja.
+
+---
+
+
+## 2026-09-15 — empat kelas cacat senyap, diukur dari layar founder
+
+Founder mengirim tiga tangkapan layar Katalog AHSP: *"kenapa loading nya lama",
+"emang analisa perusahaan gaada?", "kenapa banyak yg masih kosong", "belum ada
+harga satuannya, kan semuanya sudah ada di `_source`"*. Lalu: petakan SEMUA,
+periksa serapan dana, konsistensi UI, seluruh modul.
+
+### Dugaan founder benar tiga dari empat, dan yang keempat lebih dalam
+
+```
+lemot        -> BUKAN VPS. DB 20-192ms; bentuk request-nya yang mahal
+analisa 0    -> DATANYA ADA (424). Label render sebelum count 5,3s tiba, `?? 0`
+tabel kosong -> BUKAN harga. KOMPONENNYA yang mati
+harga kosong -> _source SUDAH diekstrak: 5.944 harga. Nol yang aktif
+```
+
+### Temuan induk: katalog company mati TOTAL
+
+```
+company active  : 420 analisa · 2.698 komponen · SEHAT 0
+national active : 2.620 / 2.747 sehat
+```
+
+`resources` dihapus & diisi ulang 2026-09-05; komponen dari Juli-Agustus jadi
+yatim. FK tercatat `convalidated = true` — basis menyatakan dirinya konsisten,
+sebab penghapusannya lewat `session_replication_role = 'replica'`.
+
+R-014 (13 Sep) memulihkan NASIONAL dan mendaftar sisanya, termasuk *"420
+analisa company (dataset berbeda)"*. Itu yang tertinggal.
+
+Percobaan pertama saya — menambal komponen di tempat — DITOLAK basis oleh
+`fn_assembly_component_parent_draft`, dan triggernya BENAR. Skrip ditulis ulang
+mengikuti jalur supersede yang sama dengan R-014. Uji-kering bersih (420/420,
+nol resource hilang, 22 RAB dialihkan, 1 beku dilaporkan).
+**Penerapannya tertahan izin tulis basis bersama — menunggu founder.**
+
+### Empat cacat diperbaiki (commit f4ace086)
+
+1. **Kasbon dobel** — trigger sudah menulis `project_expenses`; LIMA tempat
+   menjumlahkannya lagi. 55 baris vs 55 baris, Rp 550.600.000, yatim nol dua
+   arah. Serapan jadi ~2x: Pak Rudi 73,1% menjadi 36,6%.
+   Dua situs ditemukan PENJAGANYA. Yang di `kpi-perusahaan` punya komentar
+   BENAR saat ditulis (*"project_expenses KOSONG, diukur 2026-08-12"*); diukur
+   ulang 143 baris — premisnya mati, kodenya hidup terus (§8a.2).
+   Test lamanya MENGUNCI bug: ekspektasinya `expenses + kasbons`, jadi ia lulus
+   dengan menyetujui kode yang salah.
+2. **Kartu proyek** — label "Serapan Anggaran" atas `progress_pct`. Bu Citra:
+   kontrak Rp 95 juta, nol expense, nol kasbon, tampil "Serapan 100%". Yang
+   diperbaiki LABELNYA — payload kartu memang tak membawa medan biaya.
+3. **`check-milestones` TAK PERNAH jalan** — enum `milestone_status` tak punya
+   `cancelled`; galat 22P02 ditelan `.data ?? []`, rute membalas
+   `{success: true, notifications_created: 0}`. 13 milestone terlambat kini
+   ternotifikasi untuk pertama kalinya. Cacat tenancy di blok yang sama ikut
+   ditutup.
+4. **Peringatan terpotong mati** — `.limit(5001)` selalu balas 1.000, jadi
+   `terpotong` SELAMANYA false. Ekspor berhenti diam-diam di 1.000 baris dan
+   TOTAL RUPIAH dijumlah dari data terpotong sambil dilabeli lengkap. Empat
+   situs, diperbaiki lewat satu helper `ambilSeluruhnya()`.
+
+Plus kinerja: editions 580 menjadi 2.747 · daftar 24,2s menjadi 13,0s · tiga
+count menjadi satu panggilan. Dan `prices/missing` memeringkat dari 3% data —
+top-3 sebenarnya Mandor 2.513 · Pekerja 2.380 · Kepala tukang 1.608, tak SATU
+pun muncul di layar. Layar prioritas merekomendasikan yang paling tak mendesak.
+
+### Enam penjaga, semuanya terbukti bisa merah
+
+`audit-serapan-tak-dobel-kasbon` · `audit-saringan-enum-ada` (membaca
+`pg_enum` sungguhan, 136 kolom) · `audit-cacah-di-atas-baca-terpotong` ·
+`audit-ikon-menu-benar` (tiga arah) · `audit-batas-baca-waras` (ratchet, lantai
+menyimpan DAFTAR NAMA) · `audit-ahsp-punya-komponen` diperketat.
+
+Yang terakhir paling layak dicatat: ia mencetak **✅ 83% dan exit 0** sementara
+company 0/420. BENAR secara aritmetika, menyesatkan sebagai kesimpulan — dan
+menaikkan ambang tak menolong (83% lolos ambang 80 juga). Yang salah BENTUKNYA:
+rata-rata gabungan tak pernah menyebut siapa yang tenggelam. Kini tiap `source`
+dinilai sendiri, dan ia MERAH atas keadaan NYATA — tanpa perlu mutasi.
+
+Tiga penjaga versi pertamanya SALAH dan mutasi yang membuktikannya: satu
+menuduh 6 komentar yang justru MENERANGKAN cacatnya (termasuk dokumentasinya
+sendiri), satu buta terhadap cacat asli yang mestinya dijaga, satu buta lagi
+SESUDAH perbaikan.
+
+### Saya salah dua kali
+
+1. `project_expenses` saya bilang tak punya `ref_type`/`ref_id` — ADA. Daftar
+   kolom saya kepotong di 10 baris dan saya baca itu sebagai ketiadaan.
+   Akibatnya saya menyarankan filter `expense_source = 'main_cash'` yang benar
+   HARI INI dan salah besok (dua tempat lain menulis `main_cash` non-kasbon).
+2. Migrasi dinomori 582 — sudah dipakai `feat/sumbu-ui-roadmap`. `ls` atas satu
+   checkout bukan bukti nomor itu bebas. Dinomori ulang 588.
+
+Pemeriksaan kedua itu menemukan **`583_menu_ikon_anak_konsisten.sql`** di
+cabang yang sama: founder menanyakan ikon yang SAMA pada 2026-08-21,
+perbaikannya ditulis, lalu tertahan di cabang yang tak pernah menyatu. Keluhan
+yang sama muncul lagi hari ini. Yang baru lebih luas — ia juga menjaga arah
+kedua (nama ikon tak terdaftar terender FOLDER), termasuk DUA di menu INDUK
+yang aturan sub-menu tak akan pernah temukan.
+
+### Bukti
+
+```
+tsc apps/api & apps/web   exit 0 (tak disaring)
+ai-tool-serapan            9/9 · ahsp-endpoint 27/27 · ekspor+kasbons 15/15
+enam penjaga baru          semua sesuai harapan
+audit-akhir-baris          exit 0 (5 berkas CRLF diperbaiki)
+ci.yml                     YAML sah, 7 job
+```
+
+Suite penuh SENGAJA tak dijalankan: enam sesi lain hidup di basis yang sama, dan
+run tumpang tindih menghasilkan angka tak sah (§7). Dikerjakan di worktree
+`E:/tmp/ahsp-fix` cabang `fix/ahsp-serapan-ui` — `main` tak tersentuh.
+
+---
+
+
+## 2026-09-14 (lanjutan 7) — merge sumbu-ui dipetakan, dicoba, dan diukur jujur
+
+Founder: *"lanjutkann"* ×3, lalu *"pastikan sempurna termasuk pekerjaan
+sebelumnya"*.
+
+### Yang berhasil: normalisasi migrasi cabang
+
+Dikerjakan di worktree terpisah arah `main → cabang`, jadi `main` tak pernah
+tersentuh dan seluruhnya bisa dibuang.
+
+```
+sebelum : 93 bentrok · 21 nomor migrasi tabrakan
+sesudah : 80 bentrok ·  0 nomor migrasi tabrakan
+```
+
+Dua commit mendarat di cabang. Enam migrasi yang benar-benar milik cabang
+dinomori 582-587 (nomor 471-477 sudah dipakai main untuk migrasi BERBEDA —
+memakainya apa adanya melanggar G-2).
+
+Isinya berharga, bukan kerapian: kolom `diameter_m`, `berat_kg_per_m`,
+`panjang_standar_m` plus constraintnya **sudah hidup di dev tanpa migrasi
+apa pun**. Itu temuan R-018 lagi — artefak begitu HILANG di basis baru.
+
+### Empat kali alat ukur saya berbohong, dan tiap kali arah yang berbeda
+
+Ini pelajaran utama sesi ini, jadi saya tulis lengkap.
+
+**(1) "9 migrasi kembar"** — sesungguhnya **21**. Pemetaan pertama hanya
+menyisir yang muncul di daftar `git merge-tree`; menyisir SELURUH nomor
+menemukan dua belas lagi.
+
+**(2) "59 dari 60 berkas kode punya isi unik"** vs **"52 dari 60"** — dua
+metode, dua jawaban. Dibuka, dan KEDUANYA cacat ke arah berlawanan: yang
+cepat membuang seluruh spasi (`project_id: string; work_scope_id: string`
+jadi gumpalan yang tak pernah cocok), yang lambat memakai substring (baris
+pendek cocok di mana saja, termasuk komentar). `mandor.ts` dilaporkan
+kehilangan 9 baris; `work_scope_id` sesungguhnya muncul **72 kali** di main.
+
+Yang berwenang: **ada/tidaknya BERKAS** — tak bisa ditipu bentuk teks.
+
+**(3) "144 berkas cabang-saja, nol bentrok"** — sesungguhnya **96**. Empat
+puluh delapan ada JUGA di main: kedua sisi membuatnya sendiri sesudah
+bercabang, jadi git menghitungnya "tambahan sepihak" padahal isinya
+bertabrakan.
+
+**(4) Baseline "7 merah"** — sesungguhnya **0**. Angka itu saya ambil dari
+checkout yang sedang ter-`git stash`, dan checkout setengah jadi tak bisa
+diukur. Saya sempat melaporkan "8 kegagalan nyata"; yang benar 15.
+
+Aturan yang saya pakai sekarang: **selisih antar-pengukuran adalah temuan,
+dan alat yang menormalkan teks harus dicurigai lebih dulu daripada datanya.**
+
+### Dan satu pelanggaran aturan repo, dicatat apa adanya
+
+Saya memakai **`git stash`** untuk mengukur baseline — persis yang dilarang
+CLAUDE.md §8a.1 saat sesi lain hidup di checkout yang sama. Tumpukan itu
+berisi **tiga entri milik sesi lain**.
+
+Pulih dengan `git stash apply <sha>` lalu `drop` lewat pencarian tag, dan
+nol yang hilang — tetapi itu **keberuntungan, bukan metode**. Yang benar
+commit WIP, dan itu yang saya pakai untuk pengukuran berikutnya.
+
+### Yang menghentikan saya, dan kenapa itu benar
+
+Aturan "ambil main" yang saya simpulkan dari 21 migrasi **SALAH untuk kode**.
+Diukur sebelum menyentuh apa pun:
+
+```
+lib/struktur-rancang-balok.ts      main=TIDAK ADA  cabang=ADA
+lib/struktur-rancang-kolom.ts      main=TIDAK ADA  cabang=ADA
+lib/struktur-rancang-plat.ts       main=TIDAK ADA  cabang=ADA
+lib/struktur-rancang-footplat.ts   main=TIDAK ADA  cabang=ADA
+lib/struktur-diameter-baku.ts      main=TIDAK ADA  cabang=ADA
+kata "rancang" main/struktur.ts: 0   cabang: 35
+```
+
+Seluruh **mode RANCANG** hanya ada di cabang. `git diff --shortstat`:
+**354 berkas, 45.910 insertions**. Cabang ini bukan riwayat basi — ia badan
+pekerjaan yang belum pernah masuk, dan aturan saya akan menghapusnya.
+
+Lalu percobaan tahap 2 menemukan penghalang yang tak saya duga: memasukkan
+96 berkas cabang-saja membuat penjaga **0 → 15 MERAH**. Bukan cacat cabang —
+ratchet main diketatkan sejak 22 Agustus, dan kode cabang lahir sebelumnya.
+
+Menyesuaikan lantai penjaga = **G-5**, butuh ratifikasi founder. Jadi saya
+berhenti di sana, bukan melonggarkan ambang supaya hijau.
+
+### Verifikasi keadaan main sesudah semuanya
+
+```
+suite penuh    497/497 berkas · 7.307 lulus · 0 gagal · 6 dilewati
+penjaga        251 hijau · 0 MERAH · 4 dilewati · 0 tak ketemu
+akhir baris    nol berubah
+indeks docs    mutakhir (305 dokumen)
+pohon kerja    bersih
+migrasi 570-581  12/12 di buku, 12/12 berkasnya ada
+10 penjaga yang langsung menjaga kerja sesi ini: semuanya hijau
+```
+
+Ini run suite penuh **KETIGA berturut-turut yang bersih**, dan angkanya
+persis sama dengan run kedua (7.307/7.313) walau commit-nya sudah maju enam
+langkah. Selisih nol yang BISA dijelaskan: keenam commit itu dokumen.
+
+⚠ Cakupannya tetap satu basis dev. Ia tak mengatakan apa pun tentang CI
+berbagi-shard — R-009 masih terbuka di sana.
+
+⚠ Dan verifikasi artefak fisiknya sempat melaporkan **DUA GAGAL** (570, 573)
+— keduanya **query uji SAYA yang salah**, bukan migrasinya: 570 saya cari di
+`fn_estimate_version_transition` (nama sesungguhnya
+`fn_estimate_version_status_transition`), dan 573 saya cari di tabel
+`cbs_catalog` yang tak pernah ada (sasarannya `cbs_templates` + `cbs_nodes`).
+Diperiksa ulang: keduanya terpasang, dan penjaganya hijau.
+
+Kelas yang sama dengan keempat kebohongan alat ukur di atas — dan alasan
+kenapa "gagal" tak pernah saya laporkan sebelum sebabnya diperiksa.
+
+---
+
+## 2026-09-14 (lanjutan 6) — suite penuh: 7.306/7.313, dan satu merah adalah cacat SAYA
+
+Suite penuh dijalankan sesudah perbaikan lanjutan 5 (satu run, tidak tumpang
+tindih — §7):
+
+```
+Test Files  1 failed | 496 passed (497)
+     Tests  1 failed | 7306 passed | 6 skipped (7313)
+```
+
+Angka itu jauh di bawah baseline `TEST-SISA-49` (63 merah di 24 berkas,
+2026-09-13). Saya TIDAK mengklaim semuanya ditutup oleh saya: sebagian besar
+memang ditutup sesi-sesi belakangan ini (kontrak, retensi, situs, gl-api,
+cecep-adopt), dan angka ini cuma pengukuran hari ini. Yang perlu dicatat:
+`TEST-SISA-49` di QUEUE.yaml kini BASI ke arah "lebih buruk dari kenyataan".
+
+### Yang satu merah: `approval_chain_template` RLS aktif, NOL policy
+
+Dan ini cacat saya sendiri, dari migrasi 580 sesi sebelumnya.
+
+```
+t5a0-policy-dasar.test.ts
+  expected [ 'approval_chain_template' ] to deeply equal []
+```
+
+Saya membuat tabelnya, menyalakan RLS-nya, dan **tak pernah menulis
+policy-nya**. Himpunan PERMISSIVE yang kosong bernilai FALSE — jadi tabel itu
+tak terbaca SIAPA PUN lewat klien ber-token pengguna. Bukan "terbatas": nol
+baris untuk semua.
+
+**Kenapa nol gejala selama ini**, dan ini bagian yang layak diingat:
+satu-satunya pembacanya adalah trigger `trg_company_rantai_approval`, yang
+`SECURITY DEFINER` dan karena itu menembus RLS. Tenant baru tetap lahir
+dengan 13 rantai — BENAR — sementara tabel sumbernya buta bagi aplikasi.
+Yang akan menemukannya nanti: halaman pengaturan pertama yang menampilkan
+katalognya, dan ia akan melapor "belum ada data", bukan galat.
+
+Penjaganya sudah ada dan bekerja dengan benar. Yang gagal: **saya tak
+menjalankan suite penuh sesudah 580.** Penjaga `jalankan-semua-penjaga.mjs`
+hijau 251 saat itu, dan saya membaca hijau itu sebagai cukup — padahal cacat
+ini hidup di TEST, bukan di penjaga skrip.
+
+Ditutup `581_policy_katalog_rantai.sql`, memakai pola yang sudah hidup di
+basis untuk kasus yang sama persis (`permissions`, diverifikasi ke
+`pg_policies` bukan dikarang): baca = authenticated/service_role, tulis =
+service_role SAJA.
+
+Arah tulis itu bukan kehati-hatian berlebih. Tabel ini **tak punya
+`company_id`** — 13 baris yang sama untuk semua tenant. Katalog bersama yang
+bisa ditulis tenant sudah dibayar sekali di repo ini (migrasi 573,
+`cbs_catalog`), dan di sini akibatnya lebih tajam: ia menentukan alur
+persetujuan yang lahir di tiap pelanggan BARU.
+
+Dibuktikan bisa merah lewat mutasi (§8a.2) — dan diperiksa DUA hal, merah
+DAN menyebut namanya:
+
+```
+DROP kedua policy   → MERAH, "expected [ 'approval_chain_template' ]"
+pulihkan            → 4/4 lulus
+```
+
+⚠ Satu hal yang bekerja seperti seharusnya dan layak dicatat:
+`apply-migrasi.mjs` MENOLAK memulihkan lewat jalur apply ("Versi 581 SUDAH
+tercatat di buku. Berhenti."). Itu perlindungan G-2 yang benar — pemulihan
+dilakukan dengan menjalankan isi berkasnya langsung, bukan dengan menghapus
+catatan buku.
+
+```
+t5a0-policy-dasar            → 4/4 lulus
+audit-tabel-force-berpagar   → nol telanjang, nol buntu (118 tabel C)
+audit-tulis-katalog-bersama  → nol pelonggaran baru
+jalankan-semua-penjaga.mjs   → 251 hijau · 0 MERAH · 4 dilewati · 0 tak ketemu
+ledger-diff                  → 581 TERCATAT-KONSISTEN
+```
+
+### Suite penuh KEDUA — sesudah 581, hijau seluruhnya
+
+Dijalankan BERURUTAN (bukan paralel — §7), commit `444e9d53`:
+
+```
+Test Files  497 passed (497)
+     Tests  7307 passed | 6 skipped (7313)
+```
+
+Selisihnya tepat satu terhadap run sebelumnya (7.306 → 7.307 lulus): assertion
+`t5a0-policy-dasar` berbalik, dan tak ada lagi yang bergeser. Selisih yang
+COCOK dengan yang diharapkan — kalau ia meleset, itu temuan baru, bukan
+pembulatan.
+
+⚠ Cakupannya: satu basis dev, dua run berurutan. Ia TIDAK mengatakan apa pun
+tentang CI berbagi-shard — R-009 masih terbuka, dan merah di sana
+berpindah-pindah antar-shard.
+
+### Pelajaran yang saya tulis untuk diri sendiri
+
+Migrasi yang MEMBUAT TABEL punya daftar periksa yang tak dimiliki migrasi
+lain: RLS menyala tanpa policy adalah keadaan yang **tak bergejala di jalur
+trigger/service_role**, yaitu persis jalur yang dipakai untuk mengujinya
+sendiri. Hijau di penjaga skrip tidak menggantikan suite penuh.
+
+Dan sepupunya, yang sudah menggigit saya sekali sesi ini (lanjutan 4): saya
+pernah mengklaim "0 MERAH" sebelum membuktikannya. Aturan yang saya pakai
+sekarang: **dua run berurutan pada commit yang SAMA**, dan selisih antar-run
+harus bisa dijelaskan angka per angka.
+
+---
+
+## 2026-09-14 (lanjutan 5) — tujuh test tumbang oleh trigger sendiri; R-018 ditutup, R-009 diukur ulang
+
+Founder: *"lanjutt, kamu bantu selesaikann"*.
+
+### Migrasi 580 menumbangkan tujuh berkas test — dan galatnya menuduh FK
+
+R-010 dipasang sesi sebelumnya: `trg_company_rantai_approval` memberi tiap
+company BARU 13 rantai approval + langkahnya. FK-nya `ON DELETE RESTRICT`,
+disengaja — tenant yang masih punya alur persetujuan tak boleh lenyap
+diam-diam.
+
+Akibatnya tiap test yang menghapus company-nya sendiri merah, dengan galat
+yang menyebut `approval_chains_company_id_fkey` alih-alih menyebut trigger
+yang baru dipasang. Perbaikan yang benar bukan melonggarkan FK-nya: enam
+berkas membuang rantai + langkahnya lebih dulu.
+
+Dua di antaranya bukan sekadar pembersihan.
+
+**`menu-etag` mengisi rantai submittal dengan TANGAN**, di bawah komentar
+yang panjang dan — saat ditulis — BENAR:
+
+> TIDAK ADA trigger yang melakukannya untuk company yang lahir sesudahnya
+> (diverifikasi ke `pg_trigger`: satu-satunya trigger di `companies` adalah
+> `trg_company_no_casual_delete`). … Dicatat untuk ratifikasi.
+
+Ratifikasinya turun. Kodenya tidak ikut. Sekarang rantainya DIBACA, bukan
+dibuat — sekalian membuktikan triggernya bekerja. §8a.2: penjelasan benar
+mendampingi keadaan salah, di komentar yang menerangkan kenapa keadaannya
+begitu.
+
+**Dan saya salah sekali di sini, tercatat apa adanya.** `menu-etag` juga
+harus melepas `owner_user_id` sebelum menghapus penggunanya. Saringan
+pertama saya `code LIKE 'uji-etag-%'` — masuk akal, dan **meleset total**.
+Diukur: yang memiliki pengguna itu 21 tenant `[UJI-KUOTA]`/`[UJI-BACASAJA]`/
+`[UJI-GERBANG]`, milik berkas test LAIN yang memilih pengguna mana pun
+sebagai owner. Nol dari 21 cocok dengan saringan saya. Yang menyelamatkannya
+cuma mengukur dulu alih-alih percaya bahwa nama fixture memberi tahu siapa
+pemiliknya. Sekarang disaring `NOT is_active` — tenant nyata tak tersentuh.
+
+**`pendirian-tenant-lengkap` menuntut `disalin === acuan`.** Sejak trigger
+memasangnya saat company LAHIR, helper menemukan semuanya sudah ada dan
+memulangkan 0 — dengan benar; ia melewati 23505 sebagai "sudah ada". Yang
+dijaga berkas itu adalah tenant baru punya alur persetujuan yang HIDUP, dan
+siapa yang memasangnya tak mengubah invariannya. Memakukannya ke salah satu
+jalur membuat test merah tiap kali jalurnya diperbaiki.
+
+```
+9 berkas terdampak → 111/111 lulus
+jalankan-semua-penjaga.mjs → 251 hijau · 0 MERAH · 4 dilewati · 0 tak ketemu
+```
+
+### R-018 ditutup — keputusannya sudah diambil, catatannya yang tertinggal
+
+Entri R-018 meminta founder memilih antara "kedua sektor memang dimaksudkan
+ada" dan "sisa percobaan", dan berbunyi **"Belum ada yang diubah"**.
+
+Diukur hari ini: penjaganya HIJAU, 11 = 11. Jalan (1) sudah dipilih dan
+dikerjakan lewat `553_sektor_struktur_ke_check.sql` — dengan satuan dari
+AHSP SE-47/2026, bukan tebakan (`bored_pile` m' = kedalaman × titik;
+`baja_profil` kg = panjang × berat/m × batang). Persis kekhawatiran yang
+dulu membuat saya TIDAK memperbaikinya sendiri.
+
+Diverifikasi dua sisi, sebab "tercatat di buku" tidak cukup (§5.5): entri
+553 ada di `schema_migrations` DAN CHECK di basis memuat sebelas sektor.
+Kelas berbeda dari 111/372/374, yang bukunya mencatat sukses tanpa artefak.
+
+**Satu selisih yang saya biarkan TERBUKA alih-alih ditebak:** catatan asli
+mencatat dua baris take-off (`bored_pile` 1, `baja_profil` 1); hari ini nol
+baris ber-sektor di seluruh tabel. Saya tidak tahu kapan atau oleh apa.
+Menulis "mungkin replay skema test" sebagai sebab akan lebih rapi dan lebih
+mahal — selisih yang tak bisa dijelaskan adalah temuan yang belum dibuka.
+Yang bisa dikatakan yakin: penjaganya menjaga KEMAMPUAN basis menerima
+sektornya, bukan adanya baris contoh, dan ia hijau tanpa mereka.
+
+Kenapa entri itu basi berminggu-minggu: 553 turun tanpa RATIFIKASI.md ikut
+diperbarui di commit yang sama (§8a.4). Racun konteks pembuka CLAUDE.md,
+kali ini di dokumen yang justru mendaftar apa yang menunggu founder.
+
+### R-009 tetap terbuka — tetapi premisnya sudah tidak benar
+
+Catatan asli menutup dengan pilihan *"menambah project Supabase CI, atau
+Postgres lokal di runner"*. **Project CI terpisah itu SUDAH ADA** —
+`ci-isolation.yml` + `CI_DIRECT_URL`, terukur ke berkas. Dan flake-nya tetap
+ada, sebab yang dibagi enam shard bukan basis dev melainkan satu project CI
+yang sama. Menambah project memindahkan perebutan, tidak menghapusnya.
+
+Pertanyaan yang sebenarnya menunggu: bagaimana enam shard berhenti berbagi
+satu basis. Rekomendasi saya **(b) satu schema per shard** di project yang
+sudah dibayar — bukan enam project (menggandakan permukaan rawatan enam kali
+tanpa menutup cacat baru), bukan Postgres lokal (shim `auth.*` membuat CI
+hijau atas perilaku yang tak ada di produksi — kelas cacat terburuk di repo
+ini).
+
+Batasnya saya tulis di entrinya, sebab ia yang membuat (b) bukan jawaban
+pasti: repo ini SUDAH punya schema `test` yang membayangi 9 tabel dan
+bayangan itu sendiri sumber cacat. Karena itu (b) diusulkan sebagai
+**percobaan berbukti** — dua shard dulu, sepuluh jalan, bandingkan angka
+merahnya. Kalau tidak turun, (b) salah.
+
+Tidak saya kerjakan sendiri: menyentuh rahasia CI yang tak hidup di mesin
+ini, dan opsi (a) menambah biaya langganan berulang — keputusan bisnis,
+bukan teknis.
+
+### Keadaan antrean sesudah sesi ini
+
+| Sisa | Kenapa bukan milik saya |
+|---|---|
+| R-006 | butuh Supabase support — katalog butuh superuser (`permission denied for table pg_depend`) |
+| R-007 | bentuk grup/holding, CoA per-PT, akses pemilik grup — keputusan produk |
+| R-009 | biaya langganan / rahasia CI |
+| R-013 | 4 `it.skip` — keputusan founder, terbuka dengan sengaja |
+
+---
+
+## 2026-09-14 (lanjutan 4) — antrean ratifikasi HABIS: R-020 · R-021 · R-023
+
+Founder: *"lanjutkann, kalo udh abis baru lanjut kerjaan lain"*. Ketiganya
+digarap sampai tak ada lagi yang menunggu keputusan.
+
+### R-023 TUNTAS — dan rute terakhirnya butuh izin BARU
+
+Satu rute tulis tersisa: `POST /projects/:id/progress-logs`. Memasang
+`progress:manage` di sana terlihat seperti jawabannya, dan itu SALAH:
+
+```
+siapa yang MENCATAT progres   pm 249 · mandor 24 · admin 1
+pemegang progress:manage      admin · direktur · project_manager_senior ·
+                              site_manager     ← BUKAN pm, BUKAN mandor
+```
+
+Memasangnya akan memutus **273 dari 274 pencatatan nyata**, dengan gejala
+"kok saya tak bisa lapor progres" tanpa satu pun galat yang menyebut izin.
+
+Migrasi 577 membuat `progress:create` — terpisah dari `progress:manage` yang
+juga mengizinkan MENGHAPUS log. Dua kewenangan beda sifat: mencatat menambah
+fakta lapangan, menghapus membuang fakta yang sudah masuk Kurva S & EVM.
+
+Ratchet **28 → 15**, dan kelima belas sisanya BUKAN utang — semuanya
+pengecualian beralasan tertulis (data milik sendiri, impor nol-tulis,
+access-log yang justru memutus jejak audit kalau digerbangi).
+
+### R-021 menutup dirinya sendiri — angkanya sudah basi
+
+Diambil untuk dikerjakan, lalu diukur ulang:
+
+| | 2026-09-01 | 2026-09-14 |
+|---|---|---|
+| grup induk mati ber-anak | 16 | **7** |
+| halaman dashboard YATIM | 36 | **4** |
+
+Dan ketujuh grup mati itu bukan kehilangan: **lima punya KEMBARAN AKTIF**
+berlabel sama — yang mati duplikatnya. Dari 69 anak, 42 href-nya sudah
+dilayani menu aktif lain, dan **27 sisanya SELURUHNYA rute `/m/…`** yang
+diperiksa ke disk: **nol punya `page.tsx`**.
+
+`/m/` bukan halaman hilang — ia satu halaman `[key]` yang sengaja dibangun
+untuk menu yang BELUM ADA. Menyalakannya justru memasang pintu menuju
+halaman "belum dibangun".
+
+Empat "yatim" pun bukan yatim: `/estimasi/{kas,rab,rap,varians}` dijangkau
+lewat tab di `estimasi/layout.tsx`.
+
+⚠ `audit-nav-yatim` yang dirujuk entri asli **tidak ada di repo ini** — angka
+36 tak bisa diproduksi ulang alat mana pun. Alasan tambahan untuk mengukur,
+bukan mempercayai.
+
+### R-020 gelombang 1 — sembilan pintu uang & HR
+
+```
+menu tanpa izin       116 → 107
+dilihat client        122 → 113
+menu uang/HR terbuka    9 → 0
+```
+
+Izinnya DIPILIH per-menu, bukan diturunkan dari gerbang rute — usul
+otomatisnya masih salah arah seperti dicatat entri aslinya (`cash:account:
+manage` untuk halaman LIHAT, `mandor:assign` untuk halaman yang cuma perlu
+melihat).
+
+Yang berhak tak kehilangan apa pun: client 0/6 · admin 6/6 ·
+manajer_keuangan 4/6 · kasir 2/6 · mandor 2/6 · pm 2/6.
+
+### Pola yang berulang sepanjang hari ini
+
+Tiga kali entri ratifikasi ternyata **lebih kecil atau berbeda** dari yang
+tertulis, dan tiap kali ketahuan hanya karena diukur ulang:
+
+- R-020 "datanya aman" → benar untuk `finance.ts`, salah di luar itu (R-023)
+- R-021 "36 halaman yatim" → 4, dan keempatnya bukan yatim
+- R-023 "17 utang" → 4 di antaranya tak pernah telanjang (regex saya sendiri)
+
+**Dokumen ratifikasi pun bisa basi**, persis seperti yang diperingatkan
+pembuka CLAUDE.md untuk dokumen konteks.
+
+migrasi 577, 578 · penjaga **249** hijau · 0 MERAH
+commit `0dfd6f2e` `3a0d0f1e`
+
+---
+
+## 2026-09-14 (lanjutan 3) — "lanjutt": menggarap R-020, menemukan yang lebih dalam
+
+Founder: *"yaudahh lanjut"*. Diambil R-020 (116 menu tanpa izin), item terbuka
+terbesar. Yang ditemukan bukan itu.
+
+### R-020 BENAR untuk cakupannya, dan cakupannya cuma satu berkas
+
+R-020 menyimpulkan *"yang bocor PINTU, bukan isi"* — sah, sebab yang
+diperiksanya `finance.ts` dan rutenya memang berpagar. Diperiksa ke SELURUH
+rute tulis:
+
+```
+DELETE /api/v1/mandor/workers/:id → preHandler: [authenticate] SAJA
+  satu-satunya cek: if (user.role === 'mandor' && worker.mandor_id !== user.id)
+```
+
+Peran SELAIN mandor tak diperiksa, dan penghapusannya jalan lewat
+`request.db!` yang cuma menyaring TENANT. **Klien bisa menghapus tukang milik
+perusahaan yang sama.**
+
+⚠ Bentuk pemeriksaannya sendiri memakai literal `'mandor'` — persis yang
+dilarang ADR-004 (§5.1). Tenant yang menamai perannya lain tak terlindungi.
+
+Cakupannya diukur, bukan ditaksir: 13 pengguna client aktif, tetapi
+`worker_kasbons` baru 1 baris. Belum ada kerusakan besar yang SUDAH terjadi —
+yang terbuka JALURNYA.
+
+### ⚠ Penjaga pertama saya HAMPIR SELURUHNYA BUTA
+
+Ini yang paling layak dibaca ulang nanti, sebab hijaunya terlihat sama persis
+dengan hijau yang sah.
+
+Regex-nya menuntut jalur SE-BARIS dengan `app.post(`. Pola dominan di repo ini
+menaruh tipe generik dulu, jalurnya beberapa baris di bawah:
+
+```
+jalur se-baris (TERLIHAT) : 147
+app.post<{...}> (TERLEWAT): 265
+```
+
+Penjaga itu **melewatkan lebih banyak daripada yang diperiksanya**. Yang
+menunjukkannya hanya uji mutasi: gerbang `ncr:manage` dicabut sengaja →
+penjaga tetap HIJAU.
+
+Sesudah diperbaiki: 115 → 385 rute terperiksa, dan mutasi yang sama → MERAH
++ menyebut rutenya.
+
+**Inilah sebabnya §8a.2 menuntut penjaga baru dibuktikan bisa MERAH** — bukan
+formalitas.
+
+### Tiga koreksi lain atas hitungan saya sendiri
+
+1. `canParticipateInChain` & `hasPermission` DIHITUNG SAH — keduanya gerbang
+   nyata (rantai approval ADR-007; izin yang dipilih per-jenis-entitas).
+2. `requireOwnerGrup` vs `requireGroupOwner` — saya menulis nama yang **tak
+   pernah ada di kode**, jadi EMPAT rute bergerbang terhitung telanjang,
+   termasuk yang mendirikan badan usaha. Kelas yang sama dengan
+   `audit-keparahan-sepakat.mjs`: menjaga kosakata yang DIBAYANGKAN.
+3. Dua rute (`access-log`, `kasbon-photo/upload`) dipindah ke kategori SAH
+   sesudah dibaca — menuntut izin di sana justru memutus jejak audit dan
+   alur mandor di lapangan.
+
+### R-023 dikerjakan dua gelombang, ratchet 28 → 16
+
+Sebelum memasang tiap gerbang, diukur siapa yang BENAR-BENAR memakainya:
+
+```
+pembuat pengeluaran : admin 142 · pm 1   → yang 1 akun UJI, lahir dari trigger
+pembuat kasbon      : mandor 67 · lainnya 0
+```
+
+Kalau yang `pm 1` itu alur sungguhan, gerbangnya akan memutus pekerjaan
+orang — dan gejalanya "menu saya kok tidak ada" tanpa satu pun galat.
+
+### Satu test merah yang ternyata BUKAN flake
+
+`risiko-proyek-endpoint` merah di suite penuh, lulus 3/3 sendirian. Bukan
+flake: **422 adalah keadaan KETIGA yang sah**. Urutan tahap maju-saja, dan
+kalau permintaan `mediasi` menang duluan, permintaan `negosiasi` jadi
+transisi MUNDUR → 422, gerbang yang bekerja benar.
+
+Catatan panjang di test itu sudah menerangkan kenapa [200, 200] sah; yang
+terlewat urutan kebalikannya.
+
+penjaga **249** hijau · 0 MERAH
+commit `38719140` `6c9a4cc9` `d80c95d7` `080a0045`
+
+---
+
+## 2026-09-14 (lanjutan 2) — tiga run suite penuh, tiga hasil berbeda, dan cacat UANG di dalamnya
+
+### Saya menyatakan "0 MERAH" sebelum benar-benar diverifikasi
+
+Laporan saya menyebut suite penuh **497/497 hijau**. Run verifikasi
+berikutnya: **2 merah**. Lalu **3 merah** di run sesudahnya.
+
+Angka yang saya kutip benar untuk run-nya, tetapi saya menyampaikannya
+sebagai KEADAAN AKHIR padahal belum diulang. Dan ketiga run itu tak
+mengukur commit yang sama — ada perbaikan yang mendarat di antaranya.
+
+Aturannya sendiri sudah tertulis di CLAUDE.md §7 untuk kasus lain
+("angka dari run yang tumpang tindih TIDAK SAH"); yang saya langgar
+sepupunya: **angka dari run yang sudah tertinggal commit juga tidak sah.**
+
+### Dan justru run ulang itu menemukan cacat UANG
+
+`tulis-absensi` merah dengan `expected true to be false` — terbaca seperti
+test rewel. Bukan:
+
+```
+work_scope di proyek itu  : 6
+absensi tersimpan di scope: ab01…0001
+query tanpa ORDER BY beri : ab01…0004
+```
+
+Pemeriksaan absensi ganda mencari di scope yang BERBEDA dari tempat barisnya
+tersimpan, lalu menyimpulkan "belum ada". **Absensi kedua untuk orang dan
+tanggal yang sama lolos, dan `weekly_wage_reports` menghitung orang itu dua
+kali.**
+
+Dibuktikan bukan dari membaca kode: tabelnya **diintip berulang selama test
+berjalan** (puncak 1 baris saat test kedua jalan). Tanpa itu yang terlihat
+cuma keadaan sesudah `afterAll` membersihkannya — dan saya sempat
+menyimpulkan "barisnya tak pernah ada", yang keliru.
+
+Yang tak boleh dobel ternyata (tukang, tanggal) **di proyek itu**, bukan
+per-scope.
+
+### Satu hal yang GAGAL saya buktikan, dan ditulis apa adanya
+
+`rls-initplan` merah di ambang waktu (1.138 ms vs 1.000). Diukur senggang
+lima kali: **658·657·657·656·658 ms** — jarak cuma 1,5x sementara regresi
+sasarannya ~5x (~3.500 ms). Dilonggarkan ke 2.200.
+
+⚠ Tetapi **saya gagal membuktikan angka itu bisa merah**. Dua kali mutasi
+sengaja — melepas bungkus `(SELECT ...)`, lalu helper VOLATILE — dan Postgres
+tetap membungkusnya sendiri (InitPlan tetap ada, 909 ms & 1.417 ms).
+Mutasinya TAK MENDARAT, jadi hijaunya tak membuktikan apa pun.
+
+Itu ditulis di berkasnya, bukan diklaim lulus. Yang benar-benar menjaga di
+situ assertion `InitPlan` yang struktural.
+
+### Fixture yang meminjam data seed
+
+`ncr-penomoran` menuntut "proyek tanpa NCR mulai dari NCR-001" sambil memakai
+proyek tertua yang SUDAH punya 15 NCR. Rutenya benar (`NCR-2608-016`
+melanjutkan yang ada); fixture-nya yang salah. Kini berkas itu membuat
+proyeknya sendiri — dan menghapusnya di akhir, supaya tak jadi sampah yang
+merusak fixture berkas lain.
+
+### Diverifikasi DUA KALI di commit yang SAMA
+
+Pelajaran di atas dijalankan pada dirinya sendiri: bukan satu run, melainkan
+dua berturut-turut tanpa perubahan di antaranya.
+
+```
+run 1  497/497 berkas · 7.307 hijau · 6 skip · 0 MERAH
+run 2  497/497 berkas · 7.307 hijau · 6 skip · 0 MERAH
+```
+
+Dan yang lebih penting daripada angka test — penjaga TETAP hijau SESUDAH
+suite penuh:
+
+```
+248 penjaga · 0 MERAH · 0 tak ketemu
+akar grup yatim            : 0
+badan fungsi menyimpang    : 0   <- dua kali sebelumnya suite MEMBATALKAN ini
+counter dokumen tertinggal : 0
+```
+
+Baris kedua itu yang paling berarti: dua kali sebelumnya suite membatalkan
+perbaikan migrasi 572/576, dan perbaikan `test-db.ts` yang menutup sumbernya
+kini terbukti bertahan — bukan disimpulkan, diukur sesudahnya.
+
+penjaga **248** hijau · 0 MERAH
+commit `aef96df2` `0e71d49e`
+
+---
+
+## 2026-09-14 (lanjutan) — "lanjutkan aja sampe beres" · keputusan diserahkan ke saya
+
+Founder: *"yg butuh keputusan saya, ikut sama rekomendasimu aja"*. Kedua
+ratifikasi dikerjakan menurut saran saya sendiri, lalu sisa merah dihabiskan.
+
+### R-013 & R-022 — ditutup sesuai rekomendasi
+
+| | |
+|---|---|
+| **R-013** ⏸ | 4 × `it.skip` + alasan tertulis. Keputusannya TETAP terbuka — yang hilang cuma merahnya, dan `it.skip` TERLIHAT tiap suite jalan |
+| **R-022** ✅ | migrasi 575 `direktur_uji` — salinan direktur (227 izin) MINUS `users:roles:manage`. `authz-endpoints` + `anti-lockout` **38/38 hijau BERSAMA** |
+
+⚠ Entri itu semula saya beri nomor **R-016 — yang SUDAH DIPAKAI** sejak
+2026-08, judulnya *"Delapan nomor migrasi dipakai DUA KALI"*. Saya mengulangi
+persis cacat yang entri itu dokumentasikan. Diganti jadi R-022, dan
+rujukannya dirapikan di berkas, di `roles.description`, DAN di `statements`
+buku migrasi.
+
+### Empat test merah yang ternyata SATU sebab
+
+`ai-isolasi-tenant.test.ts`: ketiga belas test LULUS, hanya `afterAll` yang
+gagal di FK `companies_owner_user_id_fkey`. Akibatnya `[UJI-ISOLASI] Admin B`
+tertinggal AKTIF memegang peran `admin`.
+
+Yang merah kemudian berkas yang **tak pernah menyentuhnya**:
+
+```
+anti-lockout-wiring    'users:roles:manage' dipegang 2 role, bukan 1
+recipient-resolution   expected 2 to be 3 (jumlah admin aktif)
+t9-kelola-badan-usaha  bukan-pemilik lolos gerbang
+submittal-aturan       3 company tanpa rantai submittal
+ncr-penomoran, rag-cari ikut merah di suite penuh
+```
+
+Enam berkas dari satu teardown yang gagal, dan tak satu pun galatnya menyebut
+sumbernya.
+
+⚠ Dan membersihkan datanya TIDAK cukup — saya sudah melakukannya beberapa jam
+sebelumnya, lalu suite berikutnya membuat akun BARU. Sumbernya bukan data
+lama melainkan teardown yang gagal tiap jalan. Diperbaiki di sumbernya.
+
+### Cacat yang ditemukan PENJAGA, bukan gejala
+
+`audit-badan-fungsi-mutakhir.mjs` merah sesudah suite — padahal hijau
+beberapa jam sebelumnya, tanpa migrasi baru di antaranya. Ditelusuri dengan
+**event trigger** yang mencatat tiap penulisan fungsi, bukan ditebak:
+
+```
+skema    n
+test     2
+public   2   ← ini
+```
+
+`alur-uang-mandor.test.ts` me-replay rantai migrasi ke schema `test`, dan
+**migrasi 100 memaku `public.`**. Jadi test yang berjalan di schema TEST
+menulis ke `public`, membatalkan perbaikan 572.
+
+**Test yang LULUS sambil diam-diam membatalkan perbaikan produksi** — kelas
+yang lebih halus daripada test merah: yang merah diperbaiki, yang hijau
+sambil merusak tak seorang pun lihat. Ditutup migrasi 576.
+
+### Tiga kali pola yang sama: izin ditebak dari nama jabatan
+
+`rls-reference-group`, `rls-fixed-endpoints`, `approval-inbox` — ketiganya
+menuntut `pm` memegang izin yang ia tak punya. Diukur ke `role_permissions`
+tiap kali; gerbangnya BENAR di ketiganya.
+
+⚠ "pm" terdengar seperti "project manager", dan yang memegang
+`progress:manage` adalah `project_manager_senior` — peran yang LAIN.
+
+Yang TIDAK ditempuh di semuanya: menaikkan izin `pm`. Kasbon memindahkan
+uang.
+
+migrasi 575, 576 · penjaga **248** hijau · 0 MERAH
+commit `c658de19` `c7313db5` `fce9c1bf` `dfb7194b` `f54f9447` `8691584d`
+
+---
+
+## 2026-09-14 — "pastikan tidak ada yg terhalang lagi": 19 merah, dan hampir semuanya menuduh KODE
+
+Founder: *"okee lanjutkan, pstikan tidak ada yg terhalang lagi"*. Suite penuh
+dijalankan untuk MENGUKUR, bukan menebak dari ingatan.
+
+### Angka pertama saya TIDAK SAH, dan itu perlu dicatat
+
+Run pertama: **258 berkas gagal · 75 test gagal**, plus
+`Connection terminated unexpectedly`. Saya hampir melaporkannya.
+
+Run kedua, kode yang sama persis: **18 berkas · 19 test**.
+
+Selisihnya bukan misteri — 258 berkas gagal atas hanya 75 test berarti
+kegagalan SETUP massal, tanda koneksi basis tumbang, bukan cacat. Persis
+jebakan yang sudah tertulis di CLAUDE.md §7 (dua run tumpang tindih, selisih
+16 kegagalan). **Exit code-nya 0 di kedua run**, jadi exit code tak bisa
+dipakai menilai.
+
+### Yang diperbaiki — lima berkas, dan NOL di antaranya cacat produk
+
+| Berkas | Tuduhan | Sebab sebenarnya |
+|---|---|---|
+| `ai-gerbang-biaya` (2) | gerbang biaya AI bocor | fixture menulis ke tenant LAIN |
+| `template-wbs` (1) | RLS longgar | **migrasi 374 separuh tak berlaku** → 573 |
+| `wa-sesi` (1) | pencabutan akses | perbaikan 2026-08-15 menukar cacat dgn kebalikannya |
+| `anti-lockout-wiring` (6 skip) | — | 9 akun sisa uji isolasi di company MATI |
+| `register-role` (5 skip) | — | FK `owner_user_id` dari tenant uji berkas LAIN |
+
+`ai-gerbang-biaya` yang paling lama menggantung. Saya berhenti menebak dan
+mengukur:
+
+```
+companies … LIMIT 1  → PT Puraloka Properti   ← yang di-setConfig
+auth_company_id()    → Puraloka Persada       ← yang dibaca RUTE
+```
+
+Admin seed anggota TIGA company. Gerbangnya MELOLOSKAN DENGAN BENAR — ia
+membaca konfigurasi yang memang mengizinkan, hanya milik tenant lain.
+Helper `companyRute()` sudah ada sejak 2026-08-28 untuk kelas cacat ini,
+lengkap dengan kalimat "fixture menulis ke tenant A, rute mencarinya di
+tenant B". Yang kurang cuma pemakaiannya.
+
+### Satu cacat NYATA: migrasi 374, separuh berlaku
+
+Bentuk yang sama dengan 372 kemarin. RESTRICTIVE mendarat, WITH CHECK tidak.
+Akibatnya tenant bisa **MENULIS** katalog bersama (`company_id NULL`) yang
+terbaca SELURUH tenant — kebocoran arah TULIS, di bawah 350 policy RLS.
+
+Verifikasi 374 memeriksa dua hal dan keduanya lolos dengan jujur; yang tak
+pernah diperiksa justru `with_check`-nya sendiri.
+
+⚠ Penjaga badan-fungsi yang lahir KEMARIN tak bisa melihat ini — 374 memasang
+policy lewat `EXECUTE format(...)`, dan penjaga itu sengaja melewatinya.
+Batas yang saya tulis di kepalanya ternyata batas yang NYATA: 28 dari 169
+migrasi ber-policy memasangnya dinamis. Ditutup penjaga baru
+(`audit-tulis-katalog-bersama.mjs`, terdaftar di ci.yml).
+
+### Saya salah DUA kali hari ini, keduanya ke arah "temuan besar"
+
+1. **"12 policy basi"** — regex saya mengambil blok `WITH CHECK` dari bagian
+   LAIN di berkas yang sama, jadi "migrasi terakhir" per tabel salah. Dibaca
+   langsung ke migrasi 131 §AB: kedua belas tabel katalog bersama memang
+   DITULIS longgar. Basis cocok dengan berkasnya. **Tak ada 12 policy basi** —
+   `cbs_*` satu-satunya kasus nyata.
+
+2. **Saringan `NOT is_active`** pada pembersih register-role — masuk akal,
+   dan tak berlaku: tenant-nya dihidupkan kembali oleh berkas test pemiliknya
+   sendiri. Diganti saringan NAMA, sesudah membuktikan tenant nyata
+   (`grup-uji-*`) tak ikut tersaring.
+
+Keduanya ketahuan karena diperiksa sebelum ditulis, bukan sesudah dilaporkan.
+
+### Gelombang kedua — tiga cacat lagi, dan satu penjaga yang MENYURUH hal mustahil
+
+**`companies.delete()` tak pernah berhasil.** `t9-kelola-badan-usaha` merah
+atas TIGA tenant yang tak pernah ia buat. Pembuatnya tiga berkas lain yang
+membongkar tenant ujinya lewat `.delete()` — ditolak trigger
+`fn_company_no_casual_delete`, galatnya ditelan `supabase-js` (memulangkan
+`{ error }`, tidak melempar). Teardown "berhasil" dengan tenang, tiap jalan
+suite menambah satu tenant AKTIF tanpa pemilik.
+
+Dibuktikan ke basis hidup dalam transaksi yang langsung di-rollback, bukan
+dibaca dari kode:
+
+```
+INSERT companies → DELETE companies
+→ ❌ 'Company "…" tidak boleh dihapus. Nonaktifkan (is_active=false)…'
+```
+
+⚠ Dan `audit-test-bersihkan-company.mjs` mengenali "sudah membersihkan"
+HANYA dari kehadiran `DELETE FROM companies` — pesan perbaikannya
+menyarankan persis statement yang selalu ditolak. **Penjaga yang menuntut
+bentuk mustahil akan dipenuhi secara formal dan dilanggar secara nyata.**
+
+Diperbaiki, dan hasilnya ratchet MENGENCANG: `25 > 23 (MERAH)` → `14/14`.
+Sembilan berkas yang selama ini menonaktifkan dengan BENAR ternyata terhitung
+kotor; tiga yang terhitung bersih justru yang bocor. Angkanya turun karena
+pengukurannya diperbaiki, bukan karena ambangnya dilonggarkan.
+
+**Sembilan counter invoice akan menerbitkan nomor yang SUDAH beredar.**
+
+```
+invoice tertinggi : 27   (INV/2026/09/027)
+9 dari 12 bulan   : 26   → berikutnya 027  ❌ KEMBAR
+```
+
+Basis TIDAK menahannya: invoice unik `(project_id, invoice_number)` — per
+PROYEK, bukan per company. Dua proyek satu company boleh bernomor sama tanpa
+galat, lalu keluar ke klien sebagai dokumen tagihan.
+
+Migrasi 135 sudah mengantisipasi ini dan TIDAK salah — ia sekali jalan,
+sementara `INV/2026/09/027` lahir 2026-09-04 dan hanya menaikkan counter
+bulannya sendiri. **Sinkronisasi sekali-jalan yang benar, lalu data baru
+menggesernya lagi.** Ditutup migrasi 574 (`GREATEST`, hanya NAIK).
+
+### Sisa merah: 11, dan 6 di antaranya BENAR
+
+Enam menegakkan R-013 (propagasi lessons) — kodenya benar, keputusannya yang
+belum turun. Satu dibuka sebagai **R-022**: `authz-endpoints` dan
+`anti-lockout-wiring` menuntut satu akun yang sama dalam keadaan BERLAWANAN.
+
+Sisanya belum ditelusuri satu per satu, dan itu ditulis apa adanya —
+bukan diklaim beres.
+
+migrasi 573, 574 · penjaga 245 → **248** hijau · 0 MERAH
+commit `974efea9` `4d4f7679` `0acd9cf4` `062fa216` `e787bb9c` `1bf2c85e` `ae31caa8`
+
+---
+
+## 2026-09-13 (lanjutan 14) — tiga migrasi tercatat JALAN yang badannya tak pernah berlaku
+
+Founder: "yaa mulai dan lanjutkann" (R-015). Dikerjakan, dan cakupannya
+ternyata tiga kali lebih besar dari yang saya laporkan semalam.
+
+### Yang saya tulis semalam, dan kenapa itu belum cukup
+
+R-015 saya tutup dengan kalimat: *"Cakupan temuan ini BELUM diukur.
+Berapa dari 545 migrasi lain yang mengganti isi fungsi tanpa mengubah
+namanya … TIDAK saya hitung."*
+
+Kalimat itu jujur, tetapi ia meninggalkan pekerjaan yang terlihat
+selesai. Diukur hari ini:
+
+```
+berkas migrasi               : 546
+fungsi didefinisikan >1 kali :  21
+migrasi yang MENGGANTI ISI   :  26   ← tak terperiksa ledger-diff
+```
+
+Termasuk `has_permission`, `auth_role`, `get_role_permissions` — inti
+otorisasi.
+
+### Tiga yang basi, dan satu yang HARUS tetap basi
+
+| | |
+|---|---|
+| **570** | jalur reject estimasi (111) — `estimate-approval` 11/11 |
+| **571** | `has_permission` (372 — separuh migrasi tak berlaku) |
+| **572** | empat badan: 296, 127, 118, 165 |
+
+`fn_riwayat_periode_append_only` bukan temuan di atas kertas. Direproduksi
+ke basis hidup SEBELUM ditulis migrasinya:
+
+```
+INSERT periode → INSERT riwayat → DELETE periode
+  sebelum : ❌ "periode_akuntansi_riwayat append-only: DELETE ditolak"
+  sesudah : ✅ berhasil
+```
+
+Periode akuntansi **tak bisa dihapus sama sekali**, dan galatnya menyebut
+tabel LAIN daripada yang dihapus — persis yang diramalkan kepala migrasi
+296 sendiri, tiga ratus migrasi sebelumnya.
+
+`fn_lessons_status_transition` sengaja **tidak** ditutup. Berkas 114
+mengaktifkan `approved→propagated`; basis menolaknya dengan *"butuh
+keputusan founder"*. Basisnya yang benar (R-013). Menyamakannya akan
+menurunkan keputusan produk diam-diam lewat migrasi perapian.
+
+### Saya salah sekali, dan koreksinya penting
+
+Pengukuran pertama `has_permission` membuat saya menyimpulkan **kebocoran
+izin lintas tenant yang aktif** — 73 role `admin`, tanpa saringan tenant,
+di bawah 350 policy RLS. Saya nyaris melaporkannya begitu.
+
+Diukur sebelum ditulis: ketujuh puluh tiga salinan `admin` punya izin
+**identik**, jadi `EXISTS` atas 73 baris menjawab sama dengan atas 1.
+**Tak ada eskalasi yang bisa terjadi hari ini, dan tak ada kejadian yang
+perlu ditelusuri.** Selisih keputusan lama vs baru atas seluruh
+(peran × izin): NIHIL.
+
+Yang tetap wajib ditutup: keidentikan itu kebetulan, bukan invarian —
+dan menyesuaikan peran per tenant adalah fitur produk ini (ADR-004).
+Tenant pertama yang mencabut satu izin dari `admin`-nya tidak akan
+kehilangan izin itu.
+
+"Kebocoran aktif" dan "cacat laten yang menunggu pemakaian normal" butuh
+respons yang berbeda. Melaporkan yang kedua sebagai yang pertama akan
+mengirim founder mencari kejadian yang tak ada.
+
+### Penjaga, dan dua kali alat ukur saya sendiri yang salah
+
+`audit-badan-fungsi-mutakhir.mjs` — membandingkan BADAN, bukan nama.
+Mutasi: fungsi dikembalikan ke versi 294 → MERAH **dan menyebut
+pelakunya** → dipulihkan → HIJAU. 206 badan, 0 selisih.
+
+Dua kali saya hampir melapor temuan palsu:
+
+1. **Heuristik token** melaporkan 12 tersangka; sembilan palsu.
+   `'public'` dan nama fungsinya hidup di baris `CREATE`, tak pernah di
+   `prosrc`; `'admin'` datang dari KOMENTAR. Penjaga yang merah atas hal
+   benar akan diabaikan seluruh keluarannya.
+2. **`generate_gr_number`** bertahan merah sesudah normalisasi pertama.
+   Saya sudah menduga "cuma spasi" — tetapi menelusuri sampai teks
+   penuhnya lebih dulu, dan memang cuma spasi di sekitar `||`. Dugaan
+   yang benar pun tetap dugaan sampai diukur.
+
+Dan satu jebakan lama yang menggigit lagi: heredoc bash memakan `\\s`
+di regex, sehingga skrip telusur saya memulangkan "TAK terekstrak" untuk
+keenam fungsi — keluaran yang terbaca seperti temuan, padahal perintahnya
+yang rusak. Sama bentuknya dengan CR di §7a: **nol hasil bukan bukti
+ketiadaan.**
+
+### Buku migrasi — G-2, disetujui lalu dikerjakan
+
+Founder menyetujui pencatatannya (*"okee kerjakan ajaa"*). Ketiganya
+dicatat **lewat `apps/api/scripts/apply-migrasi.mjs`, bukan INSERT
+tangan** — dan itu bukan soal gaya:
+
+Skrip itu lahir dari cacat yang persis sama (2026-07-31: 20 migrasi
+sudah jalan tanpa tercatat, seluruh seri multi-tenant 126-137). Ia
+menjalankan migrasinya lebih dulu, mencetak NOTICE verifikasinya, dan
+menulis buku **hanya sesudah berhasil**. Entri palsu — bentuk yang
+diperingatkan §5.5 — tak bisa lahir dari jalur itu.
+
+```
+570 → [db] 570 OK … → 📖 tercatat
+571 → [db] 571 OK … → 📖 tercatat
+572 → [db] 572 OK … → 📖 tercatat
+```
+
+Verdict sesudahnya: bagian **"Yang TIDAK di buku" KOSONG**, dan
+ketiganya tak masuk daftar artefak-hilang. Diperiksa ulang sesudah
+re-apply (skrip itu menjalankan SQL-nya lagi): 206 badan fungsi cocok,
+0 selisih, dan uji perilaku hapus-periode tetap lolos.
+
+⚠ Skema `test` sengaja TIDAK ikut — ia punya salinan triggernya sendiri.
+Menyamakan kedua skema itu keputusan tersendiri yang belum diukur.
+
+commit `6016b9e3` + `f912290d` · test 63/63 hijau (7 berkas) ·
+penjaga 245 hijau · 0 MERAH · 0 tak ketemu
+
+---
+
 ## 2026-09-13 (lanjutan 13) — katalog AHSP PULIH lewat jalan yang ditunjuk rancangannya sendiri
 
 Founder: "kerjakan aja yg penting hasil yg terbaik". Dikerjakan, dan

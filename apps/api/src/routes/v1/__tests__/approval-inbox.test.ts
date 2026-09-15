@@ -184,6 +184,13 @@ describe('inbox — filter proyek milik PM (Task 8)', () => {
         WHERE entity_type = 'kasbon'
           AND entity_id IN (SELECT id FROM kasbons WHERE project_id = ANY($1))`, [ids])
     await client.query(`DELETE FROM kasbons WHERE project_id = ANY($1)`, [ids])
+    // `rencana_mutu` ikut dibersihkan sejak fixture-nya pindah ke sana
+    // (2026-09-14) — tanpa ini barisnya menumpuk tiap jalan suite.
+    await client.query(
+      `DELETE FROM approval_progress
+        WHERE entity_type = 'rencana_mutu'
+          AND entity_id IN (SELECT id FROM rencana_mutu WHERE project_id = ANY($1))`, [ids])
+    await client.query(`DELETE FROM rencana_mutu WHERE project_id = ANY($1)`, [ids])
     await client.query(`DELETE FROM notifications WHERE project_id = ANY($1)`, [ids])
     await client.query(`DELETE FROM projects WHERE id = ANY($1)`, [ids])
   }
@@ -240,13 +247,38 @@ describe('inbox — filter proyek milik PM (Task 8)', () => {
     projectAId = pr.find((r) => r.name.includes('Proyek A')).id
     projectBId = pr.find((r) => r.name.includes('Proyek B')).id
 
+    /*
+      ⚠ Sumbernya `rencana_mutu`, BUKAN `kasbons` — diganti 2026-09-14.
+
+      Versi sebelumnya memakai kasbon dan merah dengan `expected false to be
+      true`: baris proyek A tak muncul di inbox PM sama sekali.
+
+      Diukur ke basis sebelum menyentuh apa pun — RUTENYA BENAR. Inbox
+      menyaring DUA lapis, dan lapis PERTAMA yang menjatuhkannya:
+
+          1. canParticipateInChain  → punya izin di rantai jenis itu?
+          2. filter proyek milik PM → yang justru hendak diuji berkas ini
+
+      Rantai `kasbon` menuntut `mandor:kasbon:approve`, dipegang admin ·
+      direktur · manajer_keuangan — BUKAN `pm`. Jadi kasbon tersaring di
+      lapis 1, dan filter proyek TAK PERNAH tersentuh. Test lama menguji
+      sesuatu yang tak bisa dicapai perannya.
+
+      Diukur: dari SELURUH rantai approval, `pm` hanya bisa ikut satu —
+      `rencana_mutu` (`mutu:rmp:approve`), tenancy 'C' (ber-`project_id`),
+      jadi ia memang bisa menguji filter proyek.
+
+      ⚠ Yang TIDAK ditempuh: memberi `mandor:kasbon:approve` kepada `pm`.
+      Kasbon memindahkan uang; memperluas kewenangan demi kehijauan test
+      menukar pengendalian internal dengan kenyamanan.
+    */
     const { rows: kb } = await client.query(
-      `INSERT INTO kasbons (company_id, project_id, amount, fund_source, purpose, requested_by, status)
+      `INSERT INTO rencana_mutu (project_id, nomor, judul, status, dibuat_oleh)
        VALUES
-         ($4, $1, 500000, 'owner_advance', '[TEST-T8] kasbon proyek A', $3, 'pending'),
-         ($4, $2, 500000, 'owner_advance', '[TEST-T8] kasbon proyek B', $3, 'pending')
+         ($1, '[TEST-T8]-RMP-A', '[TEST-T8] rmp proyek A', 'diajukan', $3),
+         ($2, '[TEST-T8]-RMP-B', '[TEST-T8] rmp proyek B', 'diajukan', $3)
        RETURNING id, project_id`,
-      [projectAId, projectBId, pmLainUserId, companyId])
+      [projectAId, projectBId, pmLainUserId])
     kasbonAId = kb.find((r) => r.project_id === projectAId).id
     kasbonBId = kb.find((r) => r.project_id === projectBId).id
   }, 60_000)
@@ -268,12 +300,12 @@ describe('inbox — filter proyek milik PM (Task 8)', () => {
     const b = JSON.parse(r.body)
     const kasbonIdsMuncul = new Set(
       (b.data as Array<{ jenis: string; id: string }>)
-        .filter((x) => x.jenis === 'kasbon')
+        .filter((x) => x.jenis === 'rencana_mutu')
         .map((x) => x.id),
     )
     const projectIdsMuncul = new Set(
       (b.data as Array<{ jenis: string; project_id: string | null }>)
-        .filter((x) => x.jenis === 'kasbon')
+        .filter((x) => x.jenis === 'rencana_mutu')
         .map((x) => x.project_id),
     )
     expect(kasbonIdsMuncul.has(kasbonAId)).toBe(true)
@@ -290,7 +322,7 @@ describe('inbox — filter proyek milik PM (Task 8)', () => {
     const b = JSON.parse(r.body)
     const projectIdsMuncul = new Set(
       (b.data as Array<{ jenis: string; project_id: string | null }>)
-        .filter((x) => x.jenis === 'kasbon')
+        .filter((x) => x.jenis === 'rencana_mutu')
         .map((x) => x.project_id),
     )
     expect(projectIdsMuncul.has(projectAId)).toBe(true)
@@ -351,7 +383,7 @@ describe('inbox — filter proyek milik PM (Task 8)', () => {
       expect(r.statusCode).toBe(200)
       const b = JSON.parse(r.body)
       const kasbonRows = (b.data as Array<{ jenis: string; project_id: string | null }>)
-        .filter((x) => x.jenis === 'kasbon')
+        .filter((x) => x.jenis === 'rencana_mutu')
       const projectIdsMuncul = new Set(kasbonRows.map((x) => x.project_id))
 
       // NOL baris ber-project — bukan "semua company" seperti perilaku

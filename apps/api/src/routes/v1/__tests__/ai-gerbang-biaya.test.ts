@@ -24,7 +24,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { Client } from 'pg'
-import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, authIdForRole, companyRute } from '../../../test-utils/rls-harness.js'
 import { supabaseAuth } from '../../../utils/supabase.js'
 import aiRoutes from '../ai.js'
 
@@ -89,11 +89,26 @@ beforeAll(async () => {
   if (!auth) throw new Error('tak ada pengguna ber-role admin untuk test ini')
   adminAuth = auth
 
-  const { rows } = await db.query(`
-    SELECT c.id FROM companies c
-    WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id) LIMIT 1
-  `)
-  companyId = rows[0].id
+  /*
+    ⚠ Company WAJIB dari `companyRute()`, bukan dari `companies … LIMIT 1`.
+
+    Versi sebelumnya memakai baris SEMBARANG dari `companies`, dan itu yang
+    memerahkan dua test di berkas ini sejak lama. Diukur 2026-09-14:
+
+        companies … LIMIT 1  → PT Puraloka Properti
+        auth_company_id()    → Puraloka Persada      ← yang dipakai RUTE
+
+    Admin seed anggota TIGA company. `setConfig` menulis ke Properti, rute
+    membaca Persada — yang `aktif = true` dan tanpa batas. Jadi gerbangnya
+    MELOLOSKAN dengan benar: ia membaca konfigurasi yang memang mengizinkan,
+    hanya saja milik tenant lain.
+
+    Gejalanya menuduh GERBANG (`kuota_habis`/HTTP 429 saat seharusnya
+    `nonaktif`), padahal gerbang, rute, dan tabelnya semua benar. Yang salah
+    fixture — kelas cacat yang sudah tercatat di kepala `companyRute()`:
+    "fixture menulis seri ke tenant A, rute mencarinya di tenant B".
+  */
+  companyId = await companyRute(db, adminAuth)
 
   await db.query(
     `INSERT INTO ai_provider_config (company_id, asisten, penyedia, model, max_token)

@@ -264,7 +264,24 @@ export function ProjectCardGrid({ project: p, hariIni, onClick }: {
 
       <div style={{ marginBottom: 10 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
-          <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>Serapan Anggaran</span>
+          {/*
+            ⚠ LABELNYA DIPERBAIKI 2026-09-15 — dulu berbunyi "Serapan Anggaran"
+            di atas angka `progress_pct`, yang adalah progres FISIK yang
+            diketik manual. Dua besaran berbeda, satu label.
+
+            Buktinya di basis: "Renovasi Rumah Bu Citra — Arcamanik" berkontrak
+            Rp 95.000.000 dengan NOL project_expenses dan NOL kasbon — nol
+            rupiah keluar — namun kartunya berbunyi "Serapan Anggaran 100,0%".
+            Pembacanya menyimpulkan anggarannya habis; yang benar justru belum
+            terpakai sama sekali.
+
+            Angka serapan yang sesungguhnya TIDAK dibuat di sini: payload
+            `Project` tak membawanya (tak ada field biaya sama sekali), dan
+            mengarangnya dari data yang ada akan mengulang cacat yang sama
+            dalam bentuk lain. Yang diperbaiki LABELNYA — supaya ia menyebut
+            besaran yang benar-benar dirender.
+          */}
+          <span style={{ fontSize: "var(--t-kecil)", color: C.muted }}>Progres Fisik</span>
           <span style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>{Number(p.progress_pct).toFixed(1)}%</span>
         </div>
         <ProgressBar pct={Number(p.progress_pct)} color="var(--info)" />
@@ -364,7 +381,8 @@ export function ProjectCardList({ project: p, hariIni, onClick }: {
 
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-          <span style={{ fontSize: "var(--t-mikro)", color: C.muted }}>Serapan</span>
+          {/* "Serapan" → progres FISIK: alasan lengkap di kartu grid di atas. */}
+          <span style={{ fontSize: "var(--t-mikro)", color: C.muted }}>Progres Fisik</span>
           <span style={{ fontSize: "var(--t-kecil)", fontWeight: 700, color: C.navy }}>{Number(p.progress_pct).toFixed(1)}%</span>
         </div>
         <ProgressBar pct={Number(p.progress_pct)} color="var(--info)" />

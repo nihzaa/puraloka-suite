@@ -307,17 +307,61 @@ export default async function reportsRoutes(app: FastifyInstance) {
     const progressLogs = (get<any[]>(progressRes as PromiseSettledResult<{ data: any[]; error: unknown }>) ?? [])
     const latestProgress = progressLogs.length > 0 ? Number(progressLogs[0].pct_overall) : 0
 
-    // Serapan anggaran
-    const serapan = project.contract_value > 0
-      ? Math.min(100, (totalExpense / Number(project.contract_value)) * 100)
-      : 0
+    /*
+     * ── SERAPAN ANGGARAN — dua cacat diperbaiki 2026-09-15 ────────────────
+     *
+     * 1. `Math.min(100, …)` MENYEMBUNYIKAN PEMBENGKAKAN BIAYA.
+     *
+     *    Satu-satunya keadaan yang benar-benar patut membunyikan alarm —
+     *    uang keluar melebihi nilai kontrak — adalah persis keadaan yang
+     *    dijepit jadi "100%", angka yang terbaca seperti "pas, tepat
+     *    anggaran". Proyek yang menyerap 130% dan proyek yang menyerap tepat
+     *    100% dilaporkan dengan angka yang sama, dan pembacanya tak punya
+     *    cara membedakannya. Jepitannya dicabut: serapan >100% dilaporkan apa
+     *    adanya.
+     *
+     *    Diukur 2026-09-15: serapan tertinggi hari ini 39,6%, jadi jepitan
+     *    ini belum pernah aktif — ia menunggu proyek pertama yang jebol,
+     *    lalu berbohong tepat di saat angkanya paling dibutuhkan.
+     *
+     * 2. NILAI KONTRAK NOL → `null`, BUKAN `0`.
+     *
+     *    "0%" berarti "belum ada uang keluar"; kontrak nol berarti "paguannya
+     *    tak diketahui". Melaporkan keduanya dengan angka yang sama membuat
+     *    proyek yang paguannya belum diisi terbaca sebagai proyek paling
+     *    hemat. Pola `null` + alasannya sudah dipakai dan didokumentasikan di
+     *    `lib/cost-analytics.ts:94-96` — diikuti di sini supaya satu API tak
+     *    punya dua konvensi untuk hal yang sama.
+     *
+     * `totalExpense` sudah HANYA yang `approved` — saringannya di query
+     * (`.eq('status','approved')`, lihat query project_expenses di atas),
+     * bukan di penjumlahan ini. Diukur: Rp 34.080.000 berstatus
+     * draft/submitted di seluruh tabel, dan nol di antaranya masuk ke sini.
+     */
+    const nilaiKontrak = Number(project.contract_value)
+    const serapan = nilaiKontrak > 0 ? (totalExpense / nilaiKontrak) * 100 : null
 
     return reply.send({
       project,
       summary: {
         totalInvoiced, totalPaid, totalDue,
         totalExpense, totalKasbon, totalWage,
-        totalOutflow: totalExpense + totalKasbon + totalWage,
+        /*
+         * ⚠ `totalKasbon` SENGAJA TIDAK ikut dijumlahkan — ia sudah di dalam
+         * `totalExpense`.
+         *
+         * Trigger `trg_kasbon_approved_create_expense` membuat baris
+         * `project_expenses` (ref_type='kasbon') untuk tiap kasbon yang
+         * disetujui. Diukur 2026-09-15, seluruh tabel: 55 kasbon
+         * approved/settled ↔ 55 baris expense, Rp 550.600.000 di kedua sisi,
+         * nol yatim di kedua arah. Menjumlahkannya berarti melaporkan uang
+         * keluar dua kali lipat dari yang sebenarnya.
+         *
+         * `totalKasbon` tetap DIKIRIM — layar memakainya untuk memerinci
+         * "berapa yang lewat jalur kasbon". Yang salah menjumlahkannya, bukan
+         * menampilkannya.
+         */
+        totalOutflow: totalExpense + totalWage,
         latestProgress, serapan,
       },
       termin:    get(terminRes as PromiseSettledResult<{ data: unknown[]; error: unknown }>),
@@ -487,7 +531,24 @@ export default async function reportsRoutes(app: FastifyInstance) {
     const totalExpense  = expenses.reduce((s, e) => s + Number(e.total_amount), 0)
     const totalWage     = wages.reduce((s, w) => s + Number(w.net_amount), 0)
     const totalKasbon   = kasbons.reduce((s, k) => s + Number(k.amount), 0)
-    const totalOut      = totalExpense + totalWage + totalKasbon
+    /*
+     * ⚠ `totalKasbon` TIDAK ikut — ia sudah di dalam `totalExpense`.
+     *
+     * Trigger `trg_kasbon_approved_create_expense` mencatat tiap kasbon
+     * `approved` sebagai baris `project_expenses` (ref_type='kasbon'), dan
+     * `expQ` di atas membaca seluruh pengeluaran approved pada rentang yang
+     * sama. Menjumlahkan `totalKasbon` lagi membuat arus kas KELUAR
+     * dilaporkan lebih besar dari yang sebenarnya, dan `netFlow` karena itu
+     * terlalu pesimistis.
+     *
+     * Diukur 2026-09-15, seluruh tabel: 55 kasbon approved/settled ↔ 55 baris
+     * expense ref_type='kasbon', Rp 550.600.000 di kedua sisi, nol yatim di
+     * kedua arah.
+     *
+     * `totalKasbon` tetap dikirim di `summary` — layar memakainya untuk
+     * memerinci berapa yang lewat jalur kasbon. Yang salah MENJUMLAHKANNYA.
+     */
+    const totalOut      = totalExpense + totalWage
     const netFlow       = totalIn - totalOut
 
     // Agregasi per bulan
@@ -501,7 +562,10 @@ export default async function reportsRoutes(app: FastifyInstance) {
     for (const p of payments) addMonth(p.paid_at, Number(p.amount_paid), 0)
     for (const e of expenses)  addMonth(e.expense_date, 0, Number(e.total_amount))
     for (const w of wages)     addMonth(w.paid_at, 0, Number(w.net_amount))
-    for (const k of kasbons)   addMonth(k.kasbon_date ?? k.approved_at, 0, Number(k.amount))
+    // Kasbon TIDAK ditambahkan ke deret bulanan: barisnya sudah ikut lewat
+    // `expenses` di atas (trigger basis). Menambahkannya membuat batang
+    // "keluar" tiap bulan dua kali lipat di bulan yang ada kasbonnya —
+    // gejala yang terbaca seperti lonjakan belanja musiman.
 
     const byMonth = Array.from(monthMap.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([period, v]) => {
       const [y, m] = period.split('-')
@@ -1660,12 +1724,38 @@ export default async function reportsRoutes(app: FastifyInstance) {
         const ma = ws?.mandor_assignments as Record<string, unknown> | undefined
         return (ma?.project_id as string) ?? null
       }
-      for (const k of (kasbon.data ?? []) as Array<Record<string, unknown>>) {
-        // `project_id` LANGSUNG — kasbon tak lagi menempuh rantai work_scopes
-        // (lihat alasannya di kuerinya). `idDariScope` akan memulangkan
-        // undefined di sini karena embed-nya sudah tak ada.
-        tambahAc(k.project_id as string | undefined, Number(k.amount) || 0)
-      }
+      /*
+       * ⚠ KASBON TIDAK LAGI DITAMBAHKAN KE AC — 2026-09-15.
+       *
+       * Premis yang membenarkannya SUDAH BASI, dan basinya persis ke arah
+       * yang berbahaya. Komentar di kuerinya berbunyi (diukur 2026-08-12):
+       * "`project_expenses` KOSONG (nol baris), sementara biaya nyata ada di
+       * kasbon" — karena itu kasbon ditambahkan sebagai sumber tersendiri.
+       *
+       * Diukur ulang 2026-09-15, seluruh tabel:
+       *
+       *   project_expenses (semua)        143 baris  Rp 848.185.000
+       *   project_expenses approved       135 baris  Rp 814.105.000
+       *   kasbons approved                 48 baris  Rp 496.600.000
+       *   kasbons approved/settled  ↔  expense ref_type='kasbon'
+       *                                    55 ↔ 55, Rp 550.600.000 dua sisi
+       *
+       * Tabel itu tak lagi kosong, dan trigger
+       * `trg_kasbon_approved_create_expense` menaruh SETIAP kasbon approved
+       * di dalamnya. Menambahkannya lagi membuat AC perusahaan kelebihan
+       * Rp 496.600.000 — dan AC yang terlalu BESAR membuat CPI terlihat
+       * lebih BURUK dari kenyataan, arah sebaliknya dari cacat 2026-08-30
+       * yang dicatat di kueri.
+       *
+       * Ini bentuk yang diperingatkan CLAUDE.md §8a.2: penjelasan yang BENAR
+       * saat ditulis, mendampingi keadaan yang sudah berubah. Larangan dan
+       * pembenaran sama-sama bisa basi — yang menyelamatkan cuma mengukur
+       * ulang syaratnya, bukan membaca alasannya.
+       *
+       * `kasbon` tetap di-query: galatnya diperiksa di atas, dan jumlahnya
+       * dipakai untuk memerinci di keluaran. Yang dihentikan penjumlahannya
+       * ke AC. Dijaga `scripts/audit-serapan-tak-dobel-kasbon.mjs`.
+       */
       for (const p of (bayarProgres.data ?? []) as Array<Record<string, unknown>>) {
         // `net_payment`, bukan gross: kasbon yang dipotong sudah masuk AC
         // lewat jalurnya sendiri. Memakai gross menghitungnya dua kali.

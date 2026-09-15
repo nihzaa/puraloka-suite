@@ -354,6 +354,7 @@ sebelum menyentuh kode terkait** — bukan sekadar daftar isi.
 | `audit-jenis-volume-terdaftar.mjs` | jenis tanpa volume wajib terdaftar — yang tak terdaftar dituduh "cacat modul" padahal benar, dan yang salah terdaftar volumenya HILANG senyap dari rekap proyek (ambang NOL) |
 | `audit-medan-jumlah-tak-bentrok.mjs` | rute menimpakan `{ ...input, jumlah }` sebagai BANYAKNYA ELEMEN; modul yang memakai nama itu untuk mencacah baut/angkur/paku kehilangan angka penggunanya — rute memberi 117% terpakai sementara fungsinya sendiri memberi 29%, tanpa satu pun galat (ambang NOL) |
 | `audit-gambar-punya-judul.mjs` | tiap kunci gambar yang ditulis rute wajib punya judul di halaman detail; halaman memakai `JUDUL_GAMBAR[nama] ?? nama`, jadi kunci tak terdaftar MUNCUL APA ADANYA sebagai kepala gambar — kata teknis mentah di layar orang yang justru tak paham istilah teknis (ambang NOL) |
+| `audit-ikon-menu-benar.mjs` | ikon menu benar di DUA arah — (a) sub-menu aktif wajib `Dot`, (b) tiap nama ikon wajib ada di `IKON_MENU`. Aturan (a) sudah diputuskan founder dan tertulis di `sidebar.tsx` serta `ikon-menu.tsx`, tetapi hanya sebagai KOMENTAR — dan komentar tak menahan siapa pun: diukur 2026-09-15, SEPULUH sub-menu aktif memakai ikon sendiri. ⚠ Arah (b) yang mahal, dan ia kembaran persis `audit-gambar-punya-judul.mjs` di atasnya: `ikonMenu()` berakhir `?? FolderKanban`, jadi nama ikon tak terdaftar TIDAK gagal — ia terender sebagai FOLDER. Bukan ikon yang hilang (itu terlihat), melainkan penanda yang KELIRU dan masuk akal bagi yang belum pernah melihat yang benar; `tsc` hijau sebab kolom `icon` bertipe `text` dan tiap string sah. SEMBILAN nama aktif tak terdaftar hari itu — tujuh di sub-menu (ditutup migrasi 582) dan **DUA di INDUK** (`g-akuntansi`=BookOpen, `g-alat-dokumen`=Wrench), yang arah (a) tak akan pernah temukan sebab induk memang BOLEH berikon: cacatnya hidup di CELAH antar-arah, jadi memeriksa salah satu saja hijau atas yang lain. Arah ketiga mengadu tiap kunci `IKON_MENU` dengan `lucide-react` sungguhan — tabel dibaca sebagai TEKS, jadi nama salah ketik akan cocok sempurna dengan DB yang sama salahnya. ⚠ Batas: yang dibaca KEPUTUSAN DI KODE & DI BASIS, bukan piksel — apakah ikonnya COCOK dengan arti menunya hanya ketahuan dari MEMOTRET. Baris NON-AKTIF sengaja dilewati: 216 di antaranya tak pernah tergambar, dan merah atas yang tak seorang pun lihat membuat seluruh keluaran penjaga diabaikan (ambang NOL) |
 | `audit-takeoff-kembar-sepakat.mjs` | rumus take-off ditulis DUA kali (modul API + kalkulator di layar, sengaja — kalkulator yang memanggil API tiap ketukan tombol tak dipakai orang); dijaga daftar sektor, ambang kemiringan, dan satuannya. Dua implementasi yang menyimpang tak mengeluarkan galat: layar memperlihatkan satu angka, RAB memakai yang tersimpan (ambang NOL) |
 | `audit-batas-tak-basi.mjs` | catatan "BELUM diperiksa" tak boleh menyebut yang SUDAH ADA — catatan itu TAMPIL DI LAYAR, dan pembacanya menyimpulkan pemeriksaannya tak ada lalu mencari konsultan lain untuk hal yang sudah dihitung. Dua catatan terbukti basi 2026-08-20 (ambang NOL) |
 | `audit-batas-terpetakan.mjs` | tiap catatan batas wajib SUDAH DITIMBANG terhadap daftar klaim — penjaga di atasnya bekerja dari daftar tulisan tangan, jadi ia hanya menjaga yang didaftarkan. Dua catatan basi berjam-jam tanpa terdeteksi 2026-08-20. Penjaga yang tak bisa tahu dirinya tertinggal akan pelan-pelan berhenti menjaga tanpa gejala (ambang NOL) |
@@ -905,11 +906,63 @@ merah sebelum saya?"), pakai worktree terpisah — **jangan `git stash`**. Dan
 
 ```bash
 git worktree add --detach /e/tmp/base <commit>
+cd /e/tmp/base && git config core.autocrlf false   # ⚠ WAJIB — lihat di bawah
 cmd //c "mklink /J E:\\tmp\\base\\node_modules E:\\Project\\puraloka-suite\\node_modules"
 cmd //c "mklink /J E:\\tmp\\base\\apps\\api\\node_modules E:\\Project\\puraloka-suite\\apps\\api\\node_modules"
+cmd //c "mklink /J E:\\tmp\\base\\apps\\web\\node_modules E:\\Project\\puraloka-suite\\apps\\web\\node_modules"
+cmd //c "mklink /J E:\\tmp\\base\\apps\\mobile\\node_modules E:\\Project\\puraloka-suite\\apps\\mobile\\node_modules"
 cp apps/api/.env /e/tmp/base/apps/api/.env
+cp apps/web/.env.local /e/tmp/base/apps/web/.env.local
 # selesai: rmdir junction-nya DULU, baru `git worktree remove`
 ```
+
+⚠ **WORKTREE BARU LAHIR CRLF, dan `git status` BERSIH sepanjang itu.**
+
+Mesin ini `core.autocrlf = true`, dan itu MENIMPA `.gitattributes`
+(`* text=auto eol=lf`). Tiap `git worktree add` menulis SELURUH berkas teks
+sebagai CRLF. Git tahu konversinya jadi diam; yang tak tahu adalah penjaga
+yang membaca teks sumber apa adanya.
+
+Diukur 2026-09-15 — **LIMA penjaga merah, nol di antaranya cacat kode**:
+
+```
+audit-guard-schema         6 pelanggaran (ambang 4)   → sebenarnya 4
+audit-gambar-punya-judul   "gambarUntuk() tak ditemukan di rute"
+uji-induk-punya-ikhtisar   "transpile patah"
+gen-indeks-docs --check    "BASI"  (padahal NOL diff isi)
+uji-antrean (mobile)       ERR_MODULE_NOT_FOUND
+```
+
+Yang paling menipu yang pertama: ia menyebut **nomor baris** dan **nama
+berkas** yang nyata, dan dua dari enamnya PALSU — regexnya tak cocok dengan
+`to_regclass('public.…')` yang diikuti CR, jadi baris yang SUDAH BENAR
+terhitung melanggar. Penjaga yang merah atas hal yang benar akan diabaikan
+seluruh keluarannya (§6).
+
+⚠ Dan jangan memakai main sebagai pembanding untuk menjawab *"apakah ini
+regresi saya?"* — main dan worktree sama-sama `autocrlf=true`, tetapi jumlah
+berkas ber-CR-nya BERBEDA. Dua checkout dari commit yang SAMA karena itu
+memberi jawaban penjaga yang berbeda, dan main biasanya menjawab HIJAU.
+
+Ukur sendiri, jangan percaya angka:
+
+```bash
+# berapa berkas migrasi ber-CR di checkout ini
+for f in db/migrations/*.sql; do tr -cd '\r' < "$f" | wc -c; done | grep -vc '^0$'
+
+# satu berkas, berwenang — tanpa pipe, tanpa asumsi bentuk
+tr -cd '\r' < <berkas> | wc -c
+```
+
+⚠ Perbandingan per-berkas pun bisa menipu kalau yang dibandingkan RINGKASAN.
+Diukur 2026-09-15: `lint-ratchet` merah di worktree, hijau di main, dan empat
+berkas yang disebutnya IDENTIK dengan main — kesimpulan "berarti bukan saya"
+SALAH. Yang benar terlihat hanya sesudah dibandingkan PER-BERKAS: ada satu
+berkas tambahan yang memang saya ubah. Bandingkan daftarnya, bukan totalnya.
+
+⚠ Junction untuk **KETIGA** app, bukan cuma api. `apps/mobile/node_modules`
+yang terlewat membuat `uji-antrean.mjs` gagal `ERR_MODULE_NOT_FOUND` — galat
+yang menuduh MODUL, bukan junction yang kurang.
 
 ### 8a.2 Tiap sektor WAJIB ditest dan diaudit
 

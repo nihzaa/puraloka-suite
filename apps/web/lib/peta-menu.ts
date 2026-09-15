@@ -508,7 +508,24 @@ export const PETA_MENU: GrupMenu[] = [
     key: 'g-mutu-kepatuhan', label: 'Mutu & K3', icon: 'ShieldCheck', urutan: 1000,
     items: [
       { key: 'mutu-ncr', label: 'NCR', status: 'hidup', href: '/mutu/ncr', guna: 'Temuan mutu yang harus diperbaiki, sampai tuntas.' },
-      { key: 'mutu-inspeksi', label: 'Inspeksi', status: 'hidup', href: '/mutu/inspeksi', guna: 'Pemeriksaan terjadwal beserta hasilnya.' },
+      /*
+        `mutu-inspeksi` DIHAPUS 2026-09-15 — satu-satunya href mati di antara
+        250 entri peta ini. Ia menunjuk `/mutu/inspeksi`, halaman yang tak
+        pernah ada; entrinya berstatus `hidup`, jadi Peta Modul menjanjikan
+        layar yang akan menjawab 404.
+
+        DIHAPUS, bukan dialihkan ke `/lapangan/inspeksi` yang nyata. Rute itu
+        SUDAH punya dua entri di berkas ini (`lp-rfi`, `qc-checklist`), dan
+        basis sendiri menonaktifkan `lp-rfi` justru karena href ganda
+        (`audit-menu-berbagi-href.mjs`, migrasi 232/281). Mengalihkan akan
+        membuatnya bertiga — menukar pintu yang mati dengan pelanggaran
+        aturan yang sudah ditegakkan.
+
+        Diukur sebelum dihapus: NOL baris `menu_items` memakai kunci maupun
+        href ini, jadi tak ada migrasi yang perlu menyertainya. Sidebar tak
+        pernah menampilkannya; yang menampilkannya hanya Peta Modul, yang
+        membaca berkas ini.
+      */
     ],
   },
   {

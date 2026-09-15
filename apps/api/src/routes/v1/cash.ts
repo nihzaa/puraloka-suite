@@ -470,7 +470,7 @@ export default async function cashRoutes(app: FastifyInstance) {
 
   // POST /api/v1/cash/expenses — input pengeluaran baru (multipart: bisa upload nota)
   app.post('/api/v1/cash/expenses', {
-    preHandler: [authenticate]
+    preHandler: [authenticate, requirePermission('cash:expense:create')]
   }, async (request, reply) => {
     // Parse multipart
     const parts = request.parts()

@@ -4029,10 +4029,45 @@ items:
 
   - id: TEST-SISA-49
     fase: null
-    judul: "63 test merah di 24 berkas (bukan 49/27) — 14 SUDAH ditutup, sisanya sebagian besar fixture"
+    judul: "DIUKUR ULANG 2026-09-14: 1 merah dari 7.313 (bukan 63/24) — judul lama basi"
     status: todo
-    prioritas: sedang
+    prioritas: rendah
     catatan: |
+      ══ DIUKUR ULANG 2026-09-14 — BACA INI DULU, sisa catatan di bawah BASI ══
+
+      Suite penuh, satu run, tidak tumpang tindih (§7):
+
+          Test Files  1 failed | 496 passed (497)
+               Tests  1 failed | 7306 passed | 6 skipped (7313)
+
+      Judul lama ("63 merah di 24 berkas") kini basi ke arah LEBIH BURUK
+      dari kenyataan — dan itu arah yang mahal juga: ia membuat
+      `MERGE-SUMBU-UI` terlihat terblokir padahal prasyaratnya hampir
+      terpenuhi.
+
+      Satu merah itu `t5a0-policy-dasar` — `approval_chain_template` RLS
+      aktif tapi nol policy, cacat dari migrasi 580. **SUDAH DITUTUP**
+      lewat `581_policy_katalog_rantai.sql`, dibuktikan bisa merah lewat
+      mutasi. Sesudahnya 4/4 lulus.
+
+      ⚠ Angka 7.306 ini dari SATU run di basis dev. Ia TIDAK mengatakan
+      apa-apa tentang CI berbagi-shard (lihat R-009 — flake antar-shard
+      masih terbuka, dan merahnya berpindah-pindah).
+
+      ── Konsekuensi untuk `MERGE-SUMBU-UI`
+
+      Item itu memblokir dirinya pada "49 test merah pra-ada" supaya
+      kegagalan SESUDAH merge bisa dibedakan. Prasyarat itu praktis
+      terpenuhi sekarang: garis dasarnya 0 merah di dev. Yang TETAP berlaku
+      sebagai penghalang — dan angkanya sudah dikoreksi 2026-09-14: bukan
+      "222 dari 359" (itu batas atas), melainkan **80 bentrok nyata** sesudah
+      21 migrasi kembar dinormalkan. Ditambah satu penghalang yang baru
+      ketahuan saat dicoba: memasukkan 96 berkas cabang-saja pun membuat
+      penjaga 0 → 15 MERAH, sebab ratchet main sudah diketatkan sejak cabang
+      bercabang. Lihat MERGE-SUMBU-UI dan RATIFIKASI R-024.
+
+      ── Yang di bawah ini catatan SEBELUM pengukuran di atas ──────────────
+
       Diukur 2026-09-11 sesudah cacat akun penjadwal ditutup:
 
           sebelum : 7.131 lulus · 68 gagal · 32/494 berkas
@@ -4211,8 +4246,10 @@ items:
 
       Yang mengerjakan: mulai dari fixture, JANGAN dari rutenya.
 
-      ⚠ `situs:kelola` nol baris di tabel `permissions`. Kalau ada rute
-      memakainya, ia menolak semua orang tanpa gejala. Belum ditelusuri.
+      ⚠ ~~`situs:kelola` nol baris di tabel `permissions`~~ — DITUTUP
+      2026-09-14: kunci itu tak dipakai kode mana pun, jadi tak ada yang
+      bisa ditolaknya. Rinciannya di bawah, di tempat peringatan yang sama
+      muncul kedua kalinya.
 
       ── 9 retensi-subkontrak: DITELUSURI, belum ketemu — jangan ulangi jalur ini
 
@@ -4254,15 +4291,153 @@ items:
       Sembilan kegagalan `situs.test` bergejala sama (403 di tempat yang
       mengharap 200/404/422) — periksa bersamaan, kemungkinan satu akar.
 
-      ⚠ `situs:kelola` NOL baris di tabel `permissions`. Kalau ada rute
-      memakainya, ia menolak SEMUA orang tanpa gejala.
+      ⚠ ~~`situs:kelola` NOL baris di tabel `permissions`~~ — DITUTUP
+      2026-09-14, kekhawatirannya TIDAK berdasar. Peringatan ini muncul dua
+      kali di catatan dan dua kali bertanda "belum ditelusuri"; ditelusuri
+      sekarang, dan jawabannya satu perintah:
+
+          grep -rn "situs:kelola" apps/api/src apps/web    → NOL
+          kunci situs:* yang BENAR-BENAR dipakai kode:
+            'situs:manage'  5×
+            'situs:view'    3×
+
+      `situs:kelola` bukan kunci hantu yang menolak semua orang — ia bukan
+      kunci sama sekali. Tak ada rute yang memakainya, jadi tak ada yang
+      bisa ditolaknya. Yang mengira sebaliknya (saya, dua kali) menyimpulkan
+      dari nama Indonesia yang WAJAR untuk repo ini, bukan dari pengukuran.
+
+      Dan kelas cacat itu memang sudah dijaga — bukan perlu penelusuran
+      tangan:
+
+          node apps/api/scripts/audit-izin-benar-ada.mjs
+          ✅ 189 kunci dipakai kode, semuanya terdaftar di basis
+
+      ⚠ Jadi 9 merah `situs.test` TIDAK punya akar ini. Jangan memulai dari
+      sana; mulai dari fixture-nya bersama `retensi-subkontrak`, seperti
+      tertulis di atas.
 
   - id: MERGE-SUMBU-UI
     fase: null
-    judul: "73 commit tertahan di feat/sumbu-ui-roadmap — 11 migrasinya SUDAH jalan di basis"
+    judul: "73 commit tertahan — DIPETAKAN & DICOBA 2026-09-14: 21 migrasi kembar dinormalkan (93→80 bentrok), tapi 96 berkas 'teraman' pun 15 MERAH"
     status: todo
     prioritas: sedang
     catatan: |
+      ══ PEMETAAN + PERCOBAAN 2026-09-14 — BACA INI DULU ══
+
+      ⚠ ANGKA DI BAWAH SUDAH DIPERBAIKI DUA KALI. Yang berlaku:
+
+          bentrok nyata (merge-tree)     : 93 → 80 sesudah normalisasi migrasi
+          migrasi kembar                 : 21 (bukan 9 — sisir SELURUH nomor)
+          berkas cabang-saja sungguhan   : 96 (bukan 144 — 48 ada juga di main)
+          hasil memasukkan yang 96       : 0 MERAH → 15 MERAH
+
+      Dua commit normalisasi SUDAH mendarat di cabang (`7b8d7735`,`ced37d00`):
+      nol nomor migrasi yang bertabrakan dengan main, enam migrasi cabang
+      dinomori 582-587.
+
+      **Yang 15 merah itu bukan cacat cabang** — ratchet di main DIKETATKAN
+      sejak 22 Agustus, dan kode cabang ditulis sebelum ambang itu ada. Jadi
+      tiap kelompok merge butuh pekerjaan PENYESUAIAN, bukan pemindahan.
+      Menaikkan/melonggarkan lantai penjaga = G-5, butuh ratifikasi founder.
+
+      Rincian lengkap + dua jebakan alat (origin/main basi di worktree, dan
+      `git stash` yang memberi baseline SALAH) ada di RATIFIKASI R-024.
+
+      ── Yang di bawah ini pemetaan awal, sebagian angkanya sudah dikoreksi ──
+
+
+      Prasyarat garis-dasar SUDAH TERPENUHI: suite penuh 497/497, 7.307 lulus,
+      0 merah (dua run berurutan). Jadi kegagalan SESUDAH merge kini bisa
+      dibedakan dari yang sudah ada — penghalang utama item ini hilang.
+
+      ── 1. "222 berkas bentrok" adalah BATAS ATAS, bukan bentrok
+
+      222 itu jumlah berkas yang disentuh KEDUA sisi. Bentrok NYATA diukur
+      dengan `git merge-tree` (bukan ditaksir dari nama berkas):
+
+          disentuh cabang       : 359
+          disentuh main         : 1.185
+          disentuh KEDUA sisi   : 222   ← angka lama
+          BENTROK NYATA         :  93   ← git merge-tree
+
+      Ukur ulang sendiri:
+
+          B=$(git merge-base origin/main feat/sumbu-ui-roadmap)
+          git merge-tree --write-tree origin/main feat/sumbu-ui-roadmap > /tmp/mt.txt
+          awk '/^[0-9]{6} [0-9a-f]{40} [123]	/ {print $4}' /tmp/mt.txt | sort -u
+
+      ── 2. Sembilan migrasi KEMBAR — dan resolusinya mekanis
+
+      Migrasi yang SAMA ada di kedua sisi dengan NOMOR BERBEDA. Main memakai
+      462-488, cabang menomori ulang jadi 474-496:
+
+          main 474 = cabang 488   profil_baja_cnp_inp          IDENTIK
+          main 475 = cabang 489   struktur_elemen_jenis_baja   IDENTIK
+          main 476 = cabang 490   mitra_induk_hidup            BERBEDA
+          main 477 = cabang 491   takeoff_sektor               BERBEDA
+          main 483 = cabang 492   struktur_sloof_tangga        IDENTIK
+          main 484 = cabang 493   struktur_balok_t             IDENTIK
+          main 485 = cabang 494   tujuh_otomasi_bertenggat     BERBEDA
+          main 486 = cabang 495   struktur_komposit_atap       IDENTIK
+          main 488 = cabang 496   struktur_sambungan_ringan    IDENTIK
+
+      ⚠ Nomor 488 dipakai DUA migrasi berbeda (main: sambungan_ringan;
+      cabang: profil_baja) — kelas yang sama dengan R-015/R-016.
+
+      **Ketiga yang BERBEDA, main-nya yang LEBIH BARU** — diverifikasi isi,
+      bukan tanggal:
+
+        · takeoff_sektor    — cabang TAK punya bored_pile & baja_profil
+                              (itu perbaikan R-018 yang mendarat di main)
+        · mitra_induk_hidup — cabang TAK punya UPDATE yang menghidupkan
+                              induknya; ia MEMERIKSA tanpa MENGERJAKAN
+        · tujuh_otomasi_…   — cabang TAK punya saringan `is_active`
+                              (membandingkan dua populasi berbeda)
+
+      **Resolusi untuk kesembilan: AMBIL MAIN, buang duplikat cabang.**
+      Dan itu bukan selera — buku migrasi mencatat penomoran MAIN (474, 477,
+      488…); nomor 489-496 milik cabang TAK PERNAH tercatat.
+
+      ── 3. Enam migrasi cabang yang BELUM TERCATAT — ini isi sebenarnya
+
+      Tujuh belas migrasi hanya ada di cabang. Sebelas di antaranya sudah
+      tercatat di buku (478-482, 497-501) — itu yang ditemukan
+      `audit-migrasi-tertinggal-deploy.mjs`. **Enam sisanya belum**:
+
+          cabang 471  takeoff_sektor_bored_pile     114 baris
+          cabang 472  menu_ikon_anak_konsisten       65 baris
+          cabang 473  takeoff_sektor_baja_profil    131 baris
+          cabang 474  nama_analisa_poer_plat         91 baris
+          cabang 476  izin_template_rab              80 baris
+          cabang 477  template_item_cost_code        56 baris
+
+      ⚠ Nomor 471-477 SUDAH DIPAKAI main untuk migrasi yang BERBEDA. Keenamnya
+      WAJIB dinomori ulang ke 582+ saat merge — memakai nomornya apa adanya
+      adalah pelanggaran G-2.
+
+      ── 4. Kenapa keenam itu BERHARGA, bukan sekadar kerapian
+
+      Diukur ke basis: kolom `diameter_m`, `berat_kg_per_m`,
+      `panjang_standar_m` dan constraint `takeoff_diameter_positif`,
+      `takeoff_berat_per_m_positif`, `takeoff_panjang_standar_positif`
+      **SUDAH ADA di dev** — dipasang di luar jalur migrasi.
+
+      Itu PERSIS temuan R-018: artefak yang ada di dev tanpa migrasi akan
+      HILANG di basis baru (VPS bersih, CI dari nol). Keenam berkas ini
+      adalah jejak kertas yang hilang untuk schema yang sudah hidup.
+
+      Jadi merge ini menutup lubang nyata, bukan merapikan riwayat.
+
+      ⚠ Migrasi 553 TIDAK menggantikannya: 553 hanya menyentuh CHECK
+      `takeoff_sektor_sah`, tidak membuat kolom maupun constraint lain.
+
+      ── 5. Urutan yang disarankan
+
+      Keputusan yang tersisa (arah merge, dan apakah dikerjakan sekarang)
+      BELUM diambil — lihat RATIFIKASI R-024.
+
+      ── Yang di bawah catatan SEBELUM pemetaan di atas ────────────────────
+
       Ditemukan 2026-09-11 oleh `audit-migrasi-tertinggal-deploy.mjs` pada
       jalan pertamanya, dari arah yang tak diduga: entri buku migrasi yang
       BERKASNYA TAK ADA.

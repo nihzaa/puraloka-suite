@@ -78,8 +78,32 @@ const isi = readFileSync(PETA, 'utf8')
   mengimpornya dari skrip Node biasa menuntut transpile — pola yang sama dengan
   `audit-jenis-struktur-cocok` yang membaca konstanta dari teks.
 */
+/*
+  ⚠ `[^}]*?` antara `key` dan `href` TIDAK cukup, dan cacatnya ditemukan
+  2026-09-15 lewat uji mutasi yang gagal memerahkan penjaga ini.
+
+  Objek GRUP di `peta-menu.ts` punya `key` tetapi TIDAK punya `href` — href-nya
+  hidup di anak-anaknya. Karena `[^}]*?` hanya berhenti di `}`, dan kurung
+  tutup pertama sesudah sebuah grup adalah kurung tutup ANAK PERTAMANYA,
+  regex lama memasangkan `key` grup dengan `href` anaknya:
+
+      { key: 'g-mutu-kepatuhan', … items: [ { key: 'mutu-ncr', href: '/mutu/ncr' …
+
+      terparse sebagai →  g-mutu-kepatuhan  →  /mutu/ncr     ← SALAH
+
+  Diukur: 28 dari 275 "entri" sesungguhnya GRUP yang dipasangkan dengan href
+  anak pertamanya. Tiap pemeriksaan atas ke-28 itu menguji pasangan yang tak
+  pernah ada — dan diamnya bukan galat, sebab href-nya memang halaman nyata.
+
+  Yang membuatnya lolos lama: keluarannya MASUK AKAL. Grup memang punya
+  anak ber-href, jadi angkanya wajar dan kesimpulannya salah.
+
+  Diperbaiki dengan melarang `{` di antaranya: sebuah entri sah tak pernah
+  memuat objek bersarang antara `key` dan `href`-nya, sementara grup SELALU
+  memuat `items: [ {` sebelum href pertama muncul.
+*/
 const entri = [...isi.matchAll(
-  /\{\s*key:\s*'([^']+)'[^}]*?href:\s*'([^']+)'[^}]*?\}/g,
+  /\{\s*key:\s*'([^']+)'[^{}]*?href:\s*'([^']+)'[^{}]*?\}/g,
 )].map((m) => ({ key: m[1], href: m[2], teks: m[0] }))
 
 /*
@@ -143,6 +167,25 @@ for (const e of entri) {
     }
   }
 
+  /*
+    Pemeriksaan href-mati berdiri SENDIRI, sebelum urusan "klaim tab".
+
+    Versi pertama saya menaruhnya di bawah `if (!janji.length) continue`, dan
+    uji mutasi membuktikannya BUTA: entri yang tak punya catatan berpola
+    "tab …" — yaitu sebagian besar — tak pernah sampai ke sana. Penjaga yang
+    tetap hijau atas pelanggaran yang sengaja disuntik adalah hiasan (§8a.2).
+
+    Hanya entri yang MENGAKU `hidup` yang dinilai: status `rencana`/`gerbang`
+    memang belum punya halaman, dan memerahkannya berarti merah atas hal yang
+    benar.
+  */
+  if (/status:\s*'hidup'/.test(e.teks) && !berkasUntukHref(e.href).length) {
+    temuan.push({
+      key: e.key, href: e.href, janji: `status 'hidup'`,
+      kata: `(halaman ${e.href} tidak ada)`,
+    })
+  }
+
   const janji = []
   for (const pola of POLA_JANJI) {
     for (const m of e.teks.matchAll(pola)) janji.push(m[1].trim())
@@ -152,9 +195,26 @@ for (const e of entri) {
   const berkas = berkasUntukHref(e.href)
   if (!berkas.length) {
     /*
-      href yang tak menunjuk halaman mana pun sudah dijaga `audit-nav-yatim`.
-      Dilewati di sini supaya satu cacat tak dilaporkan dua penjaga dengan
-      kalimat berbeda — yang membacanya lalu mengira ada dua masalah.
+      ⚠ Komentar lama di sini berbunyi "href yang tak menunjuk halaman mana pun
+      sudah dijaga `audit-nav-yatim`" — dan itu SALAH, diukur 2026-09-15.
+
+      `audit-nav-yatim.mjs` menyebut `peta-menu.ts` DUA kali, keduanya di
+      KOMENTAR yang menerangkan kenapa ia justru TIDAK membacanya ("membaca
+      DATABASE, bukan peta-menu.ts"). Ia menjaga href sidebar (`menu_items`),
+      tab-bagian, grid Lainnya, dan kategori PM — bukan berkas ini.
+
+      Jadi selama ini href mati di `peta-menu.ts` tak dijaga SIAPA PUN: yang
+      ini melewatkannya karena mengira ada yang lain, dan yang lain memang
+      tak pernah melihatnya. Penjelasan yang BENAR mendampingi keadaan yang
+      SALAH (§8a.2) — bentuk yang sama sudah dibayar berkali-kali di repo ini.
+
+      Terbukti mahal: `mutu-inspeksi` berstatus `hidup` menunjuk
+      `/mutu/inspeksi` yang tak pernah ada. Peta Modul menjanjikan layar yang
+      menjawab 404, dan tak satu pun dari 254 penjaga melihatnya.
+
+      Diperiksa di ATAS sekarang — berdiri sendiri, sebelum urusan "klaim
+      tab", supaya entri tanpa catatan pun ikut terjaga. Di sini cukup
+      dilewati: href matinya sudah dicatat.
     */
     continue
   }
