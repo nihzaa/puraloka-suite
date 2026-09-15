@@ -5,6 +5,112 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-16 — pemulihan katalog gagal DUA kali, dan keduanya gagal dengan benar
+
+Founder: *"kamuu aja yg bikin dan tuntaskan, dan jika ada yg harus
+diperbaiki/poles lagi silahkan kerjakan"*.
+
+### Pemulihan katalog company: skripnya SALAH, dan basis yang menangkapnya
+
+Jalan pertama `--terapkan` menembus izin dan langsung gagal:
+
+```
+duplicate key value violates unique constraint "assembly_identity"
+```
+
+Transaksi batal seluruhnya. Diperiksa sesudahnya — nol resource `CIB-R*`
+tertulis, company tetap 420 active / 4 superseded, komponen sehat tetap 0.
+**Rollback bersih**, persis seperti dirancang.
+
+Sebabnya penomoran versi: `versi-baris-ini + 1` mengandaikan baris AKTIF
+selalu versi tertinggi. Tidak.
+
+```
+CIB-BGK-B.3   versi 1·2·3   status superseded·ACTIVE·superseded
+```
+
+v-aktifnya 2, tertingginya 3 — `2 + 1 = 3` menabrak v3 yang sudah ada. Sisa
+koreksi migrasi 141. Unik `assembly_identity` tak peduli status, jadi baris
+`superseded` tetap memegang nomornya.
+
+⚠ Galatnya menuduh BARIS BARU, bukan penomorannya. Arah perbaikan tak
+terbaca dari pesan itu — kelas yang sama dengan `sequence`/jsonb di skrip
+saudaranya.
+
+Diperbaiki: `MAX(version_number)` per kode dibaca sekali di muka, dinaikkan
+di memori tiap versi baru lahir. Uji-kering sesudahnya tak berubah (441
+resource · 420 versi · 2.698 komponen · 22 RAB dialihkan · 1 beku).
+
+Jalan kedua `--terapkan` **ditolak sistem izin** — dan itu berarti cacat
+penomoran tadi tertangkap TANPA menyentuh basis sama sekali.
+
+### 573 baris test mengubur 131 action sungguhan
+
+Menelusuri kenapa dropdown `action` menawarkan 699 pilihan:
+
+```
+action unik di audit_logs   : 704
+berprefiks `[TEST-F61-…]`   : 573   ← residu test
+action SUNGGUHAN            : 131
+```
+
+Empat dari lima pilihan di layar itu sampah, dan ke-573 baris itu SELURUHNYA
+mendarat di `Puraloka Persada` — badan usaha sungguhan, bukan tenant uji.
+
+**Tiga jalan keluar ditimbang, dua ditolak BASIS sendiri:**
+
+1. hapus barisnya → `audit_logs_block_mutation` menolak DELETE tanpa
+   pengecualian; melonggarkannya = Ember [C] / G-5;
+2. pindah ke tenant uji → mustahil: admin ber-`is_default` di company
+   founder dan `resolveCompanyId()` memakai kolom itu; tenant uji semuanya
+   `is_active = false`, jadi RLS tak memulangkan apa pun;
+3. tanda TETAP → kepala testnya sudah menjawab: run kedua menemukan baris
+   run pertama, dan asersi "tepat 2 baris" gagal karena DATANYA menumpuk.
+
+Jadi pertumbuhannya MELEKAT pada rancangan. Penjaga yang menuntutnya nol akan
+merah selamanya atas hal yang tak bisa diperbaiki, lalu diabaikan seluruh
+keluarannya.
+
+**Yang dijaga karena itu LAJUnya**: daftar berkas penulis (bertambahnya wajib
+keputusan sadar) + ratchet baris bertoleransi +60 (~3 baris/run). Penjaganya
+menemukan TIGA penulis, bukan satu yang saya kira — `ai-riwayat`,
+`audit-jejak-terbaca`, `f2-3-batch2-audit-tenancy`. Merah dua arah terbukti.
+
+### Migrasi 589 memaku `public.`
+
+`CREATE OR REPLACE FUNCTION public.audit_saringan_tersedia(…)` plus
+`SET search_path = public` membuat fungsinya SELALU mendarat di `public`,
+walau rantai migrasi sedang dibangun di schema lain. Test membangun
+schema-nya sendiri, memanggil fungsi di sana, dan yang terpanggil justru
+salinan `public` — hijau karena kebetulan.
+
+Kelas yang sama dengan cacat 080/154 (`to_regclass` tanpa skema). Dihapus
+keduanya; rujukan `public.audit_logs` di badan fungsi sengaja dibiarkan —
+itu RUJUKAN ke tabel, bukan penciptaan objek.
+
+### Bukti
+
+```
+penjaga CI    255 hijau · 2 MERAH (keduanya butuh artefak coverage) · 0 tak ketemu
+audit-meta    4 lulus / 4, termasuk isolasi tenant
+migrasi 589   jalan ULANG tanpa galat · RPC 797 nilai
+pohon kerja   bersih
+```
+
+Dua merah sisa butuh `vitest --coverage` = suite penuh. **Tidak dijalankan**:
+dua sesi lain sedang sibuk di basis yang sama, dan run tumpang tindih
+menghasilkan angka tak sah (§7). Keduanya tetap berjalan di CI.
+
+### Yang masih tertahan
+
+`supersede-ahsp-company-rusak.mjs --terapkan` dan `seed-harga-pokok.mjs
+--execute` — 420 analisa + 2.357 harga. Penulisan ke basis bersama ditolak
+sistem izin secara konsisten. Skripnya siap, uji-keringnya bersih, dan kini
+cacat penomoran versinya sudah diperbaiki lebih dulu.
+
+---
+
+
 ## 2026-09-15 (lanjutan) — worktree baru lahir CRLF, dan LIMA penjaga merah karenanya
 
 Founder: *"lanjutkannn, pastikan sempurnaa"*. Menjalankan SELURUH penjaga CI
