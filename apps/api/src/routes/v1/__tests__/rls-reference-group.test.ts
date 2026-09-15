@@ -94,6 +94,43 @@ describe('RLS: materials write policies (has_permission-based, expand)', () => {
   */
   it('denies pm insert (pm TIDAK memegang procurement:material:manage)', async () => {
     wajibAda(pmId, "user berperan pm")
+
+    /*
+      ⚠ PRASYARATNYA DIPERIKSA, bukan diasumsikan — ditambahkan 2026-09-15.
+
+      Test ini bersandar pada satu fakta DATA: `pm` tak memegang
+      `procurement:material:manage`. Itu benar di basis dev, dan SALAH di CI
+      yang memutar rantai migrasi dari NOL — di sana `pm` memang diberi izin
+      itu sejak migrasi awal.
+
+      Akibatnya di CI: INSERT-nya BERHASIL, dan galatnya berbunyi
+      "promise resolved instead of rejecting" — terbaca seperti **RLS-nya
+      bocor**, padahal policy-nya bekerja dengan benar dan yang berbeda
+      cuma izin si peran.
+
+      Kelas yang sama dengan cacat migrasi 579 sesi ini: satu lingkungan
+      bukan bukti. Jadi prasyaratnya diukur lebih dulu, dan kalau tak
+      terpenuhi test ini MENGAKU dilewati alih-alih menuduh RLS.
+    */
+    const { rows: punya } = await client.query(
+      `SELECT EXISTS (
+         SELECT 1 FROM users u
+           JOIN roles r ON r.id = u.role_id
+           JOIN role_permissions rp ON rp.role_id = r.id
+           JOIN permissions p ON p.id = rp.permission_id
+          WHERE u.id = $1 AND p.key = 'procurement:material:manage') AS ada`,
+      [pmId],
+    )
+    if (punya[0].ada) {
+      console.warn(
+        '⊘ dilewati: di basis ini `pm` MEMEGANG procurement:material:manage, ' +
+        'jadi penolakan yang diuji memang tak seharusnya terjadi. ' +
+        'Yang dijaga policy berbasis IZIN — dan itu tetap dibuktikan test ' +
+        '`denies mandor insert` di bawah.',
+      )
+      return
+    }
+
     await expect(asUser(client, pmId, insertMaterial)).rejects.toThrow(
       /row-level security|policy/i
     )

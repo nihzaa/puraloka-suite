@@ -177,6 +177,51 @@ describe('daftar hitam — keputusan, bukan penyuntingan', () => {
     await db.query(
       `INSERT INTO role_permissions (role_id, permission_id, company_id)
        VALUES ($1, $2, NULL) ON CONFLICT DO NOTHING`, [idPeran, idIzin])
+
+    /*
+      ⚠ HIBAHNYA DIVERIFIKASI, bukan diasumsikan mendarat — 2026-09-15.
+
+      Query di atas menyalin urutan RPC persis, dan itu BENAR di basis dev
+      yang punya 72 salinan `admin` milik tenant. Di CI yang memutar rantai
+      dari NOL, bentuk datanya berbeda — salinan tenant untuk company uji
+      bisa belum ada, hibahnya mendarat di baris yang tak dibaca RPC, dan
+      keempat test blacklist gagal dengan
+
+          {"error":"Akses ditolak. Butuh permission: mitra:daftar_hitam"}
+          expected 403 to be 200
+
+      — galat yang menuduh RUTE, padahal fixture-nya yang tak mendarat.
+      Kelas yang sama dengan tiga jebakan di komentar atas; yang ini
+      ketahuan hanya karena CI punya BENTUK DATA lain.
+
+      Jadi hasilnya dibaca balik lewat RPC yang SAMA dengan yang dipakai
+      rute. Kalau belum terbaca, hibahnya diulang ke baris template —
+      dan kalau tetap tak terbaca, GAGAL DI SINI dengan sebab yang jelas,
+      bukan sebagai 403 di empat test lain.
+    */
+    const terbaca = async () => {
+      const { rows } = await db.query(
+        `SELECT EXISTS (
+           SELECT 1 FROM get_role_permissions('admin') g
+            WHERE g.permission_key = 'mitra:daftar_hitam') AS ada`)
+      return rows[0].ada as boolean
+    }
+    if (!(await terbaca())) {
+      const { rows: tmpl } = await db.query(
+        `SELECT id FROM roles WHERE name = 'admin' AND company_id IS NULL LIMIT 1`)
+      if (tmpl.length) {
+        idPeran = tmpl[0].id
+        await db.query(
+          `INSERT INTO role_permissions (role_id, permission_id, company_id)
+           VALUES ($1, $2, NULL) ON CONFLICT DO NOTHING`, [idPeran, idIzin])
+      }
+      if (!(await terbaca())) {
+        throw new Error(
+          'prasyarat gagal: hibah `mitra:daftar_hitam` tak terbaca ' +
+          '`get_role_permissions(admin)`. Tanpa ini keempat test blacklist ' +
+          'gagal 403 dan galatnya akan menuduh RUTE, bukan fixture ini.')
+      }
+    }
   })
 
   afterAll(async () => {
