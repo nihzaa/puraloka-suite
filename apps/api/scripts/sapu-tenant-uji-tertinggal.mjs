@@ -39,9 +39,26 @@
  *
  * Hanya menyentuh baris yang MEMENUHI KETIGANYA:
  *
- *   1. `name` diawali `[UJI-`         — penamaan yang hanya dipakai fixture
+ *   1. `name` diawali `[UJI-` ATAU `ZZISO` — penamaan yang hanya dipakai fixture
  *   2. `owner_user_id IS NULL`        — tenant nyata SELALU punya pemilik
  *   3. `parent_company_id IS NULL`    — hanya akar; anak tak pernah yatim
+ *
+ * ⚠ `ZZISO` DITAMBAHKAN 2026-09-16, dan biayanya sudah dibayar sekali.
+ *
+ * `search-tenant-isolation.test.ts` menamai tenantnya `ZZISO<6 digit acak>`,
+ * di luar pola `[UJI-`. Residunya karena itu lolos penyapu ini, dan
+ * `audit-rantai-approval-lengkap.mjs` (migrasi 580) memerahkan ENAM shard CI
+ * dengan keluhan yang menuduh RANTAI APPROVAL:
+ *
+ *     ❌ 12 (company × jenis) tanpa rantai approval:
+ *        ZZISO308548 Tenant B — back_charge
+ *        ZZISO308548 Tenant B — change_order
+ *        … 10 jenis lagi
+ *
+ * Rantainya tak pernah kurang. Yang tertinggal companynya — tenant mati yang
+ * masih `is_active`, dari run yang berhenti sebelum `afterAll`. Penjaga yang
+ * BENAR, menunjuk ke arah yang salah, karena penyapunya tak mengenali satu
+ * pola penamaan.
  *
  * Tenant nyata tak mungkin lolos ketiganya sekaligus. Dan yang dilakukan
  * cuma `is_active = false` — sama persis dengan `bongkarCompanyUji`, bukan
@@ -97,7 +114,7 @@ try {
     UPDATE public.companies
        SET is_active = false
      WHERE is_active
-       AND name LIKE '[UJI-%'
+       AND (name LIKE '[UJI-%' OR name LIKE 'ZZISO%')
        AND owner_user_id IS NULL
        AND parent_company_id IS NULL
     RETURNING name, code`)
