@@ -43,7 +43,9 @@
  *   2. `owner_user_id IS NULL`        — tenant nyata SELALU punya pemilik
  *   3. `parent_company_id IS NULL`    — hanya akar; anak tak pernah yatim
  *
- * ⚠ `ZZISO` DITAMBAHKAN 2026-09-16, dan biayanya sudah dibayar sekali.
+ * ⚠ `ZZISO` DITAMBAHKAN 2026-09-16, DAN syarat pemiliknya dilonggarkan
+ * KHUSUS untuk pola itu — dua perubahan, bukan satu, dan yang kedua baru
+ * ketahuan sesudah yang pertama gagal di CI.
  *
  * `search-tenant-isolation.test.ts` menamai tenantnya `ZZISO<6 digit acak>`,
  * di luar pola `[UJI-`. Residunya karena itu lolos penyapu ini, dan
@@ -59,6 +61,24 @@
  * masih `is_active`, dari run yang berhenti sebelum `afterAll`. Penjaga yang
  * BENAR, menunjuk ke arah yang salah, karena penyapunya tak mengenali satu
  * pola penamaan.
+ *
+ * Menambahkan polanya saja TIDAK CUKUP, dan jalan CI berikutnya membuktikannya:
+ * penyapu melapor `dinonaktifkan: 0` lalu penjaga langsung merah lagi atas
+ * tenant yang SAMA (`ZZISO308548`). Sebabnya syarat kedua —
+ * `owner_user_id IS NULL` — dan test itu SENGAJA mengisi pemiliknya:
+ *
+ *     "`owner_user_id` WAJIB diisi, bukan opsional. … Tanpa pemilik, ia
+ *      menjadi akar grup yatim yang terlihat SELURUH test lain, dan
+ *      `t9-kelola-badan-usaha` punya asersi global 'setiap akar grup punya
+ *      pemilik' yang langsung merah karenanya."
+ *
+ * Jadi residunya BERPEMILIK, dan syarat yang melindungi tenant nyata di
+ * `[UJI-` justru membutakan penyapu terhadap `ZZISO`.
+ *
+ * Yang menggantikan syarat itu untuk pola `ZZISO`: `code = 'iso-test-b'` —
+ * kode DIPAKU di berkas test itu (baris 135), bukan acak seperti namanya.
+ * Tenant nyata tak mungkin memakai kode itu, dan pemeriksaannya tak
+ * bergantung pada kepemilikan.
  *
  * Tenant nyata tak mungkin lolos ketiganya sekaligus. Dan yang dilakukan
  * cuma `is_active = false` — sama persis dengan `bongkarCompanyUji`, bukan
@@ -114,9 +134,15 @@ try {
     UPDATE public.companies
        SET is_active = false
      WHERE is_active
-       AND (name LIKE '[UJI-%' OR name LIKE 'ZZISO%')
-       AND owner_user_id IS NULL
        AND parent_company_id IS NULL
+       AND (
+         -- [UJI-*]: yatim (tanpa pemilik) — bentuk aslinya.
+         (name LIKE '[UJI-%' AND owner_user_id IS NULL)
+         -- ZZISO*: BERPEMILIK secara sengaja, jadi dikenali lewat kode
+         -- yang dipaku fixture-nya (backtick DILARANG di sini: isi query
+         -- ini template literal JS, dan backtick menutupnya di tengah SQL).
+         OR (name LIKE 'ZZISO%' AND code = 'iso-test-b')
+       )
     RETURNING name, code`)
 
   console.log('── sapu tenant uji tertinggal ──')
