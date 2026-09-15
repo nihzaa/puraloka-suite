@@ -89,6 +89,21 @@ beforeAll(async () => {
       [code, category, unit, adminUserId])
   }
   const { rows: a } = await client.query(
+    /*
+      Dibuat `draft` (bawaan kolom), diisi komponennya, LALU diaktifkan di
+      bawah — urutan itu wajib dan bukan gaya penulisan.
+
+      Sejak 2026-09-16 daftar katalog menyaring `status = 'active'` (arsip
+      `superseded` tak lagi muncul dua kali per kode), jadi fixture yang
+      tetap `draft` TAK TERLIHAT rutenya dan gagal dengan `expected undefined
+      to be truthy` — galat yang menuduh RUTE.
+
+      Tetapi menulis `'active'` langsung di INSERT ini juga salah:
+      `fn_assembly_component_parent_draft` menolak penambahan komponen ke
+      assembly yang sudah aktif ("paket kerja yang sudah active beku"), dan
+      SELURUH suite lalu gagal di `beforeAll`. Dua kesalahan berlawanan yang
+      gejalanya sama-sama menunjuk ke tempat lain.
+    */
     `INSERT INTO assemblies (code, name, cost_code_id, source, version_number, waste_factor,
                              sequence, output_unit_code, edition_id, is_import_baseline, created_by)
      VALUES ('[TEST-AHSP]3.6.1.1', '[TEST] dinding bata 1 batu tipe M', $1, 'national', 1, 0,
@@ -102,6 +117,9 @@ beforeAll(async () => {
        SELECT $1, id, $2, $3 FROM resources WHERE code = $4`,
       [assemblyId, koef, sort++, code])
   }
+
+  // draft → active SESUDAH komponennya lengkap. Lihat alasannya di atas.
+  await client.query(`UPDATE assemblies SET status = 'active' WHERE id = $1`, [assemblyId])
 
   app = Fastify()
   await app.register(ahspRoutes)
@@ -302,10 +320,26 @@ describe('GET /cecep/assemblies/jumlah', () => {
     expect(res.statusCode).toBe(200)
     const { semua, company, national } = res.json()
 
+    /*
+      `status = 'active'` — sama dengan bawaan rutenya, dan itu KOREKSI
+      2026-09-16, bukan kelonggaran.
+
+      Versi pertama test ini menghitung SELURUH baris `assemblies`. Ia hijau
+      selama katalog belum punya versi kedua. Begitu pemulihan mem-supersede
+      420 analisa company dan membuat penggantinya, angkanya jadi 6.212 vs
+      3.167 — dan yang benar 3.167: daftar kerja menampilkan yang BISA
+      DIPAKAI, bukan arsipnya.
+
+      Test yang menghitung tanpa saringan akan menuntut rutenya ikut
+      menghitung arsip — yaitu menuntut cacat yang baru saja diperbaiki.
+    */
     const hitung = async (source?: string) => {
       const { rows } = source
-        ? await client.query(`SELECT count(*)::int n FROM public.assemblies WHERE source = $1`, [source])
-        : await client.query(`SELECT count(*)::int n FROM public.assemblies`)
+        ? await client.query(
+            `SELECT count(*)::int n FROM public.assemblies
+              WHERE status = 'active' AND source = $1`, [source])
+        : await client.query(
+            `SELECT count(*)::int n FROM public.assemblies WHERE status = 'active'`)
       return rows[0].n
     }
     expect(semua).toBe(await hitung())

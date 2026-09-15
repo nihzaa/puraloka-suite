@@ -305,7 +305,7 @@ export default async function ahspRoutes(app: FastifyInstance) {
     })
 
   // ── GET /cecep/assemblies — katalog AHSP (filter edisi/sumber) ──────────────
-  app.get<{ Querystring: { edition?: string; source?: string; limit?: string; q?: string; komponen?: string } }>(
+  app.get<{ Querystring: { edition?: string; source?: string; limit?: string; q?: string; komponen?: string; status?: string } }>(
     '/api/v1/cecep/assemblies',
     { preHandler: [authenticate, requirePermission('cecep:assembly:view')] },
     async (request, reply) => {
@@ -370,6 +370,27 @@ export default async function ahspRoutes(app: FastifyInstance) {
                    resource:resources(code, name, category, unit_code))`)
         .order('code')
         .limit(limit)
+
+      /*
+        Hanya analisa AKTIF, kecuali diminta lain (`status=semua`).
+
+        Versi sebelumnya tak menyaring status sama sekali, dan itu tak terlihat
+        selama katalog belum punya versi kedua. Begitu pemulihan 2026-09-16
+        mem-supersede 420 analisa company dan membuat penggantinya, daftar
+        company melonjak 420 → 844: TIAP kode muncul dua kali (v1 superseded +
+        v2 active), dan `CIB-BGK-B.3` EMPAT kali.
+
+        Yang membuatnya berbahaya bukan panjangnya daftar, melainkan bahwa
+        kedua baris itu terlihat SAMA — kode sama, nama sama, lencana sama.
+        Yang membuka baris superseded mendapat tabel koefisien KOSONG (v1
+        memang sudah tak punya resource hidup), lalu menyimpulkan analisanya
+        rusak. Nol galat, dan kesimpulannya masuk akal.
+
+        `superseded` TIDAK disembunyikan selamanya: ia jejak "workbook bilang
+        apa" dan tetap bisa diminta lewat `?status=semua`. Yang berubah cuma
+        bawaannya — daftar kerja menampilkan yang BISA DIPAKAI.
+      */
+      if (request.query.status !== 'semua') q = q.eq('status', 'active')
       if (request.query.source) q = q.eq('source', request.query.source)
       if (request.query.edition) {
         const { data: ed } = await request.db!
@@ -424,6 +445,10 @@ export default async function ahspRoutes(app: FastifyInstance) {
       // Total sesungguhnya untuk kriteria yang sama — supaya UI bisa jujur
       // menyebut "menampilkan 200 dari 3.043", bukan mengesankan 200 itu semua.
       let hitung = request.db!.from('assemblies').select('id', { count: 'exact', head: true })
+      // Saringan status WAJIB sama dengan daftarnya. Kalau tidak, `total`
+      // menghitung baris yang tak pernah ditampilkan — dan UI lalu berkata
+      // "menampilkan 420 dari 844" seolah ada 424 yang tersembunyi.
+      if (request.query.status !== 'semua') hitung = hitung.eq('status', 'active')
       if (request.query.source) hitung = hitung.eq('source', request.query.source)
       if (request.query.edition) {
         const { data: ed } = await request.db!
@@ -468,8 +493,19 @@ export default async function ahspRoutes(app: FastifyInstance) {
     '/api/v1/cecep/assemblies/jumlah',
     { preHandler: [authenticate, requirePermission('cecep:assembly:view')] },
     async (request, reply) => {
+      /*
+        `status='active'` — sama dengan bawaan daftarnya, dan itu WAJIB sama.
+
+        Angka di dropdown dan panjang daftar dibaca BERSEBELAHAN di layar yang
+        sama. Kalau yang satu menghitung `superseded` dan yang lain tidak,
+        pemakainya melihat "Analisa perusahaan (844)" lalu menghitung 420 baris
+        — selisih yang tak bisa ia jelaskan, dan tak ada apa pun di layar yang
+        menerangkannya.
+      */
       const hitung = async (source?: string) => {
-        let q = request.db!.from('assemblies').select('id', { count: 'exact', head: true })
+        let q = request.db!.from('assemblies')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'active')
         if (source) q = q.eq('source', source)
         const { count, error } = await q
         if (error) return null
@@ -1080,12 +1116,39 @@ export default async function ahspRoutes(app: FastifyInstance) {
       }
 
       const ids = [...pakai.keys()]
-      const { data: berharga } = await request.db!
-        .from('price_book_entries')
-        .select('resource_id')
-        .in('resource_id', ids)
-        .eq('status', 'active')
-      const sudah = new Set((berharga ?? []).map((x: { resource_id: string }) => x.resource_id))
+
+      /*
+        Dibaca BERTAHAP — `.in()` pun tunduk pada cap 1.000 PostgREST.
+
+        Ini cacat yang SAMA dengan yang baru saja diperbaiki tepat di atasnya,
+        hanya bergeser satu langkah: pembacaan komponennya sudah di-paging,
+        tetapi pencarian "mana yang sudah berharga" masih satu tembakan.
+        Selama harga masih 83 baris, `.in()` atas ~2.900 id memulangkan
+        semuanya dan tak ada gejala.
+
+        Begitu 2.779 harga diisi (2026-09-16), balasannya terpotong di 1.000:
+        1.779 resource yang SUDAH berharga tetap terhitung BELUM, lalu muncul
+        di daftar prioritas. Terukur lewat test peringkat — rutenya menjawab
+        `AHSP-R0002, AHSP-R0001` sementara kebenarannya `AHSP-R0028` (213
+        analisa). Angka yang keliru itu tetap terlihat masuk akal.
+
+        Dipotong per 200 id, bukan 500: tiap id UUID 36 karakter, dan
+        `.in()` mengirimkannya sebagai daftar di QUERY STRING. 500 id
+        melampaui batas panjang URL PostgREST dan dijawab galat — yang lalu
+        terbaca sebagai 500 dari rutenya. 200 id ≈ 7,4 kB, aman, dan tetap
+        jauh di bawah cap 1.000 baris balasan.
+      */
+      const POTONG_ID = 200
+      const sudah = new Set<string>()
+      for (let i = 0; i < ids.length; i += POTONG_ID) {
+        const { data: berharga, error: errHarga } = await request.db!
+          .from('price_book_entries')
+          .select('resource_id')
+          .in('resource_id', ids.slice(i, i + POTONG_ID))
+          .eq('status', 'active')
+        if (errHarga) return reply.status(500).send({ error: errHarga.message })
+        for (const x of (berharga ?? []) as Array<{ resource_id: string }>) sudah.add(x.resource_id)
+      }
 
       const daftar = [...pakai.values()]
         .filter((x) => !sudah.has(x.r.id))
