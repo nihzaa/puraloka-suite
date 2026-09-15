@@ -29,6 +29,43 @@ vi.mock('@/lib/api', () => ({
 
 const { ModalTagihanCo } = await import('./tagihan-co')
 
+/*
+  PILIH DARI COMBOBOX — bukan `selectOptions`.
+
+  ⚠ Ditulis 2026-09-15 mengganti `orang.selectOptions(...)`, dan alasannya
+  perlu diketahui sebelum seseorang mengembalikannya.
+
+  `<select>` di layar ini sudah diganti komponen `Pilihan` (236 dropdown,
+  commit e8251c35) supaya daftar panjang bisa DICARI — pemilih analisa
+  Komposer memuat 3.040 pilihan, dan elemen bawaan cuma bisa diloncati
+  dengan mengetik huruf awal.
+
+  `selectOptions` HANYA bekerja pada `<select>` sungguhan; terhadap combobox
+  kustom ia gagal dengan `Value "co1" not found in options` — galat yang
+  terbaca seperti DATANYA yang hilang, padahal markup-nya yang berubah.
+
+  Helper ini meniru yang dilakukan pengguna: buka, lalu klik barisnya.
+*/
+async function pilih(orang: ReturnType<typeof userEvent.setup>, label: RegExp, nilaiOpsi: string) {
+  await orang.click(screen.getByLabelText(label))
+  // Dicari lewat NILAI-nya (`data-nilai`), bukan teks yang tampil: teks bisa
+  // berubah saat salinan layar diperbaiki, sedangkan nilai adalah kontrak
+  // yang sama dengan `<option value>` dulu.
+  /*
+    Dicocokkan lewat ISI TEKS `<li role="option">`, bukan `{ name: … }`.
+
+    Diukur, bukan ditebak: `role="option"` ada di `<li>`, sedangkan yang bisa
+    ditekan `<button>` di DALAMNYA — jadi NAMA AKSESIBEL li itu tidak memuat
+    teks opsinya, dan `getByRole('option', { name })` gagal walau opsinya
+    jelas terlihat. Isinya sendiri benar: "CO-003 — T · Rp 45.000.000".
+  */
+  const opsi = (await screen.findAllByRole('option')).find((o) =>
+    new RegExp(nilaiOpsi, 'i').test(o.textContent ?? ''))
+  if (!opsi) throw new Error(`opsi "${nilaiOpsi}" tak ada di daftar combobox`)
+  await orang.click(opsi)
+}
+
+
 const BELUM = {
   id: 'co1', co_number: 'CO-003', title: 'Tambah kolom baja blok B',
   total_amount_delta: 45_000_000, billing_mode: 'separate_co',
@@ -63,7 +100,7 @@ describe('nilai tidak bisa diketik', () => {
     // dirender sesudah ada yang dipilih. Memeriksa sebelum memilih menguji
     // layar yang memang belum menampilkan apa pun — versi pertama uji ini
     // begitu, dan mutasi "nilai jadi kotak isian" lolos hijau karenanya.
-    await orang.selectOptions(screen.getByLabelText(/change order/i), 'co1')
+    await pilih(orang, /change order/i, 'CO-003')
 
     // Kotak yang ada hanya jatuh tempo, PPN, dan catatan. Nilai tagihannya
     // sendiri tak punya isian — itulah pagarnya.
@@ -76,7 +113,7 @@ describe('nilai tidak bisa diketik', () => {
     render(<ModalTagihanCo onClose={() => {}} onSukses={() => {}} />)
     await waitFor(() => expect(screen.getByLabelText(/change order/i)).toBeTruthy())
 
-    await orang.selectOptions(screen.getByLabelText(/change order/i), 'co1')
+    await pilih(orang, /change order/i, 'CO-003')
 
     expect(screen.getByText(/tak bisa diubah di sini/i)).toBeTruthy()
     expect(screen.getByText(/Gedung Serbaguna/)).toBeTruthy()
@@ -87,7 +124,7 @@ describe('nilai tidak bisa diketik', () => {
     render(<ModalTagihanCo onClose={() => {}} onSukses={() => {}} />)
     await waitFor(() => expect(screen.getByLabelText(/change order/i)).toBeTruthy())
 
-    await orang.selectOptions(screen.getByLabelText(/change order/i), 'co1')
+    await pilih(orang, /change order/i, 'CO-003')
     await orang.type(screen.getByLabelText(/jatuh tempo/i), '2026-12-31')
     await orang.click(screen.getByRole('button', { name: /terbitkan tagihan/i }))
 
@@ -108,7 +145,12 @@ describe('yang sudah ditagih tetap terlihat', () => {
   it('tak ditawarkan lagi di pemilih, TAPI terdaftar beserta nomor tagihannya', async () => {
     render(<ModalTagihanCo onClose={() => {}} onSukses={() => {}} />)
 
-    await waitFor(() => expect(screen.getByRole('option', { name: /CO-003/ })).toBeTruthy())
+    // Isi teks, bukan `{ name }` — alasannya di helper `pilih()` di atas:
+    // role="option" ada di <li>, tombolnya di dalamnya, jadi nama aksesibel
+    // li tak memuat teks opsinya.
+    await waitFor(() => expect(
+      screen.getAllByRole('option').some((o) => /CO-003/.test(o.textContent ?? ''))
+    ).toBe(true))
     expect(screen.queryByRole('option', { name: /CO-004/ })).toBeNull()
 
     expect(await screen.findByText(/sudah ditagih \(1\)/i)).toBeTruthy()
@@ -141,7 +183,7 @@ describe('halangan sebelum kirim', () => {
     render(<ModalTagihanCo onClose={() => {}} onSukses={() => {}} />)
     await waitFor(() => expect(screen.getByLabelText(/change order/i)).toBeTruthy())
 
-    await orang.selectOptions(screen.getByLabelText(/change order/i), 'co1')
+    await pilih(orang, /change order/i, 'CO-003')
 
     expect(screen.getByRole('button', { name: /terbitkan tagihan/i })).toBeDisabled()
     expect(screen.getByText(/jatuh tempo wajib diisi/i)).toBeTruthy()
@@ -152,7 +194,7 @@ describe('halangan sebelum kirim', () => {
     render(<ModalTagihanCo onClose={() => {}} onSukses={() => {}} />)
     await waitFor(() => expect(screen.getByLabelText(/change order/i)).toBeTruthy())
 
-    await orang.selectOptions(screen.getByLabelText(/change order/i), 'co1')
+    await pilih(orang, /change order/i, 'CO-003')
     await orang.type(screen.getByLabelText(/jatuh tempo/i), '2026-12-31')
     await orang.type(screen.getByLabelText(/ppn/i), '-5000')
 

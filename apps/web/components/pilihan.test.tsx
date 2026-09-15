@@ -25,7 +25,7 @@ describe("Pilihan", () => {
         ))}
       </Pilihan>,
     );
-    await userEvent.click(screen.getByRole("button", { name: /proyek/i }));
+    await userEvent.click(screen.getByRole("combobox", { name: /proyek/i }));
     expect(screen.getByText("Alfa")).toBeTruthy();
     expect(screen.getByText("Beta")).toBeTruthy();
   });
@@ -39,7 +39,7 @@ describe("Pilihan", () => {
         <option value={r.id}>{r.nama} ({r.status})</option>
       </Pilihan>,
     );
-    await userEvent.click(screen.getByRole("button", { name: /rap/i }));
+    await userEvent.click(screen.getByRole("combobox", { name: /rap/i }));
     expect(screen.getByText("Beta (aktif)")).toBeTruthy();
   });
 
@@ -51,7 +51,7 @@ describe("Pilihan", () => {
         <option value="aktif">Aktif</option>
       </Pilihan>,
     );
-    await userEvent.click(screen.getByRole("button", { name: /status/i }));
+    await userEvent.click(screen.getByRole("combobox", { name: /status/i }));
     await userEvent.click(screen.getByText("Aktif"));
     expect(onChange).toHaveBeenCalledWith({ target: { value: "aktif" } });
   });
@@ -63,7 +63,7 @@ describe("Pilihan", () => {
         {banyak.map((d) => <option key={d.id} value={d.id}>{d.nama}</option>)}
       </Pilihan>,
     );
-    await userEvent.click(screen.getByRole("button", { name: /material/i }));
+    await userEvent.click(screen.getByRole("combobox", { name: /material/i }));
     await userEvent.type(screen.getByLabelText("Cari pilihan"), "Item 7");
     expect(screen.getByText("Item 7")).toBeTruthy();
     expect(screen.queryByText("Item 3")).toBeNull();
@@ -78,7 +78,7 @@ describe("Pilihan", () => {
         <option value="n">Nonaktif</option>
       </Pilihan>,
     );
-    await userEvent.click(screen.getByRole("button", { name: /status/i }));
+    await userEvent.click(screen.getByRole("combobox", { name: /status/i }));
     expect(screen.queryByLabelText("Cari pilihan")).toBeNull();
   });
 
@@ -90,7 +90,7 @@ describe("Pilihan", () => {
         <option value="y">Kedua</option>
       </Pilihan>,
     );
-    const tombol = screen.getByRole("button", { name: /peran/i });
+    const tombol = screen.getByRole("combobox", { name: /peran/i });
     await userEvent.click(tombol);
     await userEvent.keyboard("{ArrowDown}{Enter}");
     expect(onChange).toHaveBeenCalledWith({ target: { value: "y" } });
