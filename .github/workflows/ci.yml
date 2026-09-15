@@ -3666,6 +3666,30 @@ jobs:
       - name: Hex literal (token desain)
         run: node scripts/hex-ratchet.mjs
 
+      # Tipografi — satu-satunya kategori visual bertoken yang TAK PUNYA REM
+      # sampai 2026-09-15. Warna dijaga hex-ratchet, kerapatan dijaga
+      # kerapatan-ratchet, tombol primer dijaga uji-tombol-primer-seragam.
+      # Ukuran huruf tak dijaga apa pun.
+      #
+      # Diukur 2026-09-15 atas 159 page.tsx di app/(dashboard):
+      # 2.271 fontSize DIPAKU di 146 berkas, versus 1.276 yang sudah memakai
+      # var(--teks-*). Jadi tokennya benar, dan separuh halaman tak membacanya.
+      #
+      # RATCHET, bukan nol: menuntut nol berarti mengonversi 2.271 nilai dalam
+      # satu langkah, dan pendekatan borongan itu sudah DITOLAK untuk hex.
+      #
+      # Lantainya menyimpan DAFTAR NAMA + jumlah per berkas, bukan cuma total.
+      # Total saja buta terhadap satu berkas +5 sementara yang lain -5 —
+      # terbukti lewat mutasi: total DATAR 2271→2271, penjaga tetap MERAH dan
+      # menyebut akuntansi/page.tsx: 17 -> 18.
+      #
+      # Komentar & string dibuang sebelum mencocokkan: dua `fontSize` di repo
+      # ini hidup di komentar yang MENJELASKAN aturannya (akuntansi:204,
+      # kepatuhan:534). Menuduhnya akan mengajari orang menghapus dokumentasi
+      # yang berguna — cacat yang sudah dibayar hex-ratchet (48 → 50).
+      - name: Tipografi (fontSize lewat token)
+        run: node scripts/teks-ratchet.mjs
+
       # Deret warna grafik harus bisa dibedakan mata buta warna — dan itu
       # BUKAN klaim yang boleh ditulis tanpa diukur. Komentar lama di
       # globals.css menyatakan deretnya aman deutan/protan; saat akhirnya
@@ -3860,6 +3884,29 @@ jobs:
       # di luar shell dashboard.
       #
       # Terbukti bisa merah: satu tombol dikembalikan ke navy → 5 > 4 → exit 1.
+      #
+      # ── BAGIAN KEDUA ditambahkan 2026-09-15: tombol bergradasi BUATAN TANGAN
+      #
+      # Bagian pertama menjaga tombol yang warnanya SALAH (navy padat), dan
+      # lantainya sudah 0. Ia buta terhadap kebalikannya: tombol yang warnanya
+      # BENAR (var(--grad-aksen)) tapi digambar sendiri alih-alih memakai
+      # <Tombol jenis="utama">. Bagi bagian pertama itu bukan pelanggaran, jadi
+      # lewat tanpa suara.
+      #
+      # Diukur 2026-09-15 atas 159 page.tsx di app/(dashboard): 590 <button>
+      # mentah di 117 berkas, 106 di antaranya bergaya --grad-aksen di 54
+      # berkas, sementara hanya 26 halaman memakai <Tombol>. Mengubah rupa
+      # tombol aksi utama berarti menyunting 106 tempat; yang terlewat jadi
+      # tombol versi lama di sebelah yang baru, di layar yang SAMA.
+      #
+      # Yang hilang bukan cuma rupa: <Tombol> membawa minHeight 38px, target
+      # sentuh untuk mandor & tukang yang menekan sambil bersarung tangan.
+      #
+      # Elemen dicari dengan PENCOCOKAN KURUNG, bukan jendela 14 baris seperti
+      # bagian pertama: dua tombol primer sungguhan (laporan:642,
+      # master/karyawan:166) punya badan atribut lebih panjang dari itu dan
+      # akan lolos — 106 vs 104. Terbukti bisa merah lewat mutasi, termasuk
+      # varian beratribut 21 baris.
       - name: Tombol primer seragam bergradasi
         run: node scripts/uji-tombol-primer-seragam.mjs
 

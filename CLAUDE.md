@@ -940,10 +940,25 @@ terhitung melanggar. Penjaga yang merah atas hal yang benar akan diabaikan
 seluruh keluarannya (§6).
 
 ⚠ Dan jangan memakai main sebagai pembanding untuk menjawab *"apakah ini
-regresi saya?"* — main dan worktree sama-sama `autocrlf=true` tetapi jumlah
-berkas ber-CR-nya BERBEDA (main 198 migrasi, worktree 557). Dua checkout dari
-commit yang SAMA memberi jawaban penjaga yang berbeda, dan main menjawab
-HIJAU. Ukur CR-nya langsung: `tr -cd '\r' < <berkas> | wc -c`.
+regresi saya?"* — main dan worktree sama-sama `autocrlf=true`, tetapi jumlah
+berkas ber-CR-nya BERBEDA. Dua checkout dari commit yang SAMA karena itu
+memberi jawaban penjaga yang berbeda, dan main biasanya menjawab HIJAU.
+
+Ukur sendiri, jangan percaya angka:
+
+```bash
+# berapa berkas migrasi ber-CR di checkout ini
+for f in db/migrations/*.sql; do tr -cd '\r' < "$f" | wc -c; done | grep -vc '^0$'
+
+# satu berkas, berwenang — tanpa pipe, tanpa asumsi bentuk
+tr -cd '\r' < <berkas> | wc -c
+```
+
+⚠ Perbandingan per-berkas pun bisa menipu kalau yang dibandingkan RINGKASAN.
+Diukur 2026-09-15: `lint-ratchet` merah di worktree, hijau di main, dan empat
+berkas yang disebutnya IDENTIK dengan main — kesimpulan "berarti bukan saya"
+SALAH. Yang benar terlihat hanya sesudah dibandingkan PER-BERKAS: ada satu
+berkas tambahan yang memang saya ubah. Bandingkan daftarnya, bukan totalnya.
 
 ⚠ Junction untuk **KETIGA** app, bukan cuma api. `apps/mobile/node_modules`
 yang terlewat membuat `uji-antrean.mjs` gagal `ERR_MODULE_NOT_FOUND` — galat

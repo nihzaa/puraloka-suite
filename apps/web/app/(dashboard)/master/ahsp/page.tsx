@@ -74,17 +74,38 @@ const GRUP_LABEL: Record<string, { huruf: string; judul: string }> = {
  * yang membacanya akan menyimpulkan analisanya rusak lalu menutup modalnya.
  */
 function useKomponenAnalisa(id: string) {
-  const [data, setData] = useState<AsmComponent[] | null>(null);
-  const [galat, setGalat] = useState(false);
+  /*
+    SATU state, bukan dua, dan `untuk` ikut disimpan di dalamnya.
+
+    Versi pertama memakai dua state dan me-reset keduanya di AWAL efek
+    (`setData(null); setGalat(false);`). Itu benar secara perilaku tetapi
+    `react-hooks/set-state-in-effect` menolaknya, dan penolakannya beralasan:
+    setState yang berjalan SINKRON di dalam efek memicu render berantai —
+    render pertama memakai data analisa LAMA, lalu segera dibuang.
+
+    Dengan `untuk` disimpan bersama datanya, keadaan "sedang memuat" bisa
+    DITURUNKAN saat render (`hasil.untuk !== id`) alih-alih ditulis lewat
+    setState. Tak ada reset, tak ada render berantai, dan ketiga keadaan
+    tetap terbedakan — termasuk yang paling penting: larik KOSONG karena
+    masih memuat TIDAK terlihat sama dengan analisa yang memang tak punya
+    komponen.
+  */
+  const [hasil, setHasil] = useState<{
+    untuk: string; data: AsmComponent[] | null; galat: boolean;
+  }>({ untuk: '', data: null, galat: false });
+
   useEffect(() => {
     let batal = false;
-    setData(null); setGalat(false);
     api.get<{ data: AsmComponent[] }>(`/api/v1/cecep/assemblies/${id}/komponen`)
-      .then(r => { if (!batal) setData(r.data.data ?? []); })
-      .catch(() => { if (!batal) setGalat(true); });
+      .then(r => { if (!batal) setHasil({ untuk: id, data: r.data.data ?? [], galat: false }); })
+      .catch(() => { if (!batal) setHasil({ untuk: id, data: null, galat: true }); });
     return () => { batal = true; };
   }, [id]);
-  return { data, galat };
+
+  // Selama `untuk` belum sama dengan `id`, yang ada di tangan masih milik
+  // analisa sebelumnya — perlakukan sebagai BELUM DATANG, bukan kosong.
+  const siap = hasil.untuk === id;
+  return { data: siap ? hasil.data : null, galat: siap && hasil.galat };
 }
 
 /**

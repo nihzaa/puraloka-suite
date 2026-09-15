@@ -89,20 +89,72 @@ export default async function auditRoutes(app: FastifyInstance) {
     })
   })
 
-  // GET /api/v1/audit/tables — distinct table names + action types untuk filter dropdown
+  // GET /api/v1/audit/meta — distinct table names + action types untuk filter dropdown
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // KENAPA INI SEBUAH RPC, DAN BUKAN DUA `select()` YANG DI-`Set`-KAN
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Versi sampai 2026-09-15 menyusun daftarnya begini:
+  //
+  //     supabase.from('audit_logs').select('table_name')
+  //       .eq('company_id', cid).order('table_name')          ← tanpa .limit()
+  //     ...
+  //     const tables = [...new Set(data.map(r => r.table_name))]
+  //
+  // Tiap barisnya benar sendiri. Yang salah gabungannya: PostgREST memulangkan
+  // **maksimal 1.000 baris** — batas keras, ditegakkan server, dan pemotongannya
+  // TIDAK mengeluarkan galat. `data` terisi, `error` null, `new Set` berjalan
+  // mulus atas seribu baris.
+  //
+  // `.order('table_name')` memperparahnya sampai ke titik yang menyesatkan:
+  // seribu baris itu bukan sampel acak melainkan seluruhnya milik tabel-tabel
+  // yang MENANG ALFABETIS. Jadi yang ter-`Set` cuma beberapa nama pertama.
+  //
+  // Diukur di basis dev 2026-09-15 (tenant 48befb54…, 102.089 baris):
+  //
+  //     DISTINCT table_name yang sebenarnya ada  :  95
+  //     yang terlihat rute lama                  :   3
+  //
+  // Seorang auditor membuka dropdown, melihat TIGA tabel, dan menyimpulkan tak
+  // ada modul lain yang pernah terjejak. Tak ada galat, tak ada penanda
+  // pemotongan, dan tak ada cara dari layar untuk membedakannya dari kebenaran.
+  //
+  // ── Kenapa menaikkan `.limit()` BUKAN perbaikan
+  //
+  // Batas 1.000 itu milik SERVER (`db-max-rows` PostgREST). `.limit(50000)`
+  // tetap memulangkan 1.000 baris — dan lebih buruk daripada tak menulis apa
+  // pun, karena angka besar di kode membuat pembaca berikutnya yakin masalahnya
+  // sudah ditangani. Itu persis kelas yang dijaga
+  // `audit-cacah-di-atas-baca-terpotong.mjs`.
+  //
+  // Yang benar: minta BASIS yang menyusun himpunan distinct-nya. Yang melewati
+  // kabel lalu bukan 102 ribu baris melainkan ~224 nilai — tak ada yang bisa
+  // terpotong, dan ongkosnya turun, bukan naik.
+  //
+  // ── Tenancy
+  //
+  // Sama seperti handler daftar di atas: `audit_logs` kategori D, `company_id`
+  // diisi saat TULIS dan tak pernah lewat join, jadi di-scope EKSPLISIT lewat
+  // parameter RPC. Fungsinya `SECURITY INVOKER` — ia tak menaikkan hak siapa
+  // pun, jadi penyaringan tenant tetap kewajiban baris ini (migrasi 589).
   app.get('/api/v1/audit/meta', {
     preHandler: [authenticate, requirePermission('audit:view')]
   }, async (request, reply) => {
-    // Dropdown filter pun di-scope: daftar tabel/aksi milik tenant lain
-    // membocorkan modul apa yang mereka pakai.
     const cid = request.companyId!
-    const [tablesRes, actionsRes] = await Promise.all([
-      supabase.from('audit_logs').select('table_name').eq('company_id', cid).order('table_name'),
-      supabase.from('audit_logs').select('action').eq('company_id', cid).order('action'),
-    ])
 
-    const tables  = [...new Set((tablesRes.data ?? []).map((r: any) => r.table_name))].filter(Boolean)
-    const actions = [...new Set((actionsRes.data ?? []).map((r: any) => r.action))].filter(Boolean)
+    const { data, error } = await supabase.rpc('audit_saringan_tersedia', {
+      p_company_id: cid,
+    })
+
+    // Galat TIDAK ditelan diam-diam. Membalas `{tables:[],actions:[]}` saat RPC
+    // gagal akan menghasilkan dropdown kosong — yang terbaca persis seperti
+    // "tenant ini belum punya jejak audit", kesimpulan yang salah dan menenangkan.
+    if (error) return reply.status(500).send({ error: error.message })
+
+    const baris = (data ?? []) as { kolom: string; nilai: string }[]
+    const tables  = baris.filter((r) => r.kolom === 'table_name').map((r) => r.nilai).sort()
+    const actions = baris.filter((r) => r.kolom === 'action').map((r) => r.nilai).sort()
 
     return reply.send({ tables, actions })
   })
