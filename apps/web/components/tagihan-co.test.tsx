@@ -59,10 +59,20 @@ async function pilih(orang: ReturnType<typeof userEvent.setup>, label: RegExp, n
     teks opsinya, dan `getByRole('option', { name })` gagal walau opsinya
     jelas terlihat. Isinya sendiri benar: "CO-003 — T · Rp 45.000.000".
   */
-  const opsi = (await screen.findAllByRole('option')).find((o) =>
+  const li = (await screen.findAllByRole('option')).find((o) =>
     new RegExp(nilaiOpsi, 'i').test(o.textContent ?? ''))
-  if (!opsi) throw new Error(`opsi "${nilaiOpsi}" tak ada di daftar combobox`)
-  await orang.click(opsi)
+  if (!li) throw new Error(`opsi "${nilaiOpsi}" tak ada di daftar combobox`)
+  /*
+    Yang DIKLIK <button> DI DALAM <li>, bukan li-nya.
+
+    Diukur, dan ini jebakan yang sempat memakan tiga tebakan saya: `role="option"`
+    ada di `<li>`, sedangkan `onClick` yang benar-benar memilih ada di `<button>`
+    anaknya (`pilihan.tsx` — `onClick={() => pilih(o.value)}`). Mengklik li-nya
+    TIDAK menghasilkan galat apa pun; ia hanya tak melakukan apa-apa, lalu
+    assertion berikutnya gagal dengan "Unable to find text …" — galat yang
+    menuduh KOMPONEN, padahal pilihannya memang tak pernah terjadi.
+  */
+  await orang.click(li.querySelector('button') ?? li)
 }
 
 
@@ -143,16 +153,35 @@ describe('nilai tidak bisa diketik', () => {
 
 describe('yang sudah ditagih tetap terlihat', () => {
   it('tak ditawarkan lagi di pemilih, TAPI terdaftar beserta nomor tagihannya', async () => {
+    const orang = userEvent.setup()
     render(<ModalTagihanCo onClose={() => {}} onSukses={() => {}} />)
 
-    // Isi teks, bukan `{ name }` — alasannya di helper `pilih()` di atas:
-    // role="option" ada di <li>, tombolnya di dalamnya, jadi nama aksesibel
-    // li tak memuat teks opsinya.
-    await waitFor(() => expect(
-      screen.getAllByRole('option').some((o) => /CO-003/.test(o.textContent ?? ''))
-    ).toBe(true))
-    expect(screen.queryByRole('option', { name: /CO-004/ })).toBeNull()
+    /*
+      ⚠ Daftarnya DIBUKA dulu — ditambahkan 2026-09-15, dan invariannya TIDAK
+      diubah, hanya caranya.
 
+      Versi lama membaca `getAllByRole('option')` tanpa membuka apa pun. Itu
+      sah saat pemilihnya `<select>`: seluruh `<option>` selalu ada di DOM
+      walau tak terlihat. Sejak diganti komponen `Pilihan` (combobox yang
+      bisa dicari), daftarnya baru DIRAKIT saat dibuka — jadi query itu
+      gagal "Unable to find role=option", galat yang terbaca seperti opsinya
+      HILANG.
+
+      Yang dijaga tetap sama persis, dan ia inti seluruh modul ini: CO yang
+      SUDAH ditagih tak boleh ditawarkan lagi (CO-004 nihil di pemilih),
+      tetapi HARUS tetap terlihat di daftar bawah beserta nomor tagihannya —
+      CO yang lenyap akan dicari orang, tak ketemu, lalu ditagih lewat jalur
+      lain. Itu persis tagihan ganda yang modul ini cegah.
+    */
+    await waitFor(() => expect(screen.getByLabelText(/change order/i)).toBeTruthy())
+    await orang.click(screen.getByLabelText(/change order/i))
+
+    const opsi = await screen.findAllByRole('option')
+    const teks = opsi.map((o) => o.textContent ?? '')
+    expect(teks.some((t) => /CO-003/.test(t))).toBe(true)   // belum ditagih → ditawarkan
+    expect(teks.some((t) => /CO-004/.test(t))).toBe(false)  // sudah ditagih → TIDAK
+
+    // Dan yang sudah ditagih tetap TERLIHAT — di daftar bawah, bukan pemilih.
     expect(await screen.findByText(/sudah ditagih \(1\)/i)).toBeTruthy()
     expect(screen.getByText('INV/2026/06/011')).toBeTruthy()
   })

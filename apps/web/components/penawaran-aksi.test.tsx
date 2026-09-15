@@ -2,6 +2,31 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
+/*
+  PILIH DARI COMBOBOX — bukan `selectOptions`.
+
+  `<select>` di layar ini sudah diganti komponen `Pilihan` (commit e8251c35)
+  supaya daftar panjang bisa dicari. `selectOptions` hanya bekerja pada
+  `<select>` sungguhan; terhadap combobox kustom ia gagal dengan
+  `Value "terkirim" not found in options` — galat yang terbaca seperti
+  NILAINYA hilang, padahal markup-nya yang berubah.
+
+  Dua kehalusan yang masing-masing sempat memakan satu tebakan:
+    · `role="option"` ada di `<li>`, tetapi `onClick` yang memilih ada di
+      `<button>` DI DALAMNYA — mengklik li tak berbuat apa-apa dan tak
+      mengeluarkan galat;
+    · nama aksesibel li tak memuat teks opsinya, jadi `{ name: … }` gagal.
+      Karena itu dicocokkan lewat ISI TEKS.
+*/
+async function pilih(orang: ReturnType<typeof userEvent.setup>, label: RegExp, teksOpsi: string) {
+  await orang.click(screen.getByLabelText(label))
+  const li = (await screen.findAllByRole('option')).find((o) =>
+    new RegExp(teksOpsi, 'i').test(o.textContent ?? ''))
+  if (!li) throw new Error(`opsi "${teksOpsi}" tak ada di daftar combobox`)
+  await orang.click(li.querySelector('button') ?? li)
+}
+
+
 // ═══════════════════════════════════════════════════════════════════════════
 // DOKUMEN PENAWARAN — sisi layar
 //
@@ -180,7 +205,7 @@ describe('status', () => {
     const orang = userEvent.setup()
     render(<ModalStatusPenawaran penawaran={SURAT} onClose={() => {}} onSukses={() => {}} />)
 
-    await orang.selectOptions(screen.getByLabelText(/^status$/i), 'terkirim')
+    await pilih(orang, /^status$/i, 'Terkirim')
     expect(screen.getByText(/rinciannya terkunci/i)).toBeTruthy()
   })
 
@@ -193,7 +218,7 @@ describe('status', () => {
     const orang = userEvent.setup()
     render(<ModalStatusPenawaran penawaran={SURAT} onClose={() => {}} onSukses={() => {}} />)
 
-    await orang.selectOptions(screen.getByLabelText(/^status$/i), 'menang')
+    await pilih(orang, /^status$/i, 'Menang')
     await orang.click(screen.getByRole('button', { name: /simpan status/i }))
 
     await waitFor(() => expect(patch).toHaveBeenCalled())
