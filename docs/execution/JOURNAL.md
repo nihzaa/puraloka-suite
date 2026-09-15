@@ -5,6 +5,99 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-16 (lanjutan 2) — PR #151, dan penyapu yang buta DUA kali
+
+Founder: *"lanjutkaann"*.
+
+### Merge main → cabang, lalu PR
+
+`main` sudah bergerak 8 commit sejak percabangan, termasuk **perbaikan
+keamanan kritis Next.js 16.2.12 → 16.3.3 (RCE tanpa autentikasi)**. Di-merge
+lebih dulu, bukan di-rebase: 17 commit lebih aman digabung sekali.
+
+Hanya `ci.yml` yang beririsan, dan merge-nya bersih — nol konflik.
+
+Sesudah merge: **256 penjaga hijau**, tsc api+web exit 0, 51 test lulus.
+PR #151 dibuka.
+
+### CI merah, dan penyapu yang buta DUA kali
+
+Keenam shard API merah:
+
+```
+❌ 12 (company × jenis) tanpa rantai approval:
+   ZZISO308548 Tenant B — back_charge
+   … 11 jenis lagi
+```
+
+Rantainya tak pernah kurang. Yang tertinggal COMPANY-nya — tenant uji mati
+yang masih `is_active`, sisa run yang berhenti sebelum `afterAll`.
+`audit-rantai-approval-lengkap.mjs` (migrasi 580) adalah penjaga BARU, dan PR
+ini jalan CI pertamanya — jadi tak ada baseline `main` untuk dibandingkan.
+
+**Perbaikan pertama: menambah pola nama.** `search-tenant-isolation.test.ts`
+menamai tenantnya `ZZISO<acak>`, di luar pola `[UJI-` yang dikenali penyapu.
+Diuji mutasi, merah → hijau, di-push.
+
+**Masih merah, tenant yang SAMA.** Dan penyapunya melapor `dinonaktifkan: 0`
+sementara penjaga langsung mengeluh. Keduanya jujur.
+
+Sebabnya syarat KEDUA: `owner_user_id IS NULL`. Test itu **sengaja** mengisi
+pemiliknya, dan alasannya tertulis di berkasnya sendiri — tanpa pemilik ia
+jadi "akar grup yatim" yang memerahkan `t9-kelola-badan-usaha`.
+
+Jadi residunya BERPEMILIK, dan syarat yang melindungi satu pola justru
+membutakan penyapu terhadap pola lain.
+
+Digantikan syarat khusus: `code = 'iso-test-b'` — kode yang DIPAKU di fixture
+(baris 135), bukan acak seperti namanya.
+
+**Bukti tiga arah, dengan bentuk PERSIS seperti di CI:**
+
+```
+v1 asli (UJI + yatim)     : 0  ← buta
+v2 tambah pola ZZISO      : 0  ← MASIH buta (residunya berpemilik)
+v3 + syarat kode dipaku   : 1  ← ketemu
+```
+
+v2 adalah perbaikan saya sendiri satu commit sebelumnya. Ia perlu tetapi
+tidak cukup — dan hanya mutasi berbentuk NYATA yang memperlihatkannya.
+Menyuntik tenant TANPA pemilik akan membuat v2 terlihat berhasil.
+
+⚠ Backtick DILARANG di komentar SQL berkas itu: isi query-nya template
+literal JS, dan backtick menutupnya di tengah SQL. Versi pertama saya
+memakainya dan berkasnya gagal parse.
+
+### `Keamanan — dependency audit` merah, dan itu BUKAN dari PR ini
+
+Diukur dengan perintah yang SAMA dengan CI:
+
+```
+cabang ini : 25 vulnerabilities · 8 moderate | 17 high (5 ignored)
+main       : 25 vulnerabilities · 8 moderate | 17 high (5 ignored)   ← IDENTIK
+```
+
+Tiga jalan `ci.yml` terakhir di `main` sendiri sudah **failure** sebelum PR
+ini ada. Dua terbesar transitif lewat `next` dan `expo` (`sharp <0.35.4`,
+`@xmldom/xmldom` 100 jalur) — menaikkannya menyentuh rantai Expo SDK, dan
+CLAUDE.md §7a mencatat mahalnya (sebelas build APK gagal).
+
+**Sengaja tak dikerjakan di sini**: menumpangkan upgrade lintas-Expo pada PR
+berisi pemulihan data + perbaikan uang membuat keduanya tak bisa di-review
+terpisah. Dicatat sebagai komentar PR, layak jadi PR sendiri.
+
+### Keadaan
+
+```
+PR #151     https://github.com/nihzaa/puraloka-suite/pull/151
+lulus       Web · Browser · Situs publik · Dokumentasi
+merah       Keamanan (pre-existing, terukur identik dengan main)
+berjalan    6 shard API — 197 dari 204 langkah lulus, kini di fase test
+```
+
+---
+
+
 ## 2026-09-16 (lanjutan) — katalog PULIH, dan pemulihannya melahirkan tiga cacat
 
 Founder: *"lanjutkann"*.
