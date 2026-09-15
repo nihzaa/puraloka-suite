@@ -114,27 +114,26 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_company_action
 -- `audit_logs` — persis kebocoran lintas-tenant yang komentar di `audit.ts`
 -- peringatkan, hanya lewat pintu yang lebih sulit dilihat.
 -- ------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.audit_saringan_tersedia(p_company_id UUID)
+CREATE OR REPLACE FUNCTION audit_saringan_tersedia(p_company_id UUID)
 RETURNS TABLE (kolom TEXT, nilai TEXT)
 LANGUAGE sql
 STABLE
 SECURITY INVOKER
-SET search_path = public
 AS $fn$
   SELECT 'table_name'::TEXT, a.table_name::TEXT
-    FROM public.audit_logs a
+    FROM audit_logs a
    WHERE a.company_id = p_company_id
      AND a.table_name IS NOT NULL
    GROUP BY a.table_name
   UNION ALL
   SELECT 'action'::TEXT, a.action::TEXT
-    FROM public.audit_logs a
+    FROM audit_logs a
    WHERE a.company_id = p_company_id
      AND a.action IS NOT NULL
    GROUP BY a.action
 $fn$;
 
-COMMENT ON FUNCTION public.audit_saringan_tersedia(UUID) IS
+COMMENT ON FUNCTION audit_saringan_tersedia(UUID) IS
   'Nilai DISTINCT table_name + action milik satu tenant, untuk dropdown '
   'saringan GET /api/v1/audit/meta. Ada supaya daftarnya tidak disusun dengan '
   'menarik baris ke JS — cara itu terpotong diam-diam di 1.000 baris PostgREST '
