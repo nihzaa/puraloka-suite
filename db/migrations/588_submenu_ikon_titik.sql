@@ -1,5 +1,5 @@
 -- ============================================================================
--- 582 — SEPULUH sub-menu memakai ikon sendiri; tujuh di antaranya ikon SALAH
+-- 588 — SEPULUH sub-menu memakai ikon sendiri; tujuh di antaranya ikon SALAH
 -- ============================================================================
 --
 -- ── Aturan yang dilanggar
@@ -91,7 +91,7 @@ BEGIN
      AND icon IS DISTINCT FROM 'Dot';
 
   IF n_anak_beda > 0 THEN
-    RAISE EXCEPTION '582 gagal: % sub-menu aktif masih berikon sendiri', n_anak_beda;
+    RAISE EXCEPTION '588 gagal: % sub-menu aktif masih berikon sendiri', n_anak_beda;
   END IF;
 
   /* 2. Induk TIDAK boleh ikut tersapu — ikon grup adalah satu-satunya
@@ -103,7 +103,7 @@ BEGIN
 
   IF n_induk_titik > 0 THEN
     RAISE EXCEPTION
-      '582 gagal: % menu INDUK kehilangan ikonnya — migrasi ini menyapu '
+      '588 gagal: % menu INDUK kehilangan ikonnya — migrasi ini menyapu '
       'terlalu jauh.', n_induk_titik;
   END IF;
 
@@ -113,9 +113,9 @@ BEGIN
     FROM public.menu_items WHERE parent_id IS NULL AND is_active;
 
   IF n_induk = 0 THEN
-    RAISE EXCEPTION '582 gagal: nol menu induk aktif — verifikasi (2) hampa';
+    RAISE EXCEPTION '588 gagal: nol menu induk aktif — verifikasi (2) hampa';
   END IF;
 
   RAISE NOTICE
-    '582 OK — sub-menu aktif seragam `Dot`, % induk aktif tetap berikon', n_induk;
+    '588 OK — sub-menu aktif seragam `Dot`, % induk aktif tetap berikon', n_induk;
 END $$;
