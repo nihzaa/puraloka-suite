@@ -55,6 +55,35 @@ BEGIN
     RETURN;
   END IF;
 
+  /*
+    RLS DINYALAKAN DI SINI — ditambahkan 2026-09-15, dan ketiadaannya adalah
+    cacat kedua saya dengan bentuk yang SAMA PERSIS seperti migrasi 579.
+
+    Migrasi 580 membuat tabel ini tanpa `ENABLE ROW LEVEL SECURITY`, dan 581
+    (versi pertama) hanya memasang policy. Di dev tabelnya ber-RLS — entah
+    dinyalakan tangan atau oleh jalur lain — jadi keduanya terlihat benar dan
+    `t5a0-policy-dasar` hijau.
+
+    Di basis BERSIH, replay 580+581 meninggalkan tabel **RLS MATI dengan dua
+    policy yang tak berlaku apa-apa**, dan tripwire F2-6 memerahkan SELURUH
+    ENAM SHARD:
+
+        ❌ 1 tabel dengan RLS MATI.
+           Itu Ember [C] — RLS aktif/mati tidak boleh dikonfigurasi.
+
+    Policy tanpa RLS lebih buruk daripada tak ada policy: ia TERBACA seperti
+    perlindungan yang terpasang. Siapa pun yang memeriksa `pg_policies`
+    melihat dua baris dan menyimpulkan tabelnya berpagar.
+
+    Pelajaran yang sama dengan 579, dua kali dalam satu sesi: **satu
+    lingkungan bukan bukti.** Yang saya lakukan — menjalankan migrasi ke dev,
+    melihat NOTICE-nya, lalu menyatakannya selesai — tak pernah menguji
+    keadaan yang dihadapi basis baru.
+
+    Idempoten: `ENABLE` atas tabel yang sudah ber-RLS adalah no-op.
+  */
+  ALTER TABLE public.approval_chain_template ENABLE ROW LEVEL SECURITY;
+
   DROP POLICY IF EXISTS approval_chain_template_read  ON public.approval_chain_template;
   DROP POLICY IF EXISTS approval_chain_template_write ON public.approval_chain_template;
 
@@ -89,6 +118,15 @@ BEGIN
   IF n_policy = 0 THEN
     RAISE EXCEPTION '581 gagal: approval_chain_template MASIH nol policy — '
       'himpunan permissive kosong bernilai FALSE, tabelnya tak terbaca siapa pun';
+  END IF;
+
+  -- RLS MATI + policy ADA = perlindungan yang cuma terlihat terpasang.
+  -- Dituntut eksplisit supaya cacat yang memerahkan enam shard tak kambuh.
+  IF NOT (SELECT relrowsecurity FROM pg_class
+           WHERE oid = 'public.approval_chain_template'::regclass) THEN
+    RAISE EXCEPTION
+      '581 gagal: RLS MATI di approval_chain_template — policy-nya tak berlaku '
+      'apa-apa, dan tabelnya TERBACA seperti berpagar (Ember [C])';
   END IF;
 
   SELECT count(*) INTO n_baca
