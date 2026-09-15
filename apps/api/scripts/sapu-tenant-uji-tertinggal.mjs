@@ -54,8 +54,43 @@
  */
 import { buatClient } from '../../../scripts/db/_koneksi.mjs'
 
+/*
+  ⚠ Prasyarat diperiksa DI DEPAN, dan ini bukan kerapian.
+
+  Jalan pertamanya di CI mati `exit 2` **tanpa satu baris keluaran** — sebab
+  langkahnya dipasang tanpa `env: DIRECT_URL`, dan skripnya jatuh sebelum
+  sempat mencetak apa pun. Yang terlihat cuma kode keluar, dan itu terbaca
+  seperti SKRIPNYA rusak, bukan seperti prasyaratnya kurang.
+
+  Kelas yang sama dengan jebakan pemantau EAS di CLAUDE.md §7: nol keluaran
+  bukan bukti ketiadaan. Sekarang ia menyebut apa yang kurang.
+*/
+/*
+  ⚠ Koneksi dibungkus try/catch yang MENYEBUT prasyaratnya.
+
+  Jalan pertamanya di CI mati `exit 2` **tanpa satu baris keluaran** — sebab
+  langkahnya dipasang tanpa `env: DIRECT_URL`, dan skripnya jatuh sebelum
+  sempat mencetak apa pun. Yang terlihat cuma kode keluar, dan itu terbaca
+  seperti SKRIPNYA rusak, bukan seperti prasyaratnya kurang.
+
+  Kelas yang sama dengan jebakan pemantau EAS di CLAUDE.md §7: nol keluaran
+  bukan bukti ketiadaan.
+
+  ⚠ TIDAK memeriksa `process.env` sendiri: di mesin lokal kredensialnya datang
+  dari `apps/api/.env` lewat `_koneksi.mjs`, bukan dari environment. Versi
+  pertama saya memeriksanya begitu dan MENOLAK JALAN di lokal — penjaga yang
+  merah atas keadaan yang benar.
+*/
 const c = buatClient()
-await c.connect()
+try {
+  await c.connect()
+} catch (e) {
+  console.error('❌ sapu-tenant-uji-tertinggal: tak bisa menyambung ke basis.')
+  console.error(`   ${e.message}`)
+  console.error('   Di CI, langkah ini WAJIB punya env DIRECT_URL (rahasia CI_DIRECT_URL).')
+  process.exit(1)
+}
+
 
 try {
   const { rows } = await c.query(`
