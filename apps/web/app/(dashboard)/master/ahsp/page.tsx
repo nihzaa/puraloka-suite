@@ -578,6 +578,47 @@ function RincianAnalisa({ d }: { d: HspLive }) {
 
   return (
     <div>
+      {/*
+        Analisa yang KOSONG dikatakan dengan kata — bukan dibiarkan jadi tabel
+        kosong tanpa kaki.
+
+        `hsp_partial` hanya menyala bila ada komponen yang SEBAGIAN harganya
+        kurang. Analisa yang komponennya NOL memberi `hsp_partial: false`,
+        `missing_prices: []`, dan `result: null` — jadi tak satu pun peringatan
+        muncul, tabelnya kosong, dan kakinya (D. Jumlah, BUK, HSP) hilang tanpa
+        sebab yang terlihat.
+
+        Terukur 2026-09-16: 127 analisa nasional AKTIF berada dalam keadaan ini
+        — komponennya menunjuk resource yang sudah tak ada, sisa penghapusan
+        `resources` 2026-09-05. Nama-namanya justru yang lazim dipakai
+        ("Pembuatan 1 m' pagar sementara", "direksi keet"), jadi estimator
+        wajar memilihnya, mendapat layar kosong, dan menyimpulkan sistemnya
+        rusak — atau lebih buruk: memakainya di RAB dan mendapat Rp 0.
+
+        R-014 mencatat ke-127 itu TAK bisa dipulihkan: nol di antaranya ada di
+        dataset SE-47, jadi tak ada sumber untuk menulis ulang komponennya.
+        Yang bisa dilakukan sekarang MENGATAKANNYA — layar kosong yang
+        menjelaskan dirinya lebih baik daripada layar kosong yang diam.
+      */}
+      {d.components.length === 0 && (
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "8px 12px",
+                      background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 6,
+                      marginBottom: 12 }}>
+          <CircleOff size={14} color={C.red} style={{ flexShrink: 0, marginTop: 1 }} />
+          {/* `--teks-label` (12px), bukan angka dipaku — `teks-ratchet` merah
+              atas tambahan saya sendiri, dan tokennya memang sudah ada. */}
+          <span style={{ fontSize: "var(--teks-label)", color: C.text, lineHeight: 1.5 }}>
+            Analisa ini <strong>tidak punya rincian komponen</strong>, jadi HSP-nya
+            tak bisa dihitung — bukan Rp 0, melainkan belum ada datanya.
+            <br />
+            <span style={{ color: C.mid }}>
+              Jangan dipakai di RAB sampai rinciannya diisi. Pilih analisa lain
+              yang setara, atau buat versi perusahaan lewat tombol Ubah.
+            </span>
+          </span>
+        </div>
+      )}
+
       {d.hsp_partial && (
         <div style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "8px 12px",
                       background: C.yellowBg, border: `1px solid ${C.yellow}`, borderRadius: 6,
