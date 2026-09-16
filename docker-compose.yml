@@ -53,6 +53,18 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
+      # ⚠ WIB, bukan UTC — ini menentukan TANGGAL TRANSAKSI, bukan tampilan.
+      #
+      # Sudah disetel di `apps/api/Dockerfile` (bersama `tzdata`); diulang di
+      # sini supaya `docker compose up` dengan image yang di-build di tempat
+      # lain tetap benar, dan supaya siapa pun yang membaca compose ini tahu
+      # zona waktunya keputusan, bukan bawaan.
+      #
+      # `node:22-alpine` = UTC. Antara 00:00–07:00 WIB, tanggal UTC masih
+      # HARI KEMARIN — dan `paid_at` (pembayaran termin mandor) serta
+      # `settled_at` (penyelesaian borongan) tak punya cadangan dari klien,
+      # jadi UTC satu-satunya sumbernya.
+      TZ: Asia/Jakarta
       # ⚠ WAJIB `0.0.0.0` DI DALAM CONTAINER.
       #
       # `index.ts` memakai `process.env.HOST ?? '127.0.0.1'` — bawaan yang

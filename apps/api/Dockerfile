@@ -77,6 +77,30 @@ WORKDIR /app
 # butuh 10 detik untuk mati di tiap deploy, dan koneksi berjalan diputus paksa.
 RUN apk add --no-cache tini
 
+# tzdata + TZ: WAJIB, dan ketiadaannya menggeser TANGGAL UANG.
+#
+# `node:22-alpine` berjalan di UTC dan Alpine tak memuat basis zona waktu sama
+# sekali. Tanpa keduanya, `new Date().toISOString().split('T')[0]` — dipakai
+# 140 tempat di `apps/api/src` — memulangkan tanggal UTC, yang antara
+# 00:00–07:00 WIB masih HARI KEMARIN.
+#
+# Yang tergeser bukan tampilan melainkan TANGGAL TRANSAKSI. Dua di antaranya
+# tak punya cadangan dari klien sama sekali, jadi UTC satu-satunya sumber:
+#
+#     mandor.ts  paid_at     pembayaran termin mandor
+#     mandor.ts  settled_at  penyelesaian borongan
+#
+# Terbukti sudah terjadi di basis: tiga kasbon dibuat pukul 01:25 WIB
+# tercatat bertanggal SEHARI SEBELUMNYA. Laporan arus kas mengelompokkan per
+# BULAN dari `paid_at`, jadi pembayaran pukul 01:00 WIB tanggal 1 masuk ember
+# bulan sebelumnya — totalnya tetap benar, batang bulanannya yang salah, dan
+# tak ada satu pun galat.
+#
+# `tzdata` dipasang sebab `TZ=Asia/Jakarta` TANPA basis zonanya diam-diam
+# jatuh kembali ke UTC — setelan yang terlihat terpasang dan tak berpengaruh.
+RUN apk add --no-cache tzdata
+ENV TZ=Asia/Jakarta
+
 ENV NODE_ENV=production
 
 # Non-root. Nomor UID dipaku supaya kepemilikan berkas tak berubah antar build.
