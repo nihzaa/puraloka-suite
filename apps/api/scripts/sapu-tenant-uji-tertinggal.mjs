@@ -199,12 +199,34 @@ try {
     memberikannya, tempatnya mengubah penjaga itu (keputusan sadar, tercatat),
     bukan membiarkan penyapu dan penjaga berselisih diam-diam.
   */
+  /*
+    ⚠ HANYA hibah yang BERUMUR — `granted_at < now() - 2 jam`.
+
+    Versi pertama menyapu tanpa batas umur, dan itu MERUSAK test yang sah.
+    Enam shard CI berbagi SATU basis: `mitra.test.ts` memberikan izinnya lalu
+    membacanya balik lewat `get_role_permissions()`, dan penyapu shard LAIN
+    bisa menghapusnya di antara dua langkah itu. Gejalanya:
+
+        Error: prasyarat gagal: hibah `mitra:daftar_hitam` tak terbaca
+               `get_role_permissions(admin)`
+
+    Testnya BENAR dan penyapunya yang salah waktu — persis kelas cacat yang
+    CLAUDE.md §8a.1 peringatkan tentang perintah yang menyapu di checkout
+    bersama: "kerusakannya baru terlihat dari gejala yang menunjuk ke tempat
+    lain".
+
+    Dua jam memisahkan dua hal yang tak bisa dibedakan tanpa waktu: hibah
+    yang SEDANG dipakai run ini (selalu baru), dan residu dari run yang mati
+    sebelum `afterAll` (selalu dari jalan sebelumnya). Tak ada run CI yang
+    berjalan dua jam — diukur: shard terlama 25m52s.
+  */
   const { rows: izin } = await c.query(`
     DELETE FROM role_permissions rp
      USING permissions p, roles r
      WHERE rp.permission_id = p.id
        AND r.id = rp.role_id
        AND p.key IN ('mitra:daftar_hitam', 'approval:override_sod')
+       AND rp.granted_at < now() - interval '2 hours'
     RETURNING r.name AS peran, p.key`)
 
   console.log(`\n  hibah izin residu dicabut : ${izin.length}`)
