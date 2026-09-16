@@ -144,6 +144,36 @@ async function main() {
       const cocok = viaRumus.get(norm(r.name))
         ?? viaNama.get(`${r.category}|${norm(r.name)}`)
         ?? (kandidat?.length === 1 ? kandidat[0] : undefined)
+        /*
+          Jalur 4 — banyak kandidat, tetapi SEPAKAT. Ditambahkan 2026-09-16.
+
+          Jalur 3 menuntut TEPAT SATU kandidat, dan alasannya benar: nama yang
+          menunjuk ke beberapa harga BERBEDA tak boleh ditebak. Tetapi
+          sebagian besar "kandidat ganda" di sini bukan ambiguitas — ia bahan
+          yang SAMA yang muncul di dua berkas dataset sekaligus (daftar harga
+          resmi + harga yang tertulis di dalam baris analisa):
+
+              Sewa Tripot  harga-se47            hari  Rp 108.000
+              Sewa Tripot  harga-analisa-se47    hari  Rp 108.000
+
+          Diukur: dari 1.519 nama ber-kandidat ganda, 1.392 harganya IDENTIK.
+
+          Akibat jalur 3 menolaknya, 16 resource tetap tanpa harga meski
+          harganya ADA di dataset — dan `Sewa Tripot` sendirian memblokir 213
+          analisa nasional dari perhitungan HSP. (Kepala berkas ini sudah
+          menyebut angka itu sebagai alasan jalur 3 lahir; jalur 3 ternyata
+          tak cukup menutupnya.)
+
+          Syaratnya KETAT: seluruh kandidat wajib sepakat pada HARGA dan
+          SATUAN. Kalau salah satu berbeda, ia ambiguitas sungguhan dan tetap
+          dibiarkan tanpa harga — fail-loud saat dipakai, bukan ditebak.
+        */
+        ?? (() => {
+          if (!kandidat || kandidat.length < 2) return undefined
+          const harga = new Set(kandidat.map((k) => Number(k.amount)))
+          const satuan = new Set(kandidat.map((k) => k.unit_code))
+          return harga.size === 1 && satuan.size === 1 ? kandidat[0] : undefined
+        })()
       if (!cocok) { tanpaPasangan++; continue }
 
       // Satuan berbeda dicatat TAPI harganya tetap dipakai: satuan resource
