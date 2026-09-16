@@ -200,25 +200,31 @@ try {
     bukan membiarkan penyapu dan penjaga berselisih diam-diam.
   */
   /*
-    ⚠ HANYA hibah yang BERUMUR — `granted_at < now() - 2 jam`.
+    ⚠ TANPA batas umur — dan batas umur itu kesalahan SAYA, sudah diukur.
 
-    Versi pertama menyapu tanpa batas umur, dan itu MERUSAK test yang sah.
-    Enam shard CI berbagi SATU basis: `mitra.test.ts` memberikan izinnya lalu
-    membacanya balik lewat `get_role_permissions()`, dan penyapu shard LAIN
-    bisa menghapusnya di antara dua langkah itu. Gejalanya:
+    Versi sebelumnya menyaring `granted_at < now() - interval '2 hours'`,
+    dengan alasan yang terdengar masuk akal: hibah yang SEDANG dipakai test
+    selalu baru, residu dari run yang mati selalu lama. Salah.
 
-        Error: prasyarat gagal: hibah `mitra:daftar_hitam` tak terbaca
-               `get_role_permissions(admin)`
+    Diukur pada PR #152: run jatuh pukul 17:19, run SEBELUMNYA pukul 17:18 —
+    selisih SATU MENIT. Residunya jauh di dalam jendela dua jam, jadi penyapu
+    melapor `dicabut 0` dan penjaga langsung merah atas
+    `admin [(template)]` + `admin [Puraloka Persada]`.
 
-    Testnya BENAR dan penyapunya yang salah waktu — persis kelas cacat yang
-    CLAUDE.md §8a.1 peringatkan tentang perintah yang menyapu di checkout
-    bersama: "kerusakannya baru terlihat dari gejala yang menunjuk ke tempat
-    lain".
+    Umur tak bisa memisahkan keduanya: di CI yang menjalankan ulang tiap
+    beberapa menit, "residu run sebelumnya" dan "hibah run ini" SAMA-SAMA
+    baru. Sumbunya memang bukan waktu.
 
-    Dua jam memisahkan dua hal yang tak bisa dibedakan tanpa waktu: hibah
-    yang SEDANG dipakai run ini (selalu baru), dan residu dari run yang mati
-    sebelum `afterAll` (selalu dari jalan sebelumnya). Tak ada run CI yang
-    berjalan dua jam — diukur: shard terlama 25m52s.
+    ── Yang memisahkannya: URUTAN LANGKAH, dan itu sudah dijamin
+
+    Penyapu berjalan di langkah ~131 dari 207, `mitra.test.ts` di fase test
+    (~langkah 200+). Jadi saat penyapu ini jalan, test belum menyentuh
+    apa pun — hibah yang ada PASTI residu, tak mungkin milik run ini.
+
+    Balapan antar-shard yang dulu saya khawatirkan tak berlaku di sini: SEMUA
+    shard menyapu di langkah yang sama, sebelum SEMUA shard masuk fase test.
+    Yang dulu merusak `mitra.test.ts` adalah penyapu yang berjalan SESUDAH
+    penjaga (urutan v1), bukan ketiadaan batas umur.
   */
   const { rows: izin } = await c.query(`
     DELETE FROM role_permissions rp
@@ -226,7 +232,6 @@ try {
      WHERE rp.permission_id = p.id
        AND r.id = rp.role_id
        AND p.key IN ('mitra:daftar_hitam', 'approval:override_sod')
-       AND rp.granted_at < now() - interval '2 hours'
     RETURNING r.name AS peran, p.key`)
 
   console.log(`\n  hibah izin residu dicabut : ${izin.length}`)
