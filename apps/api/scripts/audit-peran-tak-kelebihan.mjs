@@ -186,6 +186,35 @@ for (const [key, sebab] of KOSONG) {
        LEFT JOIN companies co ON co.id = r.company_id
       WHERE p.key = $1
         AND (r.company_id IS NULL OR co.is_active)
+        /*
+          ⚠ Tenant UJI dilewati — dan ini syarat KEDUA, bukan pengganti.
+
+          Di dev, tenant uji sudah dinonaktifkan penyapu, jadi syarat
+          co.is_active di atas sudah cukup. Di CI TIDAK: basisnya dibangun
+          dari kosong tiap jalan, tenant ujinya masih AKTIF dan BERPEMILIK
+          saat penjaga ini berjalan.
+
+          Terukur pada PR #151: penjaga merah atas admin milik
+          [UJI-ISOLASI] Karya Beton Nusantara dan CI Seed Badan Usaha 2,
+          sementara penyapu di langkah sebelumnya melapor dinonaktifkan: 0
+          — ia menuntut owner_user_id IS NULL, dan ai-isolasi-tenant.test
+          hanya melepas kepemilikan bila teardown-nya SEMPAT berjalan.
+          Komentar di test itu sendiri sudah mencatat akibatnya: "tiap jalan
+          suite menambah satu lagi".
+
+          Nama tenant uji mengikuti pola yang hanya dipakai fixture
+          ([UJI-*], ZZISO*, CI Seed*) — sama dengan yang dipakai
+          sapu-tenant-uji-tertinggal.mjs. Tenant sungguhan tak memakainya.
+
+          Yang TIDAK dilonggarkan: tenant nyata dan peran TEMPLATE
+          (company_id IS NULL). Template justru yang paling berbahaya — ia
+          diwariskan ke tiap tenant baru.
+        */
+        AND (r.company_id IS NULL OR (
+          co.name NOT LIKE '[UJI-%'
+          AND co.name NOT LIKE 'ZZISO%'
+          AND co.name NOT LIKE 'CI Seed%'
+        ))
       ORDER BY r.name, company`,
     [key]
   )
