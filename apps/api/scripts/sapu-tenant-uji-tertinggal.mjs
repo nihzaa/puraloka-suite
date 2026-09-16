@@ -157,6 +157,54 @@ try {
       '  Itu normal sesudah CI gagal, TAPI kalau berulang tanpa kegagalan,\n' +
       '  ada teardown yang tak pernah jalan — periksa, jangan cuma disapu.')
   }
+
+  /*
+    ── Residu KEDUA: hibah izin yang tertinggal terpasang ──────────────────
+
+    `mitra.test.ts` MEMBERIKAN `mitra:daftar_hitam` secara sadar — itu inti
+    ujinya, membuktikan migrasi 462 sengaja TIDAK mewariskannya. Ia mencabut
+    lagi di `afterAll`, dan komentarnya bahkan MERAMALKAN kegagalan ini:
+
+        "Dicabut lagi: test yang meninggalkan izin terpasang membuat penjaga
+         'daftar_hitam tak diwariskan' merah di jalan berikutnya — dan
+         merahnya menuduh migrasi, bukan test ini."
+
+    Ramalannya terjadi. `afterAll` tak berjalan bila suite mati lebih dulu,
+    dan `audit-peran-tak-kelebihan.mjs` (ambang NOL) lalu merah di jalan
+    BERIKUTNYA — menuduh migrasi yang tak bersalah.
+
+    Riwayatnya panjang: 539 mencabut, 540 memulihkan peta, 543 mencabut lagi
+    berjudul "daftar_hitam KEMBALI sesudah 540". Kepala 543 mengaku "SUMBER
+    PEMBERINYA BELUM DIKETAHUI" dan mendaftar empat tempat yang sudah
+    diperiksa — keempatnya BENAR, sebab sumbernya bukan migrasi maupun seed,
+    melainkan TEST yang mati sebelum teardown.
+
+    Migrasi tak bisa menutupnya: pencabutan yang sudah tercatat tak berlaku
+    surut (G-2), jadi tiap kekambuhan menuntut nomor migrasi baru. Yang
+    menutupnya penyapu ini — tempat residu lintas-run memang ditangani.
+
+    Dicabut HANYA dari peran selain `admin`/`direktur`: keduanya tak pernah
+    memegangnya secara bawaan (dijaga 539 dan 546), dan bila founder suatu
+    saat memberikannya lewat layar Peran, itu keputusan sadar yang tak boleh
+    disapu skrip.
+  */
+  const { rows: izin } = await c.query(`
+    DELETE FROM role_permissions rp
+     USING permissions p, roles r
+     WHERE rp.permission_id = p.id
+       AND r.id = rp.role_id
+       AND p.key IN ('mitra:daftar_hitam', 'approval:override_sod')
+       AND r.name NOT IN ('admin', 'direktur')
+    RETURNING r.name AS peran, p.key`)
+
+  console.log(`\n  hibah izin residu dicabut : ${izin.length}`)
+  for (const i of izin) console.log(`     ${i.peran} / ${i.key}`)
+  if (izin.length > 0) {
+    console.log(
+      '  ⚠ Sisa test yang mati sebelum `afterAll` (mitra.test.ts).\n' +
+      '    Tanpa disapu, `audit-peran-tak-kelebihan` merah di jalan\n' +
+      '    berikutnya, dan merahnya MENUDUH MIGRASI — bukan testnya.')
+  }
 } finally {
   await c.end()
 }

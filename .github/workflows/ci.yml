@@ -2174,6 +2174,23 @@ jobs:
       # peran, dan kebocorannya tak bergejala — yang melihat terlalu banyak
       # adalah PELANGGAN, yang tak akan melapor.
       #
+      # ⚠ Penyapu HARUS berjalan lebih dulu, dan urutannya bukan kerapian.
+      #
+      # `mitra.test.ts` memberikan `mitra:daftar_hitam` secara sadar (inti
+      # ujinya) lalu mencabutnya di `afterAll`. Bila suite mati sebelum
+      # teardown, hibahnya tertinggal — dan penjaga di bawah merah di jalan
+      # BERIKUTNYA dengan keluhan yang menuduh MIGRASI.
+      #
+      # Penyapu itu sudah ada di job ini, tetapi di langkah ~2896 — SESUDAH
+      # penjaga ini. Jadi ia tak pernah melindunginya, dan cacatnya kambuh
+      # tiga kali (migrasi 539 → 540 → 543, yang kepalanya mengaku "sumber
+      # pemberinya belum diketahui"). Sumbernya bukan migrasi maupun seed:
+      # test yang mati sebelum teardown.
+      - name: Sapu residu hibah izin (sebelum penjaga peran)
+        run: node scripts/sapu-tenant-uji-tertinggal.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       # AMBANG NOL, di company mana pun termasuk template.
       - name: Peran tak kelebihan izin
         run: node scripts/audit-peran-tak-kelebihan.mjs
