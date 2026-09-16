@@ -5,6 +5,116 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-17 — penjaga izin akhirnya LOLOS, dan PR kedua untuk tanggal UTC
+
+Founder: *"lanjutkann"* ×2.
+
+### PR #152 — container API berjalan di UTC
+
+```
+TZ di Dockerfile / compose / .env : 0
+basis image                        : node:22-alpine → UTC
+pemanggilan tanggal berbasis UTC   : 140
+todayWIB() (helper yang SUDAH ada) : 14
+```
+
+Repo ini sudah tahu jawabannya WIB — helpernya ada di
+`lib/financial-config.ts` dan benar; hanya tak dipakai. Batasnya diverifikasi:
+
+```
+18:25Z → WIB 01:25 → todayWIB 09-17 · UTC 09-16  ← BEDA
+16:59Z → WIB 23:59 → keduanya 09-16              ← batasnya
+```
+
+Jendelanya 00:00–07:00 WIB — jam yang jarang dipakai kantor, normal untuk
+mandor lapangan dan aplikasi mobile.
+
+**Kenapa uang:** dua tempat tak punya cadangan dari klien sama sekali —
+`mandor.ts:1816 paid_at` (pembayaran termin mandor) dan `mandor.ts:2203
+settled_at` (penyelesaian borongan). `reports.ts` mengelompokkan arus kas per
+BULAN dari `paid_at`, jadi pembayaran pukul 01:00 WIB tanggal 1 masuk ember
+bulan sebelumnya. Totalnya benar, batang bulanannya salah, nol galat.
+Terbukti sudah terjadi: tiga kasbon dibuat 01:25 WIB tercatat sehari
+sebelumnya.
+
+Diperbaiki di CONTAINER, bukan 140 pemanggilan — menyunting satu per satu
+akan meninggalkan yang ke-141.
+
+⚠ `tzdata` ikut dipasang dan itu yang paling mudah terlewat: Alpine tak
+memuat basis zona waktu, jadi `TZ=Asia/Jakarta` TANPA paketnya jatuh
+DIAM-DIAM kembali ke UTC — setelan yang terlihat terpasang, lolos tiap
+pembacaan teks, dan tak berpengaruh apa pun.
+
+`audit-zona-waktu-terpasang.mjs` — ambang NOL, tiga mutasi terbukti merah
+dengan pesan berbeda (TZ hilang · tzdata hilang · TZ compose hilang).
+Batasnya dicetak DI KELUARAN HIJAUNYA: yang dibaca BERKAS, bukan container
+hidup — hijaunya bukan bukti produksi sudah WIB.
+
+### Penjaga izin: LOLOS akhirnya, sesudah EMPAT versi
+
+```
+202 dari 206 langkah hijau   (sebelumnya mati di ~3 menit pada penjaga)
+```
+
+Versi keempat yang benar: melewati tenant uji lewat **POLA NAMA**
+(`[UJI-*]`, `ZZISO*`, `CI Seed*`), bukan kepemilikan maupun keaktifan.
+
+Kenapa tiga versi sebelumnya gagal, dan tiap kali CI yang membongkarnya:
+
+```
+v1 urutan langkah          menyapu SESUDAH penjaga
+v2 kecualikan admin        bertentangan dgn ambang NOL penjaganya
+v3 batas umur 2 jam        merusak test yang sah (mitra.test.ts)
+v4 pola nama               ✓
+```
+
+v3 gagal karena di CI tenant ujinya masih AKTIF dan BERPEMILIK — penyapu
+menuntut `owner_user_id IS NULL`, sementara `ai-isolasi-tenant.test.ts` hanya
+melepas kepemilikan bila teardown-nya SEMPAT berjalan. Komentar test itu
+sendiri sudah mencatat: *"tiap jalan suite menambah satu lagi"*.
+
+⚠ Jebakan backtick-dalam-template-literal kena untuk KEDUA kalinya di sesi
+ini (24 buah, berkas gagal parse `SyntaxError: missing ) after argument
+list`). Polanya: komentar SQL di dalam `` c.query(`…`) `` tak boleh memuat
+backtick sama sekali.
+
+### Lima test merah — asalnya `main`, bukan PR ini
+
+`rls-reference-group` · `ai-isolasi-tenant` · `template-wbs` ·
+`otomasi-biaya-pola` · `klaim-perjalanan`. Hijau lokal 109/109.
+
+Ditelusuri: ketiganya BERBEDA dari `main` di worktree ini tetapi BUKAN dari
+commit saya (`git log main..HEAD -- <berkas>` kosong) — masuk lewat merge
+`main` di awal PR. Yang terakhir menyentuhnya:
+
+```
+3cc83702  fix(test): 17 test RLS bisa LULUS tanpa menguji apa pun
+          — diganti gagal-nyaring
+```
+
+Commit itu SENGAJA mengubah test yang dulu lulus secara hampa jadi
+gagal-nyaring bila prasyarat datanya tak terpenuhi. Yang terlihat sekarang
+persis perilaku yang ia rancang.
+
+Dan `rls-reference-group` punya blok prasyarat yang MERAMALKANNYA kata per
+kata: *"benar di basis dev, dan SALAH di CI yang memutar rantai migrasi dari
+NOL … terbaca seperti RLS-nya bocor, padahal policy-nya bekerja dengan
+benar"*. Blok itu tak menyala di CI — kemungkinan karena memeriksa lewat
+`users.role_id` sementara izin diresolusi lewat `company_members` +
+`get_role_permissions()`. Diukur di dev: kedua jalur sepakat, jadi selisihnya
+hanya muncul di basis CI.
+
+**Tidak ditambal di PR ini** — memperbaiki prasyarat test milik orang lain, di
+berkas yang bukan bagian perubahan saya, akan mencampur dua persoalan dalam
+satu review.
+
+⚠ Yang TIDAK bisa saya buktikan: bahwa kelimanya merah juga di `main`. `main`
+tak punya run CI yang sampai fase test sejak 2026-09-13. Keterbatasan, bukan
+kesimpulan — dan dicatat begitu di komentar PR.
+
+---
+
+
 ## 2026-09-16 (lanjutan 4) — saklar "tanpa pajak" tak pernah bisa dipakai, dan penyapu yang merusak test
 
 Founder: *"lanjutkann, cari pekerjaan lain, termasuk pekerjaan kode atau
