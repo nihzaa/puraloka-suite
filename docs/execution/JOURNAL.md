@@ -5,6 +5,111 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-16 (lanjutan 4) — saklar "tanpa pajak" tak pernah bisa dipakai, dan penyapu yang merusak test
+
+Founder: *"lanjutkann, cari pekerjaan lain, termasuk pekerjaan kode atau
+perbaikan"* → *"lanjutkannn"*.
+
+### `tanpa_pajak` patah di TIGA tempat
+
+Migrasi 566 menambah nilai enum ketiga atas permintaan founder (*"pas bikin
+proyek juga bisa gapake pajak … ada saklar on off nya"*). Saklarnya dibangun
+penuh di layar. Diukur 2026-09-16:
+
+```
+enum tax_scheme (public) : pph_final · ppn · tanpa_pajak
+proyek memakainya        : 24 pph_final · NOL tanpa_pajak
+```
+
+**1. Membuat proyek tanpa pajak MUSTAHIL, mengeditnya BISA.**
+`projects.ts:209` menolak nilai ketiga dengan 400. Modal SAMA, payload SAMA:
+`POST` ditolak, `PUT` lolos (allow-list kolom, tanpa validasi nilai). Founder
+menekan saklarnya lalu mendapat *"tax_scheme tidak valid. Pilih: pph_final,
+ppn"* — menyebut pilihan yang BARU SAJA ia matikan.
+
+**2. Layar invoice memaku tarif.** `komponen.tsx:356` —
+`taxScheme === "ppn" ? 11 : 2`. Proyek tanpa pajak ditampilkan "PPh Final 2%"
+dan 2% DITAMBAHKAN ke tagihan klien. `finance.ts:861` menerima `tax_amount`
+mentah tanpa membandingkannya dengan skema proyek. Jalur OTOMATIS sudah benar
+(`getTaxRate()` punya `if (scheme === 'tanpa_pajak') return 0`) — jadi dua
+jalur untuk proyek yang SAMA memberi angka berbeda, tanpa galat.
+
+**3. Jurnal GL mendebit beban PPh** untuk proyek yang pajaknya dimatikan.
+Jurnalnya tetap SEIMBANG (piutang dihitung sebagai selisih), jadi
+`trg_gl_wajib_seimbang` lolos dan laba-rugi memuat beban yang tak seharusnya
+ada. Dibuat FAIL-LOUD, bukan cabang ketiga: invoice bertax pada proyek tanpa
+pajak berarti cacat di HULU.
+
+### Penjaganya: daftar tulisan tangan → pemindaian, dan tiga versi saya salah
+
+`audit-skema-pajak-lengkap.mjs` hanya membaca EMPAT berkas yang ditulis
+tangan. Ia hijau sementara empat berkas LAIN melanggar aturan yang ia
+tuliskan di kepalanya sendiri.
+
+Tiga pelebaran, dan pengukuran yang membongkar dua pertamanya:
+
+```
+v1 includes('tax_scheme')   → 35 temuan, SEMUANYA palsu
+v2 jendela 200 karakter     →  1 palsu (tax_type = enum LAIN, berbagi 'ppn')
+v3 baris ini + 2 sebelumnya →  0 palsu
+```
+
+Dan query `pg_enum`-nya tak menyaring `pg_namespace` (§1): keluarannya
+berbunyi **"5 nilai"** untuk enum 3 nilai — daftar duplikat dari skema `test`.
+
+⚠ BATAS yang ditulis di kepala penjaga: berkas yang diperbaiki dengan cara
+MENGHILANGKAN percabangan keluar dari cakupan. Terukur pada
+`tax-calculation.ts` — sesudah membaca dari peta `Record<TaxScheme, number>`,
+mutasi di sana HIJAU. Yang menjaganya `tsc`. Dua penjaga, dua wilayah.
+
+### Penyapu saya MERUSAK test yang sah
+
+CI akhirnya sampai fase test (shard 18-25 menit; sebelumnya mati di 3 menit
+pada penjaga). Dan `mitra.test.ts` merah:
+
+> prasyarat gagal: hibah `mitra:daftar_hitam` tak terbaca
+> `get_role_permissions(admin)`
+
+Testnya BENAR. Enam shard berbagi SATU basis: test memberikan izin lalu
+MEMBACANYA BALIK lewat RPC, dan penyapu shard LAIN menghapusnya di antara dua
+langkah itu. Kelas §8a.1 — "kerusakannya baru terlihat dari gejala yang
+menunjuk ke tempat lain"; di sini gejalanya menuduh FIXTURE.
+
+Diperbaiki dengan UMUR, bukan daftar nama:
+
+```
+AND rp.granted_at < now() - interval '2 hours'
+
+hibah BARU (granted_at = now)  → dicabut 0   ← test aman
+hibah BERUMUR 3 jam            → dicabut 1, menyebut namanya
+```
+
+Tak ada run CI berjalan dua jam (shard terlama 25m52s).
+
+**Tiga kesalahan berturut-turut pada berkas yang sama**, dan tiap kali
+pengukuran berikutnya yang membongkarnya:
+
+```
+v1 urutan langkah salah (menyapu SESUDAH penjaga)
+v2 mengecualikan admin/direktur — bertentangan dgn ambang NOL penjaganya
+v3 tanpa batas umur — merusak test yang sah
+```
+
+Tak satu pun terlihat tanpa menjalankannya.
+
+### Lima kegagalan CI lain: bukan dari PR ini
+
+`rls-reference-group` · `ai-isolasi-tenant` · `template-wbs` ·
+`otomasi-biaya-pola` · `klaim-perjalanan`. Tak satu pun berkasnya disentuh
+(`git diff main...HEAD` kosong), dan SEMUANYA hijau lokal (71/71, 21/21).
+
+⚠ Tapi saya TIDAK bisa membuktikannya pre-existing: `main` sendiri tak punya
+run CI yang sampai fase test sejak 2026-09-13, jadi pembandingnya tak ada.
+Dilaporkan sebagai keterbatasan di komentar PR, bukan disimpulkan.
+
+---
+
+
 ## 2026-09-16 (lanjutan 3) — akar `daftar_hitam` ketemu, dan harga per-M2 dipakai per-KG
 
 Founder: *"lanjutkann, cari pekerjaan lain, termasuk pekerjaan kode atau
