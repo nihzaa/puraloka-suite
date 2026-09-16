@@ -178,7 +178,7 @@ export default async function projectRoutes(app: FastifyInstance) {
       description?: string
       contract_model: 'termin' | 'komisi'
       contract_value: number
-      tax_scheme: 'pph_final' | 'ppn'
+      tax_scheme: 'pph_final' | 'ppn' | 'tanpa_pajak'
       commission_pct?: number
       retention_pct?: number
       start_date: string
@@ -206,7 +206,33 @@ export default async function projectRoutes(app: FastifyInstance) {
     }
 
     const VALID_CONTRACT_MODELS = ['termin', 'komisi']
-    const VALID_TAX_SCHEMES = ['pph_final', 'ppn']
+    /*
+      `tanpa_pajak` WAJIB ada di sini, dan ketiadaannya bukan kehati-hatian.
+
+      Enum `tax_scheme` di basis punya TIGA nilai sejak migrasi 566 — nilai
+      ketiga ditambahkan atas permintaan founder ("pas bikin proyek juga bisa
+      gapake pajak … ada saklar on off nya"). Saklarnya SUDAH dibangun penuh
+      di `components/project-modal.tsx:465` dan dikirim apa adanya.
+
+      Yang tertinggal daftar ini. Akibatnya asimetris, dan asimetri itu yang
+      membuatnya terbaca acak oleh pemakai — modal yang SAMA, payload yang
+      SAMA:
+
+          mode "create" → POST /projects   → 400 DITOLAK
+          selainnya     → PUT  /projects/:id → LOLOS (PUT hanya ber-allow-list
+                                               kolom, tanpa validasi nilai)
+
+      Jadi founder menekan saklarnya, menekan Simpan, dan mendapat pesan
+      "tax_scheme tidak valid. Pilih: pph_final, ppn" — menyebutkan pilihan
+      yang BARU SAJA ia matikan. Lalu bila ia membuat proyeknya sebagai
+      `pph_final` dan mengedit sesudahnya, berhasil. Fitur yang jalan pada
+      percobaan kedua tetapi tidak pertama.
+
+      Terukur 2026-09-16: 24 dari 24 proyek `pph_final`, NOL `tanpa_pajak` —
+      saklar yang sudah dibayar penuh tak pernah bisa dipakai lewat jalur
+      pembuatan.
+    */
+    const VALID_TAX_SCHEMES = ['pph_final', 'ppn', 'tanpa_pajak']
     if (!VALID_CONTRACT_MODELS.includes(contract_model)) {
       return reply.status(400).send({ error: `contract_model tidak valid. Pilih: ${VALID_CONTRACT_MODELS.join(', ')}` })
     }

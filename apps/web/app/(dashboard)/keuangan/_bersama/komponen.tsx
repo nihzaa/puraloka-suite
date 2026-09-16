@@ -352,9 +352,30 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
 
   // ── Kalkulasi ──────────────────────────────────────────────────────────────
 
+  /*
+    TIGA cabang, bukan dua — dan cabang ketiga BUKAN kerapian.
+
+    Pola `scheme === 'ppn' ? A : B` memperlakukan nilai BARU sebagai cabang
+    else. Enum `tax_scheme` punya tiga nilai sejak migrasi 566, jadi proyek
+    `tanpa_pajak` jatuh ke cabang PPh Final: layar ini menampilkan label
+    "PPh Final 2%" dan MENAMBAHKAN 2% ke tagihan klien yang pajaknya sengaja
+    dimatikan.
+
+    Dan servernya tak menahannya — `routes/v1/finance.ts:861` mengambil
+    `tax_amount` MENTAH dari badan permintaan, tanpa membandingkannya dengan
+    `tax_scheme` proyek. Angka yang dihitung di sini masuk basis apa adanya.
+
+    ⚠ Jalur OTOMATIS sudah benar: `lib/invoice-termin.ts` memanggil
+    `getTaxRate()` yang punya `if (scheme === 'tanpa_pajak') return 0`.
+    Jadi dua jalur yang menerbitkan invoice untuk proyek yang SAMA memberi
+    angka berbeda, tanpa satu pun galat. Ini kelas cacat yang sama persis
+    dengan yang dijaga `audit-skema-pajak-lengkap.mjs` — penjaga itu hanya
+    mengawasi empat berkas, dan berkas ini bukan salah satunya.
+  */
   const taxScheme = projectDetail?.tax_scheme ?? "pph_final";
-  const taxRate   = taxScheme === "ppn" ? 11 : 2;
-  const taxLabel  = taxScheme === "ppn" ? "PPN 11%" : "PPh Final 2%";
+  const taxRate   = taxScheme === "tanpa_pajak" ? 0 : taxScheme === "ppn" ? 11 : 2;
+  const taxLabel  = taxScheme === "tanpa_pajak" ? "Tanpa pajak"
+                  : taxScheme === "ppn" ? "PPN 11%" : "PPh Final 2%";
 
   const lineItemsTotal = lineItems.reduce((s, li) => s + Number(li.amount), 0);
 
