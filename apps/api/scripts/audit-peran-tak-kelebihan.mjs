@@ -153,6 +153,30 @@ for (const [key, sebab] of KOSONG) {
     (`company_id IS NULL`) dan salinan per-tenant dengan NAMA YANG SAMA —
     tanpa itu, "mandor" tak bisa dibedakan dari "mandor milik tenant X".
   */
+  /*
+    ⚠ Peran milik company NONAKTIF dilewati — dan itu bukan pelonggaran.
+
+    Diukur 2026-09-16 di CI: penjaga ini merah atas dua `admin` milik
+    `[UJI-ISOLASI] Karya Beton Nusantara` dan `CI Seed Badan Usaha 2`.
+    Keduanya company UJI yang SUDAH dinonaktifkan (`is_active = false`) oleh
+    penyapu tenant di langkah sebelumnya.
+
+    Company nonaktif tak bisa dipakai siapa pun: `plugins/auth.ts` menolak
+    akun yang keanggotaannya di company mati, jadi izin yang menempel pada
+    peran di dalamnya TAK DAPAT DIPAKAI MEMBUKA APA PUN. Memerahkannya berarti
+    memerahkan hal yang tak berbahaya — dan penjaga yang merah atas hal yang
+    tak berbahaya akan diabaikan seluruh keluarannya (§6).
+
+    Yang TIDAK dilonggarkan: peran di company AKTIF, dan peran TEMPLATE
+    (`company_id IS NULL`) — template diwariskan ke tiap tenant baru, jadi
+    justru yang paling berbahaya. Keduanya tetap ambang NOL.
+
+    ⚠ Ini juga menutup balapan antar-shard yang tak bisa ditutup dari sisi
+    penyapu: enam shard menyapu dan memeriksa nyaris bersamaan (terukur:
+    sapu shard-2 pukul 15:33:36, penjaga shard-1 pukul 15:33:43), jadi
+    pengurutan langkah tak pernah cukup. Menilai dari KEADAAN company jauh
+    lebih stabil daripada dari siapa-menghapus-lebih-dulu.
+  */
   const { rows } = await c.query(
     `SELECT r.name AS peran,
             COALESCE(co.name, '(template)') AS company
@@ -161,6 +185,7 @@ for (const [key, sebab] of KOSONG) {
        JOIN roles r       ON r.id = rp.role_id
        LEFT JOIN companies co ON co.id = r.company_id
       WHERE p.key = $1
+        AND (r.company_id IS NULL OR co.is_active)
       ORDER BY r.name, company`,
     [key]
   )
