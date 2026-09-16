@@ -5,6 +5,111 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-16 (lanjutan 3) — akar `daftar_hitam` ketemu, dan harga per-M2 dipakai per-KG
+
+Founder: *"lanjutkann, cari pekerjaan lain, termasuk pekerjaan kode atau
+perbaikan"*.
+
+### Akar `daftar_hitam` yang kambuh TIGA kali — akhirnya ketemu
+
+Migrasi 539 mencabut → 540 memulihkan peta → 543 mencabut lagi, berjudul
+*"daftar_hitam KEMBALI sesudah 540"*. Kepala 543 mengaku jujur:
+
+> ⚠ SUMBER PEMBERINYA BELUM DIKETAHUI. Diperiksa dan TIDAK ditemukan: nol
+> migrasi > 540 yang menyentuh `role_permissions` · 462 sengaja tak
+> mewariskannya · 536 nomornya di bawah · seed hanya MEMBACA.
+
+**Keempatnya benar.** Sumbernya bukan migrasi maupun seed, melainkan
+`mitra.test.ts` — yang MEMBERIKAN izin itu secara sadar (inti ujinya) lalu
+mencabut di `afterAll`. Komentarnya bahkan meramalkan kegagalan ini:
+
+> "test yang meninggalkan izin terpasang membuat penjaga merah di jalan
+> berikutnya — dan merahnya menuduh migrasi, bukan test ini."
+
+`afterAll` tak jalan bila suite mati duluan. Dan migrasi tak bisa
+menutupnya: pencabutan yang sudah tercatat tak berlaku surut (G-2), jadi tiap
+kambuh menuntut nomor baru — selamanya.
+
+### Tiga perbaikan, dan dua di antaranya milik saya sendiri
+
+**1. Penyapu ikut mencabut hibah residu.** Tempat residu lintas-run memang
+ditangani.
+
+**2. ⚠ URUTAN.** Penyapu itu SUDAH ada di job yang sama — di langkah ~2896,
+sementara penjaganya di 2179. Ia menyapu SESUDAH diperiksa, yang sama saja
+dengan tidak menyapu. Dipasang ulang tepat sebelum penjaganya.
+
+**3. ⚠ Pengecualian `admin`/`direktur` yang saya tulis SALAH.** Alasannya
+masuk akal ("kalau founder memberikannya lewat layar Peran, itu keputusan
+sadar") DAN bertentangan dengan penjaganya: kedua kunci ada di daftar KOSONG,
+ambang NOL untuk peran mana pun termasuk admin. Penyapu yang menyisakan
+sesuatu yang penjaganya tolak = melapor "0 dicabut" lalu penjaga langsung
+merah. Persis yang terjadi di CI.
+
+**Dan penjaganya sendiri tak pernah menyebut PELAKUNYA** — cuma "dipegang 1
+peran". Itu sebabnya tiga sesi sebelumnya tak menemukan sumbernya: keterangan
+yang dibutuhkan ADA di tangan penjaga dan tak pernah dicetak. Kini:
+
+```
+· admin  [PT Cek RPC D1b]
+```
+
+`company_id` ikut sebab basis ini punya peran TEMPLATE dan salinan
+per-tenant BERNAMA SAMA.
+
+### Harga per-M2 dipakai sebagai per-KG — 74% HSP dinding partisi
+
+Menelusuri dua pasang harga yang kemarin sengaja saya tinggalkan, dan
+keduanya ternyata **BUKAN cacat**:
+
+```
+Bentonite m3   slurry pengeboran bored pile   (volume)
+Bentonite kg   serbuk kering untuk GCL/HDPE   (massa)
+```
+
+Dua bentuk barang yang sama, dua satuan yang benar — ketahuan dari analisa
+yang memakainya, bukan dari namanya.
+
+Tetapi pemeriksaan itu menemukan yang NYATA:
+
+```
+daftar harga SE-47 : Rockwool tebal 50 mm   m2   Rp 290.000
+resource di basis  : AHSP-R0286             kg   Rp 290.000  ← dipakai
+```
+
+Pada `3.6.6.1` (1 m2 dinding partisi gypsum): rockwool menyumbang
+Rp 319.000 dari HSP Rp 428.669 — **74%**. Satu m2 rockwool 50 mm beratnya
+~2-4 kg, jadi angkanya meleset beberapa kali lipat dan MENDOMINASI HSP.
+
+Sebabnya asumsi yang benar untuk kasus lain — `seed-harga-pokok.mjs:182`:
+
+> "Selisih penulisan satuan di sheet harga tidak mengubah angkanya."
+
+Benar untuk `m1` vs `m'`. TIDAK benar untuk m2 vs kg. Diukur atas 2.794
+resource berharga yang dipakai analisa aktif: **352 selisih satuan, 97 di
+antaranya BEDA DIMENSI**.
+
+`audit-satuan-harga-sedimensi.mjs` — ratchet, lantai menyimpan DAFTAR KODE.
+Bukan ambang NOL, dan itu keputusan: 97 baris tak bisa diperbaiki dengan
+rumus (`Marmer` lazim dijual per m2 ATAU per buah; berapa kg satu m2
+rockwool tak ada di dataset). Penjaga berambang NOL akan merah selamanya atas
+hal yang belum bisa diputuskan.
+
+Mutasi: buang `AHSP-R0286` dari lantai → exit 1, menyebut kode, nama, kedua
+satuan, dan `massa≠luas`. Dipulihkan → exit 0.
+
+### Catatan cara kerja
+
+Saya merusak `sapu-tenant-uji-tertinggal.mjs` EMPAT kali lewat scripting
+Python yang rapuh (escaping `\n` dan backtick di dalam template literal JS).
+Sesudah percobaan keempat saya berhenti, `git checkout --` ke versi commit
+yang jalan, lalu tulis ulang dengan Edit. Lebih cepat daripada menambal
+tambalan — dan itu pelajaran yang layak diulang: **alat yang salah untuk
+suntingan berisi backtick adalah heredoc/regex, bukan penyuntingnya.**
+
+---
+
+
 ## 2026-09-16 (lanjutan 2) — PR #151, dan penyapu yang buta DUA kali
 
 Founder: *"lanjutkaann"*.
