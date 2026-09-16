@@ -135,14 +135,40 @@ for (const [peran, key, sebab] of TERLARANG) {
 }
 
 for (const [key, sebab] of KOSONG) {
+  /*
+    ⚠ Yang dipulangkan NAMA PERANNYA, bukan cuma jumlahnya — dan itu bukan
+    kerapian keluaran.
+
+    Versi lama hanya mencetak "dipegang 1 peran — seharusnya NOL". Cacat yang
+    sama kambuh TIGA kali (migrasi 539 → 540 → 543), dan kepala 543 mengaku
+    "SUMBER PEMBERINYA BELUM DIKETAHUI" sesudah memeriksa empat tempat.
+    Keempatnya benar; yang kurang cuma satu keterangan yang penjaga ini SUDAH
+    punya di tangannya dan tak pernah dicetak: peran mana.
+
+    Dengan namanya tercetak, pertanyaan "siapa yang memberi" jadi bisa
+    dijawab dengan satu grep alih-alih menyisir rantai migrasi. Merah tanpa
+    menyebut pelakunya memindahkan biayanya ke orang berikutnya (§8a.2).
+
+    `company_id` ikut sebab basis ini punya baris peran TEMPLATE
+    (`company_id IS NULL`) dan salinan per-tenant dengan NAMA YANG SAMA —
+    tanpa itu, "mandor" tak bisa dibedakan dari "mandor milik tenant X".
+  */
   const { rows } = await c.query(
-    `SELECT count(*)::int n FROM role_permissions rp
+    `SELECT r.name AS peran,
+            COALESCE(co.name, '(template)') AS company
+       FROM role_permissions rp
        JOIN permissions p ON p.id = rp.permission_id
-      WHERE p.key = $1`,
+       JOIN roles r       ON r.id = rp.role_id
+       LEFT JOIN companies co ON co.id = r.company_id
+      WHERE p.key = $1
+      ORDER BY r.name, company`,
     [key]
   )
-  if (rows[0].n > 0) {
-    temuan.push(`${key} dipegang ${rows[0].n} peran — seharusnya NOL\n        ${sebab}`)
+  if (rows.length > 0) {
+    const daftar = rows.map((x) => `\n          · ${x.peran}  [${x.company}]`).join('')
+    temuan.push(
+      `${key} dipegang ${rows.length} peran — seharusnya NOL\n        ${sebab}${daftar}`
+    )
   }
 }
 

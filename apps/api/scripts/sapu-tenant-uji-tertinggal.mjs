@@ -183,10 +183,21 @@ try {
     surut (G-2), jadi tiap kekambuhan menuntut nomor migrasi baru. Yang
     menutupnya penyapu ini — tempat residu lintas-run memang ditangani.
 
-    Dicabut HANYA dari peran selain `admin`/`direktur`: keduanya tak pernah
-    memegangnya secara bawaan (dijaga 539 dan 546), dan bila founder suatu
-    saat memberikannya lewat layar Peran, itu keputusan sadar yang tak boleh
-    disapu skrip.
+    ⚠ TANPA pengecualian peran, dan versi pertama saya SALAH di sini.
+
+    Saya sempat mengecualikan `admin`/`direktur` dengan alasan "kalau founder
+    memberikannya lewat layar Peran, itu keputusan sadar". Alasannya masuk
+    akal DAN bertentangan dengan penjaganya: `audit-peran-tak-kelebihan.mjs`
+    menaruh kedua kunci ini di daftar KOSONG — ambangnya NOL untuk peran mana
+    pun, termasuk admin, termasuk template.
+
+    Penyapu yang menyisakan sesuatu yang penjaganya tolak = penyapu yang
+    melapor "0 dicabut" lalu penjaga langsung merah. Persis yang terjadi di
+    CI: `hibah izin residu dicabut : 0` diikuti `dipegang 1 peran`.
+
+    Jadi cakupannya disamakan dengan penjaganya. Kalau founder memang ingin
+    memberikannya, tempatnya mengubah penjaga itu (keputusan sadar, tercatat),
+    bukan membiarkan penyapu dan penjaga berselisih diam-diam.
   */
   const { rows: izin } = await c.query(`
     DELETE FROM role_permissions rp
@@ -194,7 +205,6 @@ try {
      WHERE rp.permission_id = p.id
        AND r.id = rp.role_id
        AND p.key IN ('mitra:daftar_hitam', 'approval:override_sod')
-       AND r.name NOT IN ('admin', 'direktur')
     RETURNING r.name AS peran, p.key`)
 
   console.log(`\n  hibah izin residu dicabut : ${izin.length}`)
