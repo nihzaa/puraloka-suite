@@ -226,16 +226,25 @@ try {
     Yang dulu merusak `mitra.test.ts` adalah penyapu yang berjalan SESUDAH
     penjaga (urutan v1), bukan ketiadaan batas umur.
   */
+  /*
+    `company` ikut dipulangkan — basis ini punya baris peran TEMPLATE
+    (company_id NULL) dan salinan per-tenant BERNAMA SAMA. Tanpa itu,
+    keluarannya berbunyi `admin / mitra:daftar_hitam` DUA KALI dan pembacanya
+    tak bisa tahu apakah itu dua baris berbeda atau satu yang tercetak ganda.
+  */
   const { rows: izin } = await c.query(`
     DELETE FROM role_permissions rp
      USING permissions p, roles r
      WHERE rp.permission_id = p.id
        AND r.id = rp.role_id
        AND p.key IN ('mitra:daftar_hitam', 'approval:override_sod')
-    RETURNING r.name AS peran, p.key`)
+    RETURNING r.name AS peran, p.key,
+              COALESCE(
+                (SELECT co.name FROM companies co WHERE co.id = r.company_id),
+                '(template)') AS company`)
 
   console.log(`\n  hibah izin residu dicabut : ${izin.length}`)
-  for (const i of izin) console.log(`     ${i.peran} / ${i.key}`)
+  for (const i of izin) console.log(`     ${i.peran} [${i.company}] / ${i.key}`)
   if (izin.length > 0) {
     console.log(
       '  ⚠ Sisa test yang mati sebelum `afterAll` (mitra.test.ts).\n' +
