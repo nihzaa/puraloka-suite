@@ -5,6 +5,86 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-17 (lanjutan) — Rp 271 juta untuk 1 m3 beton, dan dua kali nyaris "memperbaiki" yang benar
+
+### Cacat yang sama dengan 464, sebulan kemudian, di bahan yang terlewat
+
+```
+Pembuatan 1 m3 pondasi beton siklop
+706 kg Agregat kasar x Rp 385.000 = Rp 271.810.000   untuk SATU m3
+```
+
+Migrasi 464 (2026-08-19) memperbaiki kelas ini untuk Pasir beton, Kerikil,
+Pupuk Organik. `Agregat kasar` dan `Ijuk` **tak ikut**, dan salah sebulan.
+
+Kenapa lolos: `audit-harga-satuan-waras.mjs` dan 590 sama-sama mencari harga
+**IDENTIK lintas satuan**. Di sini angkanya cuma ada satu — tak ada pasangan
+untuk dibandingkan. Penjaga yang benar, cacat yang hidup di luar jangkauannya.
+
+Sesudah: 706 x 285,19 = **Rp 201.344**.
+
+### DUA KALI nyaris memperbaiki yang sudah benar
+
+Ini bagian yang paling layak dicatat, sebab keduanya terlihat seperti temuan
+besar dan keduanya SALAH:
+
+**1. `Tukang batu ( OJ )` — 87 analisa, temuan terbesar di daftar.**
+
+```
+resources : OJ    dataset: OH    tersimpan: 20.714,29
+20.714,29 x 7 = 145.000   ← PERSIS upah harian OH-nya
+```
+
+Angkanya sudah dikonversi dengan benar; yang salah cuma LABEL satuan di
+dataset. "Memperbaikinya" akan mengalikan biaya upah 87 analisa dengan TUJUH.
+
+**2. `Bentonite`** — m3 Rp 25.000 vs kg Rp 20.000.000. Bukan satuan salah,
+melainkan dua BENTUK barang (bubur vs bubuk). Sudah tertulis di 590, dan
+saya sempat memasukkannya ke daftar kandidat sebelum membaca ulang.
+
+Pelajarannya sama dengan `feedback-ukur-angka-masuk-akal`: **rasio yang
+mencurigakan bukan bukti kesalahan.** Yang memisahkan ketiga temuan nyata
+dari kedua palsu bukan besarnya selisih, melainkan FISIKA:
+
+```
+385.000 / 285,19 = 1.350 kg/m3       agregat kasar — wajar
+besi strip 0,2x2 = 0,314 kg/m; x15rb = 4.710 ~ 5.000/m1
+20.714,29 x 7    = 145.000           ← sudah benar, jangan disentuh
+```
+
+### Sebab akarnya URUTAN BACA, bukan data
+
+Jalur 1-4 seeder mencocokkan lewat NAMA saja, dan berkas daftar harga resmi
+dibaca DULUAN — jadi baris m3 menang meski resource-nya kg. Jalur 0 baru
+memilih kandidat yang SATUANNYA sama, sebelum keempat jalur lain.
+
+Ia memilih di antara yang SUDAH ada: tak mengarang, tak mengonversi, diam
+bila tak ada kandidat bersatuan sama. Konversi m3→kg butuh densitas, dan
+densitas yang ditebak adalah cacat ini dalam bentuk lain.
+
+Dari 30 resource berkandidat-satuan-sama, hanya **3** yang angkanya berubah.
+27 sisanya rasio 1,0 — beda LABEL antar-berkas.
+
+### Jawaban pertanyaan founder soal harga
+
+```
+resources          2.878
+punya harga        2.795
+tanpa harga           83
+  dipakai AHSP aktif : 17   ← sisanya entri katalog tak dirujuk siapa pun
+```
+
+Satu ditutup hari ini (`Asbes Gelombang` Rp 62.400/lembar, jalur 5
+silang-dataset). Yang 17 sengaja dibiarkan: lump-sum per proyek
+(`Upah kerja`, `Peralatan`, `Sewa Alat`, `Galian Tanah`) dan bahan yang
+memang tak ada di sumber mana pun — fail-loud lebih benar daripada menebak.
+
+Dan datanya memperlihatkan kenapa menebak berbahaya: `Ubin Keramik 30x30`
+hanya punya 20x20 dan 20x25 di sumber; `Reng Kayu 2/3` m1 Rp 6.000 sementara
+resource-nya m3.
+
+---
+
 ## 2026-09-17 (lanjutan) — override yang BASI, dan enam shard merah yang satu cacat
 
 Founder: *"LANJUTTKANN"*.
