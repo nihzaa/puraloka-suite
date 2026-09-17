@@ -46,6 +46,18 @@
 -- bergeser di belakang orang yang memakainya. Jalur sahnya sama dengan 590 —
 -- yang lama jadi `expired`, yang baru lahir `version_number + 1` `active`.
 --
+-- Jejak verifikasinya DIWARISI dari baris yang digantikan (`created_by` /
+-- `verified_by` milik versi lama), sama seperti 590 — bukan dicari dari
+-- "admin aktif tertua".
+--
+-- ⚠ Versi pertama migrasi ini MENCARI admin aktif dan `RAISE EXCEPTION` bila
+-- tak ada. Itu satu-satunya migrasi di repo yang bergantung pada ADANYA baris
+-- users tertentu, dan CI memutar rantai migrasi dari NOL: bila 591 kebetulan
+-- replay sebelum seed pengguna, SELURUH rantai gagal — dan galatnya menuduh
+-- migrasi ini, bukan urutannya. Mewarisi dari baris yang digantikan
+-- menghilangkan ketergantungan itu sekaligus memberi provenance yang lebih
+-- benar: versi baru menunjuk verifier ASLI harganya.
+--
 -- IDEMPOTEN: hanya menyentuh baris yang amount-nya MASIH nilai lama.
 -- Jalan kedua tak menemukan apa pun.
 -- ============================================================================
@@ -57,22 +69,12 @@ DECLARE
   r          record;
   n_ubah     int := 0;
   n_sisa     int;
-  v_aktor    uuid;
   koreksi    jsonb := jsonb_build_array(
     jsonb_build_object('code', 'AHSP-R0109', 'lama', 385000,   'baru', 285.185185185185),
     jsonb_build_object('code', 'AHSP-R0175', 'lama',  39700,   'baru', 7000),
     jsonb_build_object('code', 'AHSP-R0465', 'lama',  15000,   'baru', 5000)
   );
 BEGIN
-  SELECT u.id INTO v_aktor
-    FROM users u JOIN roles rl ON rl.id = u.role_id
-   WHERE rl.name = 'admin' AND u.is_active
-   ORDER BY u.created_at LIMIT 1;
-
-  IF v_aktor IS NULL THEN
-    RAISE EXCEPTION '591 gagal: tak ada admin aktif untuk dicatat sebagai verifier';
-  END IF;
-
   FOR r IN SELECT * FROM jsonb_to_recordset(koreksi)
              AS x(code text, lama numeric, baru numeric)
   LOOP
@@ -96,7 +98,7 @@ BEGIN
              (SELECT COALESCE(max(v.version_number), 0) + 1
                 FROM price_book_entries v WHERE v.resource_id = b.resource_id),
              b.effective_date, b.location, 'active', b.company_id,
-             v_aktor, v_aktor, now(), b.confidence_level
+             b.created_by, b.verified_by, now(), b.confidence_level
         FROM price_book_entries b
         JOIN resources rs ON rs.id = b.resource_id
        WHERE rs.code = r.code AND b.status = 'expired' AND b.amount = r.lama
