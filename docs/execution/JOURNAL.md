@@ -5,6 +5,117 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-17 (lanjutan) — penjaga izin HIJAU di CI sesudah lima versi, dan dua PR yang saling membunuh
+
+Founder: *"lanjutkann"* ×2.
+
+### Penjaga izin akhirnya LOLOS
+
+```
+penjaga izin : completed success
+sukses       : 199 / 206 langkah
+```
+
+Versi kelima: **buang batas umur**. Empat sebelumnya dan apa yang membuka
+cacat berikutnya:
+
+```
+v1 urutan langkah        menyapu SESUDAH penjaga
+v2 kecualikan admin      bertentangan dgn ambang NOL penjaganya
+v3 batas umur 2 jam      merusak test yang sah
+v4 pola nama tenant      batas umur tak memisahkan apa pun
+v5 buang batas umur      ✓
+```
+
+**Batas umur itu kesalahan yang paling lama bertahan**, dan angkanya yang
+membongkarnya:
+
+```
+run ini        17:19
+run sebelumnya 17:18   ← selisih SATU MENIT
+```
+
+Di CI yang rerun tiap beberapa menit, "residu run sebelumnya" dan "hibah run
+ini" sama-sama baru. Sumbunya memang bukan waktu.
+
+Yang memisahkan keduanya URUTAN LANGKAH — dibaca dari `ci.yml` lewat js-yaml,
+bukan ditebak:
+
+```
+langkah 125  Sapu residu hibah izin
+langkah 126  Peran tak kelebihan izin
+langkah 198  Test + coverage
+```
+
+Saat penyapu jalan, `mitra.test.ts` belum menyentuh apa pun. Balapan
+antar-shard yang saya khawatirkan di v3 **tak pernah berlaku** — semua shard
+menyapu di langkah yang sama, sebelum semua masuk fase test. Yang merusak
+test di v1 adalah URUTANNYA, bukan ketiadaan batas umur. Saya memperbaiki
+gejala yang salah, lalu bertahan pada perbaikan itu selama dua versi.
+
+### Reproduksi lokal seharusnya jadi langkah PERTAMA
+
+Lima versi ditambal dari keluaran CI saja — tiap kali menunggu ~25 menit
+untuk tahu hasilnya. Baru pada versi kelima saya menyuntik skenarionya
+LOKAL:
+
+```
+disuntik: hibah ke template admin DAN admin tenant nyata
+penjaga sebelum disapu : exit 1 — admin [(template)] + admin [Puraloka Persada]
+                         (PERSIS keluaran CI PR #152)
+penyapu                : mencabut 2, keduanya disebut + companynya
+penjaga sesudahnya     : exit 0
+```
+
+Satu menit kerja, dan ia menjawab pertanyaan yang lima jalan CI tak bisa
+jawab. Pelajarannya sederhana dan sudah tertulis di CLAUDE.md dengan kata
+lain: **ukur, jangan menunggu.**
+
+### Dua PR saling membunuh — `ci-shared-ci-db`
+
+Tiap push ke #151 dibatalkan ~10 detik kemudian oleh run #152:
+
+```
+07:08:14  fix/tanggal-wib      in_progress
+07:08:04  fix/ahsp-serapan-ui  cancelled     ← 10 detik
+17:31:50  fix/tanggal-wib      failure
+17:31:41  fix/ahsp-serapan-ui  cancelled     ← 9 detik
+```
+
+Sebabnya `ci.yml:118`:
+
+```yaml
+concurrency:
+  group: ci-shared-ci-db
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+```
+
+Grup dibagi SELURUH cabang — sengaja, sebab basis CI-nya satu. Akibatnya dua
+PR yang hidup bersamaan saling meniadakan, dan `gh pr checks` pada #151
+menampilkan hasil run yang DIBATALKAN, bukan yang terbaru.
+
+Saya sempat membaca "cancelled" sebagai kegagalan. Ia bukan — hanya berarti
+hasilnya tak pernah ada. Karena #152 memuat seluruh commit #151, yang
+bermakna hanya hasil #152.
+
+⚠ Konsekuensi praktis: **jangan membuka dua PR bersamaan di repo ini**, atau
+terima bahwa yang lebih tua tak akan pernah punya hasil CI.
+
+### Keluaran penyapu: dua baris `admin` identik
+
+```
+admin / mitra:daftar_hitam
+admin / mitra:daftar_hitam
+```
+
+Pembacanya tak bisa tahu itu dua baris berbeda atau satu tercetak ganda.
+Basis ini punya peran TEMPLATE dan salinan per-tenant bernama sama, dan
+`mitra.test.ts` memberi hibah ke KEDUANYA. Kini `admin [(template)]` dan
+`admin [Puraloka Persada]` — sama dengan yang sudah dilakukan penjaganya.
+
+---
+
+
 ## 2026-09-17 — penjaga izin akhirnya LOLOS, dan PR kedua untuk tanggal UTC
 
 Founder: *"lanjutkann"* ×2.
