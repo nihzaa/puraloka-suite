@@ -668,6 +668,18 @@ jobs:
       - name: Port API cocok dengan tujuan web
         run: node scripts/audit-port-api-cocok.mjs
 
+      # Zona waktu container: WIB, bukan UTC — dan ini menggeser TANGGAL UANG.
+      #
+      # `node:22-alpine` berjalan di UTC. Antara 00:00–07:00 WIB tanggal UTC
+      # masih HARI KEMARIN, dan dua tempat tak punya cadangan dari klien
+      # (`paid_at` pembayaran termin mandor, `settled_at` penyelesaian
+      # borongan) — di sana UTC satu-satunya sumber.
+      #
+      # Ikut memeriksa paket `tzdata`: `TZ` tanpa basis zonanya jatuh DIAM-DIAM
+      # kembali ke UTC — setelan yang terlihat terpasang dan tak berpengaruh.
+      - name: Zona waktu WIB terpasang di container (ambang NOL)
+        run: node scripts/audit-zona-waktu-terpasang.mjs
+
       # Jalur UI di inbox approval wajib menunjuk halaman yang benar-benar ada.
       #
       # Ditemukan 2026-08-14 saat menambahkan `purchase_order` ke inbox:

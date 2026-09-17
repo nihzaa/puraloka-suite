@@ -115,18 +115,18 @@ function useKomponenAnalisa(id: string) {
  */
 function KeadaanKomponen({ k }: { k: ReturnType<typeof useKomponenAnalisa> }) {
   if (k.galat) return (
-    <p role="status" style={{ fontSize: 12, color: C.red, margin: "0 0 10px" }}>
+    <p role="status" style={{ fontSize: "var(--teks-label)", color: C.red, margin: "0 0 10px" }}>
       Rincian koefisien gagal dimuat. Tutup lalu buka lagi analisa ini —
       menyimpan sekarang hanya akan menyalin koefisien aslinya tanpa perubahan.
     </p>
   );
   if (k.data === null) return (
-    <p role="status" style={{ fontSize: 12, color: C.muted, margin: "0 0 10px" }}>
+    <p role="status" style={{ fontSize: "var(--teks-label)", color: C.muted, margin: "0 0 10px" }}>
       Memuat rincian koefisien…
     </p>
   );
   if (k.data.length === 0) return (
-    <p role="status" style={{ fontSize: 12, color: C.muted, margin: "0 0 10px" }}>
+    <p role="status" style={{ fontSize: "var(--teks-label)", color: C.muted, margin: "0 0 10px" }}>
       Analisa ini tidak punya komponen.
     </p>
   );
@@ -384,7 +384,7 @@ function KatalogTab() {
             seluruhnya, padahal respons dibatasi 200 dari 3.043. Pemakai yang
             tak menemukan analisanya perlu tahu bahwa daftarnya memang dipotong,
             bukan menyimpulkan analisanya tidak ada. */}
-        <span style={{ fontSize: 12, color: terpotong ? C.yellow : C.muted, whiteSpace: "nowrap" }}>
+        <span style={{ fontSize: "var(--teks-label)", color: terpotong ? C.yellow : C.muted, whiteSpace: "nowrap" }}>
           {terpotong
             ? `${assemblies.length} dari ${formatAngka(total!)} — katalog melebihi batas muat`
             : cari.trim() || hanyaKurang
@@ -395,7 +395,7 @@ function KatalogTab() {
           <button type="button" onClick={() => setHanyaKurang(v => !v)}
             aria-pressed={hanyaKurang}
             style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "6px 8px",
-              fontSize: 12, fontWeight: 600, borderRadius: 6, cursor: "pointer",
+              fontSize: "var(--teks-label)", fontWeight: 600, borderRadius: 6, cursor: "pointer",
               border: `1px solid ${hanyaKurang ? C.yellow : C.border}`,
               background: hanyaKurang ? C.yellowBg : C.surface,
               color: hanyaKurang ? C.yellow : C.mid, whiteSpace: "nowrap" }}>
@@ -445,7 +445,7 @@ function KatalogTab() {
                 <span style={{ paddingTop: 2 }}>
                   {open === a.id ? <ChevronDown size={15} color={C.mid} /> : <ChevronRight size={15} color={C.mid} />}
                 </span>
-                <code style={{ fontSize: 12, color: C.navy, fontWeight: 700, minWidth: 84, paddingTop: 1 }}>{a.code}</code>
+                <code style={{ fontSize: "var(--teks-label)", color: C.navy, fontWeight: 700, minWidth: 84, paddingTop: 1 }}>{a.code}</code>
                 <span style={{ flex: 1, fontSize: 13, color: C.text, lineHeight: 1.45 }}>
                   {a.name}
                   {/* Penanda di level DAFTAR, bukan hanya setelah dibuka:
@@ -490,9 +490,9 @@ function KatalogTab() {
 
               {open === a.id && (
                 <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 12px 12px" }}>
-                  {h === "memuat" && <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>Menghitung…</p>}
+                  {h === "memuat" && <p style={{ fontSize: "var(--teks-label)", color: C.muted, margin: 0 }}>Menghitung…</p>}
                   {h === "gagal" && (
-                    <p style={{ fontSize: 12, color: C.red, margin: 0 }}>
+                    <p style={{ fontSize: "var(--teks-label)", color: C.red, margin: 0 }}>
                       Gagal memuat rincian harga. Coba tutup dan buka lagi.
                     </p>
                   )}
@@ -624,7 +624,7 @@ function RincianAnalisa({ d }: { d: HspLive }) {
                       background: C.yellowBg, border: `1px solid ${C.yellow}`, borderRadius: 6,
                       marginBottom: 12 }}>
           <CircleOff size={14} color={C.yellow} style={{ flexShrink: 0, marginTop: 1 }} />
-          <span style={{ fontSize: 12, color: C.text, lineHeight: 1.5 }}>
+          <span style={{ fontSize: "var(--teks-label)", color: C.text, lineHeight: 1.5 }}>
             {d.missing_prices.length} bahan/upah belum punya harga, jadi HSP di bawah
             <strong> belum lengkap</strong>. Isi harganya di Price Book:{" "}
             <span style={{ color: C.mid }}>{d.missing_prices.slice(0, 4).join(", ")}
@@ -657,7 +657,7 @@ function RincianAnalisa({ d }: { d: HspLive }) {
           Yang belum: <th scope="row"> pada kolom Uraian. Itu perbaikan kecil
           yang berdiri sendiri, bukan alasan memaksakan komponennya. */}
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--teks-label)", fontVariantNumeric: "tabular-nums" }}>
           <caption className="sr-only">Analisa harga satuan pekerjaan: uraian resource, satuan, koefisien, harga satuan, dan jumlah.</caption>
           <thead>
             <tr>
@@ -826,7 +826,7 @@ function AdopsiModal({ asal, onClose, onDone }: {
             <h2 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>
               Jadikan analisa perusahaan
             </h2>
-            <p style={{ fontSize: 12, color: C.mid, margin: 0, lineHeight: 1.55 }}>
+            <p style={{ fontSize: "var(--teks-label)", color: C.mid, margin: 0, lineHeight: 1.55 }}>
               Menyalin <code style={{ color: C.navy }}>{asal.code}</code> ke katalog perusahaan.
               Analisa nasionalnya tidak berubah, dan tetap bisa dipakai seperti biasa.
             </p>
@@ -839,7 +839,7 @@ function AdopsiModal({ asal, onClose, onDone }: {
 
         {err && (
           <div style={{ marginTop: 14, padding: "8px 12px", background: C.redBg,
-                        border: `1px solid ${C.red}`, borderRadius: 6, fontSize: 12, color: C.text }}>
+                        border: `1px solid ${C.red}`, borderRadius: 6, fontSize: "var(--teks-label)", color: C.text }}>
             {err}
           </div>
         )}
@@ -858,7 +858,7 @@ function AdopsiModal({ asal, onClose, onDone }: {
         </div>
 
         <div style={{ marginTop: 20 }}>
-          <p style={{ fontSize: 12, fontWeight: 600, color: C.text, margin: "0 0 4px" }}>
+          <p style={{ fontSize: "var(--teks-label)", fontWeight: 600, color: C.text, margin: "0 0 4px" }}>
             Sesuaikan koefisien
           </p>
           <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: "0 0 10px", lineHeight: 1.5 }}>
@@ -1008,7 +1008,7 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
             <h2 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>
               Edit <code style={{ color: C.navy }}>{asal.code}</code> (versi baru)
             </h2>
-            <p style={{ fontSize: 12, color: C.mid, margin: 0, lineHeight: 1.55 }}>
+            <p style={{ fontSize: "var(--teks-label)", color: C.mid, margin: 0, lineHeight: 1.55 }}>
               Membuat versi {asal.version_number + 1} berstatus draft. Analisa yang sudah
               dipakai di estimasi tetap memakai versi {asal.version_number} — tidak berubah.
             </p>
@@ -1021,7 +1021,7 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
 
         {err && (
           <div style={{ marginTop: 14, padding: "8px 12px", background: C.redBg,
-                        border: `1px solid ${C.red}`, borderRadius: 6, fontSize: 12, color: C.text }}>
+                        border: `1px solid ${C.red}`, borderRadius: 6, fontSize: "var(--teks-label)", color: C.text }}>
             {err}
           </div>
         )}
@@ -1064,7 +1064,7 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
         </div>
 
         <div style={{ marginTop: 20 }}>
-          <p style={{ fontSize: 12, fontWeight: 600, color: C.text, margin: "0 0 4px" }}>
+          <p style={{ fontSize: "var(--teks-label)", fontWeight: 600, color: C.text, margin: "0 0 4px" }}>
             Ubah koefisien
           </p>
           <p style={{ fontSize: "var(--t-kecil)", color: C.muted, margin: "0 0 10px", lineHeight: 1.5 }}>

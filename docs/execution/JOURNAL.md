@@ -5,6 +5,382 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-17 (lanjutan) — Rp 271 juta untuk 1 m3 beton, dan dua kali nyaris "memperbaiki" yang benar
+
+### Cacat yang sama dengan 464, sebulan kemudian, di bahan yang terlewat
+
+```
+Pembuatan 1 m3 pondasi beton siklop
+706 kg Agregat kasar x Rp 385.000 = Rp 271.810.000   untuk SATU m3
+```
+
+Migrasi 464 (2026-08-19) memperbaiki kelas ini untuk Pasir beton, Kerikil,
+Pupuk Organik. `Agregat kasar` dan `Ijuk` **tak ikut**, dan salah sebulan.
+
+Kenapa lolos: `audit-harga-satuan-waras.mjs` dan 590 sama-sama mencari harga
+**IDENTIK lintas satuan**. Di sini angkanya cuma ada satu — tak ada pasangan
+untuk dibandingkan. Penjaga yang benar, cacat yang hidup di luar jangkauannya.
+
+Sesudah: 706 x 285,19 = **Rp 201.344**.
+
+### DUA KALI nyaris memperbaiki yang sudah benar
+
+Ini bagian yang paling layak dicatat, sebab keduanya terlihat seperti temuan
+besar dan keduanya SALAH:
+
+**1. `Tukang batu ( OJ )` — 87 analisa, temuan terbesar di daftar.**
+
+```
+resources : OJ    dataset: OH    tersimpan: 20.714,29
+20.714,29 x 7 = 145.000   ← PERSIS upah harian OH-nya
+```
+
+Angkanya sudah dikonversi dengan benar; yang salah cuma LABEL satuan di
+dataset. "Memperbaikinya" akan mengalikan biaya upah 87 analisa dengan TUJUH.
+
+**2. `Bentonite`** — m3 Rp 25.000 vs kg Rp 20.000.000. Bukan satuan salah,
+melainkan dua BENTUK barang (bubur vs bubuk). Sudah tertulis di 590, dan
+saya sempat memasukkannya ke daftar kandidat sebelum membaca ulang.
+
+Pelajarannya sama dengan `feedback-ukur-angka-masuk-akal`: **rasio yang
+mencurigakan bukan bukti kesalahan.** Yang memisahkan ketiga temuan nyata
+dari kedua palsu bukan besarnya selisih, melainkan FISIKA:
+
+```
+385.000 / 285,19 = 1.350 kg/m3       agregat kasar — wajar
+besi strip 0,2x2 = 0,314 kg/m; x15rb = 4.710 ~ 5.000/m1
+20.714,29 x 7    = 145.000           ← sudah benar, jangan disentuh
+```
+
+### Sebab akarnya URUTAN BACA, bukan data
+
+Jalur 1-4 seeder mencocokkan lewat NAMA saja, dan berkas daftar harga resmi
+dibaca DULUAN — jadi baris m3 menang meski resource-nya kg. Jalur 0 baru
+memilih kandidat yang SATUANNYA sama, sebelum keempat jalur lain.
+
+Ia memilih di antara yang SUDAH ada: tak mengarang, tak mengonversi, diam
+bila tak ada kandidat bersatuan sama. Konversi m3→kg butuh densitas, dan
+densitas yang ditebak adalah cacat ini dalam bentuk lain.
+
+Dari 30 resource berkandidat-satuan-sama, hanya **3** yang angkanya berubah.
+27 sisanya rasio 1,0 — beda LABEL antar-berkas.
+
+### Jawaban pertanyaan founder soal harga
+
+```
+resources          2.878
+punya harga        2.795
+tanpa harga           83
+  dipakai AHSP aktif : 17   ← sisanya entri katalog tak dirujuk siapa pun
+```
+
+Satu ditutup hari ini (`Asbes Gelombang` Rp 62.400/lembar, jalur 5
+silang-dataset). Yang 17 sengaja dibiarkan: lump-sum per proyek
+(`Upah kerja`, `Peralatan`, `Sewa Alat`, `Galian Tanah`) dan bahan yang
+memang tak ada di sumber mana pun — fail-loud lebih benar daripada menebak.
+
+Dan datanya memperlihatkan kenapa menebak berbahaya: `Ubin Keramik 30x30`
+hanya punya 20x20 dan 20x25 di sumber; `Reng Kayu 2/3` m1 Rp 6.000 sementara
+resource-nya m3.
+
+---
+
+## 2026-09-17 (lanjutan) — override yang BASI, dan enam shard merah yang satu cacat
+
+Founder: *"LANJUTTKANN"*.
+
+### `pnpm audit` hijau — 25/17 high → 11/5, exit 0
+
+Merah di TIAP PR selama ini. Dibaca sekilas, kedua belas temuannya menyebut
+rantai `expo`, jadi ia terbaca seperti masalah pihak ketiga yang menunggu
+rilis upstream. Salah baca: **11 dari 12 adalah SATU paket** dengan override
+yang basi.
+
+```
+'@xmldom/xmldom': '>=0.8.12'   menutup advisory saat DITULIS
+terpasang         0.9.10       MEMENUHI syaratnya
+advisory baru     >=0.9.12     terbit di atasnya
+```
+
+**Override yang basi tidak bergejala.** pnpm menghormatinya, install
+berhasil, nol peringatan. Angkanya tak SALAH — ia berhenti mengejar. Bentuk
+yang sama dengan racun konteks di pembuka CLAUDE.md, tapi di berkas
+konfigurasi: `>=` membuat angka lama tetap terpenuhi selamanya.
+
+### Jebakan yang memakan waktu saya sendiri
+
+`sharp` diminta LANGSUNG oleh apps/api, jadi saya menaikkan specifier di
+`apps/api/package.json`. Lockfile tak bergerak:
+
+```
+specifier: '>=0.35.0'   ← override menang
+version:   0.35.3
+```
+
+**Override di `pnpm-workspace.yaml` MENGALAHKAN package.json**, tanpa satu
+pun galat. Yang berubah cuma sebaris teks yang tak seorang pun baca lagi.
+Saya baru melihatnya karena memeriksa lockfile sesudah install — kalau
+berhenti di "package.json sudah saya naikkan", commit ini akan hijau di
+mata saya dan merah di CI.
+
+Alasannya ditulis di ATAS entri override, bukan di pesan commit — di tempat
+yang akan dibaca orang yang menyunting angka itu berikutnya.
+
+### Diuji, bukan diasumsikan
+
+`sharp` hidup lewat impor DINAMIS (`grafik-svg.ts:205`), jadi grep impor
+statis memulangkan NOL — dan nol bukan bukti ketiadaan (§7a lagi). Hampir
+saya simpulkan "tak terpakai, aman". Dijalankan di lingkungan terpisah:
+
+```
+libvips 8.18.6 · sharp 0.35.4
+SVG -> PNG : 1.153 byte · magic PNG true · 120x60
+```
+
+⚠ `pnpm install --filter` menolak dengan `ERR_PNPM_ABORTED_REMOVE_MODULES_
+DIR_NO_TTY`, dan itu MENYELAMATKAN — `node_modules` worktree ini junction,
+jadi purge-nya mengenai `E:\Project\puraloka-suite\node_modules` MILIK REPO
+SUNGGUHAN. pnpm 9 (versi server EAS) meminta hal yang sama. Tidak
+dijalankan; lockfile diverifikasi lewat `lockfileVersion` + diff, bukan
+lewat install.
+
+### PR #150: enam shard merah = SATU cacat, sudah diperbaiki
+
+Terbaca seperti kerusakan luas. Fase test **tak pernah dimulai** — keenamnya
+mati di fase PENJAGA pada baris yang sama: `ZZISO308548 Tenant B` × 12 jenis
+approval.
+
+Dan beberapa langkah sebelumnya, penyapu melapor BERSIH (`dinonaktifkan: 0`).
+Dua penjaga yang keduanya jujur, cacatnya hidup di antara mereka — penyapu
+hanya mengenali `[UJI-*]`, tenant itu bernama `ZZISO<acak>`.
+
+Sudah ditutup `59d8297f` di #152, tak ada di #150 maupun `main`. Tak
+ditambal di sana: begitu #152 masuk lalu di-rebase, hasil CI #150 bermakna
+untuk pertama kalinya.
+
+---
+
+## 2026-09-17 (lanjutan) — penjaga izin HIJAU di CI sesudah lima versi, dan dua PR yang saling membunuh
+
+Founder: *"lanjutkann"* ×2.
+
+### Penjaga izin akhirnya LOLOS
+
+```
+penjaga izin : completed success
+sukses       : 199 / 206 langkah
+```
+
+Versi kelima: **buang batas umur**. Empat sebelumnya dan apa yang membuka
+cacat berikutnya:
+
+```
+v1 urutan langkah        menyapu SESUDAH penjaga
+v2 kecualikan admin      bertentangan dgn ambang NOL penjaganya
+v3 batas umur 2 jam      merusak test yang sah
+v4 pola nama tenant      batas umur tak memisahkan apa pun
+v5 buang batas umur      ✓
+```
+
+**Batas umur itu kesalahan yang paling lama bertahan**, dan angkanya yang
+membongkarnya:
+
+```
+run ini        17:19
+run sebelumnya 17:18   ← selisih SATU MENIT
+```
+
+Di CI yang rerun tiap beberapa menit, "residu run sebelumnya" dan "hibah run
+ini" sama-sama baru. Sumbunya memang bukan waktu.
+
+Yang memisahkan keduanya URUTAN LANGKAH — dibaca dari `ci.yml` lewat js-yaml,
+bukan ditebak:
+
+```
+langkah 125  Sapu residu hibah izin
+langkah 126  Peran tak kelebihan izin
+langkah 198  Test + coverage
+```
+
+Saat penyapu jalan, `mitra.test.ts` belum menyentuh apa pun. Balapan
+antar-shard yang saya khawatirkan di v3 **tak pernah berlaku** — semua shard
+menyapu di langkah yang sama, sebelum semua masuk fase test. Yang merusak
+test di v1 adalah URUTANNYA, bukan ketiadaan batas umur. Saya memperbaiki
+gejala yang salah, lalu bertahan pada perbaikan itu selama dua versi.
+
+### Reproduksi lokal seharusnya jadi langkah PERTAMA
+
+Lima versi ditambal dari keluaran CI saja — tiap kali menunggu ~25 menit
+untuk tahu hasilnya. Baru pada versi kelima saya menyuntik skenarionya
+LOKAL:
+
+```
+disuntik: hibah ke template admin DAN admin tenant nyata
+penjaga sebelum disapu : exit 1 — admin [(template)] + admin [Puraloka Persada]
+                         (PERSIS keluaran CI PR #152)
+penyapu                : mencabut 2, keduanya disebut + companynya
+penjaga sesudahnya     : exit 0
+```
+
+Satu menit kerja, dan ia menjawab pertanyaan yang lima jalan CI tak bisa
+jawab. Pelajarannya sederhana dan sudah tertulis di CLAUDE.md dengan kata
+lain: **ukur, jangan menunggu.**
+
+### Dua PR saling membunuh — `ci-shared-ci-db`
+
+Tiap push ke #151 dibatalkan ~10 detik kemudian oleh run #152:
+
+```
+07:08:14  fix/tanggal-wib      in_progress
+07:08:04  fix/ahsp-serapan-ui  cancelled     ← 10 detik
+17:31:50  fix/tanggal-wib      failure
+17:31:41  fix/ahsp-serapan-ui  cancelled     ← 9 detik
+```
+
+Sebabnya `ci.yml:118`:
+
+```yaml
+concurrency:
+  group: ci-shared-ci-db
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+```
+
+Grup dibagi SELURUH cabang — sengaja, sebab basis CI-nya satu. Akibatnya dua
+PR yang hidup bersamaan saling meniadakan, dan `gh pr checks` pada #151
+menampilkan hasil run yang DIBATALKAN, bukan yang terbaru.
+
+Saya sempat membaca "cancelled" sebagai kegagalan. Ia bukan — hanya berarti
+hasilnya tak pernah ada. Karena #152 memuat seluruh commit #151, yang
+bermakna hanya hasil #152.
+
+⚠ Konsekuensi praktis: **jangan membuka dua PR bersamaan di repo ini**, atau
+terima bahwa yang lebih tua tak akan pernah punya hasil CI.
+
+### Keluaran penyapu: dua baris `admin` identik
+
+```
+admin / mitra:daftar_hitam
+admin / mitra:daftar_hitam
+```
+
+Pembacanya tak bisa tahu itu dua baris berbeda atau satu tercetak ganda.
+Basis ini punya peran TEMPLATE dan salinan per-tenant bernama sama, dan
+`mitra.test.ts` memberi hibah ke KEDUANYA. Kini `admin [(template)]` dan
+`admin [Puraloka Persada]` — sama dengan yang sudah dilakukan penjaganya.
+
+---
+
+
+## 2026-09-17 — penjaga izin akhirnya LOLOS, dan PR kedua untuk tanggal UTC
+
+Founder: *"lanjutkann"* ×2.
+
+### PR #152 — container API berjalan di UTC
+
+```
+TZ di Dockerfile / compose / .env : 0
+basis image                        : node:22-alpine → UTC
+pemanggilan tanggal berbasis UTC   : 140
+todayWIB() (helper yang SUDAH ada) : 14
+```
+
+Repo ini sudah tahu jawabannya WIB — helpernya ada di
+`lib/financial-config.ts` dan benar; hanya tak dipakai. Batasnya diverifikasi:
+
+```
+18:25Z → WIB 01:25 → todayWIB 09-17 · UTC 09-16  ← BEDA
+16:59Z → WIB 23:59 → keduanya 09-16              ← batasnya
+```
+
+Jendelanya 00:00–07:00 WIB — jam yang jarang dipakai kantor, normal untuk
+mandor lapangan dan aplikasi mobile.
+
+**Kenapa uang:** dua tempat tak punya cadangan dari klien sama sekali —
+`mandor.ts:1816 paid_at` (pembayaran termin mandor) dan `mandor.ts:2203
+settled_at` (penyelesaian borongan). `reports.ts` mengelompokkan arus kas per
+BULAN dari `paid_at`, jadi pembayaran pukul 01:00 WIB tanggal 1 masuk ember
+bulan sebelumnya. Totalnya benar, batang bulanannya salah, nol galat.
+Terbukti sudah terjadi: tiga kasbon dibuat 01:25 WIB tercatat sehari
+sebelumnya.
+
+Diperbaiki di CONTAINER, bukan 140 pemanggilan — menyunting satu per satu
+akan meninggalkan yang ke-141.
+
+⚠ `tzdata` ikut dipasang dan itu yang paling mudah terlewat: Alpine tak
+memuat basis zona waktu, jadi `TZ=Asia/Jakarta` TANPA paketnya jatuh
+DIAM-DIAM kembali ke UTC — setelan yang terlihat terpasang, lolos tiap
+pembacaan teks, dan tak berpengaruh apa pun.
+
+`audit-zona-waktu-terpasang.mjs` — ambang NOL, tiga mutasi terbukti merah
+dengan pesan berbeda (TZ hilang · tzdata hilang · TZ compose hilang).
+Batasnya dicetak DI KELUARAN HIJAUNYA: yang dibaca BERKAS, bukan container
+hidup — hijaunya bukan bukti produksi sudah WIB.
+
+### Penjaga izin: LOLOS akhirnya, sesudah EMPAT versi
+
+```
+202 dari 206 langkah hijau   (sebelumnya mati di ~3 menit pada penjaga)
+```
+
+Versi keempat yang benar: melewati tenant uji lewat **POLA NAMA**
+(`[UJI-*]`, `ZZISO*`, `CI Seed*`), bukan kepemilikan maupun keaktifan.
+
+Kenapa tiga versi sebelumnya gagal, dan tiap kali CI yang membongkarnya:
+
+```
+v1 urutan langkah          menyapu SESUDAH penjaga
+v2 kecualikan admin        bertentangan dgn ambang NOL penjaganya
+v3 batas umur 2 jam        merusak test yang sah (mitra.test.ts)
+v4 pola nama               ✓
+```
+
+v3 gagal karena di CI tenant ujinya masih AKTIF dan BERPEMILIK — penyapu
+menuntut `owner_user_id IS NULL`, sementara `ai-isolasi-tenant.test.ts` hanya
+melepas kepemilikan bila teardown-nya SEMPAT berjalan. Komentar test itu
+sendiri sudah mencatat: *"tiap jalan suite menambah satu lagi"*.
+
+⚠ Jebakan backtick-dalam-template-literal kena untuk KEDUA kalinya di sesi
+ini (24 buah, berkas gagal parse `SyntaxError: missing ) after argument
+list`). Polanya: komentar SQL di dalam `` c.query(`…`) `` tak boleh memuat
+backtick sama sekali.
+
+### Lima test merah — asalnya `main`, bukan PR ini
+
+`rls-reference-group` · `ai-isolasi-tenant` · `template-wbs` ·
+`otomasi-biaya-pola` · `klaim-perjalanan`. Hijau lokal 109/109.
+
+Ditelusuri: ketiganya BERBEDA dari `main` di worktree ini tetapi BUKAN dari
+commit saya (`git log main..HEAD -- <berkas>` kosong) — masuk lewat merge
+`main` di awal PR. Yang terakhir menyentuhnya:
+
+```
+3cc83702  fix(test): 17 test RLS bisa LULUS tanpa menguji apa pun
+          — diganti gagal-nyaring
+```
+
+Commit itu SENGAJA mengubah test yang dulu lulus secara hampa jadi
+gagal-nyaring bila prasyarat datanya tak terpenuhi. Yang terlihat sekarang
+persis perilaku yang ia rancang.
+
+Dan `rls-reference-group` punya blok prasyarat yang MERAMALKANNYA kata per
+kata: *"benar di basis dev, dan SALAH di CI yang memutar rantai migrasi dari
+NOL … terbaca seperti RLS-nya bocor, padahal policy-nya bekerja dengan
+benar"*. Blok itu tak menyala di CI — kemungkinan karena memeriksa lewat
+`users.role_id` sementara izin diresolusi lewat `company_members` +
+`get_role_permissions()`. Diukur di dev: kedua jalur sepakat, jadi selisihnya
+hanya muncul di basis CI.
+
+**Tidak ditambal di PR ini** — memperbaiki prasyarat test milik orang lain, di
+berkas yang bukan bagian perubahan saya, akan mencampur dua persoalan dalam
+satu review.
+
+⚠ Yang TIDAK bisa saya buktikan: bahwa kelimanya merah juga di `main`. `main`
+tak punya run CI yang sampai fase test sejak 2026-09-13. Keterbatasan, bukan
+kesimpulan — dan dicatat begitu di komentar PR.
+
+---
+
+
 ## 2026-09-16 (lanjutan 4) — saklar "tanpa pajak" tak pernah bisa dipakai, dan penyapu yang merusak test
 
 Founder: *"lanjutkann, cari pekerjaan lain, termasuk pekerjaan kode atau
