@@ -48,6 +48,32 @@ const SEEDS = 'E:/Project/puraloka-suite/db/seeds'
 
 const norm = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 
+/**
+ * Indeks SILANG-DATASET — dipakai jalur 5 (lihat alasannya di bawah).
+ * Dibangun sekali: berkas dataset dibaca ulang per sumber di loop utama,
+ * dan yang ini sengaja memuat KEDUANYA sekaligus.
+ */
+function indeksSilang() {
+  const baca = (files) => {
+    const out = []
+    for (const f of files) out.push(...(JSON.parse(readFileSync(`${SEEDS}/${f}`, 'utf8')).prices ?? []))
+    return out
+  }
+  const idx = (arr) => {
+    const m = new Map()
+    for (const p of arr) {
+      const k = norm(p.nama)
+      if (!m.has(k)) m.set(k, [])
+      m.get(k).push(p)
+    }
+    return m
+  }
+  return {
+    national: idx(baca(['harga-se47-dataset.json', 'harga-analisa-se47-dataset.json'])),
+    company: idx(baca(['harga-cibuluh-dataset.json', 'harga-analisa-cibuluh-dataset.json'])),
+  }
+}
+
 async function main() {
   const conn = process.env.DIRECT_URL
   if (!conn?.includes(DEV_REF)) {
@@ -69,6 +95,7 @@ async function main() {
   if (!company) throw new Error('Belum ada company.')
 
   let totalBaru = 0, totalAda = 0, totalTanpaPasangan = 0
+  const silang = indeksSilang()
 
   // Tiap sumber punya DUA berkas: daftar harga resmi + harga yang hanya
   // tertulis di dalam baris analisa. Yang kedua ditambahkan setelah ditemukan
@@ -173,6 +200,51 @@ async function main() {
           const harga = new Set(kandidat.map((k) => Number(k.amount)))
           const satuan = new Set(kandidat.map((k) => k.unit_code))
           return harga.size === 1 && satuan.size === 1 ? kandidat[0] : undefined
+        })()
+        /*
+          Jalur 5 — nama PERSIS di dataset SUMBER LAIN. Ditambahkan 2026-09-17.
+
+          Keempat jalur di atas hanya melihat dataset milik sumbernya sendiri:
+          analisa `company` dicocokkan ke Cibuluh, `national` ke SE-47. Itu
+          benar sebagai bawaan — harga nasional dan harga Kabupaten Bandung
+          adalah KONTEKS HARGA yang berbeda, dan mencampurnya diam-diam
+          membuat estimasi memakai angka dari pasar yang salah.
+
+          Tetapi ada celahnya. `Asbes Gelombang` (CIB-R0219, dipakai 3 analisa
+          company) TAK ADA di Cibuluh dengan nama telanjang itu — yang ada
+          varian berukuran (`Asbes Gelombang 3 mm 80 x 180`, dst). Nama
+          persisnya justru ada di SE-47: Rp 62.400/lembar, satuan sama,
+          muncul di KEDUA berkas SE-47 dengan angka identik.
+
+          ⚠ Diukur lebih dulu, dan hasilnya yang menentukan bentuk jalur ini:
+          dari 18 resource tanpa harga yang dipakai analisa AKTIF, yang bisa
+          ditutup lewat silang-dataset **tepat SATU**. Jadi ini bukan lubang
+          sistematis, dan syaratnya dibuat seketat mungkin supaya tetap begitu:
+
+            1. nama PERSIS sama (norm), bukan kemiripan;
+            2. seluruh kandidat SEPAKAT harga DAN satuan;
+            3. satuannya SAMA DENGAN satuan resource.
+
+          Syarat (3) tak ada di jalur 1-4, dan di sini wajib. Justru di jalur
+          silang-dataset-lah jebakan dimensi paling mungkin: `Reng Kayu 2/3`
+          tercatat m3 di resources dan m1 di sheet harga — menyalin Rp 6.000/m1
+          ke baris m3 persis kelas cacat yang dijaga
+          `audit-harga-satuan-waras.mjs` (1 m3 beton jadi Rp 626 juta).
+          Dengan syarat (3), pasangan seperti itu DITOLAK, bukan dipakai.
+
+          Harganya ditulis ke lingkup sumbernya sendiri (company tetap company),
+          jadi harga nasional tidak bocor jadi milik tenant.
+        */
+        ?? (() => {
+          const lain = silang[source === 'company' ? 'national' : 'company']
+          const k = lain.get(norm(r.name))
+          if (!k?.length) return undefined
+          const harga = new Set(k.map((x) => Number(x.amount)))
+          const satuan = new Set(k.map((x) => x.unit_code))
+          if (harga.size !== 1 || satuan.size !== 1) return undefined
+          // Syarat (3): satuan sumber wajib sama dengan satuan resource.
+          if ([...satuan][0] !== r.unit_code) return undefined
+          return k[0]
         })()
       if (!cocok) { tanpaPasangan++; continue }
 
