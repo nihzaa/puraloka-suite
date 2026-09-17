@@ -568,8 +568,35 @@ describe('sengketa', () => {
     const kode = [a.statusCode, c.statusCode].sort()
     expect(kode, `dua-duanya gagal — tak ada yang menang: ${a.body} | ${c.body}`)
       .not.toEqual([409, 409])
+    /*
+      ── 422 JUGA BENAR, dan itu keadaan KETIGA (ditambahkan 2026-09-14)
+
+      Test ini merah di suite PENUH dengan `expected [200, 409] to include
+      422`, sementara dijalankan sendiri ia lulus 3/3. Bukan flake: 422 adalah
+      jawaban yang BENAR untuk salah satu urutan yang mungkin.
+
+      Urutan tahapnya maju-saja (`URUTAN_SENGKETA`):
+
+          dicatat → negosiasi → mediasi → arbitrase → pengadilan → selesai
+
+      Dua permintaan bersamaan menuju `negosiasi` dan `mediasi`. Kalau
+      keduanya terserialisasi dan yang `mediasi` menang duluan:
+
+          mediasi  dari `dicatat`   → maju  → 200
+          negosiasi dari `mediasi`  → MUNDUR → 422 "tahap tak boleh mundur"
+
+      Itu gerbang yang bekerja dengan BENAR, bukan lomba yang bocor. Catatan
+      di atas sudah menerangkan kenapa [200, 200] sah; yang terlewat: urutan
+      kebalikannya menghasilkan 422, dan peluangnya naik di bawah beban suite
+      penuh (penjadwalan lebih tak terduga).
+
+      ⚠ Yang TIDAK dilonggarkan: [409, 409] tetap dilarang di atas — dua-duanya
+      gagal berarti tak ada yang menang, dan itu memang cacat. Dan rantai
+      jejak di bawah tetap diperiksa: apa pun urutannya, tiap tulisan wajib
+      berangkat dari status yang benar-benar berlaku saat itu.
+    */
     for (const k of kode) {
-      expect([200, 409], `status tak terduga ${k} — lomba harus berakhir 200 atau 409`)
+      expect([200, 409, 422], `status tak terduga ${k} — lomba harus berakhir 200, 409, atau 422`)
         .toContain(k)
     }
 

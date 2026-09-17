@@ -118,6 +118,15 @@ const D_KHUSUS = new Map([
   ['plans', 'katalog paket langganan — sama untuk semua pelanggan'],
   ['plan_features', 'daftar fitur yang bisa dipaketkan — katalog vendor'],
   ['plan_feature_values', 'nilai fitur per paket — turunan plans + plan_features'],
+
+  // Cetakan rantai approval untuk tenant BARU (R-010, migrasi 580). Isinya
+  // SAMA untuk semua pelanggan — itulah gunanya: trigger
+  // `trg_company_rantai_approval` menyalinnya ke tiap company yang lahir.
+  //
+  // Rantai NYATA milik tenant tinggal di `approval_chains` + `approval_steps`
+  // (keduanya ber-company_id). Yang di sini cuma cetakannya, dan nol baris di
+  // dalamnya milik pelanggan mana pun.
+  ['approval_chain_template', 'cetakan rantai approval tenant baru — sama untuk semua pelanggan'],
 ])
 
 // Akar tenancy: tabel yang MEMBAWA company_id dan jadi ujung rantai FK.

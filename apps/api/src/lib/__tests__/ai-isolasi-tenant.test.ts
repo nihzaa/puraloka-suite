@@ -202,6 +202,32 @@ afterAll(async () => {
   await db.query(`DELETE FROM projects WHERE company_id = $1`, [tenantB])
   await db.query(`DELETE FROM clients WHERE company_id = $1`, [tenantB])
   await db.query(`DELETE FROM company_members WHERE company_id = $1`, [tenantB])
+
+  /*
+    ⚠ Kepemilikan tenant DILEPAS dulu — ditemukan 2026-09-14.
+
+    Tanpa baris ini `afterAll` mati dengan:
+
+        update or delete on table "users" violates foreign key constraint
+        "companies_owner_user_id_fkey" on table "companies"
+
+    Akibatnya jauh lebih mahal daripada satu berkas merah: KETIGA BELAS
+    test di berkas ini LULUS, hanya teardown-nya yang gagal — jadi
+    `[UJI-ISOLASI] Admin B` tertinggal AKTIF, dan ia memegang peran `admin`.
+
+    Yang merah kemudian berkas LAIN yang tak pernah menyentuhnya:
+
+        anti-lockout-wiring  'users:roles:manage' dipegang 2 role, bukan 1
+        recipient-resolution expected 2 to be 3 (jumlah admin aktif)
+        t9-kelola-badan-usaha bukan-pemilik lolos gerbang
+
+    Tiap jalan suite menambah satu lagi. Dibersihkan sekali tak cukup —
+    sumbernya di sini.
+  */
+  await db.query(
+    `UPDATE companies SET owner_user_id = NULL WHERE owner_user_id = $1`,
+    [userB],
+  )
   await db.query(`DELETE FROM users WHERE id = $1`, [userB])
 
   /*

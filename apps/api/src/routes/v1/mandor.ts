@@ -201,7 +201,9 @@ export default async function mandorRoutes(app: FastifyInstance) {
   })
 
   // POST /api/v1/mandor/workers — tambah pekerja baru (mandor_id opsional untuk global registry)
-  app.post('/api/v1/mandor/workers', { preHandler: [authenticate] }, async (request, reply) => {
+  app.post('/api/v1/mandor/workers', {
+    preHandler: [authenticate, requirePermission('mandor:worker:manage')],
+  }, async (request, reply) => {
     const user = request.currentUser!
     const body = request.body as { name: string; tipe?: string; phone?: string; notes?: string; skills?: string[]; mandor_id?: string }
 
@@ -227,7 +229,9 @@ export default async function mandorRoutes(app: FastifyInstance) {
   })
 
   // PATCH /api/v1/mandor/workers/:id — update pekerja (nama, tipe, hp, keahlian, status)
-  app.patch('/api/v1/mandor/workers/:id', { preHandler: [authenticate] }, async (request, reply) => {
+  app.patch('/api/v1/mandor/workers/:id', {
+    preHandler: [authenticate, requirePermission('mandor:worker:manage')],
+  }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const user = request.currentUser!
     const body = request.body as { name?: string; tipe?: string | null; phone?: string; notes?: string; skills?: string[]; is_active?: boolean }
@@ -263,7 +267,9 @@ export default async function mandorRoutes(app: FastifyInstance) {
 
   // DELETE /api/v1/mandor/workers/:id — hapus tukang
   // Hard delete, tapi tolak jika masih punya wage_items aktif
-  app.delete('/api/v1/mandor/workers/:id', { preHandler: [authenticate] }, async (request, reply) => {
+  app.delete('/api/v1/mandor/workers/:id', {
+    preHandler: [authenticate, requirePermission('mandor:worker:manage')],
+  }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const user = request.currentUser!
 
@@ -354,7 +360,9 @@ export default async function mandorRoutes(app: FastifyInstance) {
   })
 
   // POST /api/v1/mandor/worker-kasbons â€” catat kasbon tukang baru
-  app.post('/api/v1/mandor/worker-kasbons', { preHandler: [authenticate] }, async (request, reply) => {
+  app.post('/api/v1/mandor/worker-kasbons', {
+    preHandler: [authenticate, requirePermission('mandor:kasbon:create')],
+  }, async (request, reply) => {
     const user = request.currentUser!
     const body = request.body as {
       worker_id: string
@@ -409,7 +417,9 @@ export default async function mandorRoutes(app: FastifyInstance) {
 
 
   // PATCH /api/v1/mandor/worker-kasbons/:id/cicilan
-  app.patch('/api/v1/mandor/worker-kasbons/:id/cicilan', { preHandler: [authenticate] }, async (request, reply) => {
+  app.patch('/api/v1/mandor/worker-kasbons/:id/cicilan', {
+    preHandler: [authenticate, requirePermission('mandor:kasbon:create')],
+  }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const body = request.body as { nominal: number; catatan?: string }
 
@@ -1358,7 +1368,9 @@ export default async function mandorRoutes(app: FastifyInstance) {
   })
 
   // POST /api/v1/mandor/wage-reports â€” buat laporan upah baru
-  app.post('/api/v1/mandor/wage-reports', { preHandler: [authenticate] }, async (request, reply) => {
+  app.post('/api/v1/mandor/wage-reports', {
+    preHandler: [authenticate, requirePermission('mandor:wage:create')],
+  }, async (request, reply) => {
     const user = request.currentUser!
     const body = request.body as {
       assignment_id: string

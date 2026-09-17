@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { supabase } from '../../utils/supabase.js'
-import { authenticate, hasPermission } from '../../plugins/auth.js'
+import { authenticate, hasPermission, requirePermission } from '../../plugins/auth.js'
 import { gerbangIdempotensi, catatIdempotensi, sudahDibalas } from '../../utils/idempotency.js'
 import { bubbleUpProgress } from '../../lib/rab-aggregation.js'
 import { validateMime } from '../../utils/mime.js'
@@ -228,7 +228,24 @@ export default async function progressRoutes(app: FastifyInstance) {
 
   // POST /api/v1/projects/:projectId/progress-logs
   app.post('/api/v1/projects/:projectId/progress-logs', {
-    preHandler: [authenticate]
+    /*
+      `progress:create`, BUKAN `progress:manage` — dan bedanya diukur, bukan
+      dipilih dari nama (migrasi 577, R-023).
+
+      Diukur 2026-09-14 siapa yang BENAR-BENAR mencatat progres:
+
+          pm 249 · mandor 24 · admin 1
+
+      dan `progress:manage` dipegang admin · direktur ·
+      project_manager_senior · site_manager — BUKAN pm, BUKAN mandor. Memakai
+      izin itu di sini akan memutus 273 dari 274 pencatatan nyata, dengan
+      gejala "kok saya tak bisa lapor progres" tanpa galat yang menyebut izin.
+
+      `progress:manage` tetap dipakai untuk MENGHAPUS log (di bawah): mencatat
+      menambah fakta lapangan, menghapus membuang fakta yang sudah masuk
+      bubble-up rab_items → kategori → proyek → Kurva S → EVM.
+    */
+    preHandler: [authenticate, requirePermission('progress:create')]
   }, async (request, reply) => {
     const { projectId } = request.params as { projectId: string }
 

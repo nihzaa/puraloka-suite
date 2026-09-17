@@ -135,14 +135,94 @@ for (const [peran, key, sebab] of TERLARANG) {
 }
 
 for (const [key, sebab] of KOSONG) {
+  /*
+    ⚠ Yang dipulangkan NAMA PERANNYA, bukan cuma jumlahnya — dan itu bukan
+    kerapian keluaran.
+
+    Versi lama hanya mencetak "dipegang 1 peran — seharusnya NOL". Cacat yang
+    sama kambuh TIGA kali (migrasi 539 → 540 → 543), dan kepala 543 mengaku
+    "SUMBER PEMBERINYA BELUM DIKETAHUI" sesudah memeriksa empat tempat.
+    Keempatnya benar; yang kurang cuma satu keterangan yang penjaga ini SUDAH
+    punya di tangannya dan tak pernah dicetak: peran mana.
+
+    Dengan namanya tercetak, pertanyaan "siapa yang memberi" jadi bisa
+    dijawab dengan satu grep alih-alih menyisir rantai migrasi. Merah tanpa
+    menyebut pelakunya memindahkan biayanya ke orang berikutnya (§8a.2).
+
+    `company_id` ikut sebab basis ini punya baris peran TEMPLATE
+    (`company_id IS NULL`) dan salinan per-tenant dengan NAMA YANG SAMA —
+    tanpa itu, "mandor" tak bisa dibedakan dari "mandor milik tenant X".
+  */
+  /*
+    ⚠ Peran milik company NONAKTIF dilewati — dan itu bukan pelonggaran.
+
+    Diukur 2026-09-16 di CI: penjaga ini merah atas dua `admin` milik
+    `[UJI-ISOLASI] Karya Beton Nusantara` dan `CI Seed Badan Usaha 2`.
+    Keduanya company UJI yang SUDAH dinonaktifkan (`is_active = false`) oleh
+    penyapu tenant di langkah sebelumnya.
+
+    Company nonaktif tak bisa dipakai siapa pun: `plugins/auth.ts` menolak
+    akun yang keanggotaannya di company mati, jadi izin yang menempel pada
+    peran di dalamnya TAK DAPAT DIPAKAI MEMBUKA APA PUN. Memerahkannya berarti
+    memerahkan hal yang tak berbahaya — dan penjaga yang merah atas hal yang
+    tak berbahaya akan diabaikan seluruh keluarannya (§6).
+
+    Yang TIDAK dilonggarkan: peran di company AKTIF, dan peran TEMPLATE
+    (`company_id IS NULL`) — template diwariskan ke tiap tenant baru, jadi
+    justru yang paling berbahaya. Keduanya tetap ambang NOL.
+
+    ⚠ Ini juga menutup balapan antar-shard yang tak bisa ditutup dari sisi
+    penyapu: enam shard menyapu dan memeriksa nyaris bersamaan (terukur:
+    sapu shard-2 pukul 15:33:36, penjaga shard-1 pukul 15:33:43), jadi
+    pengurutan langkah tak pernah cukup. Menilai dari KEADAAN company jauh
+    lebih stabil daripada dari siapa-menghapus-lebih-dulu.
+  */
   const { rows } = await c.query(
-    `SELECT count(*)::int n FROM role_permissions rp
+    `SELECT r.name AS peran,
+            COALESCE(co.name, '(template)') AS company
+       FROM role_permissions rp
        JOIN permissions p ON p.id = rp.permission_id
-      WHERE p.key = $1`,
+       JOIN roles r       ON r.id = rp.role_id
+       LEFT JOIN companies co ON co.id = r.company_id
+      WHERE p.key = $1
+        AND (r.company_id IS NULL OR co.is_active)
+        /*
+          ⚠ Tenant UJI dilewati — dan ini syarat KEDUA, bukan pengganti.
+
+          Di dev, tenant uji sudah dinonaktifkan penyapu, jadi syarat
+          co.is_active di atas sudah cukup. Di CI TIDAK: basisnya dibangun
+          dari kosong tiap jalan, tenant ujinya masih AKTIF dan BERPEMILIK
+          saat penjaga ini berjalan.
+
+          Terukur pada PR #151: penjaga merah atas admin milik
+          [UJI-ISOLASI] Karya Beton Nusantara dan CI Seed Badan Usaha 2,
+          sementara penyapu di langkah sebelumnya melapor dinonaktifkan: 0
+          — ia menuntut owner_user_id IS NULL, dan ai-isolasi-tenant.test
+          hanya melepas kepemilikan bila teardown-nya SEMPAT berjalan.
+          Komentar di test itu sendiri sudah mencatat akibatnya: "tiap jalan
+          suite menambah satu lagi".
+
+          Nama tenant uji mengikuti pola yang hanya dipakai fixture
+          ([UJI-*], ZZISO*, CI Seed*) — sama dengan yang dipakai
+          sapu-tenant-uji-tertinggal.mjs. Tenant sungguhan tak memakainya.
+
+          Yang TIDAK dilonggarkan: tenant nyata dan peran TEMPLATE
+          (company_id IS NULL). Template justru yang paling berbahaya — ia
+          diwariskan ke tiap tenant baru.
+        */
+        AND (r.company_id IS NULL OR (
+          co.name NOT LIKE '[UJI-%'
+          AND co.name NOT LIKE 'ZZISO%'
+          AND co.name NOT LIKE 'CI Seed%'
+        ))
+      ORDER BY r.name, company`,
     [key]
   )
-  if (rows[0].n > 0) {
-    temuan.push(`${key} dipegang ${rows[0].n} peran — seharusnya NOL\n        ${sebab}`)
+  if (rows.length > 0) {
+    const daftar = rows.map((x) => `\n          · ${x.peran}  [${x.company}]`).join('')
+    temuan.push(
+      `${key} dipegang ${rows.length} peran — seharusnya NOL\n        ${sebab}${daftar}`
+    )
   }
 }
 

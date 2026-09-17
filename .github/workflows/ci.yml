@@ -304,6 +304,19 @@ jobs:
       - name: Klaim status atomik (approval & pembayaran ganda)
         run: node scripts/audit-klaim-status-atomik.mjs
 
+      # Kasbon TIDAK boleh dijumlahkan bersama `project_expenses`: trigger
+      # `trg_kasbon_approved_create_expense` sudah menaruh tiap kasbon
+      # approved di tabel itu (ref_type='kasbon'). Diukur 2026-09-15, seluruh
+      # tabel: 55 kasbon approved/settled <-> 55 baris expense, Rp 550.600.000
+      # di kedua sisi, nol yatim di kedua arah.
+      #
+      # Lima tempat menghitungnya dua kali, dan KELIMANYA hijau di seluruh
+      # alat — kedua query berhasil, kedua angkanya sah sendiri-sendiri, yang
+      # salah hanya jumlahnya. Dampaknya bukan pembulatan: satu proyek
+      # dilaporkan menyerap 73,1% nilai kontrak saat yang benar 36,6%.
+      - name: Serapan tak menghitung kasbon dua kali
+        run: node scripts/audit-serapan-tak-dobel-kasbon.mjs
+
       # Penjaga yang tak pernah merah adalah hiasan (CLAUDE.md 8a.2). Bukti
       # itu dijalankan CI, bukan sekali saat penjaganya ditulis: ia melepas
       # klaim atomik yang sungguhan dipakai di 5 berkas, memastikan penjaga
@@ -1896,6 +1909,94 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # `.limit(N)` TAK BISA menembus 1.000 — dan yang mengandalkannya berbohong.
+      #
+      # ⚠ BUKAN duplikat langkah di atasnya. Yang itu menjaga pembacaan tabel
+      # PENUH; daftar `PEMBATAS`-nya memuat `.limit(`, jadi `.limit(20000)`
+      # dianggap SUDAH DIBATASI dan dilewati tanpa diperiksa — padahal 20.000
+      # adalah angka yang TIDAK BISA dicapai. Cacatnya hidup di CELAH antara
+      # keduanya.
+      #
+      # DUA bentuk: (a) `.limit(N>1000)` — ratchet, lantai menyimpan DAFTAR
+      # NAMA (24 situs, diukur 2026-09-15); (b) idiom `.limit(X+1)` untuk
+      # mendeteksi pemotongan — ambang NOL, sebab ia tak sekadar diam, ia
+      # AKTIF MENJANJIKAN pemotongan akan ketahuan. `.limit(5001)` memulangkan
+      # 1.000, jadi `1000 > 5000` false SELAMANYA: header `x-ekspor-terpotong`
+      # tak pernah menyala, dan TOTAL UANG dijumlahkan dari himpunan terpotong
+      # lalu dicetak sebagai jumlah lengkap.
+      #
+      # Tak butuh basis — yang dibaca BENTUK di kode. Bukti merah: (a)
+      # `.limit(9999)` disuntik ke tutup-buku.ts → MERAH exit 1 menyebut
+      # `tutup-buku.ts:60` → dipulihkan → HIJAU exit 0; (b) idiom dikembalikan
+      # ke kasbons.ts → MERAH exit 1 menyebut `kasbons.ts:140` → dipulihkan →
+      # HIJAU exit 0.
+      - name: Batas baca waras (.limit tak menembus 1.000)
+        run: node scripts/audit-batas-baca-waras.mjs
+
+      # Mencacah DI ATAS pembacaan yang terpotong — ambang NOL.
+      #
+      # `GET /cecep/editions` menghitung analisa per edisi dengan menarik
+      # `.limit(10000)` lalu mencacahnya di JS. Diukur ke produksi 2026-09-15:
+      # endpoint melaporkan SE-47-2026 = 580, kebenarannya di basis 2.747.
+      # Salah 4,7 kali lipat, dan 580 TERLIHAT MASUK AKAL — bukan nol, bukan
+      # angka bulat, dan bergerak kalau katalog berubah.
+      #
+      # ⚠ BUKAN duplikat DUA langkah di atasnya, dan celahnya berbeda dari
+      # keduanya:
+      #   • `audit-baca-tak-terpotong` BUTA di sini — `.eq(` dan `.limit(`
+      #     keduanya ada di `PEMBATAS`-nya, jadi baris ini dilewati senyap.
+      #   • `audit-batas-baca-waras` melihat baris yang sama tetapi RATCHET
+      #     dengan lantai 24: keduapuluhempat situs `.limit(N>1000)` yang
+      #     sudah ada DIWARISKAN, termasuk yang salah ini — ia hijau atas
+      #     cacat 580-vs-2.747 dan akan tetap hijau.
+      # Yang ini ambang NOL, tetapi hanya atas himpunan yang lebih sempit:
+      # pembacaan >1.000 yang hasilnya DIPERAS JADI SATU NILAI (for/reduce/
+      # .length/Set/Map). Daftar yang terpotong masih memperlihatkan barisnya;
+      # sebuah ANGKA yang terpotong tak punya sisa yang bisa dilihat.
+      #
+      # Jalan pertamanya menemukan instans KEDUA yang tak seorang pun cari:
+      # `/cecep/prices/missing` menyusun peringkat "dampak terbesar" dari
+      # 1.000 dari 33.682 baris komponen. Lima teratas sesungguhnya (Mandor
+      # 2.513, Pekerja 2.380, Kepala tukang 1.608) TAK SATU PUN muncul; yang
+      # ditampilkan "Paku pancing 6x23" (16). Layar yang seluruh gunanya
+      # memprioritaskan menyuruh mengisi yang paling tak mendesak.
+      #
+      # Basis TIDAK jadi syarat memerahkan (hanya memperkaya laporan dengan
+      # jumlah baris nyata) — penjaga yang hijau karena tak memeriksa apa pun
+      # lebih buruk daripada tak ada.
+      #
+      # Bukti merah: (a) kode asli `jumlah_analisa` dikembalikan → MERAH
+      # exit 1 menyebut `ahsp.ts:289`, tabel `assemblies` 5.791 baris,
+      # variabel `asm`, "4.791 baris TAK PERNAH ikut terhitung" → dipulihkan
+      # → HIJAU exit 0; (b) bentuk `.range(0,19999)` + `new Set(...)`
+      # disuntik → MERAH exit 1 menyebut baris + `assembly_components`
+      # 33.682 baris → dipulihkan → HIJAU exit 0. `tsc` exit 0 pada KEDUA
+      # mutasi — typecheck tak bisa melihat kelas cacat ini.
+      - name: Cacah di atas baca terpotong (ambang NOL)
+        run: node scripts/audit-cacah-di-atas-baca-terpotong.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Saringan `.not(kolom,'in',…)` wajib menyebut nilai enum yang ADA.
+      #
+      # `/notifications/check-milestones` TAK PERNAH bekerja sejak ditulis:
+      # saringannya menyebut `cancelled`, sementara enum `milestone_status`
+      # hanya punya pending/in_progress/completed/overdue. PostgREST menolak
+      # SELURUH query dengan 22P02, galatnya tak diperiksa (`.data ?? []`),
+      # dan rutenya membalas `{success:true, approaching:0, overdue:0}` —
+      # sukses yang sempurna palsu, tak terbedakan dari "memang tak ada yang
+      # jatuh tempo". Dengan saringan yang benar: 19 milestone.
+      #
+      # Enum dibaca dari `pg_enum` (butuh basis), bukan dari daftar di kode —
+      # tabel yang hari ini cuma berisi dua nilai tetap boleh menghasilkan
+      # yang ketiga besok. Ambang NOL. Bukti merah: `cancelled` dikembalikan
+      # → MERAH exit 1 menyebut `notifications.ts:539` + nilai hantunya →
+      # dipulihkan → HIJAU exit 0.
+      - name: Saringan enum menyebut nilai yang ada
+        run: node scripts/audit-saringan-enum-ada.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       # Tiap pengguna aktif wajib punya keanggotaan default.
       #
       # Cacat yang SAMA dibersihkan DUA KALI dalam satu hari: migrasi 379
@@ -2073,6 +2174,23 @@ jobs:
       # peran, dan kebocorannya tak bergejala — yang melihat terlalu banyak
       # adalah PELANGGAN, yang tak akan melapor.
       #
+      # ⚠ Penyapu HARUS berjalan lebih dulu, dan urutannya bukan kerapian.
+      #
+      # `mitra.test.ts` memberikan `mitra:daftar_hitam` secara sadar (inti
+      # ujinya) lalu mencabutnya di `afterAll`. Bila suite mati sebelum
+      # teardown, hibahnya tertinggal — dan penjaga di bawah merah di jalan
+      # BERIKUTNYA dengan keluhan yang menuduh MIGRASI.
+      #
+      # Penyapu itu sudah ada di job ini, tetapi di langkah ~2896 — SESUDAH
+      # penjaga ini. Jadi ia tak pernah melindunginya, dan cacatnya kambuh
+      # tiga kali (migrasi 539 → 540 → 543, yang kepalanya mengaku "sumber
+      # pemberinya belum diketahui"). Sumbernya bukan migrasi maupun seed:
+      # test yang mati sebelum teardown.
+      - name: Sapu residu hibah izin (sebelum penjaga peran)
+        run: node scripts/sapu-tenant-uji-tertinggal.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       # AMBANG NOL, di company mana pun termasuk template.
       - name: Peran tak kelebihan izin
         run: node scripts/audit-peran-tak-kelebihan.mjs
@@ -2732,6 +2850,174 @@ jobs:
       # data perusahaan lain seolah miliknya sendiri. Ember [C].
       - name: Tabel FORCE wajib berpagar tenant
         run: node scripts/audit-tabel-force-berpagar.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Katalog bersama (`company_id IS NULL`) boleh DIBACA semua tenant,
+      # tak boleh DITULIS tenant mana pun.
+      #
+      # 2026-09-14: migrasi 374 memperketat `cbs_templates`/`cbs_nodes` —
+      # RESTRICTIVE-nya MENDARAT, `WITH CHECK`-nya TIDAK. Satu berkas, dua
+      # pekerjaan, satu berlaku. Ditemukan TEST, bukan penjaga.
+      #
+      # Dua penjaga yang ada tak bisa melihatnya, dan keduanya jujur:
+      #   · `audit-tabel-force-berpagar.mjs` menjaga policy ADA & RESTRICTIVE,
+      #     bukan ISI `with_check`-nya;
+      #   · `audit-badan-fungsi-mutakhir.mjs` membandingkan BADAN FUNGSI, dan
+      #     374 memasang policy lewat `EXECUTE format(...)` — dinamis, sengaja
+      #     dilewati. Batas itu tertulis di kepalanya, dan nyata: 28 dari 169
+      #     migrasi ber-policy memasangnya dinamis.
+      #
+      # RESTRICTIVE digabung AND, jadi WITH CHECK adalah gerbang TULIS yang
+      # sesungguhnya. Cabang `IS NULL` di sana = tenant boleh menyuntikkan
+      # atau menyunting cetakan yang dipakai SELURUH tenant lain. Kebocoran
+      # arah TULIS — yang lebih jarang diperiksa orang.
+      #
+      # RATCHET, bukan ambang nol: 12 tabel AB memang DIRANCANG longgar sejak
+      # migrasi 131 §AB (katalog nasional). Mengubah itu keputusan founder,
+      # bukan efek samping penjaga. Yang dijaga: tak boleh BERTAMBAH, dan yang
+      # sudah diperketat tak boleh kambuh.
+      - name: Katalog bersama tak boleh ditulis tenant
+        run: node scripts/audit-tulis-katalog-bersama.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Akar grup AKTIF wajib punya pemilik — dan teardown test tak boleh
+      # memakai `companies.delete()`, yang TAK PERNAH berhasil.
+      #
+      # 2026-09-14: `t9-kelola-badan-usaha` merah atas tiga tenant yang TIDAK
+      # pernah ia buat. Pembuatnya tiga berkas lain yang membongkar tenant
+      # ujinya lewat `.delete()` — ditolak trigger `fn_company_no_casual_delete`
+      # (migrasi 126 §8), galatnya DITELAN `supabase-js` (memulangkan { error },
+      # tidak melempar), jadi teardown "berhasil" dengan tenang sambil
+      # menambah satu tenant AKTIF tanpa pemilik tiap jalan suite.
+      #
+      # Kelas yang dijaga `audit-catch-senyap.mjs` di kode produksi — hanya
+      # saja ini di TEST, tempat penjaga itu tak melihat.
+      #
+      # Dua arah: KEADAAN (nol akar aktif yatim) dan BENTUK KODE (nol
+      # `.delete()` di test). Menjaga keadaannya saja tak cukup — polanya akan
+      # kembali, dan residunya baru terlihat sesudah menumpuk.
+      # Residu tenant uji disapu DULU — lihat kepala skripnya untuk alasannya.
+      #
+      # Ringkasnya: `bongkarCompanyUji()` sudah benar dan dipakai setiap berkas
+      # yang membuat tenant uji, tetapi ia tak bisa berbuat apa-apa terhadap run
+      # yang MATI SEBELUM `afterAll` (migrasi HARD FAIL, tripwire exit 1, runner
+      # dibatalkan). Sisanya tenant AKTIF tanpa pemilik, dan penjaga di bawah
+      # memerahkan ENAM shard karenanya — kegagalan yang menuduh penjaga,
+      # padahal yang salah sisa run sebelumnya. Terjadi 2026-09-15.
+      #
+      # Penjaganya TIDAK dilonggarkan: akar grup yatim yang NYATA tetap cacat
+      # produk, dan ambangnya tetap NOL. Yang dibersihkan residunya.
+      - name: Sapu residu tenant uji (sebelum penjaga akar grup)
+        run: node scripts/sapu-tenant-uji-tertinggal.mjs
+        # ⚠ `env:` WAJIB — tanpa `DIRECT_URL` skripnya mati exit 2 TANPA
+        # SATU BARIS KELUARAN, dan itu terbaca seperti skripnya rusak.
+        # Terjadi pada jalan pertamanya: langkah baru dipasang tanpa
+        # prasyaratnya ikut, persis cacat yang sama dengan langkah
+        # saudaranya di bawah yang SUDAH punya env.
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      - name: Akar grup wajib punya pemilik
+        run: node scripts/audit-akar-grup-punya-pemilik.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Counter penomoran tak boleh tertinggal di belakang nomor yang SUDAH
+      # BEREDAR — kalau tertinggal, dokumen berikutnya bernomor KEMBAR.
+      #
+      # 2026-09-14: invoice tertinggi 27 (INV/2026/09/027), sementara 9 dari 12
+      # counter bulan masih 26 → sembilan bulan akan menerbitkan 027 lagi.
+      #
+      # ⚠ Basis TIDAK menahannya: invoice unik hanya `(project_id,
+      # invoice_number)` — per PROYEK, bukan per company. Dua invoice di proyek
+      # berbeda milik company yang sama boleh bernomor sama tanpa satu pun
+      # galat, lalu keluar ke klien sebagai dokumen tagihan bernomor kembar.
+      # Migrasi 135: "untuk dokumen yang keluar ke pihak ketiga, nomor kembar
+      # bukan ketidakrapian — itu cacat audit."
+      #
+      # Migrasi 135 SUDAH menyinkronkan dengan benar, dan tetap tak cukup: ia
+      # sekali jalan, sementara invoice baru lahir sesudahnya dan hanya
+      # menaikkan counter bulannya sendiri. Yang dijaga di sini KEADAANNYA,
+      # bukan sinkronisasinya.
+      - name: Counter dokumen tak tertinggal dari nomor beredar
+        run: node scripts/audit-counter-dokumen-tak-tertinggal.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Rute TULIS wajib punya gerbang OTORISASI, bukan cuma `authenticate`.
+      #
+      # 2026-09-14, saat menelusuri R-020: `DELETE /mandor/workers/:id` hanya
+      # ber-`authenticate`, dan satu-satunya pemeriksaannya
+      # `if (user.role === 'mandor' && ...)` — jadi peran SELAIN mandor,
+      # termasuk `client`, lolos tanpa diperiksa. Isolasi tenant tetap utuh;
+      # yang hilang pembatasan SIAPA di dalam tenant.
+      #
+      # Beda dari R-020: di sana MENU tampil lalu API menolak (cacat
+      # pengalaman). Di sini API-nya TIDAK menolak.
+      #
+      # ⚠ Versi pertama penjaga ini HAMPIR SELURUHNYA BUTA — regex-nya
+      # menuntut jalur se-baris dengan `app.post(`, sementara pola dominan di
+      # repo ini `app.post<{...}>(` dengan jalur beberapa baris di bawah:
+      # 147 terlihat, 265 TERLEWAT. Hanya uji mutasi yang menunjukkannya
+      # (gerbang dicabut sengaja → penjaga tetap hijau). Sudah diperbaiki dan
+      # dibuktikan merah.
+      #
+      # RATCHET: sebagian rute SAH tanpa izin peran (MFA sendiri, notifikasi
+      # sendiri, impor tahap baca yang nol tulis). Lantai menyimpan DAFTAR
+      # NAMA + alasan per entri, bukan cuma angka.
+      - name: Rute tulis wajib bergerbang otorisasi
+        run: node scripts/audit-rute-tulis-berizin.mjs
+
+      # Tiap company AKTIF wajib punya rantai approval LENGKAP + langkahnya.
+      #
+      # R-010 (2026-08-05): pelanggan BARU lahir tanpa rantai `submittal`, dan
+      # entrinya memperingatkan cakupannya belum diperiksa. Diperiksa
+      # 2026-09-14 — peringatan itu benar: SEMBILAN dari 13 jenis hanya ada di
+      # tenant PERTAMA. Dua tenant nyata lain punya 4 dari 13.
+      #
+      # `canParticipateInChain` fail-closed (approval.ts:199) — dan itu BENAR,
+      # ember [C]. Tapi rantai yang TAK ADA berarti nol orang bisa menyetujui:
+      # kasbon, PO, estimasi, cuti tak bisa diputuskan siapa pun, termasuk
+      # pemilik perusahaannya. Gejalanya 403 untuk SEMUA orang, bukan pesan
+      # yang menjelaskan konfigurasinya kurang.
+      #
+      # Ditutup migrasi 580 (trigger AFTER INSERT + backfill). Penjaga ini
+      # memastikan triggernya tak diam-diam berhenti bekerja.
+      #
+      # ⚠ Memeriksa TIGA arah, dan yang kedua bukan basa-basi: rantai yang ADA
+      # tapi TANPA LANGKAH tetap fail-closed — hasilnya sama persis dengan
+      # rantai yang hilang, jadi penjaga yang cuma menghitung rantai akan hijau
+      # pada keadaan yang sama rusaknya.
+      - name: Rantai approval lengkap tiap tenant
+        run: node scripts/audit-rantai-approval-lengkap.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Tiap peran wajib memegang minimal SATU izin.
+      #
+      # R-019 (2026-08-31): 16 peran template buatan migrasi 364 berakhir
+      # dengan NOL izin. Yang membuatnya lebih dari kerapian — migrasi 364
+      # TERCATAT SUKSES, dan ia diakhiri tuntutannya sendiri:
+      #
+      #     IF n_kosong > 0 THEN RAISE EXCEPTION '364 gagal: …'
+      #
+      # Diukur saat itu: n_kosong = 16. Migrasi yang tercatat sukses
+      # meninggalkan basis dalam keadaan yang ia sendiri nyatakan GAGAL —
+      # kelas yang sama dengan 111/372/374 (migrasi 570-572).
+      #
+      # CI hijau sepanjang itu karena CI memutar rantai dari basis KOSONG,
+      # tempat 364 berjalan utuh. Yang menyimpang cuma basis yang sudah lama.
+      #
+      # Keadaannya kini pulih (diukur 2026-09-14: n_kosong = 0 di seluruh
+      # tenant) — penjaga ini mencegahnya kambuh. Peran tanpa izin tak
+      # mengeluarkan galat; ia cuma menolak pemakainya di tiap pintu dengan
+      # pesan yang menuduh otorisasi, bukan konfigurasi peran yang kosong.
+      #
+      # AMBANG NOL: tak ada alasan sah sebuah peran ada tanpa satu pun izin.
+      - name: Tiap peran punya izin
+        run: node scripts/audit-peran-punya-izin.mjs
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
@@ -3418,6 +3704,30 @@ jobs:
       - name: Hex literal (token desain)
         run: node scripts/hex-ratchet.mjs
 
+      # Tipografi — satu-satunya kategori visual bertoken yang TAK PUNYA REM
+      # sampai 2026-09-15. Warna dijaga hex-ratchet, kerapatan dijaga
+      # kerapatan-ratchet, tombol primer dijaga uji-tombol-primer-seragam.
+      # Ukuran huruf tak dijaga apa pun.
+      #
+      # Diukur 2026-09-15 atas 159 page.tsx di app/(dashboard):
+      # 2.271 fontSize DIPAKU di 146 berkas, versus 1.276 yang sudah memakai
+      # var(--teks-*). Jadi tokennya benar, dan separuh halaman tak membacanya.
+      #
+      # RATCHET, bukan nol: menuntut nol berarti mengonversi 2.271 nilai dalam
+      # satu langkah, dan pendekatan borongan itu sudah DITOLAK untuk hex.
+      #
+      # Lantainya menyimpan DAFTAR NAMA + jumlah per berkas, bukan cuma total.
+      # Total saja buta terhadap satu berkas +5 sementara yang lain -5 —
+      # terbukti lewat mutasi: total DATAR 2271→2271, penjaga tetap MERAH dan
+      # menyebut akuntansi/page.tsx: 17 -> 18.
+      #
+      # Komentar & string dibuang sebelum mencocokkan: dua `fontSize` di repo
+      # ini hidup di komentar yang MENJELASKAN aturannya (akuntansi:204,
+      # kepatuhan:534). Menuduhnya akan mengajari orang menghapus dokumentasi
+      # yang berguna — cacat yang sudah dibayar hex-ratchet (48 → 50).
+      - name: Tipografi (fontSize lewat token)
+        run: node scripts/teks-ratchet.mjs
+
       # Deret warna grafik harus bisa dibedakan mata buta warna — dan itu
       # BUKAN klaim yang boleh ditulis tanpa diukur. Komentar lama di
       # globals.css menyatakan deretnya aman deutan/protan; saat akhirnya
@@ -3612,6 +3922,29 @@ jobs:
       # di luar shell dashboard.
       #
       # Terbukti bisa merah: satu tombol dikembalikan ke navy → 5 > 4 → exit 1.
+      #
+      # ── BAGIAN KEDUA ditambahkan 2026-09-15: tombol bergradasi BUATAN TANGAN
+      #
+      # Bagian pertama menjaga tombol yang warnanya SALAH (navy padat), dan
+      # lantainya sudah 0. Ia buta terhadap kebalikannya: tombol yang warnanya
+      # BENAR (var(--grad-aksen)) tapi digambar sendiri alih-alih memakai
+      # <Tombol jenis="utama">. Bagi bagian pertama itu bukan pelanggaran, jadi
+      # lewat tanpa suara.
+      #
+      # Diukur 2026-09-15 atas 159 page.tsx di app/(dashboard): 590 <button>
+      # mentah di 117 berkas, 106 di antaranya bergaya --grad-aksen di 54
+      # berkas, sementara hanya 26 halaman memakai <Tombol>. Mengubah rupa
+      # tombol aksi utama berarti menyunting 106 tempat; yang terlewat jadi
+      # tombol versi lama di sebelah yang baru, di layar yang SAMA.
+      #
+      # Yang hilang bukan cuma rupa: <Tombol> membawa minHeight 38px, target
+      # sentuh untuk mandor & tukang yang menekan sambil bersarung tangan.
+      #
+      # Elemen dicari dengan PENCOCOKAN KURUNG, bukan jendela 14 baris seperti
+      # bagian pertama: dua tombol primer sungguhan (laporan:642,
+      # master/karyawan:166) punya badan atribut lebih panjang dari itu dan
+      # akan lolos — 106 vs 104. Terbukti bisa merah lewat mutasi, termasuk
+      # varian beratribut 21 baris.
       - name: Tombol primer seragam bergradasi
         run: node scripts/uji-tombol-primer-seragam.mjs
 
@@ -3779,6 +4112,31 @@ jobs:
       # (mutasinya di DB, dijalankan dalam transaksi yang selalu ROLLBACK).
       - name: Urutan sidebar tak bentrok
         run: node apps/web/scripts/audit-sidebar-urutan.mjs
+        working-directory: .
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+
+      # Ikon menu — DUA arah, ambang NOL.
+      #
+      # (a) Sub-menu wajib `Dot`. Aturan founder, tertulis sejak lama di
+      #     `sidebar.tsx` dan `ikon-menu.tsx` — tapi hanya sebagai KOMENTAR,
+      #     dan komentar tak menahan siapa pun: diukur 2026-09-15, SEPULUH
+      #     sub-menu aktif memakai ikon sendiri.
+      #
+      # (b) Tiap nama ikon wajib ada di tabel `IKON_MENU`. Inilah arah yang
+      #     mahal: `ikonMenu()` berakhir `?? FolderKanban`, jadi nama yang tak
+      #     terdaftar tidak gagal — ia terender sebagai FOLDER. Bukan ikon
+      #     hilang (itu terlihat), melainkan penanda KELIRU tanpa satu pun
+      #     galat. SEMBILAN nama aktif tak terdaftar hari itu: tujuh di
+      #     sub-menu (ditutup migrasi 582) dan DUA di INDUK — `g-akuntansi`
+      #     dan `g-alat-dokumen`, yang arah (a) tak akan pernah temukan sebab
+      #     induk memang BOLEH berikon. Cacatnya hidup di celah antar-arah.
+      #
+      # Bukti merah 3/3, tiap kali menyebut entrinya: sub-menu berikon → (a)
+      # merah · kunci induk dicabut dari IKON_MENU → (b) merah sementara (a)
+      # tetap hijau · kunci salah ketik → (c) merah.
+      - name: Ikon menu benar (sub-menu `Dot` + nama terdaftar)
+        run: node apps/api/scripts/audit-ikon-menu-benar.mjs
         working-directory: .
         env:
           DIRECT_URL: ${{ secrets.DIRECT_URL }}

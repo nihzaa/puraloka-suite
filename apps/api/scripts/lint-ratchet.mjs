@@ -37,7 +37,7 @@ const AMBANG = {
   // bernama (`BarisPajak`) alih-alih `any` di tujuh lambda. Bukan sekadar
   // menyenangkan lint: `r.tax_amont` yang salah ketik diam-diam `undefined`,
   // lalu `Number(undefined)` jadi NaN — di laporan pajak.
-  '@typescript-eslint/no-explicit-any': 223,
+  '@typescript-eslint/no-explicit-any': 221,
   // 16 → 10 (2026-08-02): tujuh impor `supabase` yatim, sisa dari migrasi
   // bertahap ke `request.db`. Enam sudah yatim sebelum hari ini; yang ketujuh
   // (`milestones`) baru menjadi yatim saat seluruh query-nya dialihkan.

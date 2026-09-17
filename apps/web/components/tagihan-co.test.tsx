@@ -29,6 +29,53 @@ vi.mock('@/lib/api', () => ({
 
 const { ModalTagihanCo } = await import('./tagihan-co')
 
+/*
+  PILIH DARI COMBOBOX — bukan `selectOptions`.
+
+  ⚠ Ditulis 2026-09-15 mengganti `orang.selectOptions(...)`, dan alasannya
+  perlu diketahui sebelum seseorang mengembalikannya.
+
+  `<select>` di layar ini sudah diganti komponen `Pilihan` (236 dropdown,
+  commit e8251c35) supaya daftar panjang bisa DICARI — pemilih analisa
+  Komposer memuat 3.040 pilihan, dan elemen bawaan cuma bisa diloncati
+  dengan mengetik huruf awal.
+
+  `selectOptions` HANYA bekerja pada `<select>` sungguhan; terhadap combobox
+  kustom ia gagal dengan `Value "co1" not found in options` — galat yang
+  terbaca seperti DATANYA yang hilang, padahal markup-nya yang berubah.
+
+  Helper ini meniru yang dilakukan pengguna: buka, lalu klik barisnya.
+*/
+async function pilih(orang: ReturnType<typeof userEvent.setup>, label: RegExp, nilaiOpsi: string) {
+  await orang.click(screen.getByLabelText(label))
+  // Dicari lewat NILAI-nya (`data-nilai`), bukan teks yang tampil: teks bisa
+  // berubah saat salinan layar diperbaiki, sedangkan nilai adalah kontrak
+  // yang sama dengan `<option value>` dulu.
+  /*
+    Dicocokkan lewat ISI TEKS `<li role="option">`, bukan `{ name: … }`.
+
+    Diukur, bukan ditebak: `role="option"` ada di `<li>`, sedangkan yang bisa
+    ditekan `<button>` di DALAMNYA — jadi NAMA AKSESIBEL li itu tidak memuat
+    teks opsinya, dan `getByRole('option', { name })` gagal walau opsinya
+    jelas terlihat. Isinya sendiri benar: "CO-003 — T · Rp 45.000.000".
+  */
+  const li = (await screen.findAllByRole('option')).find((o) =>
+    new RegExp(nilaiOpsi, 'i').test(o.textContent ?? ''))
+  if (!li) throw new Error(`opsi "${nilaiOpsi}" tak ada di daftar combobox`)
+  /*
+    Yang DIKLIK <button> DI DALAM <li>, bukan li-nya.
+
+    Diukur, dan ini jebakan yang sempat memakan tiga tebakan saya: `role="option"`
+    ada di `<li>`, sedangkan `onClick` yang benar-benar memilih ada di `<button>`
+    anaknya (`pilihan.tsx` — `onClick={() => pilih(o.value)}`). Mengklik li-nya
+    TIDAK menghasilkan galat apa pun; ia hanya tak melakukan apa-apa, lalu
+    assertion berikutnya gagal dengan "Unable to find text …" — galat yang
+    menuduh KOMPONEN, padahal pilihannya memang tak pernah terjadi.
+  */
+  await orang.click(li.querySelector('button') ?? li)
+}
+
+
 const BELUM = {
   id: 'co1', co_number: 'CO-003', title: 'Tambah kolom baja blok B',
   total_amount_delta: 45_000_000, billing_mode: 'separate_co',
@@ -63,7 +110,7 @@ describe('nilai tidak bisa diketik', () => {
     // dirender sesudah ada yang dipilih. Memeriksa sebelum memilih menguji
     // layar yang memang belum menampilkan apa pun — versi pertama uji ini
     // begitu, dan mutasi "nilai jadi kotak isian" lolos hijau karenanya.
-    await orang.selectOptions(screen.getByLabelText(/change order/i), 'co1')
+    await pilih(orang, /change order/i, 'CO-003')
 
     // Kotak yang ada hanya jatuh tempo, PPN, dan catatan. Nilai tagihannya
     // sendiri tak punya isian — itulah pagarnya.
@@ -76,7 +123,7 @@ describe('nilai tidak bisa diketik', () => {
     render(<ModalTagihanCo onClose={() => {}} onSukses={() => {}} />)
     await waitFor(() => expect(screen.getByLabelText(/change order/i)).toBeTruthy())
 
-    await orang.selectOptions(screen.getByLabelText(/change order/i), 'co1')
+    await pilih(orang, /change order/i, 'CO-003')
 
     expect(screen.getByText(/tak bisa diubah di sini/i)).toBeTruthy()
     expect(screen.getByText(/Gedung Serbaguna/)).toBeTruthy()
@@ -87,7 +134,7 @@ describe('nilai tidak bisa diketik', () => {
     render(<ModalTagihanCo onClose={() => {}} onSukses={() => {}} />)
     await waitFor(() => expect(screen.getByLabelText(/change order/i)).toBeTruthy())
 
-    await orang.selectOptions(screen.getByLabelText(/change order/i), 'co1')
+    await pilih(orang, /change order/i, 'CO-003')
     await orang.type(screen.getByLabelText(/jatuh tempo/i), '2026-12-31')
     await orang.click(screen.getByRole('button', { name: /terbitkan tagihan/i }))
 
@@ -106,11 +153,35 @@ describe('nilai tidak bisa diketik', () => {
 
 describe('yang sudah ditagih tetap terlihat', () => {
   it('tak ditawarkan lagi di pemilih, TAPI terdaftar beserta nomor tagihannya', async () => {
+    const orang = userEvent.setup()
     render(<ModalTagihanCo onClose={() => {}} onSukses={() => {}} />)
 
-    await waitFor(() => expect(screen.getByRole('option', { name: /CO-003/ })).toBeTruthy())
-    expect(screen.queryByRole('option', { name: /CO-004/ })).toBeNull()
+    /*
+      ⚠ Daftarnya DIBUKA dulu — ditambahkan 2026-09-15, dan invariannya TIDAK
+      diubah, hanya caranya.
 
+      Versi lama membaca `getAllByRole('option')` tanpa membuka apa pun. Itu
+      sah saat pemilihnya `<select>`: seluruh `<option>` selalu ada di DOM
+      walau tak terlihat. Sejak diganti komponen `Pilihan` (combobox yang
+      bisa dicari), daftarnya baru DIRAKIT saat dibuka — jadi query itu
+      gagal "Unable to find role=option", galat yang terbaca seperti opsinya
+      HILANG.
+
+      Yang dijaga tetap sama persis, dan ia inti seluruh modul ini: CO yang
+      SUDAH ditagih tak boleh ditawarkan lagi (CO-004 nihil di pemilih),
+      tetapi HARUS tetap terlihat di daftar bawah beserta nomor tagihannya —
+      CO yang lenyap akan dicari orang, tak ketemu, lalu ditagih lewat jalur
+      lain. Itu persis tagihan ganda yang modul ini cegah.
+    */
+    await waitFor(() => expect(screen.getByLabelText(/change order/i)).toBeTruthy())
+    await orang.click(screen.getByLabelText(/change order/i))
+
+    const opsi = await screen.findAllByRole('option')
+    const teks = opsi.map((o) => o.textContent ?? '')
+    expect(teks.some((t) => /CO-003/.test(t))).toBe(true)   // belum ditagih → ditawarkan
+    expect(teks.some((t) => /CO-004/.test(t))).toBe(false)  // sudah ditagih → TIDAK
+
+    // Dan yang sudah ditagih tetap TERLIHAT — di daftar bawah, bukan pemilih.
     expect(await screen.findByText(/sudah ditagih \(1\)/i)).toBeTruthy()
     expect(screen.getByText('INV/2026/06/011')).toBeTruthy()
   })
@@ -141,7 +212,7 @@ describe('halangan sebelum kirim', () => {
     render(<ModalTagihanCo onClose={() => {}} onSukses={() => {}} />)
     await waitFor(() => expect(screen.getByLabelText(/change order/i)).toBeTruthy())
 
-    await orang.selectOptions(screen.getByLabelText(/change order/i), 'co1')
+    await pilih(orang, /change order/i, 'CO-003')
 
     expect(screen.getByRole('button', { name: /terbitkan tagihan/i })).toBeDisabled()
     expect(screen.getByText(/jatuh tempo wajib diisi/i)).toBeTruthy()
@@ -152,7 +223,7 @@ describe('halangan sebelum kirim', () => {
     render(<ModalTagihanCo onClose={() => {}} onSukses={() => {}} />)
     await waitFor(() => expect(screen.getByLabelText(/change order/i)).toBeTruthy())
 
-    await orang.selectOptions(screen.getByLabelText(/change order/i), 'co1')
+    await pilih(orang, /change order/i, 'CO-003')
     await orang.type(screen.getByLabelText(/jatuh tempo/i), '2026-12-31')
     await orang.type(screen.getByLabelText(/ppn/i), '-5000')
 

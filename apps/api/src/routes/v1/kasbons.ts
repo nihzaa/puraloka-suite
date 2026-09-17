@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
-import { authenticate } from '../../plugins/auth.js'
-import { susunEkspor, formatSah, FORMAT_EKSPOR } from '../../lib/ekspor-tabel.js'
+import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { susunEkspor, formatSah, FORMAT_EKSPOR, ambilSeluruhnya } from '../../lib/ekspor-tabel.js'
 import { gerbangIdempotensi, catatIdempotensi, sudahDibalas } from '../../utils/idempotency.js'
 import { createNotifications } from '../../utils/notifications.js'
 import { resolveRecipients } from '../../utils/notification-routing.js'
@@ -40,20 +40,27 @@ export default async function kasbonRoutes(app: FastifyInstance) {
       })
     }
 
+    /*
+      BATAS ATAS DINYATAKAN, dan kali ini BENAR-BENAR terukur.
+
+      Bentuk lamanya `.limit(BATAS + 1)` lalu `semua.length > BATAS`.
+      PostgREST memotong di 1.000 baris KERAS — `.limit(5001)` memulangkan
+      1.000 — jadi `terpotong` bernilai false SELAMANYA, ekspor berhenti
+      diam-diam di 1.000 kasbon, dan `total` dijumlahkan dari potongan itu
+      lalu dicetak sebagai jumlah lengkap. Alasan lengkap dan bukti
+      pengukurannya di `lib/ekspor-tabel.ts`.
+    */
     const BATAS = 5000
 
-    let q = request.db!
-      .from('kasbons')
-      .select(`
-        amount, fund_source, purpose, kasbon_date, status, notes,
-        project:projects!kasbons_project_id_fkey ( name ),
-        requester:users!kasbons_requested_by_fkey ( name )
-      `)
-      .order('kasbon_date', { ascending: false })
-      .limit(BATAS + 1)
+    /*
+      Penyempitan mandor dihitung LEBIH DULU, di luar pembangun query.
 
-    if (status) q = q.eq('status', status)
-    if (work_scope_id) q = q.eq('work_scope_id', work_scope_id)
+      Query kini dibangun ulang tiap halaman (`ambilSeluruhnya` memanggil
+      pembangunnya sekali per `.range()`), jadi pembacaan penugasan tak
+      boleh ikut di dalamnya — kalau ikut, ia akan menembak basis sekali
+      per halaman untuk jawaban yang sama.
+    */
+    let proyekMandor: string[] | null = null
 
     /* Lapis KEDUA — disalin dari rute daftarnya. Lihat catatan di atas. */
     if (user.role === 'mandor') {
@@ -118,21 +125,38 @@ export default async function kasbonRoutes(app: FastifyInstance) {
           .header('x-ekspor-jumlah', '0')
           .send(kosong.isi)
       }
-      q = q.in('project_id', idProyek).eq('requested_by', user.id)
+      proyekMandor = idProyek
     }
 
-    const { data, error } = await q
-    if (error) {
-      request.log.error({ err: error }, 'gagal memuat kasbon untuk ekspor')
+    const bangunQuery = () => {
+      let q = request.db!
+        .from('kasbons')
+        .select(`
+          amount, fund_source, purpose, kasbon_date, status, notes,
+          project:projects!kasbons_project_id_fkey ( name ),
+          requester:users!kasbons_requested_by_fkey ( name )
+        `)
+        .order('kasbon_date', { ascending: false })
+
+      if (status) q = q.eq('status', status)
+      if (work_scope_id) q = q.eq('work_scope_id', work_scope_id)
+      if (proyekMandor) q = q.in('project_id', proyekMandor).eq('requested_by', user.id)
+      return q
+    }
+
+    const { baris: semua, terpotong, galat } = await ambilSeluruhnya<
+      Record<string, unknown> & {
+        project?: { name?: string } | null
+        requester?: { name?: string } | null
+      }
+    >(bangunQuery, BATAS)
+
+    if (galat) {
+      request.log.error({ err: galat }, 'gagal memuat kasbon untuk ekspor')
       return reply.status(500).send({ error: 'Gagal memuat data kasbon' })
     }
 
-    const semua = (data ?? []) as unknown as Array<Record<string, unknown> & {
-      project?: { name?: string } | null
-      requester?: { name?: string } | null
-    }>
-    const terpotong = semua.length > BATAS
-    const baris = (terpotong ? semua.slice(0, BATAS) : semua).map((b) => ({
+    const baris = semua.map((b) => ({
       kasbon_date: b.kasbon_date ?? '',
       proyek: b.project?.name ?? '',
       pengaju: b.requester?.name ?? '',
@@ -243,7 +267,7 @@ export default async function kasbonRoutes(app: FastifyInstance) {
   // work_scope_id opsional; project_id wajib (bisa dari scope atau langsung)
   // mandor: status=pending | admin/pm: auto-approved dengan cash_account_id
   app.post('/api/v1/kasbons', {
-    preHandler: [authenticate]
+    preHandler: [authenticate, requirePermission('mandor:kasbon:create')]
   }, async (request, reply) => {
     /*
       GERBANG IDEMPOTENSI — untuk antrean offline mobile (2026-08-27).

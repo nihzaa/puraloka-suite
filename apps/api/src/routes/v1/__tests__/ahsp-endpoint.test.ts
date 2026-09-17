@@ -89,6 +89,21 @@ beforeAll(async () => {
       [code, category, unit, adminUserId])
   }
   const { rows: a } = await client.query(
+    /*
+      Dibuat `draft` (bawaan kolom), diisi komponennya, LALU diaktifkan di
+      bawah — urutan itu wajib dan bukan gaya penulisan.
+
+      Sejak 2026-09-16 daftar katalog menyaring `status = 'active'` (arsip
+      `superseded` tak lagi muncul dua kali per kode), jadi fixture yang
+      tetap `draft` TAK TERLIHAT rutenya dan gagal dengan `expected undefined
+      to be truthy` — galat yang menuduh RUTE.
+
+      Tetapi menulis `'active'` langsung di INSERT ini juga salah:
+      `fn_assembly_component_parent_draft` menolak penambahan komponen ke
+      assembly yang sudah aktif ("paket kerja yang sudah active beku"), dan
+      SELURUH suite lalu gagal di `beforeAll`. Dua kesalahan berlawanan yang
+      gejalanya sama-sama menunjuk ke tempat lain.
+    */
     `INSERT INTO assemblies (code, name, cost_code_id, source, version_number, waste_factor,
                              sequence, output_unit_code, edition_id, is_import_baseline, created_by)
      VALUES ('[TEST-AHSP]3.6.1.1', '[TEST] dinding bata 1 batu tipe M', $1, 'national', 1, 0,
@@ -102,6 +117,9 @@ beforeAll(async () => {
        SELECT $1, id, $2, $3 FROM resources WHERE code = $4`,
       [assemblyId, koef, sort++, code])
   }
+
+  // draft → active SESUDAH komponennya lengkap. Lihat alasannya di atas.
+  await client.query(`UPDATE assemblies SET status = 'active' WHERE id = $1`, [assemblyId])
 
   app = Fastify()
   await app.register(ahspRoutes)
@@ -140,6 +158,60 @@ describe('GET /cecep/editions', () => {
     const codes = res.json().data.map((e: { code: string }) => e.code)
     expect(codes).toContain('SE-TEST-AHSP')
   })
+
+  /*
+    ── `jumlah_analisa` wajib SAMA dengan basis, berapa pun besarnya tabel
+
+    Sampai 2026-09-15 angka ini dicacah di JS dari pembacaan `.limit(10000)`,
+    yang PostgREST potong di 1.000 tanpa galat. Diukur ke produksi hari itu:
+    endpoint melaporkan SE-47-2026 = 580, kebenarannya 2.747.
+
+    Test ini membandingkan dengan `count(*)` yang dijalankan LANGSUNG ke basis
+    lewat klien RLS yang sama — bukan dengan angka yang ditulis tangan di sini.
+    Angka tulisan tangan akan basi begitu katalog bertambah, dan test yang
+    basi diperbaiki dengan menaikkan angkanya, bukan dengan memeriksa apakah
+    endpointnya masih benar.
+
+    Yang membuatnya bisa merah atas cacat aslinya: ia memakai edisi yang
+    jumlah analisanya BESAR (edisi nyata di basis), bukan edisi fixture yang
+    isinya satu baris — satu baris tak pernah menyentuh batas 1.000, jadi
+    cacat pemotongan tak bisa terlihat dari sana.
+  */
+  it('jumlah_analisa per edisi SAMA dengan count(*) di basis (tak terpotong di 1.000)', async () => {
+    actAs(adminAuth)
+    const res = await get('/api/v1/cecep/editions')
+    expect(res.statusCode).toBe(200)
+    const baris = res.json().data as Array<{ id: string; code: string; jumlah_analisa: number | null }>
+    expect(baris.length).toBeGreaterThan(0)
+
+    for (const e of baris) {
+      const { rows } = await client.query(
+        `SELECT count(*)::int n FROM public.assemblies
+          WHERE status = 'active' AND edition_id = $1`, [e.id])
+      expect(e.jumlah_analisa, `edisi ${e.code}`).toBe(rows[0].n)
+    }
+  })
+
+  it('setidaknya satu edisi melampaui batas 1.000 — kalau tidak, test di atas tak membuktikan apa pun', async () => {
+    const { rows } = await client.query(
+      `SELECT max(n)::int terbesar FROM (
+         SELECT count(*) n FROM public.assemblies
+          WHERE status = 'active' AND edition_id IS NOT NULL
+          GROUP BY edition_id) x`)
+    /*
+      Penjaga atas test di atasnya, bukan atas produk.
+
+      Kalau edisi terbesar di basis cuma berisi 40 analisa, perbandingan
+      `jumlah_analisa === count(*)` akan HIJAU baik dengan kode yang benar
+      maupun dengan kode yang memotong di 1.000 — dan hijaunya tak berarti
+      apa-apa. Yang gagal di sini bukan endpointnya melainkan DATA UJINYA,
+      dan pesannya harus mengatakan itu supaya orang berikutnya tak mengejar
+      cacat di tempat yang salah.
+    */
+    expect(rows[0].terbesar,
+      'data uji tak lagi melampaui batas PostgREST 1.000 — test jumlah_analisa jadi tak bermakna; ' +
+      'isi katalog lebih banyak atau ganti cara mengujinya').toBeGreaterThan(1000)
+  })
 })
 
 describe('GET /cecep/assemblies', () => {
@@ -158,6 +230,185 @@ describe('GET /cecep/assemblies', () => {
     actAs(adminAuth)
     const res = await get('/api/v1/cecep/assemblies?edition=TIDAK-ADA')
     expect(res.statusCode).toBe(404)
+  })
+
+  /*
+    ── `komponen=0` — daftar tanpa embed komponen
+
+    Diukur ke produksi 2026-09-15: `?limit=5000` memakan 27.247 ms dan 4,5 MB,
+    dan 29.149 komponen di dalamnya TIDAK dirender oleh layar daftar.
+
+    Dua arah dijaga sekaligus, dan yang kedua justru yang paling mudah rusak:
+    seseorang yang kelak membalik bawaannya (komponen jadi opt-IN) akan
+    membuat portal PM dan kedua modal sunting kehilangan datanya TANPA GALAT —
+    `components` yang tak ada terbaca sebagai analisa tanpa komponen.
+  */
+  it('komponen=0 → baris TANPA medan components', async () => {
+    actAs(adminAuth)
+    const res = await get('/api/v1/cecep/assemblies?edition=SE-TEST-AHSP&komponen=0')
+    expect(res.statusCode).toBe(200)
+    const asm = res.json().data.find((r: { code: string }) => r.code === '[TEST-AHSP]3.6.1.1')
+    expect(asm).toBeTruthy()
+    expect(asm.components).toBeUndefined()
+    // Yang dipakai layar daftar tetap utuh — kalau ini ikut hilang,
+    // penghematan itu membeli halaman yang kosong.
+    expect(asm.code).toBe('[TEST-AHSP]3.6.1.1')
+    expect(asm.output_unit_code).toBe('m2')
+    expect(asm.edition.code).toBe('SE-TEST-AHSP')
+  })
+
+  it('TANPA komponen=0 → komponen TETAP ikut (pemanggil lama tak berubah)', async () => {
+    actAs(adminAuth)
+    const res = await get('/api/v1/cecep/assemblies?edition=SE-TEST-AHSP')
+    expect(res.statusCode).toBe(200)
+    const asm = res.json().data.find((r: { code: string }) => r.code === '[TEST-AHSP]3.6.1.1')
+    expect(asm.components).toHaveLength(7)
+  })
+
+  it('komponen=1 dan nilai lain BUKAN mematikan — hanya "0" yang meniadakan', async () => {
+    actAs(adminAuth)
+    const res = await get('/api/v1/cecep/assemblies?edition=SE-TEST-AHSP&komponen=1')
+    expect(res.statusCode).toBe(200)
+    const asm = res.json().data.find((r: { code: string }) => r.code === '[TEST-AHSP]3.6.1.1')
+    expect(asm.components).toHaveLength(7)
+  })
+})
+
+// ── GET /cecep/assemblies/:id/komponen — komponen SATU analisa ──────────────
+//
+// Pengganti embed komponen di daftar bagi modal Adopsi & Ubah: mereka bekerja
+// atas satu analisa, jadi menarik komponen untuk lima ribu baris demi satu
+// yang dibuka adalah biaya tanpa hasil.
+describe('GET /cecep/assemblies/:id/komponen', () => {
+  it('memulangkan komponen bentuk SAMA dengan embed di daftar', async () => {
+    actAs(adminAuth)
+    const res = await get(`/api/v1/cecep/assemblies/${assemblyId}/komponen`)
+    expect(res.statusCode).toBe(200)
+    const komp = res.json().data
+    expect(komp).toHaveLength(7)
+
+    // Bentuknya wajib cocok dengan embed daftar — dua bentuk untuk satu hal
+    // berarti tiap klien harus tahu mana yang dipakai di mana.
+    const resList = await get('/api/v1/cecep/assemblies?edition=SE-TEST-AHSP')
+    const dariDaftar = resList.json().data
+      .find((r: { code: string }) => r.code === '[TEST-AHSP]3.6.1.1').components
+    const kunci = (x: Record<string, unknown>) => Object.keys(x).sort().join(',')
+    expect(kunci(komp[0])).toBe(kunci(dariDaftar[0]))
+    expect(kunci(komp[0].resource)).toBe(kunci(dariDaftar[0].resource))
+
+    const semen = komp.find((c: { resource: { code: string } }) => c.resource?.code === 'TEST-SEMEN-PC')
+    expect(Number(semen.coefficient)).toBeCloseTo(43.5, 6)
+  })
+
+  it('id tak dikenal → 404, bukan daftar kosong', async () => {
+    actAs(adminAuth)
+    // Larik kosong akan terbaca modal sunting sebagai "analisa tanpa
+    // komponen" — kesimpulan yang salah dan tak terkoreksi apa pun di layar.
+    const res = await get('/api/v1/cecep/assemblies/00000000-0000-0000-0000-000000000000/komponen')
+    expect(res.statusCode).toBe(404)
+  })
+})
+
+// ── GET /cecep/assemblies/jumlah — tiga hitungan dalam SATU permintaan ──────
+//
+// Menggantikan tiga permintaan `?limit=1` yang masing-masing 5,2 detik di
+// produksi (diukur 2026-09-15) semata untuk membaca satu angka `total`.
+describe('GET /cecep/assemblies/jumlah', () => {
+  it('ketiga angka SAMA dengan count(*) di basis', async () => {
+    actAs(adminAuth)
+    const res = await get('/api/v1/cecep/assemblies/jumlah')
+    expect(res.statusCode).toBe(200)
+    const { semua, company, national } = res.json()
+
+    /*
+      `status = 'active'` — sama dengan bawaan rutenya, dan itu KOREKSI
+      2026-09-16, bukan kelonggaran.
+
+      Versi pertama test ini menghitung SELURUH baris `assemblies`. Ia hijau
+      selama katalog belum punya versi kedua. Begitu pemulihan mem-supersede
+      420 analisa company dan membuat penggantinya, angkanya jadi 6.212 vs
+      3.167 — dan yang benar 3.167: daftar kerja menampilkan yang BISA
+      DIPAKAI, bukan arsipnya.
+
+      Test yang menghitung tanpa saringan akan menuntut rutenya ikut
+      menghitung arsip — yaitu menuntut cacat yang baru saja diperbaiki.
+    */
+    const hitung = async (source?: string) => {
+      const { rows } = source
+        ? await client.query(
+            `SELECT count(*)::int n FROM public.assemblies
+              WHERE status = 'active' AND source = $1`, [source])
+        : await client.query(
+            `SELECT count(*)::int n FROM public.assemblies WHERE status = 'active'`)
+      return rows[0].n
+    }
+    expect(semua).toBe(await hitung())
+    expect(company).toBe(await hitung('company'))
+    expect(national).toBe(await hitung('national'))
+  })
+
+  it('angkanya BUKAN nol-diam: semua >= company + national', async () => {
+    actAs(adminAuth)
+    const { semua, company, national } = (await get('/api/v1/cecep/assemblies/jumlah')).json()
+    // `semua` hasil hitungan TERPISAH, bukan penjumlahan — jadi ini memeriksa
+    // ketiganya berasal dari basis yang sama, bukan sekadar konsisten dengan
+    // dirinya sendiri. Nol untuk ketiganya (gejala lama `?? 0`) gagal di sini.
+    expect(semua).toBeGreaterThan(0)
+    expect(semua).toBeGreaterThanOrEqual(company + national)
+  })
+})
+
+// ── GET /cecep/prices/missing — peringkat dampak, dan kenapa ia pernah salah ─
+//
+// Instans KEDUA dari kelas cacat yang sama dengan `jumlah_analisa`, ditemukan
+// oleh `audit-cacah-di-atas-baca-terpotong.mjs` pada jalan pertamanya.
+//
+// `.limit(20000)` atas `assembly_components` (33.682 baris) memulangkan 1.000,
+// dan peringkat "dampak terbesar" disusun dari 3% data. Diukur ke basis
+// 2026-09-15, lima teratas menurut kebenaran vs menurut seribu baris pertama:
+//
+//     Mandor        2.513        Pekerja ( OJ )       92
+//     Pekerja       2.380        Sewa mobil crane     69
+//     Kepala tukang 1.608        Air Bersih           23
+//
+// Tak satu pun yang benar muncul. Layar yang seluruh gunanya memprioritaskan
+// justru menyuruh mengisi yang memblokir 16 analisa sementara yang memblokir
+// 2.513 tak terlihat — dan 92 terbaca persis seperti angka sungguhan.
+describe('GET /cecep/prices/missing', () => {
+  it('dipakai_analisa SAMA dengan count(*) di basis (tak dicacah dari 1.000 baris)', async () => {
+    actAs(adminAuth)
+    const res = await get('/api/v1/cecep/prices/missing?limit=5')
+    expect(res.statusCode).toBe(200)
+    const daftar = res.json().data as Array<{ resource_id: string; code: string; dipakai_analisa: number }>
+    expect(daftar.length).toBeGreaterThan(0)
+
+    for (const d of daftar) {
+      const { rows } = await client.query(
+        `SELECT count(*)::int n FROM public.assembly_components WHERE resource_id = $1`,
+        [d.resource_id])
+      expect(d.dipakai_analisa, `resource ${d.code}`).toBe(rows[0].n)
+    }
+  })
+
+  it('urutan teratas SAMA dengan peringkat sesungguhnya di basis', async () => {
+    actAs(adminAuth)
+    /*
+      Yang diperiksa PERINGKATNYA, bukan cuma angkanya — dan itu bukan
+      kehalusan: dengan pembacaan terpotong, tiap `dipakai_analisa` yang
+      TERLIHAT pun konsisten dengan dirinya sendiri (92 memang 92 di dalam
+      seribu baris itu). Yang salah cuma SIAPA yang muncul.
+    */
+    const res = await get('/api/v1/cecep/prices/missing?limit=3')
+    const kode = (res.json().data as Array<{ code: string }>).map((d) => d.code)
+
+    const { rows } = await client.query(
+      `WITH pakai AS (
+         SELECT resource_id, count(*) n FROM public.assembly_components GROUP BY resource_id)
+       SELECT r.code FROM pakai p JOIN public.resources r ON r.id = p.resource_id
+        WHERE NOT EXISTS (SELECT 1 FROM public.price_book_entries pb
+                           WHERE pb.resource_id = p.resource_id AND pb.status = 'active')
+        ORDER BY p.n DESC, r.code LIMIT 3`)
+    expect(kode).toEqual(rows.map((r: { code: string }) => r.code))
   })
 })
 

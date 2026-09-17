@@ -120,22 +120,33 @@ describe('konsistensi dengan sumbernya', () => {
     expect(Math.abs(j.evm.totalBac - Number(rows[0].t))).toBeLessThan(1)
   })
 
-  it('AC menjumlah EMPAT sumber, bukan project_expenses saja', async () => {
-    // Diukur 2026-08-12: `project_expenses` KOSONG (nol baris), sementara
-    // biaya nyata ada di kasbon (56), progress payment (5), dan upah harian.
-    // Memakainya sendirian membuat AC = 0 dan CPI SELALU null — angka yang
-    // terlihat "belum ada data" padahal datanya ada, hanya di tabel lain.
-    //
-    // Sumbernya disamakan dengan `kurva-s.ts` supaya CPI perusahaan dan CPI
-    // per proyek tak bercerita hal yang berbeda.
+  it('AC menjumlah TIGA sumber — kasbon TIDAK ditambahkan lagi', async () => {
+    /*
+      ⚠ Dulu EMPAT sumber, dan `kasbons` DIBUANG 2026-09-16. Alasannya bukan
+      penyederhanaan:
+
+      Trigger `trg_kasbon_approved_create_expense` SUDAH menulis baris
+      `project_expenses` (`ref_type='kasbon'`) untuk tiap kasbon yang
+      di-approve. Menjumlahkan keduanya berarti menghitung uang yang SAMA dua
+      kali — terukur 2026-09-15: 55 baris ↔ 55 baris, Rp 550.600.000 di kedua
+      sisi, nol yatim dua arah.
+
+      Premis versi lama sudah MATI. Ia berbunyi "`project_expenses` KOSONG
+      (nol baris), diukur 2026-08-12"; diukur ulang 2026-09-15: 143 baris,
+      Rp 848.185.000. Komentarnya benar saat ditulis, kodenya hidup terus, dan
+      AC perusahaan menggelembung Rp 496.600.000 — membuat CPI terlihat LEBIH
+      BURUK dari kenyataan (§8a.2).
+
+      Test yang menuntut EMPAT sumber karena itu menuntut cacat yang baru
+      diperbaiki. Progress payment dan upah harian TETAP dijumlah: keduanya
+      tak punya jalur trigger ke `project_expenses`.
+    */
     const j = (await get()).json()
     const { rows } = await db.query(
       `SELECT (
          COALESCE((SELECT sum(e.total_amount) FROM project_expenses e
                      JOIN projects p ON p.id = e.project_id
                     WHERE e.status = 'approved' AND p.company_id = $1), 0)
-       + COALESCE((SELECT sum(k.amount) FROM kasbons k
-                    WHERE k.status = 'approved' AND k.company_id = $1), 0)
        + COALESCE((SELECT sum(pp.net_payment) FROM progress_payments pp
                      JOIN work_scopes ws ON ws.id = pp.work_scope_id
                      JOIN mandor_assignments ma ON ma.id = ws.assignment_id
@@ -155,9 +166,15 @@ describe('konsistensi dengan sumbernya', () => {
   })
 
   it('CPI tidak null — bukti AC benar-benar terisi', async () => {
-    // Kalau AC kembali ke `project_expenses` saja, CPI jadi null dan test
-    // ini merah. Itu jaring pengaman untuk kemunduran yang paling mudah
-    // terjadi: seseorang "menyederhanakan" query-nya kembali jadi satu tabel.
+    /*
+      Jaring pengaman untuk kemunduran yang paling mudah terjadi: seseorang
+      "menyederhanakan" query-nya jadi SATU tabel. Kalau AC menyusut jadi
+      nol, CPI jadi null dan test ini merah.
+
+      ⚠ Ia TIDAK menjaga arah sebaliknya (kasbon dijumlah dua kali) — itu
+      tugas test di atasnya dan `audit-serapan-tak-dobel-kasbon.mjs`.
+      Dobel membuat CPI tetap tak-null, jadi test ini akan hijau atasnya.
+    */
     const j = (await get()).json()
     expect(j.evm.cpi).not.toBeNull()
   })

@@ -83,6 +83,29 @@ const LOMPATAN_LAMA = {
   499: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
   500: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
   501: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  // 582-587: DIPAKAI, tetapi di cabang yang belum menyatu.
+  //
+  // `feat/sumbu-ui-roadmap` (commit ced37d00, "enam yang NYATA dinomori
+  // 582-587") memegang keenamnya: 582_takeoff_sektor_bored_pile,
+  // 583_menu_ikon_anak_konsisten, 584_takeoff_sektor_baja_profil,
+  // 585_nama_analisa_poer_plat, 586_izin_template_rab,
+  // 587_template_item_cost_code.
+  //
+  // Migrasi berikutnya di `main` karena itu dinomori 588, dan celah ini
+  // MENUTUP SENDIRI saat cabang itu di-merge — bukan nomor yang tak pernah
+  // lahir seperti 30/64/434.
+  //
+  // ⚠ Pelajarannya, dan inilah kenapa alasannya ditulis panjang: penomoran
+  // 588 semula dipilih 582, sebab `ls db/migrations/` di `main` DAN di
+  // worktree keduanya berhenti di 581. Dua checkout yang sepakat bukan
+  // bukti nomor itu bebas — yang menentukan histori git SELURUH cabang:
+  //     git log --all --name-only | grep -o 'db/migrations/[0-9]*_[a-z_]*\.sql'
+  582: 'dipakai feat/sumbu-ui-roadmap (belum merge) — 582_takeoff_sektor_bored_pile',
+  583: 'dipakai feat/sumbu-ui-roadmap (belum merge) — 583_menu_ikon_anak_konsisten',
+  584: 'dipakai feat/sumbu-ui-roadmap (belum merge) — 584_takeoff_sektor_baja_profil',
+  585: 'dipakai feat/sumbu-ui-roadmap (belum merge) — 585_nama_analisa_poer_plat',
+  586: 'dipakai feat/sumbu-ui-roadmap (belum merge) — 586_izin_template_rab',
+  587: 'dipakai feat/sumbu-ui-roadmap (belum merge) — 587_template_item_cost_code',
 }
 
 if (!existsSync(MIGRASI)) {

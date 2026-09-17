@@ -165,6 +165,32 @@ export function petaWajibInvoice(inv: InvoiceUntukJurnal): JenisPetaAkun[] {
   if ((angkaAtauNol(inv.retensi_amount) ?? 0) > 0) wajib.push('retensi_ditahan')
   if ((angkaAtauNol(inv.dp_deduction_amount) ?? 0) > 0) wajib.push('uang_muka_klien')
   if ((angkaAtauNol(inv.tax_amount) ?? 0) > 0) {
+    /*
+      TIGA nilai enum, bukan dua — dan `tanpa_pajak` di sini adalah
+      KONTRADIKSI, bukan cabang ketiga yang perlu akun sendiri.
+
+      Pola `=== 'ppn' ? A : B` memperlakukan nilai baru sebagai cabang else,
+      jadi invoice `tanpa_pajak` ber-`tax_amount > 0` akan MENDEBIT akun PPh
+      Final — beban perusahaan, untuk proyek yang pajaknya sengaja dimatikan.
+
+      Dan jurnalnya tetap SEIMBANG: piutang dihitung sebagai selisih
+      (`kredit − debit`), jadi `trg_gl_wajib_seimbang` lolos dan pemeriksaan
+      `totalDebit !== totalKredit` lolos. Yang salah cuma KLASIFIKASINYA,
+      dan itu muncul di laba-rugi sebagai beban pajak yang tak seharusnya ada.
+
+      Fail-loud, bukan ditebak: invoice bertax pada proyek tanpa pajak berarti
+      ada yang salah HULU (layar yang memaku tarif, atau `tax_amount` mentah
+      yang diterima `finance.ts`). Menjurnalnya diam-diam ke akun mana pun
+      hanya memindahkan cacatnya ke tempat yang lebih sulit dilihat.
+    */
+    if (inv.tax_scheme === 'tanpa_pajak') {
+      throw new Error(
+        `Invoice ${inv.id ?? ''} berskema \`tanpa_pajak\` tetapi tax_amount = ` +
+        `${inv.tax_amount}. Jurnal tak dibuat: pajak pada proyek yang pajaknya ` +
+        `dimatikan berarti ada cacat di hulu (tarif dipaku di layar, atau ` +
+        `tax_amount diterima mentah).`
+      )
+    }
     wajib.push(inv.tax_scheme === 'ppn' ? 'ppn_keluaran' : 'pph_final')
   }
   return wajib

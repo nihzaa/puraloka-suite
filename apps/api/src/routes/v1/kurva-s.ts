@@ -79,16 +79,36 @@ export default async function kurvaSRoutes(app: FastifyInstance) {
       const endDate = new Date(proj.end_date)
 
       // ── Fetch semua sumber pengeluaran aktual proyek secara paralel ───────
-      // AC = semua uang yang keluar untuk proyek: kasbon + project_expenses + upah mandor + settlement
-      const [kasbonRes, expenseRes, wageRes, progressPayRes, boronganRes] = await Promise.all([
-        // Kasbon approved (uang operasional ke mandor)
-        request.db!
-          .from('kasbons')
-          .select('amount, kasbon_date, work_scopes!inner(mandor_assignments!inner(project_id))')
-          .eq('work_scopes.mandor_assignments.project_id', projectId)
-          .eq('status', 'approved')
-          .order('kasbon_date'),
-
+      // AC = project_expenses (kasbon SUDAH di dalamnya) + upah mandor + settlement
+      //
+      // ⚠ KASBON DIHAPUS SEBAGAI SUMBER TERPISAH 2026-09-15 — ia DUA KALI.
+      //
+      // Trigger `trg_kasbon_approved_create_expense` menyisipkan baris
+      // `project_expenses` (ref_type='kasbon') untuk SETIAP kasbon yang
+      // mencapai `approved`. Query kasbon di bawah karena itu menjumlahkan
+      // uang yang detik itu juga sudah terhitung lewat `expenseRes`.
+      //
+      // Diukur ke basis 2026-09-15, seluruh tabel, dua arah:
+      //   kasbons approved/settled            55 baris  Rp 550.600.000
+      //   project_expenses ref_type='kasbon'  55 baris  Rp 550.600.000
+      //   kasbon approved/settled tanpa expense    0 baris
+      //
+      // AC yang kelebihan biaya membuat CPI terlihat BURUK pada proyek yang
+      // sebenarnya sehat — arah terbalik dari cacat Rp 631,7 juta yang
+      // dicatat di blok `project_expenses` di bawah, dan sama tak bergejalanya.
+      //
+      // ── Query lama ini juga KEKURANGAN, sekaligus kelebihan
+      //
+      // Ia membaca kasbon HANYA lewat work_scopes→mandor_assignments, jadi
+      // kasbon yang terikat `project_id` langsung (sah sejak migrasi 056)
+      // tak pernah terbaca: diukur 1 kasbon, Rp 2.500.000, pada "[UJI]
+      // Renovasi Gudang Bu Sinta". Dua cacat berlawanan arah di satu query —
+      // itulah kenapa totalnya tak pernah terlihat jelas salah.
+      //
+      // Membaca dari `project_expenses` menutup keduanya sekaligus: trigger
+      // memakai COALESCE(scope→project, NEW.project_id), jadi kedua jalur
+      // pengikatan kasbon mendarat di tabel yang sama.
+      const [expenseRes, wageRes, progressPayRes, boronganRes] = await Promise.all([
         // Project expenses approved (pembelian material, sewa alat, dll)
         //
         // ⚠️ DIPERBAIKI 2026-08-01 — dua cacat yang membuat query ini SELALU
@@ -287,16 +307,17 @@ export default async function kurvaSRoutes(app: FastifyInstance) {
       })
 
       // ── AKTUAL: semua sumber pengeluaran per minggu (kumulatif) ────────────
-      // AC = kasbon approved + project_expenses + upah mandor + progress payments + borongan settlements
+      // AC = project_expenses (kasbon sudah termasuk) + upah mandor
+      //      + progress payments + borongan settlements
       type SpendEntry = { amount: number; date: string }
       const acEntries: SpendEntry[] = []
 
-      // Kasbon approved
-      for (const k of (kasbonRes.data ?? [])) {
-        acEntries.push({ amount: Number(k.amount), date: (k as Record<string, unknown>).kasbon_date as string })
-      }
+      // Kasbon TIDAK dijumlahkan di sini — ia sudah masuk lewat
+      // `project_expenses` (ref_type='kasbon') berkat trigger basis.
+      // Menjumlahkannya lagi berarti menghitung uang yang sama dua kali;
+      // alasan lengkap + angka pengukurannya di blok query di atas.
 
-      // Project expenses (pembelian material, sewa alat, dll)
+      // Project expenses (pembelian material, sewa alat, dll) — kasbon IKUT
       //
       // Kegagalan query TIDAK boleh lagi lewat diam-diam sebagai "nol baris".
       // Itulah yang menyembunyikan Rp 631,7 juta selama ini — lihat catatan di

@@ -129,6 +129,11 @@ async function bersihkan() {
   await client.query(
     `DELETE FROM accounts WHERE company_id IN (SELECT id FROM companies WHERE code LIKE 'gl-test%')`)
   await client.query(`ALTER TABLE companies DISABLE TRIGGER trg_company_no_casual_delete`)
+  // ⚠ Rantai approval dibuang dulu — 2026-09-14. Migrasi 580 (R-010) memberi
+  // tiap company BARU 13 rantai + langkahnya lewat trigger, dan FK-nya
+  // `ON DELETE RESTRICT` (disengaja) menolak DELETE company tanpa ini.
+  await client.query(`DELETE FROM approval_steps WHERE chain_id IN (SELECT id FROM approval_chains WHERE company_id IN (SELECT id FROM companies WHERE code LIKE 'gl-test%'))`)
+  await client.query(`DELETE FROM approval_chains WHERE company_id IN (SELECT id FROM companies WHERE code LIKE 'gl-test%')`)
   await client.query(`DELETE FROM companies WHERE code LIKE 'gl-test%'`)
   await client.query(`ALTER TABLE companies ENABLE TRIGGER trg_company_no_casual_delete`)
 }

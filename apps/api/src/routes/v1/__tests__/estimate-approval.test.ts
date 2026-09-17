@@ -229,7 +229,6 @@ describe('Berjenjang (2 level) — endpoint pending → final via engine', () =>
   // punya → yang diuji MEKANIKA penahapan endpoint, bukan pemisahan orang).
   // Membuktikan: approve level 1 pada rantai 2-level → status TETAP under_review
   // (pending), baru approve level 2 → approved. Ini yang tak tertangkap uji 1-level.
-  let level2Id: string
   beforeAll(async () => {
     // Self-healing: rantai seed 'estimate_version' hanya 1 level; level ≥2 = residu
     // run sebelumnya yang mati sebelum afterAll. Bersihkan dulu supaya INSERT tak
@@ -237,15 +236,27 @@ describe('Berjenjang (2 level) — endpoint pending → final via engine', () =>
     await client.query(
       `DELETE FROM approval_steps WHERE level >= 2 AND chain_id IN
         (SELECT id FROM approval_chains WHERE entity_type='estimate_version')`)
-    const { rows } = await client.query(
+    await client.query(
       // `company_id` diwariskan dari chain induknya — lihat catatan F0-14.
       `INSERT INTO approval_steps (company_id, chain_id, level, required_permission, label)
        SELECT company_id, id, 2, 'settings:finance:manage', '[TEST] L2' FROM approval_chains
-        WHERE entity_type='estimate_version' RETURNING id`)
-    level2Id = rows[0].id
+        WHERE entity_type='estimate_version'`)
   })
   afterAll(async () => {
-    if (level2Id) await client.query(`DELETE FROM approval_steps WHERE id=$1`, [level2Id])
+    /*
+      ⚠ Dihapus lewat LABEL, bukan `level2Id` — diperbaiki 2026-09-14.
+
+      INSERT di atas menyisipkan level 2 ke SETIAP rantai `estimate_version`
+      (satu per company), tetapi `RETURNING id` cuma menangkap `rows[0]`.
+      Pembersih lama membuang SATU dan meninggalkan sisanya — diukur 18 baris
+      `[TEST] L2` tertinggal.
+
+      Tak bergejala selama hanya SATU company punya rantai. Sejak migrasi 580
+      (R-010) tiap tenant punya rantainya sendiri, dan sisa itu membuat
+      approval estimasi diam-diam jadi 2 level: "expected undefined to be
+      'approved'" — di berkas ini sendiri, saat dijalankan bersama yang lain.
+    */
+    await client.query(`DELETE FROM approval_steps WHERE label = '[TEST] L2'`)
   })
 
   it('approve level 1 → pending_next_level, status TETAP under_review', async () => {

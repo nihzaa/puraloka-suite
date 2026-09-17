@@ -52,7 +52,7 @@ import {
   ShieldCheck, CalendarDays, Landmark, Ruler, Layers, Coins, GitBranch, BellRing,
   Database, Gavel, FileSignature, CalendarRange, Calculator, Package,
   ClipboardList, BadgeCheck, ShieldAlert, Truck, FolderOpen, AlertTriangle,
-  Smartphone, Dot, Bot,
+  Smartphone, Dot, Bot, BookOpen, Wrench,
 } from "lucide-react";
 
 export const IKON_MENU: Record<string, React.ElementType> = {
@@ -69,6 +69,24 @@ export const IKON_MENU: Record<string, React.ElementType> = {
   // jatuh ke `FolderKanban` — dan asisten AI tampil bergambar folder,
   // penanda yang keliru dan tak menimbulkan galat apa pun.
   Bot,
+  // `BookOpen` (grup Akuntansi) & `Wrench` (grup Alat & Dokumen) — ditambahkan
+  // 2026-09-15 bersama migrasi 582.
+  //
+  // Persis cacat yang diperingatkan tiga baris di atas, terulang pada DUA grup
+  // sekaligus, dan bertahan karena ia tak bisa dilihat: keduanya jatuh ke
+  // `FolderKanban`, sehingga "Akuntansi" dan "Alat & Dokumen" bergambar folder
+  // yang SAMA PERSIS dengan grup Proyek. Bukan ikon hilang — ikon KELIRU, tanpa
+  // galat, dan sepenuhnya masuk akal bagi yang belum pernah melihat yang benar.
+  //
+  // Ditemukan bukan dari melihat layar melainkan dari MEMBANDINGKAN dua daftar:
+  // nama ikon di `menu_items` vs kunci tabel ini. Tujuh sub-menu lain jatuh ke
+  // lubang yang sama dan diselesaikan dengan cara lain — 582 menjadikannya
+  // `Dot`, sebab sub-menu memang seragam. Induk tak punya jalan keluar itu:
+  // ikon grup adalah satu-satunya penanda visual sidebar, jadi ia harus
+  // DIDAFTARKAN.
+  //
+  // Kedua arah kini dijaga `audit-ikon-menu-benar.mjs` (ambang NOL).
+  BookOpen, Wrench,
 };
 
 /** Nama ikon (string dari DB) → komponen lucide. Referensi, bukan komponen baru. */

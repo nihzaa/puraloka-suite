@@ -276,17 +276,28 @@ describe('approval_chains — UNIQUE per company (migrasi 158)', () => {
     // Akibatnya FAIL-CLOSED: company kedua yang tak bisa punya rantai berarti
     // nol orang bisa menyetujui apa pun di sana — kasbon, CO, pengeluaran,
     // estimasi, semuanya beku.
+    /*
+      ⚠ Cara memeriksanya DIUBAH 2026-09-14, yang DIUJI tidak.
+
+      Versi sebelumnya membuat company kedua lalu MENYISIPKAN rantai
+      `kasbon`, dan menganggap berhasilnya sebagai bukti. Sejak migrasi 580
+      (R-010) sisipan itu GAGAL — bukan karena UNIQUE global kembali,
+      melainkan karena trigger `trg_company_rantai_approval` SUDAH membuatkan
+      rantainya lebih dulu. `bisa` jadi false atas keadaan yang justru lebih
+      baik daripada yang dituntut test ini.
+
+      Yang sebenarnya dijaga: company kedua PUNYA rantainya sendiri, bukan
+      terhalang `UNIQUE (entity_type)` global. Itu kini diperiksa langsung —
+      dan lebih kuat: rantainya wajib ADA tanpa seorang pun menyisipkannya.
+    */
     await c.query('SAVEPOINT s8')
     const b = await c.query(
       `INSERT INTO companies (code, name, owner_user_id)
        VALUES ('uji-158-t','Tenant B', (SELECT id FROM users ORDER BY created_at LIMIT 1)) RETURNING id`)
-    let bisa = false
-    try {
-      await c.query(
-        `INSERT INTO approval_chains (company_id, entity_type, label, is_active)
-         VALUES ($1,'kasbon','Persetujuan Kasbon (B)',true)`, [b.rows[0].id])
-      bisa = true
-    } catch { bisa = false }
+    const { rows: rantaiB } = await c.query(
+      `SELECT 1 FROM approval_chains WHERE company_id = $1 AND entity_type = 'kasbon'`,
+      [b.rows[0].id])
+    const bisa = rantaiB.length > 0
     await c.query('ROLLBACK TO SAVEPOINT s8')
 
     expect(
@@ -301,9 +312,17 @@ describe('approval_chains — UNIQUE per company (migrasi 158)', () => {
     const b = await c.query(
       `INSERT INTO companies (code, name, owner_user_id)
        VALUES ('uji-158-u','Tenant C', (SELECT id FROM users ORDER BY created_at LIMIT 1)) RETURNING id`)
-    await c.query(
-      `INSERT INTO approval_chains (company_id, entity_type, label, is_active)
-       VALUES ($1,'kasbon','satu',true)`, [b.rows[0].id])
+    /*
+      ⚠ Rantai pertama TAK perlu disisipkan lagi — trigger
+      `trg_company_rantai_approval` (migrasi 580) sudah membuatkannya saat
+      company lahir. Menyisipkannya justru bentrok di baris yang SALAH,
+      membatalkan transaksi sebelum test sampai ke pemeriksaan yang
+      sesungguhnya — dan tiga test sesudahnya ikut merah dengan
+      "current transaction is aborted".
+
+      Yang diuji tetap sama: sisipan KEDUA untuk entitas yang sama di company
+      yang sama wajib ditolak 23505.
+    */
     let bentrok = false
     try {
       await c.query(

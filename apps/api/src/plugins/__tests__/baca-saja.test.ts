@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { supabase } from '../../utils/supabase.js'
 import { bacaKeadaanBacaSaja, METODE_TULIS, AWALAN_TETAP_BOLEH } from '../baca-saja.js'
+import { bongkarCompanyUji } from '../../test-utils/bongkar-company-uji.js'
 
 /**
  * BACA-SAJA — yang diuji ARAH KEGAGALANNYA, dan jalur pemulihannya.
@@ -40,7 +41,7 @@ beforeAll(async () => {
 afterAll(async () => {
   if (companyId) {
     await supabase.from('entitlement_snapshot').delete().eq('company_id', companyId)
-    await supabase.from('companies').delete().eq('id', companyId)
+    await bongkarCompanyUji(supabase, companyId)
   }
 })
 
