@@ -3,8 +3,8 @@
   "_kenapa": "Tipografi satu-satunya kategori visual bertoken yang tak punya rem. Selama ukuran ditulis langsung, keputusan tipografi berikutnya menyentuh 146 berkas dan yang terlewat tetap kecil.",
   "_cara": "Pakai var(--teks-tabel|--teks-label|--teks-badan|--teks-kpi|--teks-delta) dari app/globals.css. Kalau ukurannya belum punya token, TAMBAHKAN tokennya.",
   "_cakupan": "159 page.tsx di apps/web/app/(dashboard) — bukan seluruh repo, bukan components/.",
-  "_diukur": "2026-09-15",
-  "total": 2271,
+  "_diukur": "2026-09-17",
+  "total": 2255,
   "berkas": {
     "app/(dashboard)/proyek/[id]/page.tsx": 64,
     "app/(dashboard)/pengaturan/keuangan/page.tsx": 59,
@@ -27,7 +27,6 @@
     "app/(dashboard)/mandor/mitra/page.tsx": 27,
     "app/(dashboard)/sdm/payroll/page.tsx": 26,
     "app/(dashboard)/kepatuhan/page.tsx": 25,
-    "app/(dashboard)/master/ahsp/page.tsx": 25,
     "app/(dashboard)/procurement/rfq/page.tsx": 25,
     "app/(dashboard)/mandor/[id]/page.tsx": 24,
     "app/(dashboard)/mandor/spk/page.tsx": 24,
@@ -114,6 +113,7 @@
     "app/(dashboard)/risiko/page.tsx": 10,
     "app/(dashboard)/k3/insiden/page.tsx": 9,
     "app/(dashboard)/keuangan/cvr/page.tsx": 9,
+    "app/(dashboard)/master/ahsp/page.tsx": 9,
     "app/(dashboard)/mutu/page.tsx": 9,
     "app/(dashboard)/otomasi/riwayat/page.tsx": 9,
     "app/(dashboard)/pengaturan/notifikasi/page.tsx": 9,
@@ -152,5 +152,8 @@
     "app/(dashboard)/estimasi/rab/page.tsx": 1,
     "app/(dashboard)/estimasi/struktur/page.tsx": 1,
     "app/(dashboard)/kontrak/page.tsx": 1
-  }
+  },
+  "_riwayat": [
+    "2271 -> 2255 (otomatis)"
+  ]
 }
