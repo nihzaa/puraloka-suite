@@ -5,6 +5,81 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-09-17 (lanjutan) — override yang BASI, dan enam shard merah yang satu cacat
+
+Founder: *"LANJUTTKANN"*.
+
+### `pnpm audit` hijau — 25/17 high → 11/5, exit 0
+
+Merah di TIAP PR selama ini. Dibaca sekilas, kedua belas temuannya menyebut
+rantai `expo`, jadi ia terbaca seperti masalah pihak ketiga yang menunggu
+rilis upstream. Salah baca: **11 dari 12 adalah SATU paket** dengan override
+yang basi.
+
+```
+'@xmldom/xmldom': '>=0.8.12'   menutup advisory saat DITULIS
+terpasang         0.9.10       MEMENUHI syaratnya
+advisory baru     >=0.9.12     terbit di atasnya
+```
+
+**Override yang basi tidak bergejala.** pnpm menghormatinya, install
+berhasil, nol peringatan. Angkanya tak SALAH — ia berhenti mengejar. Bentuk
+yang sama dengan racun konteks di pembuka CLAUDE.md, tapi di berkas
+konfigurasi: `>=` membuat angka lama tetap terpenuhi selamanya.
+
+### Jebakan yang memakan waktu saya sendiri
+
+`sharp` diminta LANGSUNG oleh apps/api, jadi saya menaikkan specifier di
+`apps/api/package.json`. Lockfile tak bergerak:
+
+```
+specifier: '>=0.35.0'   ← override menang
+version:   0.35.3
+```
+
+**Override di `pnpm-workspace.yaml` MENGALAHKAN package.json**, tanpa satu
+pun galat. Yang berubah cuma sebaris teks yang tak seorang pun baca lagi.
+Saya baru melihatnya karena memeriksa lockfile sesudah install — kalau
+berhenti di "package.json sudah saya naikkan", commit ini akan hijau di
+mata saya dan merah di CI.
+
+Alasannya ditulis di ATAS entri override, bukan di pesan commit — di tempat
+yang akan dibaca orang yang menyunting angka itu berikutnya.
+
+### Diuji, bukan diasumsikan
+
+`sharp` hidup lewat impor DINAMIS (`grafik-svg.ts:205`), jadi grep impor
+statis memulangkan NOL — dan nol bukan bukti ketiadaan (§7a lagi). Hampir
+saya simpulkan "tak terpakai, aman". Dijalankan di lingkungan terpisah:
+
+```
+libvips 8.18.6 · sharp 0.35.4
+SVG -> PNG : 1.153 byte · magic PNG true · 120x60
+```
+
+⚠ `pnpm install --filter` menolak dengan `ERR_PNPM_ABORTED_REMOVE_MODULES_
+DIR_NO_TTY`, dan itu MENYELAMATKAN — `node_modules` worktree ini junction,
+jadi purge-nya mengenai `E:\Project\puraloka-suite\node_modules` MILIK REPO
+SUNGGUHAN. pnpm 9 (versi server EAS) meminta hal yang sama. Tidak
+dijalankan; lockfile diverifikasi lewat `lockfileVersion` + diff, bukan
+lewat install.
+
+### PR #150: enam shard merah = SATU cacat, sudah diperbaiki
+
+Terbaca seperti kerusakan luas. Fase test **tak pernah dimulai** — keenamnya
+mati di fase PENJAGA pada baris yang sama: `ZZISO308548 Tenant B` × 12 jenis
+approval.
+
+Dan beberapa langkah sebelumnya, penyapu melapor BERSIH (`dinonaktifkan: 0`).
+Dua penjaga yang keduanya jujur, cacatnya hidup di antara mereka — penyapu
+hanya mengenali `[UJI-*]`, tenant itu bernama `ZZISO<acak>`.
+
+Sudah ditutup `59d8297f` di #152, tak ada di #150 maupun `main`. Tak
+ditambal di sana: begitu #152 masuk lalu di-rebase, hasil CI #150 bermakna
+untuk pertama kalinya.
+
+---
+
 ## 2026-09-17 (lanjutan) — penjaga izin HIJAU di CI sesudah lima versi, dan dua PR yang saling membunuh
 
 Founder: *"lanjutkann"* ×2.
