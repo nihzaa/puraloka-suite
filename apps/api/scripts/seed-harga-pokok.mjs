@@ -168,7 +168,55 @@ async function main() {
       // memilih salah satunya berarti menebak, dan tebakan pada harga menyebar
       // ke seluruh analisa yang memakainya.
       const kandidat = viaNamaSaja.get(norm(r.name))
-      const cocok = viaRumus.get(norm(r.name))
+
+      /*
+        JALUR 0 — SATUAN RESOURCE MENANG. Ditambahkan 2026-09-17, dan ia
+        sengaja berjalan SEBELUM keempat jalur di bawah.
+
+        Sebab yang ditemukan: `Agregat kasar` tersimpan Rp 385.000 di baris
+        ber-satuan **kg**. Itu harga per m3, tersalin utuh. Akibatnya, di
+        analisa yang koefisiennya memang dalam kg:
+
+            Pembuatan 1 m3 pondasi beton siklop
+            706 kg x Rp 385.000 = Rp 271.810.000  untuk SATU m3 beton
+
+        Persis kelas cacat yang dijaga `audit-harga-satuan-waras.mjs`
+        (1 m3 beton jadi Rp 626 juta) — dan lolos karena penjaga itu
+        membandingkan harga IDENTIK lintas satuan, sedangkan di sini
+        angkanya memang cuma ada satu.
+
+        Kenapa jalur 1-4 memilih yang salah: keduanya membaca nama SAJA.
+        Dataset memuat baris yang sama dalam dua satuan —
+
+            harga-se47          Agregat kasar   m3   385.000
+            harga-analisa-se47  Agregat kasar   kg   285,19
+
+        — dan berkas daftar harga resmi dibaca DULUAN, jadi baris m3 yang
+        menang meski resource-nya kg.
+
+        ⚠ Yang diperiksa SATUAN, bukan kewajaran harga. Jalur ini hanya
+        memilih di antara kandidat yang SUDAH ada; ia tak pernah mengarang
+        angka, tak pernah mengonversi, dan tak berbuat apa-apa bila tak ada
+        kandidat bersatuan sama. Konversi m3→kg BUTUH densitas, dan densitas
+        yang ditebak adalah cacat yang sama dalam bentuk lain.
+
+        Diukur 2026-09-17 — dari 30 resource yang punya kandidat bersatuan
+        sama, hanya 3 yang angkanya benar-benar berubah:
+
+            Agregat kasar          kg   385.000 → 285,19   (1.350 kg/m3, wajar)
+            Ijuk                   kg    39.700 →  7.000
+            Besi strip (0,2x2) cm  m1    15.000 →  5.000   (0,314 kg/m x 15rb = 4.710)
+
+        27 sisanya rasio 1,0 — beda LABEL satuan antar-berkas, angka sama.
+
+        ⚠ `Bentonite` SENGAJA tak tersentuh: m3 Rp 25.000 dan kg Rp 20.000.000
+        BUKAN satuan yang salah melainkan dua BENTUK barang (bubur vs bubuk).
+        Jalur ini tak menyentuhnya sebab resource-nya m3 dan kandidat m3 ada —
+        yang sudah dipilih memang yang benar.
+      */
+      const seSatuan = kandidat?.filter((k) => k.unit_code === r.unit_code)
+      const cocok = (seSatuan?.length === 1 ? seSatuan[0] : undefined)
+        ?? viaRumus.get(norm(r.name))
         ?? viaNama.get(`${r.category}|${norm(r.name)}`)
         ?? (kandidat?.length === 1 ? kandidat[0] : undefined)
         /*
